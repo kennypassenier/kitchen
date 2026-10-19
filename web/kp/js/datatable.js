@@ -83,6 +83,12 @@
 //                            gives (sort, scope, filter, hideColumns, view().sorts) counts it, so the first data
 //                            column of an expandable table is 1, not 0 [b3b4-1019].
 //   data-kp-fixed-columns    the key column stays while the box scrolls sideways
+//   data-kp-fixed-end="n"    the last n columns stay at the end while the box scrolls sideways (an action column) [datatable-r5-1019, O22]
+//   data-kp-filter-ui="none" the header filters stay (handle.filter, the view, events) but the table draws no Filters button,
+//                            panel, "+ Add filter" or pills: the page draws its own (chips) [datatable-r5-1019, O22]
+//   data-kp-cards            on a phone the rows become cards: a label track and a value track that every line of a card shares;
+//                            a cell without data-label gets the header's words [datatable-r5-1019, B2, N20]
+//                            ="spread" keeps the older look: label left, value pushed right
 //   data-kp-server           the rows come from the consumer's `load`, stale answers dropped
 //   th data-kp-edit          a value is edited in its cell; the app hears it and may refuse it
 //   td data-kp-sort-value    the value a cell sorts and range/date-filters by in place of the text it shows
@@ -487,8 +493,9 @@ const shown = (element) => !(/** @type {HTMLElement} */ (element).hidden) && get
  *
  * @param {HTMLTableElement} table
  * @param {number} count how many leading columns stay; 0 takes the marks away
+ * @param {number} [endCount] how many trailing columns stay at the end edge (`data-kp-fixed-end`); 0 takes the marks away
  */
-export function syncFixedColumns(table, count) {
+export function syncFixedColumns(table, count, endCount = 0) {
     const head = table.tHead?.rows[0];
     /** @type {Map<number, number>} */
     const starts = new Map();
@@ -503,6 +510,23 @@ export function syncFixedColumns(table, count) {
             last = cell.cellIndex;
         }
     }
+    // The end columns count from the last cell of the header, and stick at the end edge [datatable-r5-1019, O22].
+    /** @type {Map<number, number>} */
+    const ends = new Map();
+    let first = -1;
+    if (head !== undefined && endCount > 0) {
+        let offset = 0;
+        let taken = 0;
+        for (let at = head.cells.length - 1; at >= 0 && taken < endCount; at--) {
+            const cell = head.cells[at];
+            if (!shown(cell)) continue;
+            if (starts.has(cell.cellIndex)) break;
+            ends.set(cell.cellIndex, offset);
+            offset += cell.getBoundingClientRect().width;
+            first = cell.cellIndex;
+            taken += 1;
+        }
+    }
     for (const row of table.rows) {
         const whole = row.matches(DETAIL);
         for (const cell of row.cells) {
@@ -512,10 +536,20 @@ export function syncFixedColumns(table, count) {
                     delete cell.dataset.kpFixed;
                     cell.style.removeProperty('--kp-datatable-fixed-start');
                 }
-                continue;
+            } else {
+                cell.dataset.kpFixed = cell.cellIndex === last ? 'last' : '';
+                cell.style.setProperty('--kp-datatable-fixed-start', `${Math.round(start * 100) / 100}px`);
             }
-            cell.dataset.kpFixed = cell.cellIndex === last ? 'last' : '';
-            cell.style.setProperty('--kp-datatable-fixed-start', `${Math.round(start * 100) / 100}px`);
+            const end = whole ? undefined : ends.get(cell.cellIndex);
+            if (end === undefined) {
+                if (cell.dataset.kpFixedEnd !== undefined) {
+                    delete cell.dataset.kpFixedEnd;
+                    cell.style.removeProperty('--kp-datatable-fixed-end');
+                }
+            } else {
+                cell.dataset.kpFixedEnd = cell.cellIndex === first ? 'first' : '';
+                cell.style.setProperty('--kp-datatable-fixed-end', `${Math.round(end * 100) / 100}px`);
+            }
         }
     }
 }
@@ -1306,6 +1340,8 @@ export function attachDataTables(
         /** @type {HTMLElement | null} */
         let pills = null;
         const addMode = (wrap.dataset.kpFilterMode ?? filterMode) === 'add';
+        /** `data-kp-filter-ui="none"`: the filters work, the page draws them [datatable-r5-1019, O22]. */
+        const bareFilters = wrap.dataset.kpFilterUi === 'none';
         /** The add-filter mode's button, its menu, the list in the menu and the editor [#filter-add]. */
         /** @type {HTMLButtonElement | null} */
         let addButton = null;
@@ -1315,7 +1351,7 @@ export function attachDataTables(
         let addMenu = null;
         /** @type {HTMLFormElement | null} */
         let filterEditor = null;
-        if (filterColumns.length > 0 && addMode) {
+        if (filterColumns.length > 0 && addMode && !bareFilters) {
             const s = s0;
             const popId = `${id}-add-filter`;
             addButton = /** @type {HTMLButtonElement | null} */ (wrap.querySelector(ADD_FILTER));
@@ -1363,7 +1399,7 @@ export function attachDataTables(
             filterEditor.hidden = true;
             wrap.insertBefore(filterEditor, tableBlock);
         }
-        if (filterColumns.length > 0 && !addMode) {
+        if (filterColumns.length > 0 && !addMode && !bareFilters) {
             panel = /** @type {HTMLElement | null} */ (wrap.querySelector(FILTERS));
             if (panel === null) {
                 panel = add(make('div', 'kp-datatable__filters'));
@@ -1425,7 +1461,7 @@ export function attachDataTables(
             toggle.setAttribute('aria-controls', panel.id);
             toggle.setAttribute('aria-expanded', String(!panel.hidden));
         }
-        if (filterColumns.length > 0) {
+        if (filterColumns.length > 0 && !bareFilters) {
             pills = /** @type {HTMLElement | null} */ (wrap.querySelector(PILLS));
             if (pills === null) {
                 pills = add(make('div', 'kp-datatable__pills'));
@@ -2206,14 +2242,43 @@ export function attachDataTables(
 
         const fixedAttribute = wrap.dataset.kpFixedColumns;
         const fixedCount = fixedAttribute === undefined ? 0 : Number.parseInt(fixedAttribute, 10) || keyColumn + 1;
+        const fixedEndCount = Math.max(0, Number.parseInt(wrap.dataset.kpFixedEnd ?? '', 10) || (wrap.dataset.kpFixedEnd === undefined ? 0 : 1));
         const syncFixed = () => {
-            if (fixedCount > 0) syncFixedColumns(table, fixedCount);
+            if (fixedCount > 0 || fixedEndCount > 0) syncFixedColumns(table, fixedCount, fixedEndCount);
         };
+
+        /**
+         * A table that becomes cards says in each cell which column it is [datatable-r5-1019, B2]: a cell the markup
+         * gave no `data-label` takes its header's words, so a server that renders plain rows still gets cards. A label
+         * the markup wrote stays; a cell under a header with no words (the selection box, the actions) gets none and
+         * spans the card. Read again on every render, for rows that came later; detach takes the derived ones away.
+         * @type {Set<HTMLTableCellElement>}
+         */
+        const derivedLabels = new Set();
+        const cardsWanted = wrap.hasAttribute('data-kp-cards') || table.hasAttribute('data-kp-cards');
+        const labelCells = () => {
+            if (!cardsWanted) return;
+            for (const row of all) {
+                if (row.matches(DETAIL) || row.matches(GROUP_ROW) || row.matches(SKELETON_ROW)) continue;
+                for (const cell of row.cells) {
+                    if (cell.hasAttribute('data-label')) continue;
+                    const words = labelOf(cell.cellIndex);
+                    if (words === '') continue;
+                    cell.setAttribute('data-label', words);
+                    derivedLabels.add(cell);
+                }
+            }
+        };
+        undo.push(() => {
+            for (const cell of derivedLabels) cell.removeAttribute('data-label');
+            derivedLabels.clear();
+        });
 
         /** @type {GridHandle | null} */
         let grid = null;
 
         const render = () => {
+            labelCells();
             const count = serverMode ? total || 0 : shownRows.length;
             const pages = Math.max(1, Math.ceil(count / size));
             page = Math.min(page, pages - 1);
@@ -3668,7 +3733,7 @@ export function attachDataTables(
 
         let resizeFrame = 0;
         const resize =
-            fixedCount > 0 && typeof ResizeObserver !== 'undefined'
+            (fixedCount > 0 || fixedEndCount > 0) && typeof ResizeObserver !== 'undefined'
                 ? new ResizeObserver(() => {
                       cancelAnimationFrame(resizeFrame);
                       resizeFrame = requestAnimationFrame(syncFixed);
@@ -3824,7 +3889,7 @@ export function attachDataTables(
         // summary are built from them, and the one-row-open rule is read when the table is wired. The table is wired
         // again with the view it had [live-options-1019].
         undo.push(
-            watchOptions(wrap, ['data-kp-sort-multi', 'data-kp-filter-mode', 'data-kp-expand-single'], () => {
+            watchOptions(wrap, ['data-kp-sort-multi', 'data-kp-filter-mode', 'data-kp-filter-ui', 'data-kp-expand-single', 'data-kp-fixed-end'], () => {
                 const old = handles.get(wrap);
                 if (old === undefined) return;
                 const was = old.view();

@@ -1,1 +1,1 @@
-kp-themes main 34eca5ae (2026-10-19), vendored as a bridge until the next kp-themes release reaches chassis-rs; then web/kp goes and the paths point at /static/kp/.
+kp-themes main eb9d9825 (2026-10-19), vendored as a bridge until the next kp-themes release reaches chassis-rs; then web/kp goes and the paths point at /static/kp/.

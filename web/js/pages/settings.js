@@ -111,7 +111,7 @@ export function mount(root) {
 
   const calmGrid = h(
     "div",
-    { class: "kp-formgrid", "data-kp-formgrid-lines": "lines" },
+    { class: "kp-formgrid", "data-kp-formgrid-lines": "lines", "data-kp-formgrid-align": "center" },
     row({ id: "calm", title: "Calm mode", text: "Turns movement and effects off with one switch. Loading keeps a slow pulse so you can tell it is working.", control: calmControl, said: "Calm mode is off." }),
     row({ id: "theme", title: "Theme", text: "How the app looks. The choice applies at once and is kept for next time.", control: themeHost, said: "" }),
     row({
@@ -126,7 +126,7 @@ export function mount(root) {
   );
   const kitchenGrid = h(
     "div",
-    { class: "kp-formgrid", "data-kp-formgrid-lines": "lines" },
+    { class: "kp-formgrid", "data-kp-formgrid-lines": "lines", "data-kp-formgrid-align": "center" },
     row({ id: "dinner", title: "Dinner time", text: "When you usually eat. The timing screen counts back from it.", control: dinner, extra: resetText("18:30"), action: reset("dinner", "18:30") }),
     row({ id: "pace", title: "Cooking pace", text: "A slow day stretches the steps you do with your hands; the ones you walk away from stay as they are.", control: pace, extra: resetText("normal"), action: reset("pace", "normal") }),
     row({ id: "spare", title: "Time to spare", text: "Minutes between everything being ready and eating.", control: spare, controlLabelFor: "st-spare", extra: resetText("no time"), action: reset("spare", "no time") }),

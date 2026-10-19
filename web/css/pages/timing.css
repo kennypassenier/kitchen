@@ -137,3 +137,8 @@
 .tm-digits .kp-countdown__controls {
   display: none;
 }
+
+/* A track's start diamond stands just before its first bar, not on top of it: its right edge is the start. */
+.tm-sec .kp-gantt__point {
+  translate: -100% 0;
+}

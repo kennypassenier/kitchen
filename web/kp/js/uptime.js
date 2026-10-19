@@ -27,9 +27,9 @@
 //
 // States, each in the same footprint so nothing moves between them: `ready`;
 // `loading` (the cells wait as the theme's skeleton and the data table's busy
-// card stands over them, js/busy-card.js); `empty` (every cell without data,
-// the summary says so); `error` (the cells without data, the summary carries
-// the page's sentence on the destructive plate). Before the first
+// card stands over them, js/busy-card.js); `empty` and `error` (the package's state plate over the strip's whole footprint, js/state-plate.js:
+// `message` / `error` its heading, `text` its sentence, `art` a picture; a failure has a Retry that fires `kp-uptime-retry`; js/footprint.js
+// holds the height the strip had with its cells [kyu-plates-1019]). Before the first
 // setUptime() the strip draws the loading state from its attributes, so a
 // page shows loading from its first frame.
 //
@@ -66,6 +66,7 @@ import { openBusyCard } from './busy-card.js';
 import { arriveShown, playClose, stopClose } from './motion.js';
 import { raiseOverlay, placeBlockSide } from './top-layer.js';
 import { calmWord, isCalmTones } from './calm-tones.js';
+import { hostStatePlate } from './state-plate.js';
 
 /**
  * A period's tone in the strip's vocabulary: with `data-kp-tones="calm"` (js/calm-tones.js) `up` and `degraded` are logged,
@@ -83,6 +84,8 @@ export const UPTIME = '[data-kp-uptime]';
 export const UPTIME_PICK_EVENT = 'kp-uptime-pick';
 /** Fired on the strip, cancelable, before a period's quick info opens: `{ key, index, period, panel }`. */
 export const UPTIME_OPEN_EVENT = 'kp-uptime-open';
+/** Fired on the strip, bubbling, when the Retry of its failed state is pressed [kyu-plates-1019]. */
+export const UPTIME_RETRY_EVENT = 'kp-uptime-retry';
 /** A cell a person can press: a button, or a link to its period's page. */
 const CELL = '.kp-uptime__cell:is(button, a)';
 /** The states of a period, in the order of how bad they are. */
@@ -110,7 +113,10 @@ export const UPTIME_COUNT = 90;
  * @property {string} [from]    the axis's start word when every period is shown ("90 days ago"); else the first period's label
  * @property {string} [to]      the axis's end word ("Today"); else the latest period's label
  * @property {number} [count]   how many cells a loading or empty strip waits with; else `data-kp-uptime-count`, else 90
- * @property {string} [error]   the error state's sentence; else the dictionary's
+ * @property {string} [error]   the error state's sentence (the failed plate's heading); else the dictionary's
+ * @property {string} [message] the empty state's heading, and the failed state's when `error` is not given; else the dictionary's
+ * @property {string} [text]    the plate's sentence under the heading, empty or failed (a failure says the package's own when none is given)
+ * @property {Node | string | null} [art] a picture over the heading of the empty and failed plates
  * @property {'info'} [open]    a press opens the period's quick info; else `data-kp-uptime-open`
  */
 
@@ -331,8 +337,24 @@ function draw(el, spec) {
     const info = infoMode(el);
     el.classList.add('kp-uptime');
     el.dataset.kpUptimeState = state;
+    el.setAttribute('data-kp-state', state);
     if (loading) el.setAttribute('aria-busy', 'true');
     else el.removeAttribute('aria-busy');
+
+    if (state === 'empty' || failed) {
+        // The package's state plate over the strip's whole footprint, with a Retry on a failure; js/footprint.js holds the loaded
+        // height [kyu-plates-1019]. The busy card's layer (a group's, still on its way out) is kept.
+        const keepLayer = CARDS.get(el)?.layer;
+        const plate = hostStatePlate(el, {
+            kind: failed ? 'error' : 'empty',
+            title: failed ? (spec.error ?? spec.message ?? s.uptimeError) : (spec.message ?? s.uptimeEmpty),
+            ...(spec.text ? { text: spec.text } : {}),
+            art: spec.art,
+            retryEvent: UPTIME_RETRY_EVENT,
+        });
+        el.replaceChildren(...(keepLayer && keepLayer.parentElement === el ? [plate, keepLayer] : [plate]));
+        return;
+    }
 
     // The head: the title on the start side, the summary on the end side, on one line.
     const head = make(el, 'div', 'kp-uptime__head');

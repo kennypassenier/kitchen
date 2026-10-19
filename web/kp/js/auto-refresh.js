@@ -20,6 +20,9 @@
 //   data-kp-refresh-label    words for the bar's own label cell ("Auto-refresh"); in a `.kp-formgrid` it stands in the
 //                            label track beside the chooser, the freshness line and Refresh now, on one first baseline;
 //                            elsewhere it is a line above the bar. Switchable at runtime; none by default
+//   data-kp-refresh-stack    auto (default) | always | never: outside a `.kp-formgrid` the bar folds to one column under 40rem of
+//                            viewport (chooser, freshness line, Refresh now, on the start edge); `always` folds it at any width,
+//                            `never` keeps the row. A form grid folds on its own width (data-kp-formgrid-stack). CSS only
 //   data-kp-remember         name: the choice per page per device (js/remember.js, component `refresh`)
 //   data-kp-stale-after      seconds; the freshness line turns stale after it (default 3 x the interval)
 //   data-kp-refresh-hover    "pause": no refresh while the pointer is over a `.kp-table-wrap` being read

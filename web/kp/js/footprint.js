@@ -26,6 +26,7 @@
 export const FOOTPRINT_HOSTS = [
     '[data-kp-matrix]',
     '[data-kp-heat]',
+    '[data-kp-uptime]',
     '[data-kp-entity-grid]',
     '[data-kp-checklist]',
     '[data-kp-timers]',

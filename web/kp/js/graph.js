@@ -290,8 +290,7 @@ function fitDrawnLabels(labels, W, H) {
 /**
  * The ghost of the coming network, drawn while loading [PACKAGE_FINDINGS, 2026-10-06]: the last network's nodes and
  * links, or a hub with a ring of six when nothing was drawn yet, in the package's own edge, node, ring and core
- * classes so the theme's settled shape draws it, quieted by the `kp-graph__ghost` rules. Each link carries `pathLength` 100
- * (a register's travelling dash is a percentage of the link). Every part carries `--i`
+ * classes so the theme's settled shape draws it, quieted by the `kp-graph__ghost` rules. Every part carries `--i`
  * (its order from the hub round the ring) and the group `--n` (how many), for a register's staggered motion.
  * @param {Document} doc
  * @param {GraphData | null} last
@@ -329,7 +328,6 @@ function ghostOf(doc, last, W, H) {
             svgEl(doc, 'path', {
                 class: 'kp-graph__edge',
                 d: `M${a.x.toFixed(1)},${a.y.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`,
-                pathLength: '100',
                 'data-kp-kind': e.kind,
                 'data-kp-style': kind?.style ?? 'solid',
                 style: `--i: ${Math.max(0, order.indexOf(e.from === hub ? e.to : e.from))}${kind?.colour ? `; --kp-graph-edge-colour: ${kind.colour}` : ''}`,

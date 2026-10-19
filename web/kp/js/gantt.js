@@ -1550,7 +1550,7 @@ export function setGanttRuns(el, runs, lanes) {
     if (!c) return;
     c.runs = runs;
     if (lanes) c.lanesGiven = lanes;
-    if (c.state === 'loading' || c.state === 'empty') c.state = 'ready';
+    if (c.state === 'loading' || c.state === 'empty' || c.state === 'error') c.state = 'ready';
     paint(c);
     tick(c);
 }
@@ -1646,7 +1646,7 @@ export function setGanttPoints(el, points, lanes) {
     if (!c) return;
     c.points = points;
     if (lanes) c.lanesGiven = lanes;
-    if (c.state === 'loading' || c.state === 'empty') c.state = 'ready';
+    if (c.state === 'loading' || c.state === 'empty' || c.state === 'error') c.state = 'ready';
     paint(c);
     tick(c);
 }
