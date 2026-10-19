@@ -28,6 +28,7 @@ import {
 import { attachActionColumns } from "/kp/js/actions.js";
 import { attachDatePickers, datePicker } from "/kp/js/datepicker.js";
 import { attachQuantities } from "/kp/js/quantity.js";
+import { attachForms, VALID_EVENT } from "/kp/js/forms.js";
 import { attachLoadingPieces } from "/kp/js/loading-pieces.js";
 import { attachMotion } from "/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
@@ -132,7 +133,9 @@ const SECTIONS = `
         <h3 id="h-freezer-add">Add something you froze</h3>
         <p>Put a dish in the list when you freeze it, so it is here on the day you need it.</p>
       </div>
-      <form class="kp-formgrid" data-kp-formgrid-lines="lines" data-bd-add-form novalidate aria-labelledby="h-freezer-add">
+      <form class="bd-add__form" data-kp-form data-bd-add-form novalidate aria-labelledby="h-freezer-add">
+        <div class="kp-form__summary" data-kp-form-summary tabindex="-1" hidden></div>
+        <div class="kp-formgrid" data-kp-formgrid-lines="lines">
         <div class="kp-formgrid__row" data-bd-dish-row>
           <label class="kp-formgrid__label" for="bd-add-dish">Dish</label>
           <div class="kp-formgrid__control">
@@ -168,8 +171,9 @@ const SECTIONS = `
         <div class="kp-formgrid__row kp-formgrid__row--buttons">
           <div class="kp-formgrid__control"></div>
           <div class="kp-formgrid__actions">
-            <button type="submit" class="kp-button kp-button--primary" data-bd-add-submit>Add to the freezer</button>
+            <button type="submit" class="kp-button kp-button--primary" data-kp-submit data-bd-add-submit>Add to the freezer</button>
           </div>
+        </div>
         </div>
       </form>
     </div>
@@ -539,7 +543,6 @@ export function mount(root, { navigate }) {
   const dateRow = /** @type {HTMLElement} */ ($("[data-bd-date-row]", page));
   const dateNote = /** @type {HTMLElement} */ ($("[data-bd-date-note]", page));
   const portionsInput = /** @type {HTMLInputElement} */ ($("#bd-add-portions", page));
-  const submit = /** @type {HTMLButtonElement} */ ($("[data-bd-add-submit]", page));
   const picker = /** @type {HTMLElement} */ ($("[data-bd-date]", page));
   const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
   picker.setAttribute("data-kp-max", todayIso);
@@ -561,30 +564,29 @@ export function mount(root, { navigate }) {
     dateInput.removeAttribute("aria-invalid");
     mark(dateRow, dateNote, null, "Today, unless you froze it earlier.");
   });
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (submit.getAttribute("aria-disabled") === "true") return;
+  // The package form owns the submit: it checks validity, lists what is wrong in its summary, makes the button busy and
+  // fires VALID_EVENT. This listener runs first and turns the page's own rules into the browser's validity.
+  const DISH_WRONG = "Say what you froze, so you can find it again.";
+  const DATE_WRONG = "Use a date up to today, as dd/mm/yyyy.";
+  form.addEventListener("submit", () => {
+    const dish = dishField.value.trim();
+    const picked = datePicker(picker)?.get() ?? null;
+    dishField.setCustomValidity(dish ? "" : DISH_WRONG);
+    dateInput.setCustomValidity(picked && picked.getTime() <= Date.now() + DAY ? "" : DATE_WRONG);
+    mark(dishRow, dishNote, dish ? null : DISH_WRONG, "What it is, as you would say it.");
+    mark(dateRow, dateNote, dateInput.validationMessage || null, "Today, unless you froze it earlier.");
+  });
+  dishField.addEventListener("input", () => dishField.setCustomValidity(""));
+  dateInput.addEventListener("input", () => dateInput.setCustomValidity(""));
+  const stopForms = attachForms(page, { wrapper: ".kp-formgrid__row", validateOn: "submit", revalidateOn: "none" });
+  stops.push(stopForms);
+  form.addEventListener(VALID_EVENT, async (event) => {
+    const { done } = /** @type {CustomEvent<{ done: () => void }>} */ (event).detail;
     const dish = dishField.value.trim();
     const portions = Math.round(Number(portionsInput.value.replace(",", ".")));
-    const picked = datePicker(picker)?.get() ?? null;
-    let bad = false;
-    if (!dish) {
-      dishField.setAttribute("aria-invalid", "true");
-      mark(dishRow, dishNote, "Say what you froze, so you can find it again.", "");
-      dishField.focus();
-      bad = true;
-    }
-    if (!picked || picked.getTime() > Date.now() + DAY) {
-      dateInput.setAttribute("aria-invalid", "true");
-      mark(dateRow, dateNote, "Use a date up to today, as dd/mm/yyyy.", "");
-      if (!bad) dateInput.focus();
-      bad = true;
-    }
-    if (bad || !picked) return;
+    const picked = /** @type {Date} */ (datePicker(picker)?.get());
     const sameDay = picked.toLocaleDateString("en-CA") === new Date().toLocaleDateString("en-CA");
     const when = sameDay ? new Date() : new Date(picked.getFullYear(), picked.getMonth(), picked.getDate(), 12, 0, 0);
-    submit.setAttribute("aria-disabled", "true");
-    submit.setAttribute("aria-busy", "true");
     try {
       await create("freezer", {
         dish,
@@ -599,8 +601,7 @@ export function mount(root, { navigate }) {
     } catch (e) {
       toast(`Could not add ${dish}. ${reason(e)}`, { live: "assertive", sticky: true });
     } finally {
-      submit.removeAttribute("aria-disabled");
-      submit.removeAttribute("aria-busy");
+      done();
     }
   });
 

@@ -78,6 +78,13 @@
   min-inline-size: 0;
 }
 
+/* The package form around the grid: its error summary stacks above the rows on the same column. */
+.bd-add__form {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
 /* ---- 3 · the shelf keeps its stage height whatever the filter leaves. */
 #bd-shelf-card {
   --kp-card-stage-min: 27rem;
