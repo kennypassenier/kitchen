@@ -641,8 +641,12 @@ export function mount(root, { params, navigate }) {
     setCardState(pickCard, "error", options("The recipes could not be read"));
     setCardState(nonePlate, "error", options("The recipes could not be read"));
     for (const c of dataCards) setCardState(c, "error", options("The step times could not be read"));
-    if (gantt) setGanttState(gantt, "ready");
-    setCardState(planCard, "error", options("The step times could not be read"));
+    // The timeline shows its own failed plate (with Retry) inside the plan card, as the package's timeline does.
+    if (gantt) {
+      const o = options("The step times could not be read");
+      setCardState(planCard, "ready");
+      setGanttState(gantt, "error", o.title, { text: o.text });
+    } else setCardState(planCard, "error", options("The step times could not be read"));
   }
 
   /** The plate of a recipe that cannot be counted back, with the one action that helps. @param {string} title @param {string} text @param {HTMLElement} action */
