@@ -781,6 +781,7 @@
  * @property {string} ganttZoomTitle  Its title
  * @property {(seconds: number) => string} ganttDuration  A length of time as a person reads it, "14 min", "1 h 5 min", "45 s"
  * @property {string} ganttHint  The one-line hint under the timeline on how to read and use it
+ * @property {string} ganttHintOpen  The same hint of a timeline without its range toolbar (no brush): only opening a bar [gaps-time-1019]
  * @property {string} ganttAll  The range button that fits the window to everything on the timeline (`all` in `data-kp-gantt-ranges`) [kpadopt4]
  * @property {string} ganttAllTitle  Its title
  * @property {(label: string, when: string) => string} ganttPoint  A point event's name, "Applied, 02/10/2026" [kpadopt4]
@@ -837,6 +838,7 @@
  * @property {(left: string, total: string) => string} timerDiscLeft  The visual timer's face for a screen reader: "12 min left of 25 min" [kpadopt4-ideas]
  * @property {string} timerUnderMinute  The time left on the face in its last minute [kpadopt4-ideas]
  * @property {(name: string, duration: string) => string} timerDiscCaption  The still line under the disc: "Focus · 25 min" [kpadopt4-ideas]
+ * @property {(when: string) => string} timerUntil  The still line of a timer that counts down to a moment: "until 14:30" [gaps-time-1019]
  * @property {string} rangePresets  The range picker's preset group, for a screen reader (js/range.js) [kpadopt4-ideas]
  * @property {(key: string) => string} rangePresetName  A preset in words: "Last 24 hours" [kpadopt4-ideas]
  * @property {(key: string) => string} rangePresetShort  A preset on its segment: "24h" [kpadopt4-ideas]
@@ -2539,6 +2541,7 @@ export const DEFAULT_STRINGS = Object.freeze({
         return rest ? `${hours} h ${rest} min` : `${hours} h`;
     },
     ganttHint: 'Click a bar to open it · drag across the time to select a range',
+    ganttHintOpen: 'Click a bar to open it',
     ganttAll: 'All',
     ganttAllTitle: 'Show everything on the timeline',
     ganttPoint: (label, when) => `${label}, ${when}`,
@@ -2616,6 +2619,7 @@ export const DEFAULT_STRINGS = Object.freeze({
     timerDiscLeft: (left, total) => `${left} left of ${total}`,
     timerUnderMinute: 'under a minute',
     timerDiscCaption: (name, duration) => `${name} · ${duration}`,
+    timerUntil: (when) => `until ${when}`,
     // The range picker [kpadopt4-ideas].
     rangePresets: 'Ranges',
     rangePresetName: (key) => {

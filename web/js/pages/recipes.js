@@ -36,23 +36,16 @@ export function mount(root) {
     ),
   );
 
+  // The package draws this slot as its state plate (centred, the table's full height); the page only supplies the words.
   const empty = h(
     "div",
     { class: "kp-empty", "data-kp-datatable-empty": true, hidden: true },
-    h(
-      "div",
-      { class: "rl-plate", "data-kp-datatable-empty-none": true },
-      h("strong", { class: "kp-stateplate__title" }, "No recipes yet"),
-      h("span", { class: "kp-stateplate__text" }, "The wheel has nothing to pick from until you add one."),
-      h("button", { type: "button", class: "kp-button kp-button--primary", "data-rl-add": true }, "Add a recipe"),
-    ),
-    h(
-      "div",
-      { class: "rl-plate", "data-kp-datatable-empty-nomatch": true, hidden: true },
-      h("strong", { class: "kp-stateplate__title" }, "No recipe matches"),
-      h("span", { class: "kp-stateplate__text" }, "Nothing has that in its name or its details."),
-      h("button", { type: "button", class: "kp-button", "data-kp-datatable-clear": true }, "Clear the search"),
-    ),
+    h("p", { class: "kp-empty__title", "data-kp-datatable-empty-none": true }, "No recipes yet"),
+    h("p", { class: "kp-empty__body", "data-kp-datatable-empty-none": true }, "The wheel has nothing to pick from until you add one."),
+    h("button", { type: "button", class: "kp-button kp-button--primary", "data-kp-datatable-empty-none": true, "data-rl-add": true }, "Add a recipe"),
+    h("p", { class: "kp-empty__title", "data-kp-datatable-empty-nomatch": true }, "No recipe matches"),
+    h("p", { class: "kp-empty__body", "data-kp-datatable-empty-nomatch": true }, "Nothing has that in its name or its details."),
+    h("button", { type: "button", class: "kp-button", "data-kp-datatable-empty-nomatch": true, "data-kp-datatable-clear": true }, "Clear the search"),
   );
   const body = h("tbody");
   const search = h("input", { class: "kp-field__input kp-datatable__search", type: "search", "data-kp-datatable-search": true, "aria-label": "Search the recipes", placeholder: "Search the recipes" });

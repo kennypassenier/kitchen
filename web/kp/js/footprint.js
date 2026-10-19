@@ -40,6 +40,7 @@ export const FOOTPRINT_HOSTS = [
     '[data-kp-datatable]',
     '[data-kp-runs]',
     '[data-kp-gantt]',
+    '[data-kp-week]',
     '[data-kp-code]:not(.kp-code--cell)',
     '.kp-ops',
 ].join(', ');

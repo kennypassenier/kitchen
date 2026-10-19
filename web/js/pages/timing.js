@@ -11,8 +11,8 @@ import { attachTimes, setTime } from "/kp/js/timefield.js";
 import { attachSelects, combobox, attachComboboxes, drawnSelect } from "/kp/js/combobox.js";
 import { attachSentences, sentence, setSentenceWhy } from "/kp/js/sentence.js";
 import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/kp/js/gantt.js";
-import { attachTimerDiscs, timerDiscOf } from "/kp/js/timer-disc.js";
-import { attachCountdowns, countdownOf } from "/kp/js/countdown.js";
+import { attachTimerDiscs } from "/kp/js/timer-disc.js";
+import { attachCountdowns } from "/kp/js/countdown.js";
 import { setAttention, attachAttention } from "/kp/js/attention.js";
 import { attachSnoozes, setSnoozedUntil } from "/kp/js/snooze.js";
 import { attachSwitches } from "/kp/js/forms.js";
@@ -253,10 +253,10 @@ export function mount(root, { params, navigate }) {
     const data = /** @type {HTMLElement} */ ($("#tm-plan-card-data", root));
     const slot = h("div", { id: "tm-gantt-slot" });
     slot.innerHTML =
-      '<section class="kp-gantt" data-kp-gantt data-kp-gantt-ranges="all" data-kp-gantt-range="all" data-kp-gantt-ghosts="1 1 1" aria-label="Tonight&#39;s cooking plan, one lane per track"></section>';
+      '<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="off" data-kp-gantt-hint="off" data-kp-gantt-ghosts="1 1 1" aria-label="Tonight&#39;s cooking plan, one lane per track"></section>';
     data.append(slot, planReadout);
     gantt = /** @type {HTMLElement} */ (slot.firstElementChild);
-    cleanups.push(attachGantts(slot, { strings: { ganttOk: "planned", ganttLoading: "Counting back from the step times" } }));
+    cleanups.push(attachGantts(slot, { strings: { ganttLoading: "Counting back from the step times" } }));
     // A data area loads under the busy card, with the lane names and the axis beside it.
     setCardState(planCard, "ready");
     setGanttState(gantt, "loading");
@@ -389,6 +389,7 @@ export function mount(root, { params, navigate }) {
     if (!p || !gantt || !recipe) return;
     const lanes = p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}` }));
     // A label is the longest run of its words that fits the bar; a bar too narrow for one word carries none (the card names it).
+    // The package's own fallback puts the label beside the bar or cuts it with an ellipsis, which the house rules forbid.
     const spanMin = (p.serve + 15 * MIN - (p.start - 10 * MIN)) / MIN;
     const plotPx = Math.max(240, gantt.clientWidth - 215);
     /** @param {string} text @param {number} mins */
@@ -408,7 +409,7 @@ export function mount(root, { params, navigate }) {
           label: fit(s.label, s.mins),
           start: s.start,
           end: s.end,
-          state: /** @type {const} */ ("ok"),
+          state: /** @type {const} */ ("planned"),
           series: l.series,
           detail: `${s.say}, ${s.mins} min, ${s.active ? "hands on" : "you can walk away"}`,
         })),
@@ -437,29 +438,15 @@ export function mount(root, { params, navigate }) {
     for (const off of discDetach) off();
     discDetach = [];
     discStart = p.start;
-    const seconds = Math.max(1, Math.round((p.start - Date.now()) / 1000));
     // A full dial is 60 minutes (Kenny's changed default): a longer wait leaves the disc full until the last hour.
-    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc="${seconds}s" data-kp-timer-disc-name="Start cooking" data-kp-timer-disc-scale="60"></div>`;
-    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown="${seconds}s" data-kp-countdown-name="Minutes to the start"></div>`;
+    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc data-kp-timer-disc-until="${p.start}" data-kp-timer-disc-name="Start cooking" data-kp-timer-disc-scale="60"></div>`;
+    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown data-kp-countdown-until="${p.start}" data-kp-countdown-name="Minutes to the start"></div>`;
     disc = /** @type {HTMLElement} */ (discSlot.firstElementChild);
-    const digits = /** @type {HTMLElement} */ (digitsSlot.firstElementChild);
     discDetach.push(attachTimerDiscs(discSlot), attachCountdowns(digitsSlot));
     digitsSlot.hidden = !numbers;
     upNote.hidden = true;
-    // The wait is real: the disc and the digits start by themselves, and the digits follow the disc's own buttons.
-    timerDiscOf(disc)?.start();
-    countdownOf(digits)?.start();
-    disc.addEventListener("kp-countdown-change", (event) => {
-      const { state: now } = /** @type {CustomEvent} */ (event).detail;
-      const mine = countdownOf(digits);
-      if (now === "running") mine?.start();
-      if (now === "paused") mine?.pause();
-      if (now === "idle") {
-        mine?.reset();
-        upNote.hidden = true;
-      }
-      drawTimerLine();
-    });
+    // The wait is a moment, not a length (the bare attribute is still what attach selects on): both clocks count down to the start by themselves and have no controls.
+    disc.addEventListener("kp-countdown-change", drawTimerLine);
     disc.addEventListener("kp-countdown-end", () => {
       const q = current();
       upTitle.textContent = `It is ${hm(Date.now())}.`;
@@ -475,10 +462,8 @@ export function mount(root, { params, navigate }) {
     if (!p) return;
     /** @type {HTMLElement} */ ($("#tm-timer-card-body", root)).textContent =
       `Dinner at ${state.eat}, so the start is ${hm(p.start)}. ${p.start > Date.now() ? `From now that is ${words(Math.max(1, Math.round((p.start - Date.now()) / MIN)))}.` : "That moment has come."}`;
-    // The disc is one wait to one moment: it is built again only when that moment moves (or the clock drifted from it).
-    const running = disc && timerDiscOf(disc)?.state() === "running";
-    const drift = running ? Math.abs((timerDiscOf(/** @type {HTMLElement} */ (disc))?.remaining() ?? 0) - Math.max(0, p.start - Date.now())) : 0;
-    if (!disc || p.start !== discStart || drift > 5000) buildDisc();
+    // The disc is one wait to one moment: it is built again only when that moment moves.
+    if (!disc || p.start !== discStart) buildDisc();
     drawTimerLine();
   }
 

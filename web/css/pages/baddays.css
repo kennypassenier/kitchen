@@ -67,33 +67,6 @@
   min-inline-size: 0;
 }
 
-.bd-freezer .kp-table-wrap {
-  min-block-size: 22rem;
-}
-
-.bd-freezer .bd-state {
-  box-sizing: border-box;
-  min-block-size: 22rem;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  text-align: center;
-  gap: var(--kp-space-sm, 0.5rem);
-}
-
-.bd-freezer .bd-state[hidden] {
-  display: none;
-}
-
-.bd-freezer .kp-empty__title {
-  font-size: var(--kp-text-xl, 1.5rem);
-}
-
-/* An empty or failed table shows its notice in the table's own place, not under a blank table. */
-.bd-freezer .kp-datatable:has(> .bd-state:not([hidden])) > .kp-table-wrap {
-  display: none;
-}
-
 .bd-hint--none {
   visibility: hidden;
 }
@@ -183,23 +156,4 @@
 .bd-calwrap {
   min-inline-size: 0;
   max-inline-size: 44rem;
-}
-
-/* The date field takes the same fixed step as the stepper above it; its calendar button sits after that step. */
-.bd-add .bd-date {
-  display: grid;
-  grid-template-columns: var(--bd-step) auto;
-  align-items: center;
-  gap: var(--kp-space-xs, 0.25rem);
-  justify-content: start;
-}
-
-/* The stepper takes exactly the same step as the date field, so both end on one edge. */
-.bd-add .kp-quantity {
-  inline-size: var(--bd-step);
-  max-inline-size: 100%;
-}
-
-.bd-add {
-  --bd-step: 15rem;
 }

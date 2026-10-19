@@ -512,13 +512,14 @@ export function mount(root, { navigate }) {
       if (status === "loading") setCardState(cardEl, "loading", { words: LOADING_WORDS });
       else if (status === "error") setCardState(cardEl, "error", { title: "The dishes could not be read", text: failure });
       else if (none) {
-        const action = h("div", { class: "wl-plate-actions" });
+        /** @type {HTMLElement[]} */
+        const action = [];
         if (!dishes.length) {
-          action.append(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/recipes", title: "Go to the recipes, where a new dish can be added" }, "Open the recipes"));
+          action.push(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/recipes", title: "Go to the recipes, where a new dish can be added" }, "Open the recipes"));
           setCardState(cardEl, "empty", { title: "There are no dishes yet", text: "Add a recipe and it joins the wheel.", action });
         } else {
-          action.append(h("button", { type: "button", class: "kp-button kp-button--primary kp-stateplate__action", title: "Let go of the one thing that holds the most dishes back", onclick: () => void loosenOne(say) }, "Loosen a filter"));
-          if (filterCount(M)) action.append(h("button", { type: "button", class: "kp-button kp-stateplate__action", title: "Let go of every filter chip at once", onclick: () => clearFilters() }, "Clear all filters"));
+          action.push(h("button", { type: "button", class: "kp-button kp-button--primary kp-stateplate__action", title: "Let go of the one thing that holds the most dishes back", onclick: () => void loosenOne(say) }, "Loosen a filter"));
+          if (filterCount(M)) action.push(h("button", { type: "button", class: "kp-button kp-stateplate__action", title: "Let go of every filter chip at once", onclick: () => clearFilters() }, "Clear all filters"));
           setCardState(cardEl, "empty", { title: "No dish matches these filters", text: `${blockText(M)} Loosen a filter and the wheel is back.`, action });
         }
       } else setCardState(cardEl, "ready");

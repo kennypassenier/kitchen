@@ -7,8 +7,10 @@
 // done, the offer to log tonight's dinner. Everything is the package's own
 // component with its standard behaviour; this file gives them the recipe.
 //
-// The place in the recipe and the running timers are kept per recipe in
-// sessionStorage, so a reload resumes where the cook was.
+// The place in the recipe (active step, every track, the steps done) is kept
+// by focus-steps itself (data-kp-remember). The page keeps only what the
+// package does not cover, per recipe in sessionStorage: the running timers
+// and whether Begin was pressed.
 
 import { h, $ } from "../dom.js";
 import { loadKitchen, onKitchen, recipeById, create } from "../api.js";
@@ -84,7 +86,7 @@ export function mount(root, { params, navigate }) {
   let seq = 0;
 
   // ------------------------------------------------------------------ remembered place
-  /** @type {{ index?: number, started?: boolean, timers?: any[] }} */
+  /** @type {{ started?: boolean, timers?: any[] }} */
   let memo = {};
   try {
     memo = JSON.parse(sessionStorage.getItem(storeKey) ?? "{}") ?? {};
@@ -193,6 +195,8 @@ export function mount(root, { params, navigate }) {
     "data-kp-track-attention": "off",
     "data-kp-state": "loading",
     "data-kp-focus-steps-empty": "This recipe has no steps yet.",
+    "data-kp-focus-steps-empty-action": "Open the recipe",
+    "data-kp-remember": storeKey,
     "aria-label": "Steps",
   });
   const timers = h("div", {
@@ -481,14 +485,7 @@ export function mount(root, { params, navigate }) {
   for (const type of timerEvents) timers.addEventListener(type, onTimer);
 
   // ------------------------------------------------------------------ the place, and the end
-  steps.addEventListener("kp-focus-steps-change", (event) => {
-    memo.index = /** @type {CustomEvent} */ (event).detail.index;
-    keep();
-  });
-  steps.addEventListener("kp-focus-steps-track", (event) => {
-    memo.index = /** @type {CustomEvent} */ (event).detail.index;
-    keep();
-  });
+  steps.addEventListener("kp-focus-steps-empty-action", () => navigate(`/recipe?id=${encodeURIComponent(recipeId)}`));
   steps.addEventListener("kp-focus-steps-done", () => {
     doneSection.hidden = false;
     doneSection.scrollIntoView({ block: "nearest", behavior: motionAllowed(doneSection) ? "smooth" : "auto" });
@@ -581,13 +578,8 @@ export function mount(root, { params, navigate }) {
     setChecklistItems(mise, items);
     paintStart();
 
-    if (!shown.length) {
-      plateScreen("This recipe has no steps yet", "There is nothing to walk through. The recipe page has what is written down.", "Open the recipe", `/recipe?id=${encodeURIComponent(r.id)}`);
-      return;
-    }
     setFocusStepsState(steps, "ready");
-    const start = Number.isInteger(memo.index) && /** @type {number} */ (memo.index) < shown.length ? /** @type {number} */ (memo.index) : 0;
-    setFocusSteps(steps, focusSteps(r, shown), { start });
+    setFocusSteps(steps, focusSteps(r, shown));
     steps.setAttribute("aria-label", r.name);
 
     setTimersState(timers, "ready");

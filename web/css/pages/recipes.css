@@ -14,17 +14,6 @@
   gap: var(--kp-space-sm, 0.5rem);
 }
 
-.rl-plate {
-  display: grid;
-  gap: var(--kp-space-sm, 0.5rem);
-  justify-items: center;
-  text-align: center;
-}
-
-.rl-plate[hidden] {
-  display: none;
-}
-
 /* ---- the editor drawer -------------------------------------------------------------------------------------- */
 
 .rl-editor {

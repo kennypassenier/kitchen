@@ -36,7 +36,15 @@
 //
 // States: setFocusStepsState(el, 'loading' | 'error' | 'ready', message):
 // loading lays the busy card over the body, error says the message there;
-// no steps says `data-kp-focus-steps-empty` (or the dictionary's sentence).
+// no steps says `data-kp-focus-steps-empty` (or the dictionary's sentence). The empty plate takes an action like the failed
+// one [gaps-time-1019]: `data-kp-focus-steps-empty-action="Add a recipe"` puts a normal-size button on it that fires
+// `kp-focus-steps-empty-action` on the root. Both attributes are read again when they change (js/live-options.js).
+//
+// Resume [gaps-time-1019]: with `data-kp-remember="<name>"` the place is kept after every move, in cook mode as well as in
+// answer mode, and put back after a reload (`data-kp-resume` auto, ask or off; `data-kp-resume-until`): the active step, the
+// place on every track, the active track and the steps passed, so a recipe with two tracks comes back as it was left, not on one
+// step with everything else undone. A stored place is used only for the same steps (a key made of their ids or titles); a
+// changed recipe starts at the top. A timer is not part of it. It is forgotten when the flow is done.
 //
 // Events (bubbling, on the root):
 //   kp-focus-steps-change  { index, from, total, step }
@@ -135,6 +143,8 @@ export const FOCUS_STEPS_ANSWER_EVENT = 'kp-focus-steps-answer';
 export const FOCUS_STEPS_RESUME_EVENT = 'kp-focus-steps-resume';
 /** Fired on the root when Retry is pressed on the plate of questions that could not be read. */
 export const FOCUS_STEPS_RETRY_EVENT = 'kp-focus-steps-retry';
+/** Fired on the root when the action of the empty plate (`data-kp-focus-steps-empty-action`) is pressed [gaps-time-1019]. */
+export const FOCUS_STEPS_EMPTY_ACTION_EVENT = 'kp-focus-steps-empty-action';
 /** Fired on the root when Try again is pressed on the plate of answers that could not be saved. */
 export const FOCUS_STEPS_SAVE_RETRY_EVENT = 'kp-focus-steps-save-retry';
 /** Fired on the root when the active track changed: `{ track, key, from, index, step, reason }`. */
@@ -201,8 +211,18 @@ export const SWIPE_DISTANCE = 56;
  * @property {Set<string>} waiting the tracks that waited when the lanes were last read
  * @property {string} lockKey the steps the shown step waits for, as a key
  * @property {number} ticker the interval that keeps the lanes' clocks, 0 when none
- * @property {{ index: number, answers: FocusState['answers'], startedAt: number } | null} pendingResume
+ * @property {Progress | null} pendingResume
  * @property {{ total: number, answers: FocusState['answers'], startedAt: number, finishedAt: number } | null} finished
+ */
+
+/**
+ * @typedef {object} Progress where a person stopped
+ * @property {number} index
+ * @property {FocusState['answers']} answers
+ * @property {number} startedAt
+ * @property {string} [track] the key of the active track
+ * @property {Record<string, number>} [positions] the place on every track, by track key
+ * @property {number[]} [done] the steps passed
  */
 
 /**
@@ -678,6 +698,7 @@ function switchTrack(root, key, reason) {
     state.alerts.delete(key);
     renderBand(root);
     paint(root, true);
+    remember(root);
     const strings = getStrings();
     say(root, strings.focusTrackSwitched(to.name, strings.focusLaneStep(to.pos + 1, to.order.length), state.steps[state.index]?.text ?? ''));
     root.dispatchEvent(
@@ -813,8 +834,11 @@ function trackNext(root) {
         }),
     );
     recompute(root);
-    if (state.tracks.every((t) => t.order.every((i) => state.done.has(i))))
+    if (state.tracks.every((t) => t.order.every((i) => state.done.has(i)))) {
+        // Done: nothing is left to come back to.
+        memoryOf(root)?.forget('progress');
         root.dispatchEvent(new CustomEvent(FOCUS_STEPS_DONE_EVENT, { bubbles: true, detail: { total: state.steps.length, tracks: state.tracks.map((t) => t.name) } }));
+    } else remember(root);
 }
 
 /** Back on the active track: from the finished plate the last step again, else the step before, to be done again. @param {HTMLElement} root */
@@ -842,6 +866,7 @@ function trackPrev(root) {
         }),
     );
     recompute(root);
+    remember(root);
     return true;
 }
 
@@ -877,6 +902,7 @@ function trackGo(root, index) {
     root.dispatchEvent(
         new CustomEvent(FOCUS_STEPS_EVENT, { bubbles: true, detail: { index: to, from: was, total: state.steps.length, step: state.steps[to] ?? null, track: track.name } }),
     );
+    remember(root);
     recompute(root);
     return true;
 }
@@ -919,6 +945,25 @@ function startTracks(root, start) {
 }
 
 // ── Answer mode [kpadopt6] ─────────────────────────────────────────────────────────────────────
+
+/** The question over a step when the person stopped here before: carry on or start again [gaps-time-1019: cook mode too]. */
+function buildResumeAsk() {
+    const strings = getStrings();
+    const ask = el('kp-focus-steps__resume');
+    const line = el('kp-focus-steps__resume-text', 'span');
+    line.textContent = strings.focusResumeAsk;
+    const go = /** @type {HTMLButtonElement} */ (el('kp-button kp-button--primary kp-focus-steps__resume-go', 'button'));
+    go.type = 'button';
+    go.textContent = strings.focusResumeContinue;
+    const again = /** @type {HTMLButtonElement} */ (el('kp-button kp-focus-steps__resume-restart', 'button'));
+    again.type = 'button';
+    again.textContent = strings.focusResumeRestart;
+    ask.append(line, go, again);
+    return ask;
+}
+
+/** The words of the empty plate's action, or none: `data-kp-focus-steps-empty-action` [gaps-time-1019]. @param {Element} root */
+const emptyAction = (root) => root.getAttribute('data-kp-focus-steps-empty-action')?.trim() || '';
 
 /** @param {Element} root @param {string} name @param {string} [fallback] */
 const opt = (root, name, fallback) => root.getAttribute(`data-kp-${name}`) ?? fallback;
@@ -965,53 +1010,102 @@ function answerReady(root, answer) {
 /** The key the progress is remembered under, or null. @param {Element} root */
 const memoryOf = (root) => (root.hasAttribute('data-kp-remember') ? memoryFor(root, 'focus-steps') : null);
 
+/** What identifies these steps: a stored place is only good for the same recipe or questions. @param {Element} root */
+function stepsKey(root) {
+    return stateOf(root)
+        .steps.map((step) => step.id ?? step.answer?.id ?? step.title ?? step.text.slice(0, 24))
+        .join('|');
+}
+
 /** Write where the person is, after every answer and every move. @param {Element} root */
 function remember(root) {
     const memory = memoryOf(root);
-    if (!memory || !answering(root)) return;
+    if (!memory) return;
     const state = stateOf(root);
-    memory.write('progress', { index: state.index, answers: state.answers, startedAt: state.startedAt, at: Date.now() });
+    if (!state.steps.length) return;
+    memory.write('progress', {
+        index: state.index,
+        answers: state.answers,
+        startedAt: state.startedAt,
+        at: Date.now(),
+        key: stepsKey(root),
+        ...(tracksOn(root)
+            ? { track: state.track, positions: Object.fromEntries(state.tracks.map((t) => [t.key, t.pos])), done: [...state.done] }
+            : {}),
+    });
 }
 
 /**
- * Stored progress that is still good: not past `data-kp-resume-until`, and made of this flow's own questions.
+ * Stored progress that is still good: not past `data-kp-resume-until`, and made of this flow's own steps.
  * @param {Element} root
+ * @returns {Progress | null}
  */
 function storedProgress(root) {
     const memory = memoryOf(root);
     if (!memory) return null;
     const stored = memory.read(/** @type {string} */ ('progress'), /** @type {any} */ (null));
     if (!stored || typeof stored.at !== 'number' || typeof stored.index !== 'number') return null;
+    // A place stored for other steps (or before steps were part of it) is not this flow's.
+    if (typeof stored.key === 'string' && stored.key !== stepsKey(root)) return null;
     const until = opt(root, 'resume-until', 'midnight') ?? 'midnight';
     const now = Date.now();
     if (until === 'midnight' && agoMoment(stored.at).slice(0, 10) !== agoMoment(now).slice(0, 10)) return null;
     if (until.startsWith('hours:') && now - stored.at > Number(until.slice(6)) * 3_600_000) return null;
-    const ids = new Set(
-        stateOf(root)
-            .steps.map((step) => step.answer?.id)
-            .filter(Boolean),
-    );
+    const state = stateOf(root);
+    const ids = new Set(state.steps.map((step) => step.answer?.id).filter(Boolean));
     const answers = Object.fromEntries(Object.entries(stored.answers ?? {}).filter(([id]) => ids.has(id)));
-    return { index: Math.max(0, Math.min(lastIndex(root), stored.index)), answers, startedAt: Number(stored.startedAt) || stored.at };
+    /** @type {Progress} */
+    const progress = { index: Math.max(0, Math.min(lastIndex(root), stored.index)), answers, startedAt: Number(stored.startedAt) || stored.at };
+    if (typeof stored.track === 'string') progress.track = stored.track;
+    if (stored.positions && typeof stored.positions === 'object') progress.positions = stored.positions;
+    if (Array.isArray(stored.done)) progress.done = stored.done.filter((/** @type {unknown} */ i) => Number.isInteger(i) && /** @type {number} */ (i) >= 0 && /** @type {number} */ (i) < state.steps.length);
+    return progress;
 }
 
-/** Put the stored answers and place back. @param {HTMLElement} root @param {NonNullable<ReturnType<typeof storedProgress>>} stored */
+/** Whether a stored place is further than the start: answers given, a step on, a track moved or a step passed. @param {Progress} stored */
+const hasMoved = (stored) =>
+    Object.keys(stored.answers).length > 0 ||
+    stored.index > 0 ||
+    (stored.done?.length ?? 0) > 0 ||
+    Object.values(stored.positions ?? {}).some((pos) => pos > 0);
+
+/** Put the stored answers and place back, every track included. @param {HTMLElement} root @param {Progress} stored */
 function applyProgress(root, stored) {
     const state = stateOf(root);
     state.answers = /** @type {FocusState['answers']} */ (stored.answers);
     state.startedAt = stored.startedAt;
     state.index = stored.index;
     state.pendingResume = null;
+    if (tracksOn(root)) {
+        for (const track of state.tracks) {
+            const pos = stored.positions?.[track.key];
+            if (typeof pos === 'number') track.pos = Math.max(0, Math.min(track.order.length - 1, pos));
+        }
+        state.done = new Set(stored.done ?? []);
+        const active = state.tracks.find((t) => t.key === stored.track) ?? trackOfStep(state, stored.index) ?? state.tracks[0];
+        if (active) {
+            state.track = active.key;
+            if (typeof stored.positions?.[active.key] !== 'number') active.pos = Math.max(0, active.order.indexOf(stored.index));
+            state.index = active.order[active.pos] ?? stored.index;
+        }
+        renderBand(root);
+    }
     paint(root, false);
-    say(root, getStrings().focusResumed(stored.index + 1));
-    root.dispatchEvent(new CustomEvent(FOCUS_STEPS_RESUME_EVENT, { bubbles: true, detail: { index: stored.index, answers: { ...state.answers } } }));
+    recompute(root);
+    say(root, getStrings().focusResumed(state.index + 1));
+    root.dispatchEvent(
+        new CustomEvent(FOCUS_STEPS_RESUME_EVENT, {
+            bubbles: true,
+            detail: { index: state.index, answers: { ...state.answers }, track: state.track, done: [...state.done] },
+        }),
+    );
 }
 
 /** @param {HTMLElement} root */
 function startResume(root) {
-    if (!answering(root) || opt(root, 'resume') === 'off' || !root.hasAttribute('data-kp-remember')) return;
+    if (opt(root, 'resume') === 'off' || !root.hasAttribute('data-kp-remember')) return;
     const stored = storedProgress(root);
-    if (!stored || Object.keys(stored.answers).length === 0) return;
+    if (!stored || !hasMoved(stored)) return;
     if (opt(root, 'resume') === 'ask') {
         stateOf(root).pendingResume = stored;
         paint(root, false);
@@ -1078,8 +1172,8 @@ function goNext(root) {
     if (answering(root)) {
         state.finished = { total: state.steps.length, answers: { ...state.answers }, startedAt: state.startedAt || finishedAt, finishedAt };
         Object.assign(detail, state.finished);
-        memoryOf(root)?.forget('progress');
     }
+    memoryOf(root)?.forget('progress');
     root.dispatchEvent(new CustomEvent(FOCUS_STEPS_DONE_EVENT, { bubbles: true, detail }));
 }
 
@@ -1362,25 +1456,13 @@ function paint(root, arrive) {
                     kind: 'empty',
                     title: strings.focusAnswerEmptyTitle,
                     text: root.getAttribute('data-kp-focus-steps-empty') ?? strings.focusAnswerEmptyText,
+                    ...(emptyAction(root) ? { actionLabel: emptyAction(root), actionAttribute: 'data-kp-focus-empty-action' } : {}),
                 }),
             );
             holder.setAttribute('data-kp-focus-steps-kind', 'empty');
         } else if (onSum) buildSummary(root, holder);
         else if (step) {
-            const pending = state.pendingResume;
-            if (pending) {
-                const ask = el('kp-focus-steps__resume');
-                const line = el('kp-focus-steps__resume-text', 'span');
-                line.textContent = strings.focusResumeAsk;
-                const go = /** @type {HTMLButtonElement} */ (el('kp-button kp-button--primary kp-focus-steps__resume-go', 'button'));
-                go.type = 'button';
-                go.textContent = strings.focusResumeContinue;
-                const again = /** @type {HTMLButtonElement} */ (el('kp-button kp-focus-steps__resume-restart', 'button'));
-                again.type = 'button';
-                again.textContent = strings.focusResumeRestart;
-                ask.append(line, go, again);
-                holder.append(ask);
-            }
+            if (state.pendingResume) holder.append(buildResumeAsk());
             const text = el('kp-focus-steps__text', 'p');
             text.textContent = step.text;
             holder.append(text);
@@ -1410,6 +1492,7 @@ function paint(root, arrive) {
                     kind: 'empty',
                     title: strings.focusReadEmptyTitle,
                     text: root.getAttribute('data-kp-focus-steps-empty') ?? strings.focusEmpty,
+                    ...(emptyAction(root) ? { actionLabel: emptyAction(root), actionAttribute: 'data-kp-focus-empty-action' } : {}),
                 }),
             );
             holder.setAttribute('data-kp-focus-steps-kind', 'empty');
@@ -1427,6 +1510,7 @@ function paint(root, arrive) {
         holder.append(plate);
         holder.setAttribute('data-kp-focus-steps-kind', 'finished');
     } else {
+        if (state.pendingResume) holder.append(buildResumeAsk());
         const text = el('kp-focus-steps__text', 'p');
         text.textContent = step.text;
         holder.append(text);
@@ -1737,6 +1821,7 @@ export function attachFocusSteps(scope = document) {
                 return;
             }
             if (button.hasAttribute('data-kp-focus-retry')) root.dispatchEvent(new CustomEvent(FOCUS_STEPS_RETRY_EVENT, { bubbles: true }));
+            else if (button.hasAttribute('data-kp-focus-empty-action')) root.dispatchEvent(new CustomEvent(FOCUS_STEPS_EMPTY_ACTION_EVENT, { bubbles: true }));
             else if (button.hasAttribute('data-kp-focus-save-retry')) {
                 root.dispatchEvent(new CustomEvent(FOCUS_STEPS_SAVE_RETRY_EVENT, { bubbles: true }));
                 if (state.finished) root.dispatchEvent(new CustomEvent(FOCUS_STEPS_DONE_EVENT, { bubbles: true, detail: { ...state.finished } }));
@@ -1921,7 +2006,10 @@ export function attachFocusSteps(scope = document) {
         }, 1000);
         const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(() => tracksOn(root) && layoutLanes(root)) : null;
         resize?.observe(root);
+        // The empty plate's words and action are read again when the attributes change.
+        const stopOptions = watchOptions(root, ['data-kp-focus-steps-empty', 'data-kp-focus-steps-empty-action'], () => paint(root, false));
         undo.push(() => {
+            stopOptions();
             stopWatch();
             unkey();
             unkeyTracks();

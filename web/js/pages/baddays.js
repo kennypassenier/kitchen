@@ -108,7 +108,7 @@ const SECTIONS = `
             <tbody data-bd-rows></tbody>
           </table>
         </div>
-        <div class="kp-empty bd-state" data-kp-art="none" data-kp-art-size="lg" data-kp-datatable-empty hidden>
+        <div class="kp-empty" data-kp-art="none" data-kp-art-size="lg" data-kp-datatable-empty hidden>
           <p class="kp-empty__title" data-kp-datatable-empty-none>The freezer is empty, and that is fine</p>
           <p class="kp-empty__body" data-kp-datatable-empty-none>
             Nothing to defrost today. The safe dishes and the zero-prep shelf work without it. Whenever you cook too
@@ -121,7 +121,7 @@ const SECTIONS = `
           <p class="kp-empty__body" data-kp-datatable-empty-nomatch>Try fewer letters, or clear the search to see everything.</p>
           <button type="button" class="kp-button" data-kp-datatable-empty-nomatch data-kp-datatable-clear>Clear the search</button>
         </div>
-        <div class="kp-alert kp-alert--destructive bd-state" data-kp-datatable-failed role="alert" hidden>
+        <div class="kp-alert kp-alert--destructive" data-kp-datatable-failed role="alert" hidden>
           <p data-kp-datatable-failed-reason>The freezer list could not be read.</p>
           <button type="button" class="kp-button" data-kp-datatable-retry>Try again</button>
         </div>
@@ -154,7 +154,7 @@ const SECTIONS = `
         <div class="kp-formgrid__row" data-bd-date-row>
           <label class="kp-formgrid__label" for="bd-add-date">Frozen on</label>
           <div class="kp-formgrid__control">
-            <div class="kp-datepicker bd-date" data-kp-datepicker lang="en-GB" data-bd-date>
+            <div class="kp-datepicker" data-kp-datepicker lang="en-GB" data-bd-date>
               <input class="kp-field__input" id="bd-add-date" type="text" inputmode="numeric" data-kp-date-input
                 aria-describedby="bd-add-date-note" />
               <button type="button" class="kp-button" data-kp-date-open aria-label="Open the calendar" title="Open the calendar">
@@ -481,19 +481,9 @@ export function mount(root, { navigate }) {
     const first = drawn.freezer === null;
     drawn.freezer = signature;
     const t = table();
-    // Rows are reconciled by key, never replaced whole: the table holds its rows and re-places them when it sorts.
-    const keep = new Set(items.map((f) => f.id));
-    for (const tr of [...rows.children]) if (!keep.has(/** @type {HTMLElement} */ (tr).dataset.key ?? "")) tr.remove();
-    for (const item of items) {
-      const have = /** @type {HTMLElement | undefined} */ ([...rows.children].find((tr) => /** @type {HTMLElement} */ (tr).dataset.key === item.id));
-      if (!have) {
-        rows.append(freezerRow(item));
-        continue;
-      }
-      const cell = /** @type {HTMLElement} */ (have.children[1]);
-      cell.textContent = String(item.portions);
-      cell.setAttribute("data-kp-sort-value", String(item.portions));
-    }
+    // The table reconciles its own rows on refresh (kp-themes 6f9301bc): write the fresh rows, ask it to re-read them.
+    rows.replaceChildren(...items.map(freezerRow));
+    t?.refresh({ keepPage: true });
     if (first) {
       t?.state("ready");
       t?.sort({ column: 2, direction: "ascending" });
