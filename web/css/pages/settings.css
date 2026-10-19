@@ -1,1 +1,87 @@
-/* settings screen: rules behind the screen's own prefix. */
+/* settings screen: every rule sits behind the st- prefix. Everything with a kp- class is the package's. */
+
+.st-intro,
+.st-sec,
+.st-sec__head {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.st-sec {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-md, 1rem);
+}
+
+.st-intro :is(h1, p),
+.st-sec__head :is(h2, p) {
+  margin: 0;
+}
+
+.st-intro p,
+.st-sec__head p {
+  max-inline-size: 80ch;
+  color: var(--muted-foreground);
+}
+
+.st-card {
+  --kp-card-stage-min: 14rem;
+  min-inline-size: 0;
+}
+
+.st-data {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+}
+
+/* Every control in the settings is short, so the control track is capped and what each setting says now gets the room. */
+.st-card .kp-formgrid {
+  --kp-formgrid-control: 18rem;
+}
+
+.st-name {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+.st-name__title {
+  font-weight: 600;
+}
+
+.st-name__text {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.st-value {
+  display: grid;
+  align-content: start;
+  gap: var(--kp-space-xs, 0.25rem);
+  min-inline-size: 0;
+}
+
+.st-value p,
+.st-value small {
+  margin: 0;
+}
+
+.st-said {
+  min-block-size: 1.5em;
+}
+
+.st-hint {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.st-line {
+  min-block-size: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.st-line[hidden],
+.st-line:empty {
+  display: none;
+}

@@ -1,1 +1,139 @@
-/* timing screen: rules behind the screen's own prefix. */
+/* timing screen: every rule sits behind the tm- prefix. Everything with a kp- class is the package's; these rules
+   only lay the sections out and frame the readouts. */
+
+.tm-intro,
+.tm-sec,
+.tm-sec__head {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.tm-sec {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-md, 1rem);
+}
+
+.tm-intro :is(h1, p),
+.tm-sec__head :is(h2, p) {
+  margin: 0;
+}
+
+.tm-intro p,
+.tm-sec__head p {
+  max-inline-size: 80ch;
+  color: var(--muted-foreground);
+}
+
+/* Every card keeps one footprint in all four states: the stage is as tall as the data it replaces. */
+.tm-card {
+  --kp-card-stage-min: 12rem;
+  min-inline-size: 0;
+}
+
+.tm-card--pick {
+  --kp-card-stage-min: 7rem;
+}
+
+.tm-card--none {
+  --kp-card-stage-min: 14rem;
+}
+
+.tm-card--sentence {
+  --kp-card-stage-min: 9rem;
+}
+
+.tm-card--plan {
+  --kp-card-stage-min: 21rem;
+}
+
+.tm-card--timer {
+  --kp-card-stage-min: 26rem;
+}
+
+.tm-card--nudge {
+  --kp-card-stage-min: 12rem;
+}
+
+.tm-data {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.tm-readout {
+  margin: 0;
+  min-block-size: 1.5em;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.tm-readout--sentence {
+  font-size: var(--kp-text-md, 1rem);
+}
+
+.tm-label {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  font-weight: 600;
+}
+
+/* The disc keeps its place; the digits take the column beside it when asked for. */
+.tm-timer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  gap: var(--kp-space-lg, 1.5rem);
+}
+
+.tm-timer:has(.tm-timer__digits:not([hidden])) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.tm-timer > * {
+  min-inline-size: 0;
+}
+
+.tm-timer__digits[hidden] {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .tm-timer:has(.tm-timer__digits:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tm-nudge-snooze {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+.tm-nudge-snooze[hidden],
+.tm-late[hidden],
+.tm-up[hidden] {
+  display: none;
+}
+
+.tm-band-actions {
+  display: inline-grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  gap: var(--kp-space-xs, 0.25rem) var(--kp-space-sm, 0.5rem);
+}
+
+@media (max-width: 40rem) {
+  .tm-band-actions {
+    grid-auto-flow: row;
+  }
+}
+
+/* The digits follow the disc, which is the one set of controls: the countdown's own buttons are left out of the layout. */
+.tm-digits .kp-countdown__controls {
+  display: none;
+}
