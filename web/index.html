@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recepten</title>
+    <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
+    <!-- The stored theme before the first paint (chassis' copy of
+         kp-themes' no-flash snippet; no inline script under the CSP). -->
+    <script src="/static/theme-boot.js"></script>
+    <link rel="stylesheet" href="/kp/css/fonts.css" />
+    <link rel="stylesheet" href="/kp/dist/kp-themes.css" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <!-- Every screen's sheet loads with the app, so a screen draws its
+         loading state in its final geometry from the first frame. Each
+         sheet's rules sit behind the screen's own class prefix. -->
+    <link rel="stylesheet" href="/css/pages/wheel.css" />
+    <link rel="stylesheet" href="/css/pages/cook.css" />
+    <link rel="stylesheet" href="/css/pages/timing.css" />
+    <link rel="stylesheet" href="/css/pages/baddays.css" />
+    <link rel="stylesheet" href="/css/pages/recipe.css" />
+    <link rel="stylesheet" href="/css/pages/recipes.css" />
+    <link rel="stylesheet" href="/css/pages/settings.css" />
+    <script type="module" src="/js/main.js"></script>
+  </head>
+  <body>
+    <a class="kp-skip-link" href="#page">Skip to content</a>
+    <div class="kp-nav-wrap">
+      <nav class="kp-nav" aria-label="Pages" id="bar">
+        <a class="kp-nav__brand" id="brand" href="/">Recepten</a>
+        <button type="button" class="kp-nav__toggle" data-kp-nav-toggle></button>
+        <ul class="kp-nav__links" id="nav"></ul>
+        <span class="app-tools" id="tools"></span>
+      </nav>
+    </div>
+    <main class="app-shell" id="page" tabindex="-1"></main>
+  </body>
+</html>

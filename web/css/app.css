@@ -1,0 +1,31 @@
+/* The shell around every screen. Screens own their sheets under pages/,
+   each behind its own class prefix; this file holds only the frame. */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--kp-space-6, 1.5rem);
+  inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 76rem);
+  margin-inline: auto;
+  padding-block: var(--kp-space-6, 1.5rem) var(--kp-space-10, 3rem);
+}
+
+.app-shell:focus {
+  outline: none;
+}
+
+.app-tools {
+  display: inline-grid;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* The plate a screen shows when it cannot be drawn at all (not found,
+   module failed): the full width, centred, heading size. */
+.app-plate {
+  display: grid;
+  min-block-size: 20rem;
+  place-items: center;
+  text-align: center;
+}
