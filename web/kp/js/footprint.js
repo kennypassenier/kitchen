@@ -10,7 +10,8 @@
 //   · while the host is ready (no state, or `ready`) a ResizeObserver remembers its height
 //   · the moment the state becomes loading, empty or error, the host gets that height as `min-block-size`, so the plate (or the
 //     skeleton with the busy card over it) is as high as the list was; back to ready the minimum goes again
-//   · the first load has nothing remembered and is left alone: there is no footprint yet to hold
+//   · the first load has nothing remembered and is left alone: there is no footprint yet to hold (a table is held at an
+//     estimate of its rows, as cards when it is laid out as cards)
 //
 // Three guards, so the hold is never a trap:
 //
@@ -40,6 +41,7 @@ export const FOOTPRINT_HOSTS = [
     '[data-kp-datatable]',
     '[data-kp-runs]',
     '[data-kp-gantt]',
+    '[data-kp-graph]',
     '[data-kp-week]',
     '[data-kp-chart]:not([data-kp-chart="spark"])',
     '[data-kp-deplist]',
@@ -92,6 +94,20 @@ export function holdFootprint(host) {
         const size = Number.parseInt(host.getAttribute('data-kp-page-size') ?? '', 10);
         return size > 0 ? size : 10;
     };
+    /**
+     * What one row is as a card [px], or 0 when the table is not laid out as cards: the card layout is on while the table's own
+     * width is under 40rem (css/components.css, the `kp-table` container) and the markup asked for it with `data-kp-cards`. A card
+     * is its padding, border and gap (1.75rem) and one line of 2.5rem for each column with words.
+     * @param {number} rem
+     */
+    const cardRow = (rem) => {
+        if (!host.matches('[data-kp-datatable]') || !(host.hasAttribute('data-kp-cards') || host.querySelector('table[data-kp-cards]'))) return 0;
+        if (host.getBoundingClientRect().width > 40 * rem) return 0;
+        const lines = [...host.querySelectorAll('thead th')].filter((th) => (th.textContent ?? '').trim() !== '').length;
+        return lines > 0 ? (1.75 + lines * 2.5) * rem : 0;
+    };
+    /** Whether a table has rows of data to be measured: a table with none has no loaded height to remember. */
+    const hasRows = () => !host.matches('[data-kp-datatable]') || host.querySelector('tbody > tr:not([data-kp-skeleton-row])') !== null;
     const estimate = () => {
         const rows = rowsHint();
         if (!rows) return 0;
@@ -99,7 +115,9 @@ export function holdFootprint(host) {
         const rem = parseFloat(view?.getComputedStyle(host.ownerDocument.documentElement).fontSize ?? '16') || 16;
         const raw = getComputedStyle(host).getPropertyValue('--kp-footprint-row').trim();
         const unit = /^(\d+(?:\.\d+)?)(px|rem)?$/.exec(raw);
-        const row = unit ? Number(unit[1]) * (unit[2] === 'px' ? 1 : rem) : 2.75 * rem;
+        // A row in the card layout is a card of one line per column, not one line: on a phone the table's rows are as high as
+        // their columns are many [kyugaps-1019, gap kyu 50]. `--kp-footprint-row` still wins when the page sets it.
+        const row = unit ? Number(unit[1]) * (unit[2] === 'px' ? 1 : rem) : cardRow(rem) || 2.75 * rem;
         // What stands in the rows' place now (skeleton rows, the plate, the empty slot) is not frame.
         const inPlace = [...host.querySelectorAll('tbody, .kp-stateplate, [data-kp-datatable-empty]')].reduce(
             (sum, e) => sum + (e.parentElement?.closest('.kp-stateplate, [data-kp-datatable-empty]') ? 0 : e.getBoundingClientRect().height),
@@ -145,6 +163,9 @@ export function holdFootprint(host) {
         // A host taken out of the page has nothing to hold: let go of everything.
         if (!host.isConnected) return detach();
         if (HOLDING.has(state())) return;
+        // A table with no rows (it opened empty or failed) is its frame alone: not a loaded height, so the first-load
+        // footprint above stands in for it [kyugaps-1019, gap kyu 50].
+        if (!hasRows()) return;
         const entry = entries[entries.length - 1];
         const rect = host.getBoundingClientRect();
         border = entry?.borderBoxSize?.[0]?.blockSize ?? rect.height;

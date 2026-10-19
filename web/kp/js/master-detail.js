@@ -40,7 +40,7 @@
 // States (setPaneState): `empty` (the default while nothing is selected:
 // "Pick an item on the left", centred at the heading size in the detail pane;
 // with nothing in the list it covers the whole master-detail), `loading` (the theme's
-// busy card over the detail pane only; the list stays usable), `error` (the
+// busy card over the detail pane only; the list stays usable; where the detail is a closed sheet on a phone, over the list), `error` (the
 // destructive plate over the whole master-detail with Retry) and `ready`. The consumer reacts to the events and draws the detail itself.
 //
 // Events (bubbling, on the root):
@@ -230,11 +230,14 @@ function wire(rootEl, historyOption) {
     let opener = null;
     let listScroll = 0;
     let pushed = false;
+    /** The loading look follows the pane that is on screen when the layout folds or the sheet opens or closes [kyugaps-1019]. */
+    let reseatBusy = () => {};
     const sync = () => {
         rootEl.toggleAttribute('data-kp-narrow-on', narrow);
         rootEl.toggleAttribute('data-kp-aside-folded', Boolean(aside) && asideNarrow && !narrow);
         if (narrow && mode() !== 'stack') rootEl.setAttribute('data-kp-pane-shown', shown);
         else rootEl.removeAttribute('data-kp-pane-shown');
+        reseatBusy();
     };
 
     // --- The detail's parts. ---
@@ -276,6 +279,41 @@ function wire(rootEl, historyOption) {
     let state = 'ready';
     let drawn = false;
 
+    // The loading look covers the data area that is on screen: the detail pane, and, where the detail is a closed sheet on a phone
+    // (`display: none`, a card of 0 x 0 in it), the list, laid on the master-detail itself; the sheet opening moves it back
+    // [kyugaps-1019, gap kyu 48].
+    /** @type {HTMLElement | null} */
+    let busyAt = null;
+    let busyWords = '';
+    const detailShown = () => detail.getBoundingClientRect().width > 0 && getComputedStyle(detail).display !== 'none';
+    /** Stops the list's size being watched for the card laid on it. @type {() => void} */
+    let unwatchList = () => {};
+    /** @param {boolean} arrive */
+    const layBusy = (arrive) => {
+        unwatchList();
+        const onDetail = detailShown();
+        busyAt = onDetail ? detail : rootEl;
+        const lists = () => [...rootEl.querySelectorAll(':scope > [data-kp-pane="list"]')].filter((pane) => pane.getBoundingClientRect().width > 0);
+        const card = openBusyCard(busyAt, {
+            words: busyWords,
+            area: () => (onDetail ? [bodyEl.hidden ? detail : stateEl.hidden ? bodyEl : stateEl] : lists()),
+            className: 'kp-pane__busy',
+            arrive,
+        });
+        // The list grows and shrinks as the panes fold (its arrival is animated): the card follows it.
+        if (!onDetail && typeof ResizeObserver === 'function') {
+            const watcher = new ResizeObserver(() => card.place());
+            for (const pane of rootEl.querySelectorAll(':scope > [data-kp-pane="list"]')) watcher.observe(pane);
+            unwatchList = () => watcher.disconnect();
+        }
+        return card;
+    };
+    reseatBusy = () => {
+        if (!busy || busyAt === (detailShown() ? detail : rootEl)) return;
+        busy.remove();
+        busy = layBusy(false);
+    };
+
     /** @param {PaneState} next @param {PaneStateOptions} [options] */
     const setState = (next, options = {}) => {
         state = next;
@@ -315,16 +353,14 @@ function wire(rootEl, historyOption) {
             stateEl.hidden = true;
             stateEl.replaceChildren();
         }
+        if (loading) busyWords = options.words ?? strings().paneLoading;
         if (loading && !busy) {
-            busy = openBusyCard(detail, {
-                words: options.words ?? strings().paneLoading,
-                area: () => [bodyEl.hidden ? detail : stateEl.hidden ? bodyEl : stateEl],
-                className: 'kp-pane__busy',
-                arrive: drawn,
-            });
+            busy = layBusy(drawn);
         } else if (!loading && busy) {
             const card = busy;
             busy = null;
+            busyAt = null;
+            unwatchList();
             void card.close();
         }
         drawn = true;
@@ -486,6 +522,7 @@ function wire(rootEl, historyOption) {
         watcher?.disconnect();
         attributes.disconnect();
         busy?.remove();
+        unwatchList();
         handles.delete(rootEl);
         rootEl.removeAttribute('data-kp-pane-shown');
         rootEl.removeAttribute('data-kp-narrow-on');

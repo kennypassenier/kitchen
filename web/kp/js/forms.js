@@ -528,3 +528,68 @@ export function attachFormgridStages(root = document) {
         for (const fn of undo) fn();
     };
 }
+
+const WIDE_BLOCKS =
+    '[data-kp-formgrid-span], .kp-jsonfield, .kp-code, textarea, .kp-refresh, .kp-formrow--wide, .kp-attention, .kp-problems, .kp-command, .kp-segmented--block, .kp-formgrid__fill';
+
+/**
+ * Groups side by side [formgrid-columns-1019]. A `.kp-formgrid` whose children are all `.kp-formgrid__group` (facts and
+ * settings, say) stands them in a row when the panel holds all of them: this puts `data-kp-formgrid-wide` on it while each
+ * group, laid on tracks of its own, fits beside the others with `--kp-formgrid-group-gap` between. Without the attribute
+ * the groups stand under each other on the grid's shared tracks (one label edge for all). `data-kp-formgrid-columns="never"`,
+ * a row-sharing card (`data-kp-formgrid-rows="subgrid"`) and a stacked grid (`data-kp-formgrid-stack="always"`) are left alone.
+ * Measured on the grid's own width, so a panel in a dialog or a column answers the same as a page.
+ *
+ * @param {ParentNode} [root]
+ * @returns {() => void} detach: stops watching and removes the attribute it wrote
+ */
+export function attachFormgridColumns(root = document) {
+    /** @type {Array<() => void>} */
+    const undo = [];
+    for (const grid of root.querySelectorAll('.kp-formgrid')) {
+        if (!(grid instanceof HTMLElement)) continue;
+        const kids = () => [...grid.children].filter((c) => !c.matches('template, script, style') && !(c instanceof HTMLElement && c.hidden));
+        const eligible = () => {
+            const groups = kids();
+            return (
+                groups.length > 1 &&
+                groups.every((c) => c.matches('.kp-formgrid__group')) &&
+                grid.getAttribute('data-kp-formgrid-columns') !== 'never' &&
+                grid.getAttribute('data-kp-formgrid-rows') !== 'subgrid' &&
+                grid.getAttribute('data-kp-formgrid-stack') !== 'always' &&
+                // A grid with a wide block (a code block, a JSON field, a text area, a refresh bar, a spanning cell) keeps its stretching tracks.
+                !grid.querySelector(WIDE_BLOCKS)
+            );
+        };
+        const decide = () => {
+            const was = grid.hasAttribute('data-kp-formgrid-wide');
+            if (!eligible()) {
+                grid.removeAttribute('data-kp-formgrid-wide');
+                return;
+            }
+            // Measured with the groups side by side, put back when they do not fit (one task, nothing is painted between).
+            grid.setAttribute('data-kp-formgrid-wide', '');
+            // What each group needs is its own tracks' width, not the equal column it is given.
+            grid.style.gridAutoColumns = 'max-content';
+            const groups = kids();
+            const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
+            const need = groups.reduce((sum, g) => sum + g.getBoundingClientRect().width, 0) + gap * (groups.length - 1);
+            const have = grid.getBoundingClientRect().width;
+            grid.style.gridAutoColumns = '';
+            if (need > have + 0.5) grid.removeAttribute('data-kp-formgrid-wide');
+            else if (!was) grid.setAttribute('data-kp-formgrid-wide', '');
+        };
+        // Every group is watched too: a time field or a stepper that builds itself after the first look makes a group wider.
+        const watch = new ResizeObserver(decide);
+        decide();
+        watch.observe(grid);
+        for (const group of grid.children) watch.observe(group);
+        undo.push(() => {
+            watch.disconnect();
+            grid.removeAttribute('data-kp-formgrid-wide');
+        });
+    }
+    return () => {
+        for (const fn of undo) fn();
+    };
+}

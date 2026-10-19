@@ -1178,6 +1178,8 @@ function labelWidth(c, bar) {
 const OUTSIDE_GAP_PX = 6;
 /** The air, in px, between a mark's button and the bar it stands beside, or the label beside a mark. */
 const MARK_GAP_PX = 2;
+/** The air, in px, kept between the line for now and the words of a label inside a bar. */
+const NOW_GAP_PX = 4;
 
 /**
  * The label that stands outside a bar: a sibling of the bar in its lane (a bar clips what is inside it, and a theme may cut its
@@ -1271,7 +1273,10 @@ function placeLabels(c) {
     const room = c.plot.clientWidth;
     dropOutside(c);
     if (!room || c.state === 'loading') return;
+    const nowRect = c.nowLine.hidden || c.nowLine.hasAttribute('data-kp-out') ? null : c.nowLine.getBoundingClientRect();
     for (const lane of c.lanes) {
+        // The line for now crosses every row of the lane: a label never stands on it [ganttlabel-1019].
+        const nowBox = nowRect ? { left: nowRect.left - lane.track.getBoundingClientRect().left, right: nowRect.right - lane.track.getBoundingClientRect().left } : null;
         /** @type {Map<number, { bar: HTMLButtonElement, left: number, right: number }[]>} */
         const rows = new Map();
         for (const b of lane.bars) {
@@ -1283,8 +1288,9 @@ function placeLabels(c) {
             rows.set(b.row, list);
         }
         // The marks stand on the lane's first row.
-        const marks = clearMarks(lane, rows.get(0) ?? []);
+        const first = clearMarks(lane, rows.get(0) ?? []);
         for (const [row, list] of rows) {
+            const marks = (row === 0 ? (nowBox ? [...first, nowBox] : first) : nowBox ? [nowBox] : []).sort((a, b) => a.left - b.left);
             list.sort((a, b) => a.left - b.left);
             let taken = 0;
             list.forEach((item, i) => {
@@ -1294,7 +1300,23 @@ function placeLabels(c) {
                 let place = '';
                 let roomPx = 0;
                 let shift = 0;
-                if (need > right - left - 2) {
+                // A label that fits its bar but would be crossed by the line for now steps to the side of the line with room for it
+                // (--kp-g-label-inset), and stands outside the bar when neither side holds it.
+                let inset = 0;
+                let crossed = false;
+                if (nowBox && need <= right - left - 2 && nowBox.right + NOW_GAP_PX > left && nowBox.left - NOW_GAP_PX < left + need) {
+                    crossed = nowBox.left > left && nowBox.left < right;
+                    if (crossed) {
+                        const free = right - nowBox.right - NOW_GAP_PX - 1;
+                        if (need <= free) {
+                            inset = nowBox.right + NOW_GAP_PX - left;
+                            crossed = false;
+                        }
+                    }
+                }
+                if (inset) bar.style.setProperty('--kp-g-label-inset', `${Math.round(inset)}px`);
+                else bar.style.removeProperty('--kp-g-label-inset');
+                if (need > right - left - 2 || crossed) {
                     // A label stands 4 px from its bar (8 px from one that is still open: the line for now is there).
                     const start = bar.dataset.kpState === 'running' || bar.dataset.kpState === 'queued' ? 8 : 4;
                     const wanted = need - 2 * 0.375 * 16 + 8;
@@ -1302,24 +1324,22 @@ function placeLabels(c) {
                     let from = right + start;
                     let upTo = left - 4;
                     let floor = taken;
-                    if (row === 0) {
-                        // A mark in the way: after the bar the label starts past it, before the bar it ends short of it.
-                        for (const m of marks) {
-                            if (m.right <= from - 1) continue;
-                            if (m.left < from + wanted + OUTSIDE_GAP_PX) from = m.right + MARK_GAP_PX + 2;
-                            else {
-                                next = Math.min(next, m.left);
-                                break;
-                            }
+                    // A mark (first row) or the line for now in the way: after the bar the label starts past it, before the bar it ends short of it.
+                    for (const m of marks) {
+                        if (m.right <= from - 1) continue;
+                        if (m.left < from + wanted + OUTSIDE_GAP_PX) from = m.right + MARK_GAP_PX + 2;
+                        else {
+                            next = Math.min(next, m.left);
+                            break;
                         }
-                        for (let k = marks.length - 1; k >= 0; k--) {
-                            const m = /** @type {{ left: number, right: number }} */ (marks[k]);
-                            if (m.left >= upTo + 1) continue;
-                            if (m.right > upTo - wanted - OUTSIDE_GAP_PX) upTo = m.left - MARK_GAP_PX - 2;
-                            else {
-                                floor = Math.max(floor, m.right);
-                                break;
-                            }
+                    }
+                    for (let k = marks.length - 1; k >= 0; k--) {
+                        const m = /** @type {{ left: number, right: number }} */ (marks[k]);
+                        if (m.left >= upTo + 1) continue;
+                        if (m.right > upTo - wanted - OUTSIDE_GAP_PX) upTo = m.left - MARK_GAP_PX - 2;
+                        else {
+                            floor = Math.max(floor, m.right);
+                            break;
                         }
                     }
                     const after = next - from - OUTSIDE_GAP_PX;

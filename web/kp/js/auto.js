@@ -103,7 +103,7 @@ export const NEEDS = [
         name: 'forms',
         when: '[data-kp-form], [data-kp-submit], .kp-switch, [data-kp-formgrid-stage]',
         load: () => import('./forms.js'),
-        attach: (m, root) => [m.attachForms(root), m.attachSwitches(root), m.attachFormgridStages(root)],
+        attach: (m, root) => [m.attachForms(root), m.attachSwitches(root), m.attachFormgridStages(root), m.attachFormgridColumns(root)],
     },
     {
         name: 'patterns',
@@ -344,7 +344,7 @@ export const NEEDS = [
         // grid, the checklist, the notices, the activity feed, the gallery, the availability grid, the request inspector, the pipeline, the diff view, the data table, the runs list, the run timeline, the week, the chart, the dependency list, the code view and the operations page. The selector is
         // `FOOTPRINT_HOSTS` of js/footprint.js.
         name: 'footprint',
-        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], [data-kp-datatable], [data-kp-runs], [data-kp-gantt], [data-kp-week], [data-kp-chart], [data-kp-deplist], [data-kp-code], .kp-ops',
+        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], [data-kp-datatable], [data-kp-runs], [data-kp-gantt], [data-kp-graph], [data-kp-week], [data-kp-chart], [data-kp-deplist], [data-kp-code], .kp-ops',
         load: () => import('./footprint.js'),
         attach: (m, root) => [m.attachFootprints(root)],
     },
