@@ -1,1 +1,118 @@
-/* cook screen: rules behind the screen's own prefix. */
+/* cook screen: rules behind the screen's own prefix (ck-). Everything with a kp- class is the package; these rules only lay out. */
+
+.ck-sec,
+.ck-begin,
+.ck-mise,
+.ck-cook,
+.ck-cook__main,
+.ck-cook__side,
+.ck-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+}
+
+.ck-sec[hidden],
+.ck-mise[hidden] {
+  display: none;
+}
+
+.ck-sec {
+  gap: var(--kp-space-md, 1rem);
+}
+
+.ck-head {
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+.ck-head :is(h2, p),
+.ck-part,
+.ck-part-note {
+  margin: 0;
+}
+
+.ck-head p,
+.ck-part-note {
+  color: var(--muted-foreground);
+}
+
+/* ---- Begin and the mise en place ------------------------------------------------------------------ */
+.ck-begin {
+  gap: var(--kp-space-lg, 1.5rem);
+  max-inline-size: 56rem;
+  inline-size: 100%;
+  margin-inline: auto;
+}
+
+.ck-mise {
+  gap: var(--kp-space-md, 1rem);
+}
+
+/* ---- Cook mode ----------------------------------------------------------------------------------- */
+.ck-cook {
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  gap: var(--kp-space-lg, 1.5rem);
+  align-items: stretch;
+}
+
+.ck-cook__main,
+.ck-cook__side {
+  align-content: start;
+  gap: var(--kp-space-md, 1rem);
+}
+
+/* Both columns open with a part heading on one line; the steps take the height that is left. */
+.ck-cook__main {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.ck-cook .kp-focus-steps {
+  min-block-size: 30rem;
+}
+
+.ck-cook .kp-timers {
+  /* The list holds its height; its empty, loading and failed plates take what the row of cards leaves. */
+  min-block-size: 16rem;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.ck-part {
+  font-size: var(--kp-text-lg, 1.125rem);
+}
+
+@media (max-width: 56rem) {
+  .ck-cook {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- The discs ----------------------------------------------------------------------------------- */
+.ck-disccard .kp-card__stage {
+  --kp-card-stage-min: 22rem;
+}
+
+.ck-discs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 18rem));
+  justify-content: center;
+  gap: var(--kp-space-lg, 1.5rem);
+}
+
+/* ---- Done ---------------------------------------------------------------------------------------- */
+.ck-donecard {
+  max-inline-size: 56rem;
+  inline-size: 100%;
+  margin-inline: auto;
+}
+
+.ck-donecard .kp-card__body {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+}
+
+/* ---- Whole-screen plate (recipe not found, no steps) ---------------------------------------------- */
+.ck-plate {
+  display: grid;
+  min-block-size: 30rem;
+  align-items: stretch;
+}

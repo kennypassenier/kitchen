@@ -1,0 +1,9 @@
+# Open
+
+| Item | Waits on |
+|---|---|
+| The name | Kenny's name form (19/10/2026); then rename crate, env prefix, unit and repo |
+| The GitHub repository | the name; created through the project coordinator |
+| `web/kp/` back to `/static/kp/` | the next kp-themes release and chassis-rs 3.9.0 |
+| Deploy as a homelab stack on kp-soft.dev | Kenny's word for the container install |
+| After 0.1: memory, sensory profile, parents' page, low typing | release 0.1 |
