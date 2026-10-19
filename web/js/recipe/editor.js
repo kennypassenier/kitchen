@@ -6,15 +6,15 @@
 // are rows on shared columns, each with its own Add and Remove buttons.
 // The form reads itself back into a recipe on Save.
 
-import { attachSegmented, getSegmentedValues } from "/kp/js/segmented.js";
-import { attachSelects } from "/kp/js/combobox.js";
-import { attachComboboxes, combobox } from "/kp/js/combobox.js";
-import { attachQuantities, getQuantity } from "/kp/js/quantity.js";
-import { attachSwitches } from "/kp/js/forms.js";
-import { attachAutosize } from "/kp/js/autosize.js";
-import { attachFlashButtons, runFlashButton } from "/kp/js/flash.js";
-import { closeDialog } from "/kp/js/motion.js";
-import { toast } from "/kp/js/overlays.js";
+import { attachSegmented, getSegmentedValues } from "/static/kp/js/segmented.js";
+import { attachSelects } from "/static/kp/js/combobox.js";
+import { attachComboboxes, combobox } from "/static/kp/js/combobox.js";
+import { attachQuantities, getQuantity } from "/static/kp/js/quantity.js";
+import { attachSwitches } from "/static/kp/js/forms.js";
+import { attachAutosize } from "/static/kp/js/autosize.js";
+import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
+import { closeDialog } from "/static/kp/js/motion.js";
+import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
 

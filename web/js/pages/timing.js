@@ -6,16 +6,16 @@
 
 import { h, $ } from "../dom.js";
 import { loadKitchen, patchSettings, recipeById } from "../api.js";
-import { setCardState, attachCardStates } from "/kp/js/card-state.js";
-import { attachTimes, setTime } from "/kp/js/timefield.js";
-import { attachSelects, combobox, attachComboboxes, drawnSelect } from "/kp/js/combobox.js";
-import { attachSentences, sentence, setSentenceWhy } from "/kp/js/sentence.js";
-import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/kp/js/gantt.js";
-import { attachTimerDiscs } from "/kp/js/timer-disc.js";
-import { attachCountdowns } from "/kp/js/countdown.js";
-import { setAttention, attachAttention } from "/kp/js/attention.js";
-import { attachSnoozes, setSnoozedUntil } from "/kp/js/snooze.js";
-import { attachSwitches } from "/kp/js/forms.js";
+import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
+import { attachTimes, setTime } from "/static/kp/js/timefield.js";
+import { attachSelects, combobox, attachComboboxes, drawnSelect } from "/static/kp/js/combobox.js";
+import { attachSentences, sentence, setSentenceWhy } from "/static/kp/js/sentence.js";
+import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/js/gantt.js";
+import { attachTimerDiscs } from "/static/kp/js/timer-disc.js";
+import { attachCountdowns } from "/static/kp/js/countdown.js";
+import { setAttention, attachAttention } from "/static/kp/js/attention.js";
+import { attachSnoozes, setSnoozedUntil } from "/static/kp/js/snooze.js";
+import { attachSwitches } from "/static/kp/js/forms.js";
 
 /** @typedef {import("../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -463,13 +463,13 @@ export function mount(root, { params, navigate }) {
     timerReadout.textContent = left > 0 ? `You start at ${hm(p.start)}, in ${words(left)}.` : `It is ${hm(p.start)} or later: the start has come.`;
   }
 
-  /** @returns {import("/kp/js/attention.js").AttentionItem[]} */
+  /** @returns {import("/static/kp/js/attention.js").AttentionItem[]} */
   function nudgeItems() {
     const p = current();
     if (!p || !recipe) return [];
     const now = Date.now();
     const toStart = p.start - now;
-    /** @type {import("/kp/js/attention.js").AttentionItem[]} */
+    /** @type {import("/static/kp/js/attention.js").AttentionItem[]} */
     const items = [];
     const cook = () => navigate(`/cook?id=${encodeURIComponent(String(recipe?.id))}`);
     const names = (/** @type {string} */ id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((t) => t.id === id)?.name ?? id;

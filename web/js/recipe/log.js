@@ -2,11 +2,11 @@
 // a day to it. A quiet day is a pale plate and nothing else (heat's calm
 // tones): no count, no streak, never "missed".
 
-import { setHeat, attachHeats } from "/kp/js/heat.js";
-import { attachSegmented, getSegmentedValues, setSegmentedValues } from "/kp/js/segmented.js";
-import { attachFlashButtons, runFlashButton } from "/kp/js/flash.js";
-import { undoToast } from "/kp/js/undo-toast.js";
-import { setCardState } from "/kp/js/card-state.js";
+import { setHeat, attachHeats } from "/static/kp/js/heat.js";
+import { attachSegmented, getSegmentedValues, setSegmentedValues } from "/static/kp/js/segmented.js";
+import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
+import { undoToast } from "/static/kp/js/undo-toast.js";
+import { setCardState } from "/static/kp/js/card-state.js";
 import { create, remove, replace, ApiError } from "../api.js";
 import { h } from "../dom.js";
 

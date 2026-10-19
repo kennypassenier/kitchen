@@ -1,6 +1,6 @@
 //! The web app's files are the files on disk, not a hand-kept list
 //! (the homelab admin dashboard's lesson, fix-179): everything under
-//! web/js, web/css, web/kp and web/img plus web/index.html is embedded in the binary.
+//! web/js, web/css and web/img plus web/index.html is embedded in the binary.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -25,7 +25,7 @@ fn main() {
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR");
     let web = Path::new(&manifest).join("web");
     let mut files = vec![web.join("index.html")];
-    for root in ["js", "css", "kp", "img"] {
+    for root in ["js", "css", "img"] {
         walk(&web.join(root), &mut files);
         println!("cargo:rerun-if-changed=web/{root}");
     }

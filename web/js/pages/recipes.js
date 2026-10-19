@@ -6,9 +6,9 @@
 
 import { loadKitchen, onKitchen, kitchenNow, remove, ApiError } from "../api.js";
 import { h } from "../dom.js";
-import { attachDataTables, dataTable } from "/kp/js/datatable.js";
-import { openConfirmation } from "/kp/js/components.js";
-import { toast } from "/kp/js/overlays.js";
+import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
+import { openConfirmation } from "/static/kp/js/components.js";
+import { toast } from "/static/kp/js/overlays.js";
 import { openEditor } from "../recipe/editor.js";
 import { dmy } from "../recipe/log.js";
 

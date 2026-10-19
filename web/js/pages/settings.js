@@ -6,14 +6,14 @@
 
 import { h, $ } from "../dom.js";
 import { loadKitchen, patchSettings } from "../api.js";
-import { setCardState, attachCardStates } from "/kp/js/card-state.js";
-import { attachCalm } from "/kp/js/calm.js";
-import { attachSwitches } from "/kp/js/forms.js";
-import { attachThemePickers, themeMenuMarkup, THEMES, PICK_EVENT } from "/kp/js/theme-picker.js";
-import { attachSegmented, setSegmentedValues } from "/kp/js/segmented.js";
-import { attachTimes, setTime } from "/kp/js/timefield.js";
-import { attachSelects, drawnSelect } from "/kp/js/combobox.js";
-import { attachFlashButtons, runFlashButton } from "/kp/js/flash.js";
+import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
+import { attachCalm } from "/static/kp/js/calm.js";
+import { attachSwitches } from "/static/kp/js/forms.js";
+import { attachThemePickers, themeMenuMarkup, THEMES, PICK_EVENT } from "/static/kp/js/theme-picker.js";
+import { attachSegmented, setSegmentedValues } from "/static/kp/js/segmented.js";
+import { attachTimes, setTime } from "/static/kp/js/timefield.js";
+import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
+import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 
 /** @typedef {{ key: string, label: string, text: string, said: (value: string) => string, def: string, defSaid: string }} Kitchen */
 

@@ -1,7 +1,7 @@
 # Kitchen
 
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
-ES modules on kp-themes. Owner Kenny; chat Dutch, code and docs English.
+ES modules on kp-themes, which comes only through chassis-rs (`/static/kp/`, Kenny 19/10/2026). Owner Kenny; chat Dutch, code and docs English.
 
 Read first: README.md, docs/OPEN.md, docs/DECISIONS.md. Data shapes:
 docs/agent/DATA.md. Screen designs (approved, implement exactly):

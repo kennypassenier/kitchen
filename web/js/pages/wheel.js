@@ -8,13 +8,13 @@
 
 import { loadKitchen, kitchenNow, onKitchen, create, remove, daysSinceCooked } from "../api.js";
 import { h } from "../dom.js";
-import { attachWheels, setWheelItems, spinWheel, WHEEL_RESULT_EVENT, WHEEL_SPIN_EVENT } from "/kp/js/wheel.js";
-import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/kp/js/card-state.js";
-import { attachSegmented, SEGMENTED_EVENT, getSegmentedTri, setSegmentedTri, setSegmentedCounts, setSegmentedItems } from "/kp/js/segmented.js";
-import { attachToggles, toggle } from "/kp/js/toggle.js";
-import { attachArt } from "/kp/js/art.js";
-import { attachDisabledReasons } from "/kp/js/reason.js";
-import { setCalm, isCalm } from "/kp/js/calm.js";
+import { attachWheels, setWheelItems, spinWheel, WHEEL_RESULT_EVENT, WHEEL_SPIN_EVENT } from "/static/kp/js/wheel.js";
+import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
+import { attachSegmented, SEGMENTED_EVENT, getSegmentedTri, setSegmentedTri, setSegmentedCounts, setSegmentedItems } from "/static/kp/js/segmented.js";
+import { attachToggles, toggle } from "/static/kp/js/toggle.js";
+import { attachArt } from "/static/kp/js/art.js";
+import { attachDisabledReasons } from "/static/kp/js/reason.js";
+import { setCalm, isCalm } from "/static/kp/js/calm.js";
 
 /**
  * @typedef {object} Dish a recipe as the wheel sees it

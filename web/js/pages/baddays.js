@@ -9,14 +9,14 @@
 // again reads the kitchen again for the whole screen. Data comes from api.js
 // only; nothing is stored here but what api.js writes.
 
-import { attachCardStates, setCardState } from "/kp/js/card-state.js";
-import { attachActionTiles } from "/kp/js/action-tiles.js";
-import { attachSegmented, setSegmentedCounts, setSegmentedValues } from "/kp/js/segmented.js";
-import { attachDataTables, dataTable } from "/kp/js/datatable.js";
-import { agoMoment, attachAgo } from "/kp/js/freshness.js";
-import { undoToast } from "/kp/js/undo-toast.js";
-import { toast } from "/kp/js/overlays.js";
-import { attachFocusSteps, setFocusSteps, setFocusStepsState } from "/kp/js/focus-steps.js";
+import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
+import { attachActionTiles } from "/static/kp/js/action-tiles.js";
+import { attachSegmented, setSegmentedCounts, setSegmentedValues } from "/static/kp/js/segmented.js";
+import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
+import { agoMoment, attachAgo } from "/static/kp/js/freshness.js";
+import { undoToast } from "/static/kp/js/undo-toast.js";
+import { toast } from "/static/kp/js/overlays.js";
+import { attachFocusSteps, setFocusSteps, setFocusStepsState } from "/static/kp/js/focus-steps.js";
 import {
   attachCalendars,
   calendarMonth,
@@ -24,13 +24,13 @@ import {
   setCalendarDays,
   setCalendarLegend,
   setCalendarState,
-} from "/kp/js/calendar.js";
-import { attachActionColumns } from "/kp/js/actions.js";
-import { attachDatePickers, datePicker } from "/kp/js/datepicker.js";
-import { attachQuantities } from "/kp/js/quantity.js";
-import { attachForms, VALID_EVENT } from "/kp/js/forms.js";
-import { attachLoadingPieces } from "/kp/js/loading-pieces.js";
-import { attachMotion } from "/kp/js/motion.js";
+} from "/static/kp/js/calendar.js";
+import { attachActionColumns } from "/static/kp/js/actions.js";
+import { attachDatePickers, datePicker } from "/static/kp/js/datepicker.js";
+import { attachQuantities } from "/static/kp/js/quantity.js";
+import { attachForms, VALID_EVENT } from "/static/kp/js/forms.js";
+import { attachLoadingPieces } from "/static/kp/js/loading-pieces.js";
+import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
 import { h, $ } from "../dom.js";
 
@@ -780,7 +780,7 @@ export function mount(root, { navigate }) {
       const key = dayKey(frozenAt(f));
       (byDay[key] ??= { dishes: [] }).dishes.push(f.dish);
     }
-    /** @type {Record<string, import("/kp/js/calendar.js").CalendarDay>} */
+    /** @type {Record<string, import("/static/kp/js/calendar.js").CalendarDay>} */
     const out = {};
     for (const [key, { dishes }] of Object.entries(byDay)) {
       out[key] = {

@@ -8,15 +8,15 @@
 // shows is what the printer gets. The frame is its own document, so the app
 // around it never prints.
 
-import { setChecklistItems } from "/kp/js/checklist.js";
-import { preparePrint } from "/kp/js/print.js";
+import { setChecklistItems } from "/static/kp/js/checklist.js";
+import { preparePrint } from "/static/kp/js/print.js";
 import { amountOf } from "./amounts.js";
 
 /** The package stylesheet with its print rules made unconditional, read once. @type {Promise<string> | null} */
 let paperCss = null;
 
 function loadPaperCss() {
-  paperCss ??= fetch("/kp/dist/kp-themes.css", { credentials: "same-origin" })
+  paperCss ??= fetch("/static/kp/dist/kp-themes.css", { credentials: "same-origin" })
     .then((res) => {
       if (!res.ok) throw new Error(String(res.status));
       return res.text();

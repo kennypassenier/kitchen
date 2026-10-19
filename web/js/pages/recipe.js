@@ -10,13 +10,13 @@
 
 import { loadKitchen, onKitchen, kitchenNow, ApiError } from "../api.js";
 import { h } from "../dom.js";
-import { setCardState, attachCardStates } from "/kp/js/card-state.js";
-import { attachLedes } from "/kp/js/lede.js";
-import { attachQuantities } from "/kp/js/quantity.js";
-import { attachHoverCards } from "/kp/js/hovercard.js";
-import { attachFlashButtons, runFlashButton } from "/kp/js/flash.js";
-import { setQr } from "/kp/js/qr.js";
-import { attachSegmented } from "/kp/js/segmented.js";
+import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
+import { attachLedes } from "/static/kp/js/lede.js";
+import { attachQuantities } from "/static/kp/js/quantity.js";
+import { attachHoverCards } from "/static/kp/js/hovercard.js";
+import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
+import { setQr } from "/static/kp/js/qr.js";
+import { attachSegmented } from "/static/kp/js/segmented.js";
 import { WORDS, wordsFor } from "../recipe/words.js";
 import { amountOf, minutesText } from "../recipe/amounts.js";
 import { createSheet } from "../recipe/sheet.js";

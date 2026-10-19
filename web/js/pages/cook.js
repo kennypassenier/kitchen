@@ -14,14 +14,14 @@
 
 import { h, $ } from "../dom.js";
 import { loadKitchen, onKitchen, recipeById, create } from "../api.js";
-import { attachChecklists, setChecklistItems, setChecklistState, getChecklistItems } from "/kp/js/checklist.js";
-import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep } from "/kp/js/focus-steps.js";
-import { attachTimers, setTimersState, getTimers, restoreTimers, stopTimer } from "/kp/js/timer.js";
-import { attachTimerDiscs, timerDiscOf } from "/kp/js/timer-disc.js";
-import { attachAttention, setAttention } from "/kp/js/attention.js";
-import { attachCardStates, setCardState } from "/kp/js/card-state.js";
-import { attachCalm, isCalm, calmScope, motionAllowed } from "/kp/js/calm.js";
-import { statePlate } from "/kp/js/state-plate.js";
+import { attachChecklists, setChecklistItems, setChecklistState, getChecklistItems } from "/static/kp/js/checklist.js";
+import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep } from "/static/kp/js/focus-steps.js";
+import { attachTimers, setTimersState, getTimers, restoreTimers, stopTimer } from "/static/kp/js/timer.js";
+import { attachTimerDiscs, timerDiscOf } from "/static/kp/js/timer-disc.js";
+import { attachAttention, setAttention } from "/static/kp/js/attention.js";
+import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
+import { attachCalm, isCalm, calmScope, motionAllowed } from "/static/kp/js/calm.js";
+import { statePlate } from "/static/kp/js/state-plate.js";
 
 /** @typedef {import("../api.js").Item} Item */
 
@@ -354,7 +354,7 @@ export function mount(root, { params, navigate }) {
   /** The recipe's steps the cook sees: all, or the mini ones. @param {Item} r */
   const stepsOf = (r) => (mini ? r.steps.filter((/** @type {Item} */ s) => s.mini) : r.steps);
 
-  /** @param {Item} r @param {Item[]} list @returns {import("/kp/js/focus-steps.js").FocusStep[]} */
+  /** @param {Item} r @param {Item[]} list @returns {import("/static/kp/js/focus-steps.js").FocusStep[]} */
   function focusSteps(r, list) {
     /** @param {string | null} id */
     const trackName = (id) => (id ? (r.tracks.find((/** @type {Item} */ t) => t.id === id)?.name ?? id) : undefined);
