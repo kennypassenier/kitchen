@@ -460,6 +460,9 @@ function ensureParts(root) {
     const follow = /** @type {HTMLButtonElement} */ (el('kp-button kp-button--sm kp-logviewer__follow', 'button'));
     follow.type = 'button';
     follow.setAttribute('data-kp-follow-toggle', id);
+    // The pill's draw() sets this too, but a draw inside a lazy attach cannot see a button that attach
+    // has just built (js/as-of.js), so it starts here, pressed only while the log is held.
+    follow.setAttribute('aria-pressed', 'false');
     follow.textContent = s.newpillPause;
     const wrap = /** @type {HTMLButtonElement} */ (el('kp-button kp-button--sm', 'button'));
     wrap.type = 'button';
