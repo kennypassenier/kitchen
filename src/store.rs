@@ -6,7 +6,7 @@
 //! old file or the new one, never half of either. The file is plain JSON on
 //! purpose: it is the backup, and a person can read it.
 //!
-//! The collections are documented field by field in `docs/DATA.md`. The
+//! The collections are documented field by field in `docs/agent/DATA.md`. The
 //! server checks only what it must to stay consistent (an object, an `id`
 //! it issued, a known collection); the shape of a recipe belongs to the
 //! pages, so the screens can grow without a server change.

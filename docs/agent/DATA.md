@@ -25,7 +25,7 @@ Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 | `safe` | boolean | A safe favourite for bad days |
 | `gear` | string | What it dirties: "1 pot", "the oven, 2 pots" |
 | `last_note` | string | The "Last time" note on the recipe page |
-| `ingredients` | `{id, name, amount: number \| null, unit, group}`[] | Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
+| `ingredients` | `{id, name, amount: number \| null, unit, group, note?}`[] | Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
 | `tools` | `{id, name}`[] | Gathered before cooking (the Begin checklist's "Tools") |
 | `tracks` | `{id, name}`[] | Parallel tracks ("Pasta", "Sauce"); empty for a one-track dish |
 | `steps` | step[] | In cooking order, see below |
