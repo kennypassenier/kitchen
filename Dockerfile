@@ -23,12 +23,12 @@ RUN mkdir -p /state
 # 65532, so neither the apt line nor a useradd is needed; a static binary
 # needs nothing else from the image.
 FROM gcr.io/distroless/static:nonroot
-COPY --from=build /src/target/x86_64-unknown-linux-musl/release/recepten /usr/local/bin/recepten
-COPY --from=build --chown=65532:65532 /state /var/lib/recepten
+COPY --from=build /src/target/x86_64-unknown-linux-musl/release/kitchen /usr/local/bin/kitchen
+COPY --from=build --chown=65532:65532 /state /var/lib/kitchen
 USER 65532:65532
-ENV RECEPTEN_LISTEN=0.0.0.0:8080 RECEPTEN_STATE_DIR=/var/lib/recepten
+ENV KITCHEN_LISTEN=0.0.0.0:8080 KITCHEN_STATE_DIR=/var/lib/kitchen
 EXPOSE 8080
-VOLUME ["/var/lib/recepten"]
+VOLUME ["/var/lib/kitchen"]
 # Self-update is off inside an image by detection (AR8); updates are a new image.
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["/usr/local/bin/recepten", "--healthcheck"]
-ENTRYPOINT ["/usr/local/bin/recepten"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["/usr/local/bin/kitchen", "--healthcheck"]
+ENTRYPOINT ["/usr/local/bin/kitchen"]

@@ -1,4 +1,4 @@
-//! recepten — AuDHD-friendly recipes: a wheel that chooses, cook mode with
+//! kitchen — AuDHD-friendly recipes: a wheel that chooses, cook mode with
 //! parallel tracks, backward timing, bad days.
 //!
 //! Built on chassis: configuration, logging, login, health, metrics,
@@ -22,15 +22,15 @@ use chassis::{App, AppSpec};
 include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
 const HELP: &str = "\
-RECEPTEN_WEB_DIR=<path to web/> serves the screens from disk instead of the
+KITCHEN_WEB_DIR=<path to web/> serves the screens from disk instead of the
 copy built into the binary (development only: a changed file shows on reload).";
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
     let spec = AppSpec {
-        name: "recepten",
+        name: "kitchen",
         version: env!("CARGO_PKG_VERSION"),
-        repository: Some("kennypassenier/recepten"),
+        repository: Some("kennypassenier/kitchen"),
         help_extra: Some(HELP),
         ..Default::default()
     };
@@ -48,14 +48,14 @@ async fn main() -> std::process::ExitCode {
         let store = match store::Store::open(&dir) {
             Ok(s) => Arc::new(s),
             Err(e) => {
-                eprintln!("recepten: {e}");
+                eprintln!("kitchen: {e}");
                 return std::process::ExitCode::FAILURE;
             }
         };
         app.dashboard_routes(routes::router(store));
     }
 
-    let web = match std::env::var("RECEPTEN_WEB_DIR") {
+    let web = match std::env::var("KITCHEN_WEB_DIR") {
         Ok(dir) if !dir.trim().is_empty() => WebApp::dir(dir),
         _ => WebApp::embedded(FILES),
     };
@@ -74,9 +74,9 @@ async fn main() -> std::process::ExitCode {
         )
         .page(Page::new("cook", "Cook", "/cook").group("Recipes").hidden())
         .brand("/")
-        .brand_title("Recepten")
+        .brand_title("Kitchen")
         // Nothing calls a client API and the kit's status page would be a
-        // second home; the operator reads /healthz and `recepten --check`.
+        // second home; the operator reads /healthz and `kitchen --check`.
         .disable_kit_page("status")
         .disable_kit_page("clients");
     app.run().await

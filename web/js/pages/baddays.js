@@ -310,7 +310,7 @@ const toFocusSteps = (steps) =>
  * @returns {() => void}
  */
 export function mount(root, { navigate }) {
-  document.title = "Bad days · Recepten";
+  document.title = "Bad days · Kitchen";
   const page = h("div", { class: "bd-page" });
   page.innerHTML = SECTIONS;
   root.replaceChildren(page);

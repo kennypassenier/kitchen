@@ -12,20 +12,20 @@
 # the binary's compiled-in default instead of this machine's directory, and
 # fails with a message that blames a missing secret. Add a line here for
 # every Environment= line added to the unit.
-stack_name: recepten
+stack_name: kitchen
 vmid: 0
-hostname: 0-app-recepten
-unit: recepten
-binary: /opt/recepten/bin/recepten
-env_file: /etc/recepten/recepten.env
+hostname: 0-app-kitchen
+unit: kitchen
+binary: /opt/kitchen/bin/kitchen
+env_file: /etc/kitchen/kitchen.env
 data_dirs:
-  - /var/lib/recepten
+  - /var/lib/kitchen
 update_cmd: >-
-  systemd-run --wait --pipe --collect --uid=recepten --gid=recepten
-  --property=EnvironmentFile=/etc/recepten/recepten.env
-  --property=WorkingDirectory=/var/lib/recepten
-  --property=Environment=RECEPTEN_STATE_DIR=/var/lib/recepten
-  --property=Environment=RECEPTEN_TIMEOUT_STOP_SECS=60
-  /opt/recepten/bin/recepten update
-release_repo: kennypassenier/recepten
-release_asset: recepten
+  systemd-run --wait --pipe --collect --uid=kitchen --gid=kitchen
+  --property=EnvironmentFile=/etc/kitchen/kitchen.env
+  --property=WorkingDirectory=/var/lib/kitchen
+  --property=Environment=KITCHEN_STATE_DIR=/var/lib/kitchen
+  --property=Environment=KITCHEN_TIMEOUT_STOP_SECS=60
+  /opt/kitchen/bin/kitchen update
+release_repo: kennypassenier/kitchen
+release_asset: kitchen

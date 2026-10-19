@@ -31,7 +31,7 @@
 // The legend [gap-tab-count]: `setHeatLegend(el, entries, { keys })` writes the `ul.kp-heat__legend` under the grid (made when the
 // grid has none), a swatch and its words per entry, a value ramp ("Less" to "More") where an entry asks for one, and at its end the
 // line of keys; the grid names it in `aria-describedby`. A calm grid (`data-kp-tones="calm"`) draws Logged, Nothing logged and
-// Paused by itself, `data-kp-legend="hide"` leaves it out (setHeat also takes `legend` and `legendKeys`).
+// Paused by itself (only the tones its cells have; `data-kp-legend="all"` lists all three), `data-kp-legend="hide"` leaves it out (setHeat also takes `legend` and `legendKeys`).
 //
 // Calm tones [kpadopt6]: `data-kp-tones="calm"` on a heat grid swaps ok, warn and bad for `logged`, `quiet` and `paused`
 // (js/calm-tones.js): a cell with nothing logged is quiet, never failed, and its words never say "missed".
@@ -517,6 +517,8 @@ export function setHeat(el, spec) {
     for (const row of rows) body.push(rowNode(row, false));
     if (spec.axis === 'end') body.push(axis);
     replaceKeepingCard(el, body);
+    // The calm legend names the tones of the cells just drawn.
+    if (spec.legend === undefined) syncCalmLegend(el);
     // Loading: the busy card over the rows' cells, the axis and the row names beside it.
     syncCard(
         el,
@@ -614,9 +616,16 @@ function syncCalmLegend(el) {
     const own = legend?.getAttribute('data-kp-legend-source') === 'auto';
     if (legend && !own && legend.childElementCount > 0) return;
     if (isCalmTones(el) && el.getAttribute('data-kp-legend') !== 'hide') {
+        // Only the tones the data has [gap audhd 41]: a grid with no paused cell does not name "Paused"; `data-kp-legend="all"`
+        // keeps the three, and a grid with no cell yet (loading) lists all three so the legend keeps its footprint.
+        const present = new Set([...el.querySelectorAll('.kp-heat__cell[data-kp-tone]')].map((c) => c.getAttribute('data-kp-tone')));
+        const all = el.getAttribute('data-kp-legend') === 'all' || !['logged', 'quiet', 'paused'].some((t) => present.has(t));
+        const entries = calmLegendEntries().filter((e) => all || present.has(e.tone));
+        const signature = entries.map((e) => e.tone).join(' ');
         // Unchanged: nothing is rewritten (a grid that is redrawn many times a minute keeps its legend's nodes).
-        if (own && !legend?.hidden) return;
-        setHeatLegend(el, calmLegendEntries(), { source: 'auto' });
+        if (own && !legend?.hidden && legend?.getAttribute('data-kp-legend-tones') === signature) return;
+        const made = setHeatLegend(el, entries, { source: 'auto' });
+        made?.setAttribute('data-kp-legend-tones', signature);
     } else if (own) removeLegend(el);
 }
 

@@ -52,7 +52,7 @@ async function render() {
   const load = ROUTES[path];
   if (!load) {
     page.replaceChildren(notFound());
-    document.title = "Not found · Recepten";
+    document.title = "Not found · Kitchen";
     return;
   }
   let mod;

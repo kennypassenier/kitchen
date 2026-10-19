@@ -75,8 +75,8 @@ function section(id, title, lead, ...body) {
 export function mount(root, { params, navigate }) {
   const recipeId = params.get("id") ?? "";
   const mini = params.get("mini") === "1";
-  const storeKey = `recepten:cook:${recipeId}:${mini ? "mini" : "full"}`;
-  document.title = "Cook · Recepten";
+  const storeKey = `kitchen:cook:${recipeId}:${mini ? "mini" : "full"}`;
+  document.title = "Cook · Kitchen";
 
   /** @type {(() => void)[]} */
   const undo = [];
@@ -148,7 +148,7 @@ export function mount(root, { params, navigate }) {
         { class: "kp-card__data" },
         h(
           "div",
-          { class: "kp-formgrid", "data-kp-formgrid-align": "center" },
+          { class: "kp-formgrid" },
           facts,
           actionRow("Start here", [beginBtn], "Opens the list of what to take out first. Nothing is cooked yet."),
         ),
@@ -176,7 +176,7 @@ export function mount(root, { params, navigate }) {
     mise,
     h(
       "div",
-      { class: "kp-formgrid", "data-kp-formgrid-align": "center" },
+      { class: "kp-formgrid" },
       actionRow("Everything is out", [startBtn], readout),
       actionRow("Something is missing", [skipBtn], "Opens cook mode now. A missing onion never blocks dinner."),
     ),
@@ -245,7 +245,7 @@ export function mount(root, { params, navigate }) {
     "Turns movement and effects off for a day with no energy; the timers still count and still ring.",
     h(
       "div",
-      { class: "kp-formgrid ck-calm", "data-kp-formgrid-align": "center" },
+      { class: "kp-formgrid ck-calm" },
       h(
         "div",
         { class: "kp-formgrid__row" },
@@ -273,7 +273,7 @@ export function mount(root, { params, navigate }) {
   const doneCard = h(
     "article",
     { class: "kp-card ck-donecard" },
-    h("div", { class: "kp-card__body" }, doneFail, h("div", { class: "kp-formgrid", "data-kp-formgrid-align": "center" }, actionRow("Dinner is out", [doneBtn], doneSays))),
+    h("div", { class: "kp-card__body" }, doneFail, h("div", { class: "kp-formgrid" }, actionRow("Dinner is out", [doneBtn], doneSays))),
   );
   const doneSection = section(
     "ck-done",
@@ -547,7 +547,7 @@ export function mount(root, { params, navigate }) {
   function fill(r) {
     recipe = r;
     shown = stepsOf(r);
-    document.title = `Cook ${r.name} · Recepten`;
+    document.title = `Cook ${r.name} · Kitchen`;
     title.textContent = `Cook: ${r.name}`;
     lead.textContent = mini
       ? "The mini version for a day with little energy: only the steps that matter."

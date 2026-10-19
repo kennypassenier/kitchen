@@ -37,6 +37,10 @@ export const FOOTPRINT_HOSTS = [
     '[data-kp-requests]',
     '[data-kp-pipeline]',
     '[data-kp-diffview]',
+    '[data-kp-datatable]',
+    '[data-kp-runs]',
+    '[data-kp-gantt]',
+    '[data-kp-code]:not(.kp-code--cell)',
     '.kp-ops',
 ].join(', ');
 
@@ -67,7 +71,9 @@ export function holdFootprint(host) {
     let ownPriority = '';
     let ownComputed = '';
 
-    const state = () => host.getAttribute('data-kp-state') ?? 'ready';
+    // The data table writes `loading`, `failed` and `ready` as its state, and `data-kp-state-covered` (`empty` or `error`) while its plate
+    // stands in the rows' place [states-check-1019]; the covered plate wins, because the table is `ready` with no rows when empty.
+    const state = () => host.getAttribute('data-kp-state-covered') ?? (host.getAttribute('data-kp-state') === 'failed' ? 'error' : (host.getAttribute('data-kp-state') ?? 'ready'));
 
     /** The height to hold, for the host's own box model. */
     const height = () => (getComputedStyle(host).boxSizing === 'border-box' ? border : content);
@@ -108,7 +114,7 @@ export function holdFootprint(host) {
     });
     const states = new MutationObserver(sync);
     sizes.observe(host);
-    states.observe(host, { attributes: true, attributeFilter: ['data-kp-state'] });
+    states.observe(host, { attributes: true, attributeFilter: ['data-kp-state', 'data-kp-state-covered'] });
 
     function detach() {
         sizes.disconnect();

@@ -17,3 +17,7 @@ pages own the recipe shape (`docs/agent/DATA.md`); kp-themes is vendored
 from its main branch under `web/kp/` until the next kp-themes release
 reaches chassis-rs, because `.kp-formgrid` and parallel tracks are not in
 11.0.0.
+
+The app is called Kitchen (Kenny, name form, 19/10/2026): crate and
+binary `kitchen`, env prefix `KITCHEN_`, unit `kitchen.service`, state
+file `kitchen.json`, repository `kennypassenier/kitchen`.

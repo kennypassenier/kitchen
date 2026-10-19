@@ -69,7 +69,7 @@ function card(id, title, text, loading) {
 
 /** @param {HTMLElement} root */
 export function mount(root) {
-  document.title = "Calm settings · Recepten";
+  document.title = "Calm settings · Kitchen";
   /** @type {(() => void)[]} */
   const cleanups = [];
   let alive = true;

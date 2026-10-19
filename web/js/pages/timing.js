@@ -27,7 +27,7 @@ const MIN = 60000;
 const SLOW = 1.25;
 const DEFAULTS = { dinner_time: "18:30", pace: "normal", spare: 0 };
 const SPARES = [0, 5, 10, 15];
-const DIGITS_KEY = "recepten:timing-digits";
+const DIGITS_KEY = "kitchen:timing-digits";
 
 /** @param {number} n */
 const pad = (n) => String(n).padStart(2, "0");
@@ -132,7 +132,7 @@ function section(id, title, text, body) {
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
 export function mount(root, { params, navigate }) {
   const recipeId = params.get("id");
-  document.title = "When do I start? · Recepten";
+  document.title = "When do I start? · Kitchen";
   /** @type {(() => void)[]} */
   const cleanups = [];
   /** @type {Item | null} */

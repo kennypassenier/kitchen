@@ -3,20 +3,20 @@
 # rotation for the container's stdout (H4); without it the json-file driver
 # grows without bound.
 services:
-  recepten:
-    image: ghcr.io/kennypassenier/recepten:latest
+  kitchen:
+    image: ghcr.io/kennypassenier/kitchen:latest
     restart: unless-stopped
     ports:
       - "8080:8080"
-    # RECEPTEN_PUBLIC_URL is not in this list: it is a passkeys knob, and
+    # KITCHEN_PUBLIC_URL is not in this list: it is a passkeys knob, and
     # the scaffold builds without that feature (feat-build-1).
-    env_file: /etc/recepten/recepten.env   # RECEPTEN_TOKEN, RECEPTEN_SECRET_KEY
+    env_file: /etc/kitchen/kitchen.env   # KITCHEN_TOKEN, KITCHEN_SECRET_KEY
     volumes:
-      - recepten-state:/var/lib/recepten    # a named volume inherits the image's owner
+      - kitchen-state:/var/lib/kitchen    # a named volume inherits the image's owner
     logging:
       driver: json-file
       options:
         max-size: "20m"
         max-file: "5"
 volumes:
-  recepten-state:
+  kitchen-state:

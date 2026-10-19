@@ -69,7 +69,7 @@ function countOf(dishes, group, values) {
 
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
 export function mount(root, { navigate }) {
-  document.title = "What do we eat? · Recepten";
+  document.title = "What do we eat? · Kitchen";
 
   // ---- the data, as the wheel reads it -------------------------------------------------------------------------------
   /** @type {import("../api.js").Kitchen | null} */

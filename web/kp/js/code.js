@@ -24,7 +24,8 @@
 //
 // States: `loading` (the body keeps its height under the data table's busy
 // card, js/busy-card.js; the tools wait, disabled), `empty`, `binary` (`size`)
-// and `error` (`message`), each a sentence in the body's place at its height.
+// and `error` (`message`). Empty and error are the package plate (js/state-plate.js, `.kp-stateplate`) in the body's place at its
+// height, the failed one with a Retry that fires `kp-code-retry` on the root [states-check-1019]; binary is one muted sentence.
 // The same block as a table cell [kpadopt5], `.kp-code--cell`: no title, the
 // words wrap (a row never scrolls sideways), three lines show and "Show all 40
 // lines" opens the rest in place (`data-kp-code-open="inline"`, default) or in a
@@ -42,6 +43,8 @@
 
 import { getStrings } from './strings.js';
 import { openBusyCard } from './busy-card.js';
+import { hostStatePlate } from './state-plate.js';
+import { holdFootprint } from './footprint.js';
 import { attachSegmented } from './segmented.js';
 import { formatBytes } from './locale.js';
 
@@ -195,6 +198,8 @@ export function setCode(el, given) {
     el.classList.add('kp-code');
     el.classList.toggle('kp-code--cell', cell);
     el.setAttribute('data-kp-code', '');
+    // A block a page draws later was not there when js/auto.js scanned: it holds its own loaded height for empty and failed.
+    if (!cell && typeof ResizeObserver === 'function') holdFootprint(el);
     const state = spec.state ?? 'ready';
     if (state === 'loading') {
         memory.pending = null;
@@ -382,6 +387,21 @@ function drawBody(el, memory) {
         const kind = state === 'ready' ? 'empty' : state;
         el.setAttribute('data-kp-state', kind);
         el.removeAttribute('data-kp-code-folded');
+        if (!memory.cell && kind !== 'binary') {
+            // Empty and failed are the package plate, centred at the body's height with a normal Retry [states-check-1019]; the
+            // Retry fires `kp-code-retry` on the root.
+            const message = spec.message;
+            const plate = hostStatePlate(el, {
+                kind: kind === 'error' ? 'error' : 'empty',
+                title: message ?? (kind === 'error' ? strings.codeError : strings.codeEmpty),
+                ...(kind === 'error' ? { retryEvent: 'kp-code-retry' } : {}),
+            });
+            plate.classList.add('kp-code__plate');
+            plate.style.minBlockSize = was > 0 ? `max(${Math.round(was)}px, 0px)` : 'var(--kp-stateplate-floor, 12rem)';
+            el.append(plate);
+            memory.shown = '';
+            return;
+        }
         const note = make(doc, memory.cell ? 'kp-code__note kp-code__note--line' : 'kp-code__note', 'p');
         note.setAttribute('role', 'status');
         if (was > 0 && !memory.cell) note.style.minBlockSize = `${was}px`;

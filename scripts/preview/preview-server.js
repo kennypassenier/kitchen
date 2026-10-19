@@ -1,7 +1,7 @@
-// The recepten server's JSON routes, answered inside the browser for the
+// The kitchen server's JSON routes, answered inside the browser for the
 // preview: the same answers as src/routes.rs, kept in localStorage.
 (function () {
-  var KEY = "recepten-preview-v1";
+  var KEY = "kitchen-preview-v1";
   var SEED = __SEED__;
   var LISTS = ["recipes", "freezer", "shelf", "log", "resting"];
   function load() {
@@ -15,7 +15,7 @@
     return new Response(JSON.stringify(body), { status: status || 200, headers: { "Content-Type": "application/json" } });
   }
   function err(msg, status) { return json({ error: msg }, status); }
-  var PAGES = { app: "recepten", brand: { title: "Recepten", href: "/" }, home: "/", pages: [
+  var PAGES = { app: "kitchen", brand: { title: "Kitchen", href: "/" }, home: "/", pages: [
     ["wheel", "What do we eat?", "/"], ["timing", "When do I start?", "/timing"], ["baddays", "Bad days", "/bad-days"],
     ["settings", "Calm settings", "/settings"], ["recipes", "Recipes", "/recipes"]
   ].map(function (p) { return { id: p[0], title: p[1], path: p[2], group: null, order: 0, nav: true, source: "app", render: "app" }; }) };

@@ -1,6 +1,6 @@
 //! The kitchen's data: one JSON file under the state directory.
 //!
-//! Everything recepten knows is small (tens of recipes, a freezer, a shelf,
+//! Everything kitchen knows is small (tens of recipes, a freezer, a shelf,
 //! a log), so it lives in memory and is written whole after every change,
 //! temp + fsync + rename through the kit's `write_atomic`: a crash leaves the
 //! old file or the new one, never half of either. The file is plain JSON on
@@ -96,14 +96,14 @@ pub struct Store {
 impl Store {
     /// Open the kitchen in `dir`, seeding it on the very first start.
     pub fn open(dir: &Path) -> Result<Self, String> {
-        let path = dir.join("recepten.json");
+        let path = dir.join("kitchen.json");
         let data = match std::fs::read(&path) {
             Ok(bytes) => {
                 let data: Data = serde_json::from_slice(&bytes)
-                    .map_err(|e| format!("{} is not a recepten file: {e}", path.display()))?;
+                    .map_err(|e| format!("{} is not a kitchen file: {e}", path.display()))?;
                 if data.format > FORMAT {
                     return Err(format!(
-                        "{} was written by a newer recepten (format {}); this one reads format {FORMAT}",
+                        "{} was written by a newer kitchen (format {}); this one reads format {FORMAT}",
                         path.display(),
                         data.format
                     ));

@@ -1,4 +1,4 @@
-# Build a browser-only preview of the recepten web app: the real screens,
+# Build a browser-only preview of the kitchen web app: the real screens,
 # Usage: CHASSIS_THEME_BOOT=<chassis-rs>/crates/chassis/static/theme-boot.js python3 scripts/preview/build.py
 # with the server's JSON routes answered in the browser (localStorage,
 # seeded from src/seed.json) and a hash router, so it runs as a static page.

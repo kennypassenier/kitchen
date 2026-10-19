@@ -1,6 +1,6 @@
 # The kitchen's data
 
-One JSON file, `<state dir>/recepten.json`, read whole by `GET /data/kitchen`
+One JSON file, `<state dir>/kitchen.json`, read whole by `GET /data/kitchen`
 and changed through the routes in `src/routes.rs`. The server issues `id`
 (a UUID), `created` and `updated` (RFC 3339); everything else below is the
 pages' agreement with each other. A field not listed may be added by a page

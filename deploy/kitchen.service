@@ -1,4 +1,4 @@
-# recepten — the golden unit (AR17), as the homelab's answers shaped it.
+# kitchen — the golden unit (AR17), as the homelab's answers shaped it.
 #
 # StartLimitIntervalSec/Burst belong in [Unit]: in [Service] systemd
 # ignores them silently ("Unknown key") and a crash loop stops after five
@@ -8,17 +8,17 @@
 # the binary's directory too, or self-update verifies, downloads and then
 # fails at the swap.
 #
-# Install: install -D -m755 -o recepten -g recepten recepten /opt/recepten/bin/recepten
+# Install: install -D -m755 -o kitchen -g kitchen kitchen /opt/kitchen/bin/kitchen
 # (the service must own the binary itself, not only its directory: Linux
 # refuses a hard link to a file another user owns, so a root-owned binary
 # stops the self-update at the swap — fix-12, kyu on CT 109), copy
-# this file to /etc/systemd/system/recepten.service, create the user
-# (recepten), the state dir (/var/lib/recepten) and the env file
-# (/etc/recepten/recepten.env, 0640 root:recepten), then
-# systemctl enable --now recepten.
+# this file to /etc/systemd/system/kitchen.service, create the user
+# (kitchen), the state dir (/var/lib/kitchen) and the env file
+# (/etc/kitchen/kitchen.env, 0640 root:kitchen), then
+# systemctl enable --now kitchen.
 
 [Unit]
-Description=recepten — AuDHD-friendly recipes: a wheel that chooses, cook mode with parallel tracks, backward timing, bad days
+Description=kitchen — AuDHD-friendly recipes: a wheel that chooses, cook mode with parallel tracks, backward timing, bad days
 Wants=network-online.target
 After=network-online.target
 StartLimitIntervalSec=0
@@ -26,16 +26,16 @@ StartLimitBurst=0
 
 [Service]
 Type=notify
-User=recepten
-Group=recepten
-EnvironmentFile=/etc/recepten/recepten.env
-WorkingDirectory=/var/lib/recepten
-# feat-backup-1: /run/recepten/backup.sock, where `recepten backup-pause`
+User=kitchen
+Group=kitchen
+EnvironmentFile=/etc/kitchen/kitchen.env
+WorkingDirectory=/var/lib/kitchen
+# feat-backup-1: /run/kitchen/backup.sock, where `kitchen backup-pause`
 # reaches the running service; outside the state root, so never archived.
-RuntimeDirectory=recepten
+RuntimeDirectory=kitchen
 RuntimeDirectoryMode=0700
-ExecStartPre=/opt/recepten/bin/recepten --check
-ExecStart=/opt/recepten/bin/recepten
+ExecStartPre=/opt/kitchen/bin/kitchen --check
+ExecStart=/opt/kitchen/bin/kitchen
 Restart=always
 RestartSec=5s
 KillSignal=SIGTERM
@@ -46,8 +46,8 @@ TimeoutStopSec=60
 # Explicit, not the binary's compiled-in default (CF-6 d, 2026-09-06): the
 # unit says where the state lives, so a binary built with another default
 # still runs against this machine's measured directory.
-Environment=RECEPTEN_STATE_DIR=/var/lib/recepten
-Environment=RECEPTEN_TIMEOUT_STOP_SECS=60
+Environment=KITCHEN_STATE_DIR=/var/lib/kitchen
+Environment=KITCHEN_TIMEOUT_STOP_SECS=60
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
@@ -55,7 +55,7 @@ ProtectHome=yes
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
-ReadWritePaths=/var/lib/recepten /var/lib/recepten-pre-update /opt/recepten/bin
+ReadWritePaths=/var/lib/kitchen /var/lib/kitchen-pre-update /opt/kitchen/bin
 # S2: the swap needs write access to the binary's OWN directory only; a
 # code-execution bug can then replace this service's binary, not latch or
 # its neighbours. The rest is systemd's free hardening for a network daemon.

@@ -101,9 +101,9 @@ export const NEEDS = [
     { name: 'tables', when: '.kp-table-wrap', load: () => import('./tables.js'), attach: (m, root) => [m.attachTableRegions(root)] },
     {
         name: 'forms',
-        when: '[data-kp-form], [data-kp-submit], .kp-switch',
+        when: '[data-kp-form], [data-kp-submit], .kp-switch, [data-kp-formgrid-stage]',
         load: () => import('./forms.js'),
-        attach: (m, root) => [m.attachForms(root), m.attachSwitches(root)],
+        attach: (m, root) => [m.attachForms(root), m.attachSwitches(root), m.attachFormgridStages(root)],
     },
     {
         name: 'patterns',
@@ -341,10 +341,10 @@ export const NEEDS = [
     { name: 'timefield', when: '[data-kp-time]', load: () => import('./timefield.js'), attach: (m, root) => [m.attachTimes(root)] },
     {
         // A data component keeps the height it had while a state shows in its place [t56-statefix-1018]: the matrix, the heat grid, the entity
-        // grid, the checklist, the notices, the activity feed, the gallery, the availability grid, the request inspector, the pipeline, the diff view and the operations page. The selector is
+        // grid, the checklist, the notices, the activity feed, the gallery, the availability grid, the request inspector, the pipeline, the diff view, the data table, the runs list, the run timeline, the code view and the operations page. The selector is
         // `FOOTPRINT_HOSTS` of js/footprint.js.
         name: 'footprint',
-        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], .kp-ops',
+        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], [data-kp-datatable], [data-kp-runs], [data-kp-gantt], [data-kp-code], .kp-ops',
         load: () => import('./footprint.js'),
         attach: (m, root) => [m.attachFootprints(root)],
     },

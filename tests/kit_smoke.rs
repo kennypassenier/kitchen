@@ -15,8 +15,8 @@ use reqwest::Method;
 // Held as constants, not written into each line: the names are rendered by
 // the scaffold and a long one would otherwise change how rustfmt wraps the
 // code around them, so a generated project could fail its own fmt gate.
-const NAME: &str = "recepten";
-const REPO: &str = "kennypassenier/recepten";
+const NAME: &str = "kitchen";
+const REPO: &str = "kennypassenier/kitchen";
 
 /// The example route from `src/main.rs`. An integration test cannot import
 /// the binary's `main`, so the smoke test registers the route itself; when

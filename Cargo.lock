@@ -1065,6 +1065,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kitchen"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chassis",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1594,21 +1609,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "498cd0dc59d73224351ee52a95fee0f1a617a2eae0e7d9d720cc622c73a54186"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "recepten"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chassis",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "uuid",
 ]
 
 [[package]]

@@ -297,7 +297,7 @@ export function mount(root, { params, navigate }) {
       recipe = null;
       recipeJson = "";
       lower(false);
-      document.title = `${words.notFoundTitle} · Recepten`;
+      document.title = `${words.notFoundTitle} · Kitchen`;
       setCardState(card, "empty", { title: words.notFoundTitle, text: words.notFoundText, action: h("a", { class: "kp-button kp-button--primary", href: "/" }, words.wheel) });
       return;
     }
@@ -306,7 +306,7 @@ export function mount(root, { params, navigate }) {
     recipe = found;
     recipeJson = json;
     if (portions === 0) portions = found.portions || 1;
-    document.title = `${found.name} · Recepten`;
+    document.title = `${found.name} · Kitchen`;
     if (changed) {
       paintWords();
       drawPrintOptions();

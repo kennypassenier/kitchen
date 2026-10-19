@@ -1,4 +1,4 @@
-# recepten (working name)
+# Kitchen
 
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
 ES modules on kp-themes. Owner Kenny; chat Dutch, code and docs English.

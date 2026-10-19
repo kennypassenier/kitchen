@@ -904,7 +904,7 @@ export function attachDataTables(
         const densitySelect = /** @type {HTMLSelectElement | null} */ (wrap.querySelector(DENSITY));
         const status = /** @type {HTMLElement | null} */ (wrap.querySelector(STATUS));
         const pager = /** @type {HTMLElement | null} */ (wrap.querySelector(PAGER));
-        const empty = /** @type {HTMLElement | null} */ (wrap.querySelector(EMPTY));
+        let empty = /** @type {HTMLElement | null} */ (wrap.querySelector(EMPTY));
         const loadingSlot = /** @type {HTMLElement | null} */ (wrap.querySelector(LOADING));
         let failedSlot = /** @type {HTMLElement | null} */ (wrap.querySelector(FAILED));
         const actions = /** @type {HTMLElement | null} */ (wrap.querySelector(ACTIONS));
@@ -1218,7 +1218,7 @@ export function attachDataTables(
                 emptyLeaving = true;
                 void leave(empty, { hide: true }).then(() => {
                     emptyLeaving = false;
-                    empty.hidden = emptyHidden;
+                    if (empty !== null) empty.hidden = emptyHidden;
                 });
                 return;
             }
@@ -1698,10 +1698,55 @@ export function attachDataTables(
             authored.classList.add('kp-stateplate', 'kp-stateplate--error');
             undo.push(() => authored.classList.remove('kp-stateplate', 'kp-stateplate--error'));
         }
-        if (empty !== null && !empty.classList.contains('kp-stateplate')) {
+        if (empty === null) {
+            // The package's empty plate for a table that wrote no slot: with no rows it showed nothing, a 43 px strip under the
+            // header, not the plate [states-check-1019]. Hidden until there is nothing to show (showEmpty).
+            empty = add(make('div', 'kp-empty kp-stateplate kp-stateplate--empty'));
+            empty.dataset.kpDatatableEmpty = '';
+            empty.setAttribute('role', 'status');
+            empty.hidden = true;
+            emptyHidden = true;
+            const none = make('strong', 'kp-empty__title');
+            none.textContent = s0.tableEmpty;
+            empty.append(none);
+            wrap.insertBefore(empty, tableBlock);
+        } else if (!empty.classList.contains('kp-stateplate')) {
             const authored = empty;
             authored.classList.add('kp-stateplate', 'kp-stateplate--empty');
             undo.push(() => authored.classList.remove('kp-stateplate', 'kp-stateplate--empty'));
+        }
+        if (empty !== null && empty.querySelector('.kp-empty__title, .kp-stateplate__title') === null) {
+            // A slot with words but no title gets the plate's heading (the dictionary's "Nothing found."), the words below it.
+            const authored = empty;
+            const heading = make('strong', 'kp-empty__title');
+            heading.textContent = s0.tableEmpty;
+            authored.prepend(heading);
+            undo.push(() => heading.remove());
+        }
+        if (empty !== null) {
+            // Words a page wrote bare in the slot are the plate's body text, so the plate centres them with its title.
+            for (const node of [...empty.childNodes]) {
+                if (node.nodeType !== Node.TEXT_NODE || (node.textContent ?? '').trim() === '') continue;
+                const words = make('span', 'kp-stateplate__text');
+                node.replaceWith(words);
+                words.append(node);
+                undo.push(() => words.replaceWith(node));
+            }
+        }
+        if (failedSlot !== null && failedSlot.querySelector('.kp-stateplate__title') === null) {
+            // A failed slot a page wrote gets the plate's heading: its reason element, else the dictionary's words [states-check-1019].
+            const authoredFailed = failedSlot;
+            const reason = authoredFailed.querySelector('[data-kp-datatable-failed-reason]');
+            if (reason !== null) {
+                reason.classList.add('kp-stateplate__title');
+                undo.push(() => reason.classList.remove('kp-stateplate__title'));
+            } else {
+                const heading = make('strong', 'kp-stateplate__title');
+                heading.dataset.kpDatatableFailedReason = '';
+                heading.textContent = s0.tableFailed;
+                authoredFailed.prepend(heading);
+                undo.push(() => heading.remove());
+            }
         }
 
         // ── The plate takes the table's place ───────────────────────────
@@ -1723,12 +1768,16 @@ export function attachDataTables(
         undo.push(() => {
             coverSizes?.disconnect();
             coverBox.removeAttribute('data-kp-state-covered');
+            wrap.removeAttribute('data-kp-state-covered');
             for (const slot of [failedSlot, empty]) slot?.style.removeProperty('--kp-datatable-held');
         });
         const syncCover = () => {
             const failedNow = state === 'failed' && failedSlot !== null;
             const emptyNow = !failedNow && empty !== null && !emptyHidden;
             coverBox.toggleAttribute('data-kp-state-covered', failedNow || emptyNow);
+            // js/footprint.js holds the whole table's loaded height while a plate stands in the rows' place.
+            if (failedNow || emptyNow) wrap.setAttribute('data-kp-state-covered', failedNow ? 'error' : 'empty');
+            else wrap.removeAttribute('data-kp-state-covered');
             for (const slot of [failedSlot, empty]) {
                 if (slot === null) continue;
                 const mine = (slot === failedSlot && failedNow) || (slot === empty && emptyNow);
@@ -1976,7 +2025,9 @@ export function attachDataTables(
             if (current.length === sequence.length && current.every((row, at) => row === sequence[at])) return;
             const active = document.activeElement;
             const held = active instanceof HTMLElement && body.contains(active) ? active : null;
-            for (const row of sequence) body.append(row);
+            // Only rows still in the body are placed: one the page took out (replaced tbody content, then a sort before refresh())
+            // stays out, and is never put back beside its replacement [states-check-1019].
+            for (const row of sequence) if (row.parentElement === body) body.append(row);
             if (held !== null && held.isConnected && document.activeElement !== held) held.focus({ preventScroll: true });
         };
         /** Name each heading's toggle, count its rows and show it where its rows are. @param {ReturnType<typeof getStrings>} s */
@@ -2293,6 +2344,8 @@ export function attachDataTables(
             if (blockOrder.length > 0) placeGroups();
             else
                 for (const row of shownRows) {
+                    // A row the page replaced is no longer in the body: it is not re-placed beside its replacement [states-check-1019].
+                    if (row.parentElement !== body) continue;
                     body.append(row);
                     const detail = details.get(row);
                     if (detail !== undefined) body.append(detail);

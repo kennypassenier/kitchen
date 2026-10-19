@@ -307,12 +307,7 @@ export function setStackbar(el, spec) {
         const segs = /** @type {HTMLElement[]} */ ([...bar.querySelectorAll('.kp-stackbar__seg')]);
         const stop = segs.find((seg) => seg.dataset.kpStackbarKey === focusedKey) ?? segs[0];
         stop?.setAttribute('tabindex', '0');
-        if (legend) {
-            // The widest value, in characters, so the legend keeps one value column (css `--kp-stackbar-value-n`).
-            const widest = Math.max(0, ...[...legend.querySelectorAll('.kp-stackbar__value')].map((v) => (v.textContent ?? '').length));
-            legend.style.setProperty('--kp-stackbar-value-n', String(widest));
-            nodes.push(legend);
-        }
+        if (legend) nodes.push(legend);
     }
 
     el.replaceChildren(...nodes);
@@ -322,35 +317,10 @@ export function setStackbar(el, spec) {
     }
     if (focusedKey) /** @type {HTMLElement | null} */ (el.querySelector(`.kp-stackbar__seg[tabindex="0"]`))?.focus();
     if (state !== 'loading') attachHoverCards(doc);
-    fitValues(el);
     if (!memory.wired) {
         memory.wired = true;
         wire(el);
     }
-}
-
-/**
- * One value track for every legend row [stackbar-refresh-1019; homelab 45, 53]: the widest value's rendered width, in px, as
- * `--kp-stackbar-value-w`. The count of characters (`--kp-stackbar-value-n`) cannot tell "35 GB" from "210 GB" in a font whose
- * digits and letters differ, which left the labels' end edge up to 1.2 px apart from row to row. Measured on the text itself, so
- * any font and unit; again when the fonts have loaded. A legend that is not laid out (a hidden tab) keeps the estimate.
- * @param {HTMLElement} el
- */
-function fitValues(el) {
-    const legend = /** @type {HTMLElement | null} */ (el.querySelector(':scope > .kp-stackbar__legend'));
-    if (!legend) return;
-    const measure = () => {
-        let widest = 0;
-        for (const value of legend.querySelectorAll('.kp-stackbar__value')) {
-            const range = el.ownerDocument.createRange();
-            range.selectNodeContents(value);
-            widest = Math.max(widest, range.getBoundingClientRect().width);
-        }
-        if (widest > 0) legend.style.setProperty('--kp-stackbar-value-w', `${Math.ceil(widest * 100) / 100}px`);
-    };
-    measure();
-    const fonts = el.ownerDocument.fonts;
-    if (fonts && fonts.status === 'loading') fonts.ready.then(() => legend.isConnected && measure());
 }
 
 /** The listeners of one root, set once: they read the parts as they stand. @param {HTMLElement} el */

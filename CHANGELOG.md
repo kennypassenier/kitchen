@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to recepten. Semantic versioning: a breaking change
+All notable changes to kitchen. Semantic versioning: a breaking change
 in the API, the configuration knobs or the on-disk state is a major, and
 carries a **Migration** section saying what an operator must do.
 
