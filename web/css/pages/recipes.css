@@ -1,1 +1,189 @@
-/* recipes screen: rules behind the screen's own prefix. */
+/* recipes screen: rules behind the screen's own prefix (rl-). Layout only; every look is the package's. */
+
+.rl-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xl, 2rem);
+  align-content: start;
+}
+
+.rl-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.rl-plate {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  justify-items: center;
+  text-align: center;
+}
+
+.rl-plate[hidden] {
+  display: none;
+}
+
+/* ---- the editor drawer -------------------------------------------------------------------------------------- */
+
+.rl-editor {
+  --kp-drawer-width: min(54rem, 100vw);
+}
+
+.rl-form {
+  display: grid;
+  gap: var(--kp-space-xl, 2rem);
+  align-content: start;
+}
+
+.rl-formsec {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-formsec h3,
+.rl-formsec__text {
+  margin: 0;
+}
+
+.rl-formsec__text {
+  color: var(--muted-foreground);
+}
+
+.rl-editor__line {
+  margin: 0;
+  margin-inline-end: auto;
+}
+
+/* Repeatable rows: one header line and every row on the same columns. */
+.rl-rows {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.rl-rows__body {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.rl-row {
+  display: grid;
+  grid-template-columns: var(--rl-cols);
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.rl-row--head {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.rl-rows__empty {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.rl-rows__add {
+  display: grid;
+  grid-template-columns: max-content;
+}
+
+.rl-lists,
+.rl-step__body,
+.rl-list {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-list h4,
+.rl-list p {
+  margin: 0;
+}
+
+.rl-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.rl-steps,
+.rl-steps-wrap {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-step {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--kp-space-md, 1rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 0.5rem);
+}
+
+.rl-step__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.rl-step__head h3 {
+  margin: 0;
+}
+
+.rl-step__buttons {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+/* A phone: each row is two columns, the first field across both. */
+@media (max-width: 40rem) {
+  .rl-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rl-row > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .rl-row:has(> :nth-child(2):last-child) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .rl-row:has(> :nth-child(2):last-child) > :first-child {
+    grid-column: auto;
+  }
+
+  .rl-row__remove {
+    justify-self: start;
+  }
+
+  .rl-row--head {
+    display: none;
+  }
+}
+
+.rl-editor .kp-drawer__foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+/* Every stepper in the editor takes the same step, wide enough for the longest unit ("portions"), so the controls end on one edge. */
+.rl-editor .kp-formgrid {
+  --kp-formgrid-short: 17rem;
+}
+
+/* A chip row takes the whole control track, so its box ends where the fields end; the chips keep their size. */
+.rl-editor .kp-formgrid__control > .kp-segmented {
+  inline-size: 100%;
+}
