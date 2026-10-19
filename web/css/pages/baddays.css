@@ -1,1 +1,205 @@
-/* baddays screen: rules behind the screen's own prefix. */
+/* Bad days screen: every rule sits behind the screen's own prefix (bd-). Everything with a kp- class is the package;
+   these rules lay the parts out on grids and keep each part's footprint the same in every state. */
+
+.bd-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xl, 2rem);
+  min-inline-size: 0;
+}
+
+.bd-intro {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.bd-intro :is(h1, p),
+.bd-sec__head :is(h2, h3, p) {
+  margin: 0;
+}
+
+.bd-intro p,
+.bd-sec__head p {
+  max-inline-size: 80ch;
+  color: var(--muted-foreground);
+}
+
+.bd-sec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.bd-sec__head {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+/* ---- 1 · safe dishes: the stage keeps the room the tiles fill, so a state takes the same place. */
+#bd-safe-card {
+  --kp-card-stage-min: 21rem;
+}
+
+.bd-safe .kp-action {
+  min-block-size: 7rem;
+}
+
+.bd-card .kp-action__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--kp-space-md, 0.75rem);
+}
+
+.bd-readout {
+  margin: 0;
+  padding: var(--kp-space-xs, 0.25rem) var(--kp-space-sm, 0.5rem);
+  min-block-size: 1.5em;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+/* ---- 2 · the freezer: the table, its empty and failed notices keep one footprint. */
+.bd-freezer {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.bd-freezer .kp-table-wrap {
+  min-block-size: 22rem;
+}
+
+.bd-freezer .bd-state {
+  box-sizing: border-box;
+  min-block-size: 22rem;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.bd-freezer .bd-state[hidden] {
+  display: none;
+}
+
+.bd-freezer .kp-empty__title {
+  font-size: var(--kp-text-xl, 1.5rem);
+}
+
+/* An empty or failed table shows its notice in the table's own place, not under a blank table. */
+.bd-freezer .kp-datatable:has(> .bd-state:not([hidden])) > .kp-table-wrap {
+  display: none;
+}
+
+.bd-hint--none {
+  visibility: hidden;
+}
+
+/* The add form: its own block under the table, a grid of its own. */
+.bd-add {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+/* ---- 3 · the shelf keeps its stage height whatever the filter leaves. */
+#bd-shelf-card {
+  --kp-card-stage-min: 27rem;
+}
+
+/* The lead badge, the title's first line and "This one" share one baseline, so every row reads on one line and
+   the buttons stand in one column (grid-fix, Kenny 19/10/2026 06:43). */
+.bd-shelf > li,
+.bd-shelf > li > .kp-action-list__lead,
+.bd-shelf > li > .kp-row-actions {
+  align-items: first baseline;
+  align-self: first baseline;
+}
+
+/* On a phone the three levels go under the title; the package scrolls them inside their own bar. */
+@media (max-width: 36rem) {
+  #bd-shelf-card > .kp-card__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #bd-shelf-card > .kp-card__header > .kp-card__actions {
+    justify-self: stretch;
+    min-inline-size: 0;
+  }
+
+  #bd-shelf-card [data-bd-level] {
+    max-inline-size: 100%;
+  }
+}
+
+/* ---- 4 · the mini recipe: title, the version switch and Cook this on one grid row; two rows of text and the steps below. */
+.bd-mini {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.bd-mini__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--kp-space-sm, 0.5rem) var(--kp-space-lg, 1.5rem);
+}
+
+.bd-mini__title,
+.bd-mini__lede {
+  margin: 0;
+}
+
+.bd-mini__lede {
+  min-block-size: 3.5em;
+  max-inline-size: 80ch;
+}
+
+.bd-mini__steps {
+  block-size: 28rem;
+}
+
+@media (max-width: 40rem) {
+  .bd-mini__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bd-mini__head > .kp-segmented {
+    justify-self: stretch;
+    max-inline-size: 100%;
+  }
+
+  .bd-mini__head > .bd-mini__cook {
+    justify-self: stretch;
+  }
+}
+
+/* ---- 5 · the month */
+.bd-calwrap {
+  min-inline-size: 0;
+  max-inline-size: 44rem;
+}
+
+/* The date field takes the same fixed step as the stepper above it; its calendar button sits after that step. */
+.bd-add .bd-date {
+  display: grid;
+  grid-template-columns: var(--bd-step) auto;
+  align-items: center;
+  gap: var(--kp-space-xs, 0.25rem);
+  justify-content: start;
+}
+
+/* The stepper takes exactly the same step as the date field, so both end on one edge. */
+.bd-add .kp-quantity {
+  inline-size: var(--bd-step);
+  max-inline-size: 100%;
+}
+
+.bd-add {
+  --bd-step: 15rem;
+}
