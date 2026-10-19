@@ -388,17 +388,6 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p || !gantt || !recipe) return;
     const lanes = p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}` }));
-    // A label is the longest run of its words that fits the bar; a bar too narrow for one word carries none (the card names it).
-    // The package's own fallback puts the label beside the bar or cuts it with an ellipsis, which the house rules forbid.
-    const spanMin = (p.serve + 15 * MIN - (p.start - 10 * MIN)) / MIN;
-    const plotPx = Math.max(240, gantt.clientWidth - 215);
-    /** @param {string} text @param {number} mins */
-    const fit = (text, mins) => {
-      const room = (mins / spanMin) * plotPx - 22;
-      const w = text.split(" ");
-      while (w.length > 0 && w.join(" ").length * 7.4 > room) w.pop();
-      return w.join(" ");
-    };
     gantt.setAttribute("data-kp-gantt-ghosts", lanes.map(() => "1").join(" "));
     setGanttRuns(
       gantt,
@@ -406,7 +395,7 @@ export function mount(root, { params, navigate }) {
         l.steps.map((s) => ({
           id: s.id,
           lane: l.id,
-          label: fit(s.label, s.mins),
+          label: s.label,
           start: s.start,
           end: s.end,
           state: /** @type {const} */ ("planned"),
@@ -439,13 +428,13 @@ export function mount(root, { params, navigate }) {
     discDetach = [];
     discStart = p.start;
     // A full dial is 60 minutes (Kenny's changed default): a longer wait leaves the disc full until the last hour.
-    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc data-kp-timer-disc-until="${p.start}" data-kp-timer-disc-name="Start cooking" data-kp-timer-disc-scale="60"></div>`;
-    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown data-kp-countdown-until="${p.start}" data-kp-countdown-name="Minutes to the start"></div>`;
+    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc-until="${p.start}" data-kp-timer-disc-timezone="${ZONE}" data-kp-timer-disc-name="Start cooking" data-kp-timer-disc-scale="60"></div>`;
+    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown-until="${p.start}" data-kp-countdown-timezone="${ZONE}" data-kp-countdown-name="Minutes to the start"></div>`;
     disc = /** @type {HTMLElement} */ (discSlot.firstElementChild);
     discDetach.push(attachTimerDiscs(discSlot), attachCountdowns(digitsSlot));
     digitsSlot.hidden = !numbers;
     upNote.hidden = true;
-    // The wait is a moment, not a length (the bare attribute is still what attach selects on): both clocks count down to the start by themselves and have no controls.
+    // The wait is a moment, not a length: both clocks count down to the start by themselves and have no controls.
     disc.addEventListener("kp-countdown-change", drawTimerLine);
     disc.addEventListener("kp-countdown-end", () => {
       const q = current();

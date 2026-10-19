@@ -41,6 +41,8 @@ export const FOOTPRINT_HOSTS = [
     '[data-kp-runs]',
     '[data-kp-gantt]',
     '[data-kp-week]',
+    '[data-kp-chart]:not([data-kp-chart="spark"])',
+    '[data-kp-deplist]',
     '[data-kp-code]:not(.kp-code--cell)',
     '.kp-ops',
 ].join(', ');
@@ -76,10 +78,44 @@ export function holdFootprint(host) {
     // stands in the rows' place [states-check-1019]; the covered plate wins, because the table is `ready` with no rows when empty.
     const state = () => host.getAttribute('data-kp-state-covered') ?? (host.getAttribute('data-kp-state') === 'failed' ? 'error' : (host.getAttribute('data-kp-state') ?? 'ready'));
 
+    /**
+     * A host that fails or turns up empty on its very first read has no loaded height to hold [statestwo-1019, almanac 26]. A table
+     * (and any host that says so with `data-kp-footprint-rows="N"`) is held at what N rows would make it: its own frame (toolbar, head
+     * and foot: the host less what stands in the rows' place) plus N rows of `--kp-footprint-row` (default 2.75rem); N is the hint, else the table's
+     * `data-kp-page-size`, else 10. Worked out once, when the hold starts; a loaded height, once there is one, wins.
+     */
+    let guess = 0;
+    const rowsHint = () => {
+        const given = Number.parseInt(host.getAttribute('data-kp-footprint-rows') ?? '', 10);
+        if (given > 0) return given;
+        if (!host.matches('[data-kp-datatable]')) return 0;
+        const size = Number.parseInt(host.getAttribute('data-kp-page-size') ?? '', 10);
+        return size > 0 ? size : 10;
+    };
+    const estimate = () => {
+        const rows = rowsHint();
+        if (!rows) return 0;
+        const view = host.ownerDocument.defaultView;
+        const rem = parseFloat(view?.getComputedStyle(host.ownerDocument.documentElement).fontSize ?? '16') || 16;
+        const raw = getComputedStyle(host).getPropertyValue('--kp-footprint-row').trim();
+        const unit = /^(\d+(?:\.\d+)?)(px|rem)?$/.exec(raw);
+        const row = unit ? Number(unit[1]) * (unit[2] === 'px' ? 1 : rem) : 2.75 * rem;
+        // What stands in the rows' place now (skeleton rows, the plate, the empty slot) is not frame.
+        const inPlace = [...host.querySelectorAll('tbody, .kp-stateplate, [data-kp-datatable-empty]')].reduce(
+            (sum, e) => sum + (e.parentElement?.closest('.kp-stateplate, [data-kp-datatable-empty]') ? 0 : e.getBoundingClientRect().height),
+            0,
+        );
+        return Math.max(0, host.getBoundingClientRect().height - inPlace) + rows * row;
+    };
+
     /** The height to hold, for the host's own box model. */
-    const height = () => (getComputedStyle(host).boxSizing === 'border-box' ? border : content);
+    const height = () => {
+        const loaded = getComputedStyle(host).boxSizing === 'border-box' ? border : content;
+        return loaded || guess;
+    };
 
     const release = () => {
+        guess = 0;
         if (!holding) return;
         holding = false;
         if (ownInline) host.style.setProperty('min-block-size', ownInline, ownPriority);
@@ -87,6 +123,7 @@ export function holdFootprint(host) {
     };
 
     const hold = () => {
+        if (!holding && !border && !guess) guess = estimate();
         const wanted = height();
         if (!wanted) return release();
         if (!holding) {

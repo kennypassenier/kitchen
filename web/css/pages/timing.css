@@ -132,9 +132,3 @@
     grid-auto-flow: row;
   }
 }
-
-/* A track's start diamond stands just before its first bar, not on top of it: its right edge is the start.
-   Measured 2026-10-19 on kp-themes 6f9301bc: the package still centres the mark on the moment, so it overlaps the bar. */
-.tm-sec .kp-gantt__point {
-  translate: -100% 0;
-}

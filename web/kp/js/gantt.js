@@ -28,8 +28,9 @@
 //            the height, the cap, the stripes, the dashes and the hatching
 //            are, and so is the bar's name
 //   label    a label that does not fit its bar stands outside it [gaps-time-1019]: after the bar when the lane has room before the
-//            next bar of its row, else before it, else (a lane too full for either) cut with an ellipsis on the roomier side, and left
-//            to the bar's name and card when even that is under 3 rem. A label that fits stays inside. Measured against the bar's
+//            next bar of its row, else before it, else (a lane too full for either) not drawn: a label is never cut with an ellipsis,
+//            the bar's name and card carry it. A label stands clear of the mark beside its bar, and a mark that would lie on a bar
+//            stands clear of it (--kp-g-dodge). A label that fits stays inside. Measured against the bar's
 //            real width, so a growing bar takes its label back in when it is wide enough
 //   live     a running or queued bar ends at now, whatever `end` says; one
 //            custom property (`--kp-g-now`) moves every second and the
@@ -1175,17 +1176,16 @@ function labelWidth(c, bar) {
 
 /** The air kept after an outside label, in px, before the next bar or label of its row. */
 const OUTSIDE_GAP_PX = 6;
-/** A bar this wide, in px, that cannot give its label room anywhere keeps it inside, cut with an ellipsis. */
-const INSIDE_MIN_PX = 32;
-/** Under this much room, in px, an outside label is not drawn (the bar's name and card carry it). */
-const OUTSIDE_MIN_PX = 48;
+/** The air, in px, between a mark's button and the bar it stands beside, or the label beside a mark. */
+const MARK_GAP_PX = 2;
 
 /**
  * The label that stands outside a bar: a sibling of the bar in its lane (a bar clips what is inside it, and a theme may cut its
  * corners), placed by the same custom properties as the bar, so it moves with the window as the bar does.
  * @param {GanttModel} c @param {GanttLaneModel} lane @param {HTMLElement} bar @param {'after' | 'before' | ''} side @param {number} room px
+ * @param {number} [shift] px the label stands clear of a mark that is beside the bar, away from the bar
  */
-function setOutside(c, lane, bar, side, room) {
+function setOutside(c, lane, bar, side, room, shift = 0) {
     let el = c.outside.get(bar);
     if (!side) {
         el?.remove();
@@ -1207,6 +1207,7 @@ function setOutside(c, lane, bar, side, room) {
         if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
     }
     el.style.setProperty('--kp-g-label-room', `${Math.floor(room)}px`);
+    el.style.setProperty('--kp-g-label-shift', `${Math.round(shift)}px`);
 }
 
 /** The outside labels of bars that are gone or out of the window go with them. @param {GanttModel} c */
@@ -1220,9 +1221,50 @@ function dropOutside(c) {
 }
 
 /**
- * A label that does not fit its bar stands outside it [gaps-time-1019]: after the bar when the room before the next bar of its row
- * (or the plot's end) holds it, else before the bar, else cut with an ellipsis on the roomier side, else not drawn. The rows are
- * walked in time order and the room a label took is not offered to the next bar, so two labels never meet.
+ * A mark (a start diamond) whose button would lie on a bar of its row stands clear of it: moved away from the bar's edge it is
+ * at, by the overlap and a small gap, so a mark and a bar never overlap. A mark that is well inside a bar (an event during the
+ * run) stays where its moment is.
+ * @param {GanttLaneModel} lane @param {{ left: number, right: number }[]} bars the lane's first-row bars, in px
+ * @returns {{ left: number, right: number }[]} the boxes of the lane's marks, in px
+ */
+function clearMarks(lane, bars) {
+    /** @type {{ left: number, right: number }[]} */
+    const boxes = [];
+    for (const el of lane.points) {
+        if (el.hidden || el.hasAttribute('data-kp-clustered')) continue;
+        const width = el.offsetWidth;
+        if (!width) continue;
+        const was = Number.parseFloat(el.style.getPropertyValue('--kp-g-dodge')) || 0;
+        let left = el.offsetLeft - was;
+        let right = left + width;
+        let dodge = 0;
+        const centre = (left + right) / 2;
+        for (const bar of bars) {
+            if (right <= bar.left || left >= bar.right) continue;
+            // Only at an edge: the centre of the mark is within its own half-width of the bar's start or end.
+            const half = width / 2;
+            if (Math.abs(centre - bar.left) <= half + 1) dodge = Math.min(dodge, bar.left - MARK_GAP_PX - right);
+            else if (Math.abs(centre - bar.right) <= half + 1) dodge = Math.max(dodge, bar.right + MARK_GAP_PX - left);
+        }
+        if (dodge !== 0) {
+            left += dodge;
+            right += dodge;
+        }
+        const value = dodge === 0 ? '' : `${dodge.toFixed(1)}px`;
+        if (el.style.getPropertyValue('--kp-g-dodge') !== value) {
+            if (value) el.style.setProperty('--kp-g-dodge', value);
+            else el.style.removeProperty('--kp-g-dodge');
+        }
+        boxes.push({ left, right });
+    }
+    return boxes.sort((a, b) => a.left - b.left);
+}
+
+/**
+ * A label that does not fit its bar stands outside it [gaps-time-1019]: after the bar when the room before the next bar or mark
+ * of its row (or the plot's end) holds it, else before the bar, else it is not drawn: a label is never cut (the house rule has no
+ * ellipsis), and the bar's name and card carry the words. A label stands clear of a mark beside its bar. The rows are walked in
+ * time order and the room a label took is not offered to the next bar, so two labels never meet.
  * @param {GanttModel} c
  */
 function placeLabels(c) {
@@ -1240,7 +1282,9 @@ function placeLabels(c) {
             list.push({ bar: b.bar, left, right });
             rows.set(b.row, list);
         }
-        for (const list of rows.values()) {
+        // The marks stand on the lane's first row.
+        const marks = clearMarks(lane, rows.get(0) ?? []);
+        for (const [row, list] of rows) {
             list.sort((a, b) => a.left - b.left);
             let taken = 0;
             list.forEach((item, i) => {
@@ -1249,29 +1293,48 @@ function placeLabels(c) {
                 /** @type {string} */
                 let place = '';
                 let roomPx = 0;
+                let shift = 0;
                 if (need > right - left - 2) {
                     // A label stands 4 px from its bar (8 px from one that is still open: the line for now is there).
                     const start = bar.dataset.kpState === 'running' || bar.dataset.kpState === 'queued' ? 8 : 4;
-                    const next = list[i + 1]?.left ?? room;
-                    const after = next - right - start - OUTSIDE_GAP_PX;
-                    const before = left - taken - 4 - OUTSIDE_GAP_PX;
                     const wanted = need - 2 * 0.375 * 16 + 8;
-                    if (after >= wanted) [place, roomPx] = ['after', after];
-                    else if (before >= wanted) [place, roomPx] = ['before', before];
-                    else if (right - left >= INSIDE_MIN_PX) place = '';
-                    else {
-                        /** @type {[string, number]} */
-                        const best = after >= before ? ['after', after] : ['before', before];
-                        [place, roomPx] = best[1] >= OUTSIDE_MIN_PX ? best : ['none', 0];
+                    let next = list[i + 1]?.left ?? room;
+                    let from = right + start;
+                    let upTo = left - 4;
+                    let floor = taken;
+                    if (row === 0) {
+                        // A mark in the way: after the bar the label starts past it, before the bar it ends short of it.
+                        for (const m of marks) {
+                            if (m.right <= from - 1) continue;
+                            if (m.left < from + wanted + OUTSIDE_GAP_PX) from = m.right + MARK_GAP_PX + 2;
+                            else {
+                                next = Math.min(next, m.left);
+                                break;
+                            }
+                        }
+                        for (let k = marks.length - 1; k >= 0; k--) {
+                            const m = /** @type {{ left: number, right: number }} */ (marks[k]);
+                            if (m.left >= upTo + 1) continue;
+                            if (m.right > upTo - wanted - OUTSIDE_GAP_PX) upTo = m.left - MARK_GAP_PX - 2;
+                            else {
+                                floor = Math.max(floor, m.right);
+                                break;
+                            }
+                        }
                     }
-                    if (place === 'after') taken = right + start + Math.min(wanted, roomPx) + OUTSIDE_GAP_PX;
+                    const after = next - from - OUTSIDE_GAP_PX;
+                    const before = upTo - floor - OUTSIDE_GAP_PX;
+                    if (after >= wanted) [place, roomPx, shift] = ['after', after, from - (right + start)];
+                    else if (before >= wanted) [place, roomPx, shift] = ['before', before, left - 4 - upTo];
+                    else place = 'none';
+                    if (place === 'after') taken = from + Math.min(wanted, roomPx) + OUTSIDE_GAP_PX;
                     else taken = Math.max(taken, right);
                 } else taken = Math.max(taken, right);
                 if (bar.dataset.kpLabel !== place) {
                     if (place) bar.dataset.kpLabel = place;
                     else delete bar.dataset.kpLabel;
                 }
-                setOutside(c, lane, bar, place === 'after' || place === 'before' ? place : '', roomPx);
+                setOutside(c, lane, bar, place === 'after' || place === 'before' ? place : '', roomPx, shift);
             });
         }
     }

@@ -227,8 +227,8 @@ export const NEEDS = [
     // The command block [kpadopt4-ideas]: one command with its terminal, its admin or sudo badge and a copy that confirms.
     { name: 'command', when: '[data-kp-command]', load: () => import('./command.js'), attach: (m, root) => [m.attachCommands(root)] },
     // The two timers [kpadopt4-ideas]: a countdown in digits, and the time left as a shrinking disc.
-    { name: 'countdown', when: '[data-kp-countdown]', load: () => import('./countdown.js'), attach: (m, root) => [m.attachCountdowns(root)] },
-    { name: 'timer-disc', when: '[data-kp-timer-disc]', load: () => import('./timer-disc.js'), attach: (m, root) => [m.attachTimerDiscs(root)] },
+    { name: 'countdown', when: '[data-kp-countdown], [data-kp-countdown-until]', load: () => import('./countdown.js'), attach: (m, root) => [m.attachCountdowns(root)] },
+    { name: 'timer-disc', when: '[data-kp-timer-disc], [data-kp-timer-disc-until]', load: () => import('./timer-disc.js'), attach: (m, root) => [m.attachTimerDiscs(root)] },
     // The range picker [kpadopt4-ideas]: presets as the segmented control, and a custom from–to with the date picker.
     { name: 'range', when: '[data-kp-range]', load: () => import('./range.js'), attach: (m, root) => [m.attachRanges(root)] },
     // The compare slider [kpadopt4-ideas]: two versions stacked with a divider between them.
@@ -341,10 +341,10 @@ export const NEEDS = [
     { name: 'timefield', when: '[data-kp-time]', load: () => import('./timefield.js'), attach: (m, root) => [m.attachTimes(root)] },
     {
         // A data component keeps the height it had while a state shows in its place [t56-statefix-1018]: the matrix, the heat grid, the entity
-        // grid, the checklist, the notices, the activity feed, the gallery, the availability grid, the request inspector, the pipeline, the diff view, the data table, the runs list, the run timeline, the week, the code view and the operations page. The selector is
+        // grid, the checklist, the notices, the activity feed, the gallery, the availability grid, the request inspector, the pipeline, the diff view, the data table, the runs list, the run timeline, the week, the chart, the dependency list, the code view and the operations page. The selector is
         // `FOOTPRINT_HOSTS` of js/footprint.js.
         name: 'footprint',
-        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], [data-kp-datatable], [data-kp-runs], [data-kp-gantt], [data-kp-week], [data-kp-code], .kp-ops',
+        when: '[data-kp-matrix], [data-kp-heat], [data-kp-entity-grid], [data-kp-checklist], [data-kp-notices], [data-kp-feed], [data-kp-gallery], [data-kp-availability], [data-kp-requests], [data-kp-pipeline], [data-kp-diffview], [data-kp-datatable], [data-kp-runs], [data-kp-gantt], [data-kp-week], [data-kp-chart], [data-kp-deplist], [data-kp-code], .kp-ops',
         load: () => import('./footprint.js'),
         attach: (m, root) => [m.attachFootprints(root)],
     },

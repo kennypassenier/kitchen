@@ -1158,32 +1158,6 @@ export function attachDataTables(
             if (state !== 'loading' || !busyOverlay) return;
             const layer = make('div', 'kp-datatable__busy-overlay');
             layer.setAttribute('aria-hidden', 'true');
-            // Measured, and measured again whenever the table or its header
-            // changes size: a theme switched after it was drawn, or a font
-            // arriving late, moves the header, and the layer must stay under
-            // it rather than where the header first was.
-            const place = () => {
-                const head = table.tHead;
-                const hostBox = host.getBoundingClientRect();
-                const body = (table.tBodies[0] ?? table).getBoundingClientRect();
-                const tableBox = (scrollBox ?? table).getBoundingClientRect();
-                const top = head === null ? body.top : head.getBoundingClientRect().bottom;
-                layer.style.setProperty('--kp-busy-overlay-top', `${Math.max(0, Math.round(top - hostBox.top - host.clientTop))}px`);
-                layer.style.setProperty(
-                    '--kp-busy-overlay-bottom',
-                    `${Math.max(0, Math.round(hostBox.bottom - Math.max(tableBox.bottom, top) - host.clientTop))}px`,
-                );
-                layer.style.setProperty('--kp-busy-overlay-left', `${Math.max(0, Math.round(tableBox.left - hostBox.left - host.clientLeft))}px`);
-                layer.style.setProperty('--kp-busy-overlay-right', `${Math.max(0, Math.round(hostBox.right - tableBox.right - host.clientLeft))}px`);
-            };
-            place();
-            if (typeof ResizeObserver === 'function') {
-                const watcher = new ResizeObserver(() => place());
-                watcher.observe(host);
-                watcher.observe(table);
-                if (table.tHead !== null) watcher.observe(table.tHead);
-                overlayUnwatch = () => watcher.disconnect();
-            }
             const panel = make('div', 'kp-datatable__busy-panel');
             const spinner = make('span', 'kp-spinner');
             const words = make('span', 'kp-datatable__busy-words');
@@ -1194,8 +1168,41 @@ export function attachDataTables(
                 overlayClock.textContent = s.tableBusyElapsed(busySeconds());
                 panel.append(overlayClock);
             }
+            // Measured, and measured again whenever the table or its header
+            // changes size: a theme switched after it was drawn, or a font
+            // arriving late, moves the header, and the layer must stay under
+            // it rather than where the header first was.
+            const place = () => {
+                const head = table.tHead;
+                const hostBox = host.getBoundingClientRect();
+                const body = (table.tBodies[0] ?? table).getBoundingClientRect();
+                const tableBox = (scrollBox ?? table).getBoundingClientRect();
+                const top = head === null ? body.top : head.getBoundingClientRect().bottom;
+                let from = Math.max(0, Math.round(top - hostBox.top - host.clientTop));
+                let to = Math.max(0, Math.round(hostBox.bottom - Math.max(tableBox.bottom, top) - host.clientTop));
+                // A table of a row or two is shorter than the panel: the layer lends itself the room the panel needs (and at least half the table, up to 128 px), downwards over
+                // the foot, within the host, so the card is never a strip over two rows [states-two-1019].
+                const need = Math.max(panel.offsetHeight + 8, Math.min(host.clientHeight / 2, 128));
+                if (host.clientHeight - from - to < need) {
+                    to = Math.max(0, host.clientHeight - from - need);
+                    // A table with no rows stands near the bottom of its frame: the card then also takes the room above, over the header.
+                    if (host.clientHeight - from - to < need) from = Math.max(0, host.clientHeight - to - need);
+                }
+                layer.style.setProperty('--kp-busy-overlay-top', `${from}px`);
+                layer.style.setProperty('--kp-busy-overlay-bottom', `${to}px`);
+                layer.style.setProperty('--kp-busy-overlay-left', `${Math.max(0, Math.round(tableBox.left - hostBox.left - host.clientLeft))}px`);
+                layer.style.setProperty('--kp-busy-overlay-right', `${Math.max(0, Math.round(hostBox.right - tableBox.right - host.clientLeft))}px`);
+            };
             layer.append(panel);
             host.append(layer);
+            place();
+            if (typeof ResizeObserver === 'function') {
+                const watcher = new ResizeObserver(() => place());
+                watcher.observe(host);
+                watcher.observe(table);
+                if (table.tHead !== null) watcher.observe(table.tHead);
+                overlayUnwatch = () => watcher.disconnect();
+            }
             overlayLayer = layer;
         };
         /** The server's count, in a server-backed table. */

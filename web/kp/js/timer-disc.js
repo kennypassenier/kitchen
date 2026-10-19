@@ -30,6 +30,9 @@
 //   data-kp-timer-disc-until   "14:30" (the next 14:30 on this device's clock), a date and time or epoch ms: the disc counts
 //                              down to that moment, starts at once and has no controls (a moment does not wait); the line
 //                              under it reads "until 14:30"
+//   data-kp-timer-disc-timezone "Europe/Brussels" (on the disc or an ancestor): the zone "14:30" and the caption are in; a date and
+//                              time with its own offset ("+02:00", "Z") is read and written in that offset. Without either,
+//                              this device's clock
 //   data-kp-timer-disc-controls="none"  display only: no Start, Pause or Reset is built (left out of the tab order too); the
 //                              page drives the clock with timerDiscOf(el).start() / .pause() / .reset(seconds). The caption
 //                              follows the clock, so a reset(seconds) from the page changes "Focus · 25 min" too
@@ -42,11 +45,11 @@
 import { getStrings } from './strings.js';
 import { motionAllowed } from './calm.js';
 import { setStateWord } from './components.js';
-import { COUNTDOWN_END_EVENT, COUNTDOWN_EVENT, countdownClock, parseDuration, parseUntil, timerButton, untilLabel } from './countdown.js';
+import { COUNTDOWN_END_EVENT, COUNTDOWN_EVENT, countdownClock, parseDuration, parseUntil, timerButton, timerZone, untilLabel, untilZone } from './countdown.js';
 import { watchOptions } from './live-options.js';
 
 /** A visual timer. */
-export const TIMER_DISC = '[data-kp-timer-disc]';
+export const TIMER_DISC = '[data-kp-timer-disc], [data-kp-timer-disc-until]';
 /** The custom property the disc is drawn by: 1 full, 0 gone. */
 export const TIMER_DISC_LEFT = '--kp-timer-disc-left';
 
@@ -107,7 +110,7 @@ export function attachTimerDiscs(root = document, { now, wall } = {}) {
         let until = null;
         const read = () => {
             const at = wallNow();
-            until = parseUntil(el.dataset.kpTimerDiscUntil, at);
+            until = parseUntil(el.dataset.kpTimerDiscUntil, at, timerZone(el, 'data-kp-timer-disc-timezone'));
             seconds = until !== null ? Math.max(0, Math.ceil((until - at) / 1000)) : parseDuration(el.dataset.kpTimerDisc);
             scaleSeconds = parseDuration(el.dataset.kpTimerDiscScale ? `${el.dataset.kpTimerDiscScale}m` : '') || 0;
             name = el.dataset.kpTimerDiscName ?? '';
@@ -173,7 +176,7 @@ export function attachTimerDiscs(root = document, { now, wall } = {}) {
             face.setAttribute('aria-label', ms <= 0 ? s.timerEnded : s.timerDiscLeft(left, s.timerDuration(Math.round(clock.total() / 1000))));
         };
         const captionText = () => {
-            const length = until !== null ? s.timerUntil(untilLabel(until, wallNow())) : s.timerDuration(Math.round(clock.total() / 1000));
+            const length = until !== null ? s.timerUntil(untilLabel(until, wallNow(), untilZone(el.dataset.kpTimerDiscUntil, timerZone(el, 'data-kp-timer-disc-timezone')))) : s.timerDuration(Math.round(clock.total() / 1000));
             return name ? s.timerDiscCaption(name, length) : length;
         };
         const show = () => {
@@ -298,6 +301,7 @@ export function attachTimerDiscs(root = document, { now, wall } = {}) {
             [
                 'data-kp-timer-disc',
                 'data-kp-timer-disc-until',
+                'data-kp-timer-disc-timezone',
                 'data-kp-timer-disc-name',
                 'data-kp-timer-disc-scale',
                 'data-kp-timer-disc-controls',
@@ -306,7 +310,7 @@ export function attachTimerDiscs(root = document, { now, wall } = {}) {
             (names) => {
                 read();
                 mountControls();
-                if (names.includes('data-kp-timer-disc') || names.includes('data-kp-timer-disc-until')) {
+                if (names.includes('data-kp-timer-disc') || names.includes('data-kp-timer-disc-until') || names.includes('data-kp-timer-disc-timezone')) {
                     filling?.cancel();
                     said.textContent = '';
                     clock.reset(seconds);

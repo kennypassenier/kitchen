@@ -55,7 +55,10 @@ function actionRow(label, buttons, says) {
     "div",
     { class: "kp-formgrid__row" },
     h("span", { class: "kp-formgrid__label" }, label),
-    h("div", { class: "kp-formgrid__control" }, h("div", { class: "kp-formgrid__buttons" }, ...buttons)),
+    // One button is the row's action, so the package centres the row on it and gives it the control track on a phone.
+    buttons.length === 1
+      ? h("div", { class: "kp-formgrid__actions" }, buttons[0])
+      : h("div", { class: "kp-formgrid__control" }, h("div", { class: "kp-formgrid__buttons" }, ...buttons)),
     typeof says === "string" ? h("p", { class: "kp-formgrid__value" }, says) : says,
   );
 }

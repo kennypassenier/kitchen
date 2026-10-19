@@ -371,9 +371,20 @@ export function attachForms(
         const owner = button.closest('form');
         const busyText = button.dataset.kpBusy ?? getStrings().busy;
         const idleText = button.textContent ?? '';
+        // A flash button owns its faces (rest, busy, result) in
+        // `.kp-flash__stack`; replacing its children destroyed that stack
+        // [kyu 45]. It is checked at submit time, since the flash may be
+        // wired after this attach. The stack's own busy face is shown, and
+        // the button's words are never touched.
+        let ownsFaces = false;
         const onValid = () => {
             button.disabled = true;
             button.setAttribute('aria-busy', 'true');
+            ownsFaces = button.querySelector(':scope > .kp-flash__stack') !== null;
+            if (ownsFaces) {
+                button.setAttribute('data-kp-flash-state', 'busy');
+                return;
+            }
             // The busy words in their own `.kp-button__label`, the element
             // the React button already has, so a register can style the
             // words alone [scope-143].
@@ -388,6 +399,12 @@ export function attachForms(
         const onDone = () => {
             button.disabled = false;
             button.removeAttribute('aria-busy');
+            if (ownsFaces) {
+                ownsFaces = false;
+                // A result the page showed meanwhile stays; only our busy face is taken back.
+                if (button.getAttribute('data-kp-flash-state') === 'busy') button.setAttribute('data-kp-flash-state', 'rest');
+                return;
+            }
             button.textContent = idleText;
         };
         owner?.addEventListener(VALID_EVENT, onValid);

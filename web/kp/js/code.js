@@ -34,8 +34,8 @@
 // one muted line "binary, 2.1 kB" with its link; `data-kp-truncated="1024/4096"`
 // (bytes shown / bytes in all) gives the foot line; `data-kp-copy="false"` takes
 // Copy away, otherwise it copies the whole value, folded or not. Empty is the
-// muted line "empty payload"; loading is a skeleton line, since the table
-// around it lays the busy card.
+// muted line "empty payload"; loading is the busy card over a block of its
+// final height.
 //
 // Events on the root: `kp-code-copy` `{ text }`, `kp-code-copy-failed`,
 // `kp-code-wrap` `{ wrap }`, `kp-code-layout` `{ layout }`, `kp-code-fold`
@@ -323,14 +323,26 @@ function drawLoading(el, memory) {
     el.setAttribute('aria-busy', 'true');
     el.setAttribute('data-kp-state', 'loading');
     if (memory.cell) {
-        // A cell waits as a skeleton line: the table around it lays the busy card.
-        for (const node of [...el.children]) if (node !== memory.head) node.remove();
+        // A cell waits on a block of its final height with the data table's busy card over it [states-two-1019]; the table around it
+        // may lay its own over the rows, the cell is never a bare skeleton.
+        for (const node of [...el.children]) if (node !== memory.head && node !== memory.card?.layer) node.remove();
         el.removeAttribute('data-kp-code-folded');
         const line = make(doc, 'kp-code__skeleton');
         const bar = make(doc, 'kp-skeleton');
         bar.setAttribute('aria-hidden', 'true');
         line.append(bar);
         el.append(line);
+        if (memory.card) {
+            memory.card.place();
+            return;
+        }
+        memory.card = openBusyCard(el, {
+            words: memory.spec.loadingWords ?? getStrings().codeLoading,
+            area: () => [line],
+            className: 'kp-code__busy',
+            arrive: memory.drawn,
+        });
+        memory.drawn = true;
         return;
     }
     const was = el.querySelector(':scope > :is(.kp-code__body, .kp-code__note)')?.getBoundingClientRect().height ?? 0;

@@ -26,6 +26,8 @@
 //   data-kp-countdown-until   "14:30" (the next 14:30 on this device's clock), a date and time ("2026-10-20T09:00") or epoch
 //                             ms: the timer counts down to that moment instead of for a length; it starts at once and has no
 //                             controls (a moment does not wait). A moment that has passed reads "Time is up".
+//   data-kp-countdown-timezone "Europe/Brussels" (on the timer or an ancestor): the zone a "14:30" or a date and time without an
+//                             offset is given in; a date and time with its own offset ("+02:00", "Z") is read in that one
 //   data-kp-countdown-controls="none"  display only: no Start, +1 min or Reset is built (not in the tab order either); the
 //                             page drives the clock with countdownOf(el).start() / .pause() / .reset()
 //
@@ -45,7 +47,8 @@ import { setStateWord } from './components.js';
 import { watchOptions } from './live-options.js';
 
 /** A countdown. */
-export const COUNTDOWN = '[data-kp-countdown]';
+/** A countdown: the length, or only the moment it counts down to (the documented `-until` markup). */
+export const COUNTDOWN = '[data-kp-countdown], [data-kp-countdown-until]';
 /** Fired on the timer when it starts, pauses, resets or gains time: `{ state, remaining, total }` (ms). */
 export const COUNTDOWN_EVENT = 'kp-countdown-change';
 /** Fired on the timer when its time is up: `{ total }` (ms). */
@@ -78,13 +81,113 @@ export function parseDuration(value) {
 }
 
 /**
- * The moment an `until` option names, in epoch ms: "14:30" or "14:30:15" is the next such time on the device's clock (today
- * when it is still ahead, else tomorrow), a date and time is that moment, a number of 10 digits or more is epoch ms.
+ * A zone a moment is read and written in: an IANA name ("Europe/Brussels"), a fixed offset in minutes (the "+02:00" of a
+ * date and time), or null for the device's own clock.
+ * @typedef {string | number | null} UntilZone
+ */
+
+/** @type {Map<string, Intl.DateTimeFormat | null>} */
+const ZONE_FORMATS = new Map();
+
+/** The reader of one IANA zone, or null for a name Intl does not know. @param {string} zone */
+function zoneFormat(zone) {
+    if (!ZONE_FORMATS.has(zone)) {
+        try {
+            ZONE_FORMATS.set(
+                zone,
+                new Intl.DateTimeFormat('en-GB', {
+                    timeZone: zone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hourCycle: 'h23',
+                }),
+            );
+        } catch {
+            ZONE_FORMATS.set(zone, null);
+        }
+    }
+    return ZONE_FORMATS.get(zone) ?? null;
+}
+
+/**
+ * The IANA zone a timer is given in: `attribute` (`data-kp-countdown-timezone`, `data-kp-timer-disc-timezone`) on it or an
+ * ancestor; null (the device) when none or unknown.
+ * @param {Element} el @param {string} attribute
+ */
+export function timerZone(el, attribute) {
+    const name = el.closest(`[${attribute}]`)?.getAttribute(attribute)?.trim() ?? '';
+    return name !== '' && zoneFormat(name) !== null ? name : null;
+}
+
+/**
+ * The wall-clock parts of `ms` in a zone.
+ * @param {number} ms @param {UntilZone} zone
+ * @returns {{ year: number, month: number, day: number, hour: number, minute: number, second: number }}
+ */
+function wallParts(ms, zone) {
+    if (typeof zone === 'string') {
+        const out = { year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 };
+        for (const part of zoneFormat(zone)?.formatToParts(ms) ?? []) if (part.type in out) out[/** @type {keyof typeof out} */ (part.type)] = Number(part.value);
+        out.hour %= 24;
+        return out;
+    }
+    const at = typeof zone === 'number' ? new Date(ms + zone * 60000) : new Date(ms);
+    return typeof zone === 'number'
+        ? { year: at.getUTCFullYear(), month: at.getUTCMonth() + 1, day: at.getUTCDate(), hour: at.getUTCHours(), minute: at.getUTCMinutes(), second: at.getUTCSeconds() }
+        : { year: at.getFullYear(), month: at.getMonth() + 1, day: at.getDate(), hour: at.getHours(), minute: at.getMinutes(), second: at.getSeconds() };
+}
+
+/**
+ * The moment a wall-clock time names in a zone (the earlier one when the clock runs it twice; the next valid one when the
+ * clock skips it).
+ * @param {number} year @param {number} month @param {number} day @param {number} hour @param {number} minute @param {number} second
+ * @param {UntilZone} zone
+ */
+function zonedMoment(year, month, day, hour, minute, second, zone) {
+    if (zone === null) return new Date(year, month - 1, day, hour, minute, second, 0).getTime();
+    const wall = Date.UTC(year, month - 1, day, hour, minute, second);
+    if (typeof zone === 'number') return wall - zone * 60000;
+    const offsetAt = (/** @type {number} */ t) => {
+        const w = wallParts(t, zone);
+        return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second) - Math.floor(t / 1000) * 1000;
+    };
+    const first = wall - offsetAt(wall);
+    return wall - offsetAt(first);
+}
+
+/** The fixed offset, in minutes, a date and time string carries ("Z", "+02:00"); null when it carries none. @param {string} text */
+export function untilOffset(text) {
+    const t = text.trim();
+    if (/^\d{1,2}:\d{2}/.test(t) || !/^\d{4}-\d{2}-\d{2}[T ]/.test(t)) return null;
+    if (/[zZ]$/.test(t)) return 0;
+    const m = /([+-])(\d{2}):?(\d{2})$/.exec(t.slice(10));
+    return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : null;
+}
+
+/**
+ * The zone an `until` value is given in: the offset it carries, else the timer's zone, else the device.
+ * @param {string | number | null | undefined} value @param {string | null} [timeZone]
+ * @returns {UntilZone}
+ */
+export function untilZone(value, timeZone = null) {
+    const offset = typeof value === 'string' ? untilOffset(value) : null;
+    return offset ?? timeZone;
+}
+
+/**
+ * The moment an `until` option names, in epoch ms: "14:30" or "14:30:15" is the next such time on the clock of `timeZone`
+ * (the device's when none; today when it is still ahead, else tomorrow), a date and time is that moment (read in `timeZone`
+ * when it carries no offset of its own), a number of 10 digits or more is epoch ms.
  * @param {string | number | null | undefined} value
  * @param {number} nowMs
+ * @param {string | null} [timeZone] an IANA zone name
  * @returns {number | null} null when the value names no moment
  */
-export function parseUntil(value, nowMs) {
+export function parseUntil(value, nowMs, timeZone = null) {
     if (typeof value === 'number') return Number.isFinite(value) ? value : null;
     const text = String(value ?? '').trim();
     if (text === '') return null;
@@ -92,27 +195,37 @@ export function parseUntil(value, nowMs) {
     if (clock) {
         const [h, m, sec] = [Number(clock[1]), Number(clock[2]), Number(clock[3] ?? 0)];
         if (h > 23 || m > 59 || sec > 59) return null;
-        const at = new Date(nowMs);
-        at.setHours(h, m, sec, 0);
-        if (at.getTime() <= nowMs) at.setDate(at.getDate() + 1);
-        return at.getTime();
+        const now = wallParts(nowMs, timeZone);
+        let at = zonedMoment(now.year, now.month, now.day, h, m, sec, timeZone);
+        // Tomorrow, by the calendar of the zone (a day is not always 24 hours).
+        if (at <= nowMs) {
+            const next = new Date(Date.UTC(now.year, now.month - 1, now.day + 1));
+            at = zonedMoment(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), h, m, sec, timeZone);
+        }
+        return at;
     }
     if (/^\d{10,}$/.test(text)) return Number(text);
+    const local = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/.exec(text);
+    if (local && timeZone !== null) {
+        const [y, mo, d, h, mi, sec] = local.slice(1).map((x) => Number(x ?? 0));
+        return zonedMoment(y, mo, d, h, mi, sec, timeZone);
+    }
     const parsed = Date.parse(text);
     return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
- * A moment as the words after "until": "14:30" when it is today, else "20/10/2026 09:00".
- * @param {number} ms @param {number} nowMs
+ * A moment as the words after "until": "14:30" when it is today, else "20/10/2026 09:00", read on the clock of `zone`
+ * (the zone the moment was given in; the device's when null).
+ * @param {number} ms @param {number} nowMs @param {UntilZone} [zone]
  */
-export function untilLabel(ms, nowMs) {
-    const at = new Date(ms);
+export function untilLabel(ms, nowMs, zone = null) {
+    const at = wallParts(ms, zone);
+    const today = wallParts(nowMs, zone);
     const two = (/** @type {number} */ n) => String(n).padStart(2, '0');
-    const clock = `${two(at.getHours())}:${two(at.getMinutes())}`;
-    const today = new Date(nowMs);
-    const sameDay = at.getFullYear() === today.getFullYear() && at.getMonth() === today.getMonth() && at.getDate() === today.getDate();
-    return sameDay ? clock : `${two(at.getDate())}/${two(at.getMonth() + 1)}/${at.getFullYear()} ${clock}`;
+    const clock = `${two(at.hour)}:${two(at.minute)}`;
+    const sameDay = at.year === today.year && at.month === today.month && at.day === today.day;
+    return sameDay ? clock : `${two(at.day)}/${two(at.month)}/${at.year} ${clock}`;
 }
 
 /**
@@ -273,7 +386,7 @@ export function attachCountdowns(root = document, { now, wall } = {}) {
         let until = null;
         const read = () => {
             const at = wallNow();
-            until = parseUntil(el.dataset.kpCountdownUntil, at);
+            until = parseUntil(el.dataset.kpCountdownUntil, at, timerZone(el, 'data-kp-countdown-timezone'));
             seconds = until !== null ? Math.max(0, Math.ceil((until - at) / 1000)) : parseDuration(el.dataset.kpCountdown);
             step = parseDuration(el.dataset.kpCountdownStep) || COUNTDOWN_STEP;
             name = el.dataset.kpCountdownName ?? '';
@@ -457,6 +570,7 @@ export function attachCountdowns(root = document, { now, wall } = {}) {
             [
                 'data-kp-countdown',
                 'data-kp-countdown-until',
+                'data-kp-countdown-timezone',
                 'data-kp-countdown-name',
                 'data-kp-countdown-step',
                 'data-kp-countdown-controls',
@@ -470,7 +584,7 @@ export function attachCountdowns(root = document, { now, wall } = {}) {
                     more.button.title = s.timerAddMinuteTitle(step);
                 }
                 mountControls();
-                if (names.includes('data-kp-countdown') || names.includes('data-kp-countdown-until')) {
+                if (names.includes('data-kp-countdown') || names.includes('data-kp-countdown-until') || names.includes('data-kp-countdown-timezone')) {
                     clock.reset(seconds);
                     hours = seconds >= 3600;
                     said.textContent = '';

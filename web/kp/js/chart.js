@@ -1555,6 +1555,8 @@ function plotChart(host, group, locale, ctx) {
      */
     function drawState(kind, H) {
         geo = null;
+        // The state on the host too, so js/footprint.js holds the loaded height while it shows.
+        host.setAttribute('data-kp-state', kind);
         // A key already drawn keeps its room (unseen), so the chart's height is the same in every state.
         if (keyMemo) annKey.setAttribute('data-kp-wait', '');
         else annKey.hidden = true;
@@ -1615,6 +1617,7 @@ function plotChart(host, group, locale, ctx) {
             return;
         }
         shown = '';
+        host.setAttribute('data-kp-state', 'ready');
         hint.hidden = data.series.length <= 1;
         const { from, to } = win;
         const W = Math.max(240, plot.clientWidth);
