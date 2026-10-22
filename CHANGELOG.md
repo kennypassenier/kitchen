@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-22
+
 ### Added
 - First release. Recipes with a wheel that chooses, cook mode with parallel
   tracks, backward timing from the moment dinner should be ready, the
