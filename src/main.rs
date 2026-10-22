@@ -16,6 +16,7 @@ use std::sync::Arc;
 use axum::Router;
 use chassis::shell::pages::Page;
 use chassis::shell::webapp::WebApp;
+use chassis::storage::{AppDbSpec, BrowserKeys};
 use chassis::{App, AppSpec};
 
 // The web files, generated from web/ by build.rs.
@@ -55,6 +56,16 @@ async fn main() -> std::process::ExitCode {
         app.dashboard_routes(routes::router(store));
     }
 
+    // The app database holds only the kit's synced preferences: the recipes
+    // stay in kitchen.json. A person's browser choices (the timing page's
+    // numbers, where cook mode stands) follow them from the phone to the PC;
+    // the theme key stays out because it must work before the login.
+    if let Err(e) = app.app_db(AppDbSpec::new(Vec::new())) {
+        eprintln!("kitchen: {e}");
+        return std::process::ExitCode::FAILURE;
+    }
+    app.sync_browser_keys(BrowserKeys::new().prefix("kitchen:").prefix("kp-remember:"));
+
     let web = match std::env::var("KITCHEN_WEB_DIR") {
         Ok(dir) if !dir.trim().is_empty() => WebApp::dir(dir),
         _ => WebApp::embedded(FILES),
@@ -67,6 +78,8 @@ async fn main() -> std::process::ExitCode {
         .page(Page::new("baddays", "Bad days", "/bad-days"))
         .page(Page::new("settings", "Calm settings", "/settings"))
         .page(Page::new("recipes", "Recipes", "/recipes"))
+        // Kenny's parents' page: only the wheel, over the dinners marked for them.
+        .page(Page::new("parents", "Parents' wheel", "/parents"))
         .page(
             Page::new("recipe", "Recipe", "/recipe")
                 .group("Recipes")

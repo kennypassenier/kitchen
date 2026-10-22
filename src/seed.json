@@ -4,7 +4,7 @@
   {
    "id": "fd0b3073-9641-5c41-80fa-1d36ac51b30c",
    "created": "2026-08-20T18:30:00+02:00",
-   "name": "Flemish beef stew with fries",
+   "name": "Flemish beef stew",
    "short": "Stoofvlees",
    "summary": "",
    "meals": [
@@ -19,6 +19,13 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
+   "parents": true,
+   "sides": [
+    "Potatoes",
+    "Fries",
+    "Croquettes",
+    "Mashed potatoes"
+   ],
    "gear": "2 pots",
    "last_note": "",
    "ingredients": [],
@@ -45,6 +52,11 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
+   "parents": true,
+   "sides": [
+    "Potatoes",
+    "Bread"
+   ],
    "gear": "1 pot",
    "last_note": "",
    "ingredients": [],
@@ -71,6 +83,8 @@
    "portions": 2,
    "prep": "light",
    "safe": true,
+   "parents": true,
+   "sides": [],
    "gear": "1 pot, 1 pan",
    "last_note": "Keep a cup of pasta water: the sauce clings better.",
    "ingredients": [
@@ -399,6 +413,8 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
+   "parents": true,
+   "sides": [],
    "gear": "2 pans",
    "last_note": "",
    "ingredients": [],
@@ -425,6 +441,11 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
+   "parents": true,
+   "sides": [
+    "Mashed potatoes",
+    "Potatoes"
+   ],
    "gear": "the oven, 2 pots",
    "last_note": "The sauce was a little salty: use unsalted butter.",
    "ingredients": [
@@ -652,6 +673,13 @@
    "portions": 2,
    "prep": "none",
    "safe": true,
+   "parents": true,
+   "sides": [
+    "Fries",
+    "Mashed potatoes",
+    "Potatoes",
+    "Bread"
+   ],
    "gear": "1 pot",
    "last_note": "",
    "ingredients": [],

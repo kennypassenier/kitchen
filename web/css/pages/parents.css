@@ -1,0 +1,73 @@
+/* The parents' wheel. Everything with a kp- class is the package; these pr- rules only lay the two wheels out on one grid
+   and size them. Every rule is behind the screen's own prefix. */
+
+.pr-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xl, 2rem);
+}
+
+/* The stage keeps one height in every state (loading, empty, failed, the wheels), so nothing under it moves. */
+.pr-card {
+  --kp-card-stage-min: 30rem;
+  min-inline-size: 0;
+}
+
+/* Two columns on one grid: the big wheel takes two parts, the small wheel one; both open with a kicker on the same line
+   and their answer cards end on the same line. On a phone the small wheel stands under the big one. */
+.pr-wheels {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: var(--kp-space-xl, 2rem);
+  row-gap: var(--kp-space-sm, 0.5rem);
+  align-items: start;
+}
+
+.pr-wheel {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  min-inline-size: 0;
+}
+
+/* The wheel's stage and answer sit on the page's rows too, so both wheels start on one line and both answer cards
+   start on one line, whatever size each wheel is. */
+.pr-wheel > .kp-wheel {
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  align-items: start;
+}
+
+/* Workaround, queued for kp-themes (KP_GAPS.md 14): a sentence in the wheel's answer card widens the wheel past its
+   --kp-wheel-size in Chromium, so the wheel's one column is held to the wheel's own width. Drop it once the package
+   does this itself. */
+.pr-wheel > .kp-wheel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pr-wheel--dish {
+  --kp-wheel-size: min(26rem, 100%);
+}
+
+.pr-wheel--side {
+  --kp-wheel-size: min(20rem, 100%);
+}
+
+.pr-wheel__kicker {
+  justify-self: center;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 40rem) {
+  .pr-wheels {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(6, auto);
+  }
+}

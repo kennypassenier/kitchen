@@ -4,6 +4,7 @@ Every decision Kenny made, newest first. Each line says what and when.
 
 | When | Decision |
 |---|---|
+| 22/10/2026 | A parents' page: a wheel of only the dinners marked for Kenny's parents; a dish with sides spins a second, smaller wheel for the side, a dish without sides shows none. Kenny's PC (10.10.10.10) is let in as the admin without a login |
 | 19/10/2026 22:25 | kp-themes comes only through chassis-rs: the pages load it from the kit's `/static/kp/`, never from a copy of their own; a missing piece waits for a chassis-rs release |
 | 19/10/2026 09:22 | No more demos of approved components: build the real app; every kp-themes component with its standard loading, empty and failed states, loading in the theme's own animation |
 | 19/10/2026 05:11, 06:43 | Every view is a CSS grid; forms, settings, fact lists and button groups on `.kp-formgrid`, aligned vertically |

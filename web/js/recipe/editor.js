@@ -23,6 +23,8 @@ const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinne
 const PREP = [["none", "None"], ["light", "Light"], ["full", "Full"]];
 /** Main ingredients the wheel knows; any other already in the kitchen is added to the list. */
 const MAIN = ["chicken", "beef", "pork", "fish", "egg", "cheese", "tomato", "potato", "vegetables", "pasta", "rice"];
+/** The sides offered first in a recipe's Sides field; any other can be typed. */
+const SIDES = ["Potatoes", "Fries", "Croquettes", "Mashed potatoes", "Rice", "Bread"];
 const UNITS = ["g", "ml", "pc", "tbsp", "tsp", "pinch", "clove", "slice", "handful"];
 const GROUPS = ["Ingredients", "From the cupboard"];
 
@@ -164,7 +166,7 @@ const textCell = (label, value, placeholder = "") => {
  * @param {{ recipe: Record<string, any> | null, mainOptions: string[] }} spec
  */
 export function openEditor(dialog, { recipe, mainOptions }) {
-  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
+  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, parents: false, sides: [], gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
   const editing = Boolean(recipe);
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? `Edit ${r.name}` : "Add a recipe");
 
@@ -198,6 +200,16 @@ export function openEditor(dialog, { recipe, mainOptions }) {
   const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: "portions", one: "portion", label: "Portions" });
   const prep = segmented(PREP, [r.prep ?? "light"], "single", "Preparing");
   const safe = toggle("A safe favourite for bad days", Boolean(r.safe));
+  const parents = toggle("On the parents' wheel", Boolean(r.parents));
+  const sideSet = [...new Set([...SIDES, ...(r.sides ?? [])])];
+  const sidesBox = h(
+    "div",
+    { class: "kp-combobox", "data-kp-combobox": true, "data-kp-tags": true, "data-kp-creatable": true },
+    h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }, ...(r.sides ?? []).map((/** @type {string} */ t) => h("li", { class: "kp-tag", "data-value": t }, t, h("button", { type: "button", class: "kp-tag__remove", "data-kp-tag-remove": true, "aria-label": `Remove ${t}` }, "×")))),
+    h("input", { class: "kp-combobox__input", id: "rl-sides", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": "rl-sides-list", "aria-label": "Sides" }),
+    h("ul", { class: "kp-combobox__list", id: "rl-sides-list", role: "listbox", hidden: true }, ...sideSet.map((t) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": t }, t))),
+    h("p", { class: "kp-combobox__status", "data-kp-combobox-status": true, role: "status", "aria-live": "polite" }),
+  );
   const gear = input(r.gear ?? "", "text", { placeholder: "1 pot, the oven" });
   const facts = h(
     "div",
@@ -207,6 +219,8 @@ export function openEditor(dialog, { recipe, mainOptions }) {
     row("Portions", portions, "The amounts below make this many."),
     row("Preparing", prep, "None is a bad-day dish."),
     row("Safe favourite", safe, "The bad-days page offers it."),
+    row("Parents' wheel", parents, "The parents' page puts it on its wheel."),
+    row("Sides", sidesBox, "A choice the small wheel makes with it; leave empty when it always comes the same way."),
     row("Gear", gear, "What it dirties."),
   );
 
@@ -429,6 +443,8 @@ export function openEditor(dialog, { recipe, mainOptions }) {
       portions: getQuantity(portions),
       prep: getSegmentedValues(prep)[0] ?? "light",
       safe: on(safe),
+      parents: on(parents),
+      sides: combobox(sidesBox)?.values() ?? [],
       gear: /** @type {HTMLInputElement} */ (gear).value.trim(),
       last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
       mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),
