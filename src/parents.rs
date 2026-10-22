@@ -8,18 +8,22 @@
 //! |---|---|
 //! | `GET /eten` | the Dutch page (`web/eten/index.html`) |
 //! | `GET /eten/{file}` | its script and sheet, and the wheel module Kitchen's own English page shares |
-//! | `GET /eten/data` | the dishes on the wheel, in Dutch: names, category, the parts with a choice |
+//! | `GET /eten/data` | the dishes on the wheel, in Dutch: names, category, the parts |
 //!
 //! The English copy of the same list (`GET /data/wheel/en`) sits behind the
 //! login with the rest of Kitchen. Both come from [`wheel`], so the rule
-//! "a dish needs a Dutch and an English name, or it shows in neither" lives
-//! in one place.
+//! "a dish shows in each language it has a name for" lives in one place.
 //!
-//! When `KITCHEN_PARENTS_HOST` names a host, [`host_guard`] keeps that host
-//! to the wheel: its root answers the page, `/eten…`, `/static/…` and
-//! `/healthz` pass, and every other path sends the visitor back to the
-//! wheel, so the login page is never reachable there.
+//! The wheel answers only Kenny's home network (`KITCHEN_PARENTS_ALLOW`,
+//! default `10.10.10.0/24`; Kenny, 22/10/2026 23:08): eten.kp-soft.dev has
+//! no public record and no Cloudflare, and [`parents_guard`] refuses `/eten…`
+//! to any other address as a second lock. When `KITCHEN_PARENTS_HOST` names
+//! a host, the guard also keeps that host to the wheel: its root answers the
+//! page, `/eten…`, `/static/…` and `/healthz` pass, and every other path
+//! sends the visitor back to the wheel, so the login page is never reachable
+//! there.
 
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
@@ -151,15 +155,12 @@ impl Lang {
     }
 }
 
-/// `{nl, en}` in the asked language, but only when both are filled in.
-fn both(v: Option<&Value>, lang: Lang) -> Option<String> {
-    let v = v?;
-    let nl = v.get("nl")?.as_str()?.trim();
-    let en = v.get("en")?.as_str()?.trim();
-    if nl.is_empty() || en.is_empty() {
-        return None;
-    }
-    Some(if lang == Lang::Nl { nl } else { en }.to_string())
+/// `{nl, en}` in the asked language, when that half is filled in. A name
+/// with only its Dutch half shows on the Dutch wheel and not on the English
+/// one, and the other way round (Kenny, 22/10/2026 23:08).
+fn named(v: Option<&Value>, lang: Lang) -> Option<String> {
+    let s = v?.get(lang.key())?.as_str()?.trim();
+    (!s.is_empty()).then(|| s.to_string())
 }
 
 fn by_id<'a>(list: &'a [Value], id: Option<&Value>) -> Option<&'a Value> {
@@ -174,17 +175,19 @@ fn order(v: &Value) -> f64 {
 
 /// The dishes on the parents' wheel in one language.
 ///
-/// A dish shows when `parents` is true and it has both names. A part shows
-/// when its kind has both names and at least one choice with both names;
-/// parts come in the kinds' order. Categories are the ones the shown dishes
-/// use, in their order, with how many dishes each holds.
+/// A dish shows when `parents` is true and it has a name in `lang`. A part
+/// shows when its kind has a name in `lang` and at least one choice does;
+/// parts come in the kinds' order, each with its kind's `wheel` mark (only a
+/// marked kind, such as potatoes and co., is picked by the small wheel).
+/// Categories are the ones the shown dishes use, in their order, with how
+/// many dishes each holds.
 pub fn wheel(data: &Data, lang: Lang) -> Value {
     let mut dishes: Vec<Value> = Vec::new();
     for d in &data.dishes {
         if d.get("parents").and_then(Value::as_bool) != Some(true) {
             continue;
         }
-        let Some(name) = both(d.get("name"), lang) else {
+        let Some(name) = named(d.get("name"), lang) else {
             continue;
         };
         let mut parts: Vec<(f64, Value)> = Vec::new();
@@ -197,7 +200,7 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
             let Some(kind) = by_id(&data.dish_parts, p.get("part")) else {
                 continue;
             };
-            let Some(kind_name) = both(kind.get("name"), lang) else {
+            let Some(kind_name) = named(kind.get("name"), lang) else {
                 continue;
             };
             let choices: Vec<String> = p
@@ -205,19 +208,24 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
                 .and_then(Value::as_array)
                 .into_iter()
                 .flatten()
-                .filter_map(|c| both(Some(c), lang))
+                .filter_map(|c| named(Some(c), lang))
                 .collect();
             if choices.is_empty() {
                 continue;
             }
             parts.push((
                 order(kind),
-                json!({ "id": kind["id"], "name": kind_name, "choices": choices }),
+                json!({
+                    "id": kind["id"],
+                    "name": kind_name,
+                    "wheel": kind.get("wheel").and_then(Value::as_bool) == Some(true),
+                    "choices": choices,
+                }),
             ));
         }
         parts.sort_by(|a, b| a.0.total_cmp(&b.0));
         let category = by_id(&data.dish_categories, d.get("category"))
-            .filter(|c| both(c.get("name"), lang).is_some())
+            .filter(|c| named(c.get("name"), lang).is_some())
             .map(|c| c["id"].clone())
             .unwrap_or(Value::Null);
         dishes.push(json!({
@@ -237,47 +245,106 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
     let mut cats: Vec<&Value> = data
         .dish_categories
         .iter()
-        .filter(|c| both(c.get("name"), lang).is_some())
+        .filter(|c| named(c.get("name"), lang).is_some())
         .collect();
     cats.sort_by(|a, b| order(a).total_cmp(&order(b)));
     let categories: Vec<Value> = cats
         .into_iter()
         .filter_map(|c| {
             let n = dishes.iter().filter(|d| d["category"] == c["id"]).count();
-            (n > 0).then(|| json!({ "id": c["id"], "name": both(c.get("name"), lang), "count": n }))
+            (n > 0)
+                .then(|| json!({ "id": c["id"], "name": named(c.get("name"), lang), "count": n }))
         })
         .collect();
     json!({ "lang": lang.key(), "dishes": dishes, "categories": categories })
 }
 
-/// Keep `host` to the wheel (see the module comment). Paths are compared
-/// without the query string; the host without its port.
-pub fn host_guard(
-    host: String,
+/// The addresses the parents' wheel answers (`KITCHEN_PARENTS_ALLOW`,
+/// default `10.10.10.0/24`, Kenny's trusted home network): a list of
+/// addresses and `address/prefix` ranges, IPv4 or IPv6.
+#[derive(Clone, Debug)]
+pub struct Allow(Vec<(IpAddr, u8)>);
+
+impl Allow {
+    pub const DEFAULT: &'static str = "10.10.10.0/24";
+
+    pub fn parse(list: &str) -> Result<Self, String> {
+        let mut nets = Vec::new();
+        for item in list.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+            let (addr, bits) = match item.split_once('/') {
+                Some((a, b)) => (a, Some(b)),
+                None => (item, None),
+            };
+            let addr: IpAddr = addr
+                .parse()
+                .map_err(|_| format!("KITCHEN_PARENTS_ALLOW: {item:?} is not an address"))?;
+            let max = if addr.is_ipv4() { 32 } else { 128 };
+            let bits = match bits {
+                Some(b) => b.parse::<u8>().ok().filter(|b| *b <= max).ok_or_else(|| {
+                    format!("KITCHEN_PARENTS_ALLOW: {item:?} has no valid prefix")
+                })?,
+                None => max,
+            };
+            nets.push((addr, bits));
+        }
+        Ok(Self(nets))
+    }
+
+    pub fn allows(&self, ip: IpAddr) -> bool {
+        let ip = ip.to_canonical();
+        self.0.iter().any(|(net, bits)| match (net, ip) {
+            (IpAddr::V4(n), IpAddr::V4(a)) => {
+                let mask = u32::MAX.checked_shl(32 - u32::from(*bits)).unwrap_or(0);
+                u32::from(*n) & mask == u32::from(a) & mask
+            }
+            (IpAddr::V6(n), IpAddr::V6(a)) => {
+                let mask = u128::MAX.checked_shl(128 - u32::from(*bits)).unwrap_or(0);
+                u128::from(*n) & mask == u128::from(a) & mask
+            }
+            _ => false,
+        })
+    }
+}
+
+fn not_home() -> Response {
+    (
+        StatusCode::FORBIDDEN,
+        [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        "Het wiel werkt alleen thuis, op het wifi-netwerk van het huis.",
+    )
+        .into_response()
+}
+
+/// The parents' wheel's own gate (see the module comment): `/eten…` answers
+/// only `allow`, on every host, and `host` (when set) is kept to the wheel.
+/// The client address is the kit's: behind Traefik that is the address
+/// Traefik forwards, which the kit only believes when Traefik is listed in
+/// `KITCHEN_TRUSTED_PROXIES`. Paths are compared without the query string;
+/// the host without its port.
+pub fn parents_guard(
+    host: Option<String>,
+    allow: Allow,
     files: Files,
 ) -> impl Fn(chassis::shell::request_guard::GuardRequest) -> std::future::Ready<Result<(), Response>>
 + Send
 + Sync
 + 'static {
     move |req| {
+        let path = req.path.as_str();
+        let wheel = path == "/eten" || path.starts_with("/eten/");
         let asked = req
             .headers
             .get(header::HOST)
             .and_then(|h| h.to_str().ok())
             .map(|h| h.split(':').next().unwrap_or("").to_ascii_lowercase())
             .unwrap_or_default();
-        if asked != host {
-            return std::future::ready(Ok(()));
-        }
-        let path = req.path.as_str();
-        let verdict = if path == "/" {
-            Err(page_response(&files))
-        } else if path == "/eten"
-            || path.starts_with("/eten/")
-            || path.starts_with("/static/")
-            || path == "/healthz"
-        {
+        let ours = host.as_deref() == Some(asked.as_str());
+        let verdict = if (wheel || (ours && path == "/")) && !allow.allows(req.client_ip) {
+            Err(not_home())
+        } else if !ours || wheel || path.starts_with("/static/") || path == "/healthz" {
             Ok(())
+        } else if path == "/" {
+            Err(page_response(&files))
         } else {
             Err(Redirect::to("/").into_response())
         };
@@ -293,13 +360,13 @@ mod tests {
         let mut d = crate::store::seed();
         d.dishes.clear();
         d.dish_parts = vec![
-            json!({"id": "p-starch", "name": {"nl": "Aardappelen en co.", "en": "Potatoes and co."}, "order": 1}),
+            json!({"id": "p-starch", "name": {"nl": "Aardappelen en co.", "en": "Potatoes and co."}, "order": 1, "wheel": true}),
             json!({"id": "p-sauce", "name": {"nl": "Saus", "en": "Sauce"}, "order": 2}),
             json!({"id": "p-half", "name": {"nl": "Groenten", "en": ""}, "order": 3}),
         ];
         d.dish_categories = vec![
             json!({"id": "c-day", "name": {"nl": "Dagelijkse kost", "en": "Everyday"}, "order": 1}),
-            json!({"id": "c-feast", "name": {"nl": "Feest", "en": "Festive"}, "order": 2}),
+            json!({"id": "c-special", "name": {"nl": "Speciaal", "en": "Special"}, "order": 2}),
         ];
         d.dishes = vec![
             json!({"id": "d1", "name": {"nl": "Stoofvlees", "en": "Beef stew"}, "parents": true, "category": "c-day",
@@ -308,38 +375,41 @@ mod tests {
                 {"part": "p-starch", "choices": [{"nl": "Frieten", "en": "Fries"}, {"nl": "Puree", "en": ""}]},
                 {"part": "p-half", "choices": [{"nl": "Wortelen", "en": "Carrots"}]}
             ]}),
-            json!({"id": "d2", "name": {"nl": "Konijn", "en": ""}, "parents": true, "category": "c-feast", "parts": []}),
+            json!({"id": "d2", "name": {"nl": "Konijn", "en": ""}, "parents": true, "category": "c-special", "parts": []}),
             json!({"id": "d3", "name": {"nl": "", "en": "Shakshuka"}, "parents": true, "parts": []}),
             json!({"id": "d4", "name": {"nl": "Pasta", "en": "Pasta"}, "parents": false, "parts": []}),
         ];
         d
     }
 
-    #[test]
-    fn a_dish_needs_both_names_and_the_parents_mark() {
-        for lang in [Lang::Nl, Lang::En] {
-            let w = wheel(&data(), lang);
-            let ids: Vec<&str> = w["dishes"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|d| d["id"].as_str().unwrap())
-                .collect();
-            assert_eq!(ids, ["d1"], "{lang:?}");
-        }
+    fn ids(w: &Value) -> Vec<&str> {
+        w["dishes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|d| d["id"].as_str().unwrap())
+            .collect()
     }
 
     #[test]
-    fn parts_and_choices_follow_the_same_rule_in_the_kinds_order() {
-        let w = wheel(&data(), Lang::Nl);
-        let parts = &w["dishes"][0]["parts"];
-        assert_eq!(parts.as_array().unwrap().len(), 2);
+    fn a_dish_shows_in_each_language_it_has_a_name_for() {
+        assert_eq!(ids(&wheel(&data(), Lang::Nl)), ["d2", "d1"]);
+        assert_eq!(ids(&wheel(&data(), Lang::En)), ["d1", "d3"]);
+    }
+
+    #[test]
+    fn parts_and_choices_follow_the_language_in_the_kinds_order() {
+        let nl = wheel(&data(), Lang::Nl);
+        let parts = &nl["dishes"][1]["parts"];
+        assert_eq!(parts.as_array().unwrap().len(), 3);
         assert_eq!(parts[0]["name"], "Aardappelen en co.");
-        assert_eq!(parts[0]["choices"], json!(["Frieten"]));
-        assert_eq!(parts[1]["name"], "Saus");
+        assert_eq!(parts[0]["wheel"], true);
+        assert_eq!(parts[0]["choices"], json!(["Frieten", "Puree"]));
+        assert_eq!(parts[1]["wheel"], false);
         let en = wheel(&data(), Lang::En);
-        assert_eq!(en["dishes"][0]["name"], "Beef stew");
-        assert_eq!(en["dishes"][0]["parts"][0]["choices"], json!(["Fries"]));
+        let parts = &en["dishes"][0]["parts"];
+        assert_eq!(parts.as_array().unwrap().len(), 2);
+        assert_eq!(parts[0]["choices"], json!(["Fries"]));
     }
 
     #[test]
@@ -347,7 +417,10 @@ mod tests {
         let w = wheel(&data(), Lang::Nl);
         assert_eq!(
             w["categories"],
-            json!([{"id": "c-day", "name": "Dagelijkse kost", "count": 1}])
+            json!([
+                {"id": "c-day", "name": "Dagelijkse kost", "count": 1},
+                {"id": "c-special", "name": "Speciaal", "count": 1}
+            ])
         );
     }
 
@@ -355,6 +428,22 @@ mod tests {
     fn the_seed_puts_eight_dinners_on_the_wheel() {
         let w = wheel(&crate::store::seed(), Lang::Nl);
         assert_eq!(w["dishes"].as_array().unwrap().len(), 8);
+        assert_eq!(w["categories"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn only_the_home_network_is_allowed() {
+        let a = Allow::parse(Allow::DEFAULT).unwrap();
+        for ok in ["10.10.10.1", "10.10.10.254", "::ffff:10.10.10.20"] {
+            assert!(a.allows(ok.parse().unwrap()), "{ok}");
+        }
+        for no in ["10.10.30.151", "192.168.1.5", "8.8.8.8", "::1"] {
+            assert!(!a.allows(no.parse().unwrap()), "{no}");
+        }
+        let two = Allow::parse("10.10.10.0/24, 127.0.0.1").unwrap();
+        assert!(two.allows("127.0.0.1".parse().unwrap()));
+        assert!(Allow::parse("10.10.10.0/33").is_err());
+        assert!(Allow::parse("home").is_err());
     }
 
     #[test]

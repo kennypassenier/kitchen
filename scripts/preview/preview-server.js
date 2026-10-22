@@ -1,7 +1,7 @@
 // The kitchen server's JSON routes, answered inside the browser for the
 // preview: the same answers as src/routes.rs, kept in localStorage.
 (function () {
-  var KEY = "kitchen-preview-v2";
+  var KEY = "kitchen-preview-v3";
   var SEED = __SEED__;
   var LISTS = ["recipes", "freezer", "shelf", "log", "resting", "dishes", "dish_parts", "dish_categories"];
   function load() {
@@ -19,10 +19,11 @@
     ["wheel", "What do we eat?", "/"], ["timing", "When do I start?", "/timing"], ["baddays", "Bad days", "/bad-days"],
     ["settings", "Calm settings", "/settings"], ["recipes", "Recipes", "/recipes"], ["dishes", "Dishes", "/dishes"], ["parents", "Parents' wheel", "/parents"]
   ].map(function (p) { return { id: p[0], title: p[1], path: p[2], group: null, order: 0, nav: true, source: "app", render: "app" }; }) };
-  // The parents' wheel in one language, as src/parents.rs `wheel` makes it: a dish, a part or a choice needs both names.
+  // The parents' wheel in one language, as src/parents.rs `wheel` makes it: a dish, a part or a choice shows in each
+  // language it has a name in.
   function both(v, lang) {
-    var nl = v && String(v.nl || "").trim(), en = v && String(v.en || "").trim();
-    return nl && en ? (lang === "nl" ? nl : en) : null;
+    var s = v && String(v[lang] || "").trim();
+    return s || null;
   }
   function byOrder(a, b) { return (a.order == null ? 1e9 : a.order) - (b.order == null ? 1e9 : b.order); }
   function wheel(lang) {
@@ -32,7 +33,7 @@
         var k = kinds.find(function (x) { return x.id === p.part; });
         var name = k && both(k.name, lang);
         var choices = (p.choices || []).map(function (c) { return both(c, lang); }).filter(Boolean);
-        return name && choices.length ? { k: k, v: { id: k.id, name: name, choices: choices } } : null;
+        return name && choices.length ? { k: k, v: { id: k.id, name: name, wheel: k.wheel === true, choices: choices } } : null;
       }).filter(Boolean).sort(function (a, b) { return byOrder(a.k, b.k); }).map(function (x) { return x.v; });
       var c = cats.find(function (x) { return x.id === d.category && both(x.name, lang); });
       return { id: d.id, name: both(d.name, lang), category: c ? c.id : null, parts: parts };

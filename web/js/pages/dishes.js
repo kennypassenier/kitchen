@@ -9,7 +9,7 @@ import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
-import { openDishEditor, openNameEditor, names, label, missing, ordered } from "../dishes/editor.js";
+import { openDishEditor, openNameEditor, names, label, languages, ordered } from "../dishes/editor.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
@@ -93,7 +93,7 @@ export function mount(root) {
   const dishes = tableCard({
     id: "dl-dishes",
     title: "All dishes",
-    lede: "A dish shows on a wheel only with both names; the Wheel column says what is missing.",
+    lede: "A dish shows on the Dutch wheel with a Dutch name and on the English wheel with an English name; the Wheel column says which.",
     noun: "dish",
     plural: "dishes",
     columns: [["Dutch name", "text"], ["English name", "text"], ["Category", "text"], ["Wheel", "text"], ["Parts"], ["Actions"]],
@@ -104,10 +104,10 @@ export function mount(root) {
   const kinds = tableCard({
     id: "dl-kinds",
     title: "Kinds of part",
-    lede: "What a dish can come with: potatoes and co., vegetables, a sauce. Add a kind and every dish can use it.",
+    lede: "What a dish can come with: potatoes, rice or pasta, vegetables, a sauce. Add a kind and every dish can use it; only a kind marked for the small wheel is picked by it.",
     noun: "kind",
     plural: "kinds of part",
-    columns: [["Position", "number"], ["Dutch name", "text"], ["English name", "text"], ["Used by", "number"], ["Actions"]],
+    columns: [["Position", "number"], ["Dutch name", "text"], ["English name", "text"], ["Small wheel", "text"], ["Used by", "number"], ["Actions"]],
     add: "Add a kind of part",
     emptyTitle: "No kinds of part yet",
     emptyText: "Without one, every dish always comes the same way.",
@@ -190,7 +190,7 @@ export function mount(root) {
     dishes.body.replaceChildren(
       ...dishList.map((d) => {
         const n = names(d);
-        const lack = missing(d);
+        const only = languages(d);
         const cat = catList.find((c) => c.id === d.category);
         const parts = (d.parts ?? [])
           .map((/** @type {Item} */ p) => {
@@ -200,11 +200,12 @@ export function mount(root) {
           })
           .filter(Boolean)
           .join(", ");
-        const wheel = lack
-          ? h("span", { class: "kp-badge kp-badge--warning" }, `Hidden: needs ${lack}`)
-          : d.parents === true
-            ? h("span", { class: "kp-badge kp-badge--success" }, "On the wheel")
-            : h("span", { class: "kp-badge" }, "Not on the wheel");
+        const wheel =
+          d.parents !== true
+            ? h("span", { class: "kp-badge" }, "Not on the wheel")
+            : only === "both"
+              ? h("span", { class: "kp-badge kp-badge--success" }, "Both wheels")
+              : h("span", { class: "kp-badge kp-badge--warning" }, only === "nl" ? "Dutch wheel only" : "English wheel only");
         const { cell } = actions(label(d), () => editDish(d), askDelete("dishes", d, "dish", ["The dish, its parts and their choices. A recipe it points at stays."]));
         return h(
           "tr",
@@ -237,6 +238,7 @@ export function mount(root) {
           h("td", { "data-label": "Position", class: "kp-numeric" }, String(i + 1)),
           h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl || "–"),
           h("td", { "data-label": "English name" }, n.en || "–"),
+          list === "dish_parts" ? h("td", { "data-label": "Small wheel" }, item.wheel === true ? h("span", { class: "kp-badge kp-badge--success" }, "Picks it") : "–") : null,
           h("td", { "data-label": "Used by", class: "kp-numeric", "data-kp-sort-value": String(used) }, `${used} ${used === 1 ? "dish" : "dishes"}`),
           h("td", { "data-label": "Actions" }, cell),
         );

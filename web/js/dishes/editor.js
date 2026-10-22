@@ -2,11 +2,13 @@
 //
 // A dish (docs/agent/DATA.md "dishes") is what lands on a plate: a Dutch and an English name, a category, whether it
 // is on the parents' wheel, an optional recipe to cook it from, and its parts. A part is one kind from the part list
-// ("Potatoes and co.", "Sauce", …) with the choices for this dish; two or more choices are a choice the small wheel
-// makes, one is simply how it comes ("with salad"). Every name has both languages, because a dish, a part or a choice
-// with only one shows nowhere (src/parents.rs).
+// ("Potatoes, rice or pasta", "Sauce", …) with the choices for this dish. Only a kind marked for the small wheel (the
+// sides: potatoes, fries, rice, pasta) is picked by it; the rest is what comes with the dish. Every name has a Dutch
+// and an English half, and a dish, part or choice shows on the wheel of each language it has a name in
+// (src/parents.rs; Kenny, 22/10/2026 23:08).
 //
-// The name editor edits one part kind or one category: its two names and its position in the list.
+// The name editor edits one part kind or one category: its two names, its position in the list and, for a kind,
+// whether the small wheel picks it.
 
 import { attachSegmented } from "/static/kp/js/segmented.js";
 import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
@@ -25,13 +27,10 @@ import { row, input, toggle, on, select, rows, textCell } from "../recipe/editor
 export const names = (item) => ({ nl: String(item?.name?.nl ?? "").trim(), en: String(item?.name?.en ?? "").trim() });
 /** The name to show in Kitchen: English, else Dutch. @param {Item | null | undefined} item */
 export const label = (item) => names(item).en || names(item).nl || "(no name)";
-/** What a dish lacks before it may show, or "" when it has both names. @param {Item} dish */
-export function missing(dish) {
+/** Which wheels a dish's names put it on: "both", "nl", "en" or "none". @param {Item} dish */
+export function languages(dish) {
   const n = names(dish);
-  if (!n.nl && !n.en) return "both names";
-  if (!n.nl) return "the Dutch name";
-  if (!n.en) return "the English name";
-  return "";
+  return n.nl && n.en ? "both" : n.nl ? "nl" : n.en ? "en" : "none";
 }
 /** Items in their list order. @param {Item[]} list */
 export const ordered = (list) => [...list].sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9));
@@ -187,7 +186,7 @@ export function openDishEditor(dialog, { dish, kinds, categories, recipes }) {
       { class: "kp-drawer__body rl-form", id: "dl-editor-form", novalidate: true },
       sec(
         "The dish",
-        "Both names are needed: a dish without its Dutch or its English name shows on neither wheel.",
+        "A dish shows on the Dutch wheel when it has a Dutch name and on the English one when it has an English name.",
         h(
           "div",
           { class: "kp-formgrid" },
@@ -200,7 +199,7 @@ export function openDishEditor(dialog, { dish, kinds, categories, recipes }) {
       ),
       sec(
         "Parts",
-        "What the dish is made of besides itself. Two or more choices in a part are a choice the small wheel makes; one is how it always comes. A choice needs both names to show.",
+        "What the dish is made of besides itself. The small wheel picks only from a part whose kind is marked for it, such as potatoes, rice or pasta, and only when it has two or more choices; the rest is what comes with the dish.",
         parts.el,
       ),
     )
@@ -229,8 +228,9 @@ export function openDishEditor(dialog, { dish, kinds, categories, recipes }) {
       } catch (e) {
         return { error: why(e), word: "Not saved" };
       }
-      const lack = missing(body);
-      toast(lack ? `Saved ${label(body)}; it shows nowhere until it has ${lack}` : dish ? `Saved ${label(body)}` : `Added ${label(body)}`);
+      const only = languages(body);
+      const where = only === "nl" ? "; it shows only on the Dutch wheel" : only === "en" ? "; it shows only on the English wheel" : "";
+      toast(`${dish ? "Saved" : "Added"} ${label(body)}${where}`);
       return "Saved";
     },
   });
@@ -252,19 +252,21 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
     { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": "1", "data-kp-quantity-max": String(Math.max(1, last)), "data-kp-quantity-label": "Position" },
     h("input", { class: "kp-quantity__input", value: String(Math.min(item?.order ?? last, last)) }),
   );
+  const small = list === "dish_parts" ? toggle("Picked by the small wheel", item?.wheel === true) : null;
   const form = /** @type {HTMLFormElement} */ (
     h(
       "form",
       { class: "kp-drawer__body rl-form", id: "dl-name-form", novalidate: true },
       sec(
         `The ${noun}`,
-        `Both names are needed: a ${noun} without one of them shows on neither wheel.`,
+        `It shows in each language it has a name in.`,
         h(
           "div",
           { class: "kp-formgrid" },
           row("Dutch name", nl, "What the parents' page says."),
           row("English name", en, "What Kitchen says."),
           row("Position", position, `Where it stands in the list of ${noun === "category" ? "categories" : "kinds of part"}.`),
+          small ? row("Small wheel", small, "Sides such as potatoes, rice or pasta: the small wheel picks one of the dish's choices.") : null,
         ),
       ),
     )
@@ -279,10 +281,11 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
         ...(item ?? {}),
         name: { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() },
         order: getQuantity(position),
+        ...(small ? { wheel: on(small) } : {}),
       };
-      if (!body.name.nl || !body.name.en) {
-        /** @type {HTMLInputElement} */ ((body.name.nl ? en : nl)).focus();
-        return { error: `A ${noun} needs both names.`, remedy: "Type the Dutch and the English name.", word: "Not saved" };
+      if (!body.name.nl && !body.name.en) {
+        /** @type {HTMLInputElement} */ (nl).focus();
+        return { error: `A ${noun} needs a name.`, remedy: "Type its Dutch name, its English name or both.", word: "Not saved" };
       }
       try {
         const saved = item ? await replace(list, body) : await create(list, body);

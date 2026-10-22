@@ -1312,7 +1312,7 @@
     "nl": "Konijn met pruimen",
     "en": "Rabbit with prunes"
    },
-   "category": "41a51f7c-5337-5826-aa1e-7934a6cedc88",
+   "category": "bd43bef0-4a8e-5929-932b-acc30cbfd6ec",
    "parents": true,
    "recipe_id": null,
    "parts": [
@@ -1337,11 +1337,12 @@
   {
    "id": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
    "name": {
-    "nl": "Aardappelen en co.",
-    "en": "Potatoes and co."
+    "nl": "Aardappelen, rijst of pasta",
+    "en": "Potatoes, rice or pasta"
    },
    "order": 1,
-   "created": "2026-10-22T20:00:00+02:00"
+   "created": "2026-10-22T20:00:00+02:00",
+   "wheel": true
   },
   {
    "id": "c6865a14-9a1d-5b45-a1d2-18d09f596ad2",
@@ -1350,7 +1351,8 @@
     "en": "Vegetables"
    },
    "order": 2,
-   "created": "2026-10-22T20:00:00+02:00"
+   "created": "2026-10-22T20:00:00+02:00",
+   "wheel": false
   },
   {
    "id": "dd189006-f04b-5962-a422-aa7da134258b",
@@ -1359,7 +1361,8 @@
     "en": "Sauce"
    },
    "order": 3,
-   "created": "2026-10-22T20:00:00+02:00"
+   "created": "2026-10-22T20:00:00+02:00",
+   "wheel": false
   },
   {
    "id": "88cf33bd-f51d-574d-bd44-6d6470fe002c",
@@ -1368,7 +1371,8 @@
     "en": "Meat, fish or veggie"
    },
    "order": 4,
-   "created": "2026-10-22T20:00:00+02:00"
+   "created": "2026-10-22T20:00:00+02:00",
+   "wheel": false
   }
  ],
  "dish_categories": [
@@ -1388,15 +1392,6 @@
     "en": "Special"
    },
    "order": 2,
-   "created": "2026-10-22T20:00:00+02:00"
-  },
-  {
-   "id": "41a51f7c-5337-5826-aa1e-7934a6cedc88",
-   "name": {
-    "nl": "Feest",
-    "en": "Festive"
-   },
-   "order": 3,
    "created": "2026-10-22T20:00:00+02:00"
   }
  ],

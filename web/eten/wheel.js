@@ -4,10 +4,11 @@
 // this. The data comes ready from the server (src/parents.rs `wheel`): only dishes with both names, each with its
 // category and its parts, every name already in the page's language.
 //
-// The big wheel picks a dish. Its parts with a real choice (two or more, "Aardappelen en co.": frieten, kroketten, …)
-// are picked by the small wheel, one after the other while the small wheel's heading names the part; a part with one
-// choice ("met sla") is simply part of the dish. The sentence under the wheels says the whole dinner. A tap on the
-// small wheel picks again for the part it shows. The categories, when there are two or more, narrow the big wheel.
+// The big wheel picks a dish. The small wheel is only for the sides (Kenny, 22/10/2026 23:08): a part whose kind is
+// marked for it ("Aardappelen, rijst of pasta": frieten, kroketten, rijst, …) with two or more choices; it picks them
+// one after the other while its heading names the part. Sauces, salad and the like are not spun and not shown here.
+// The sentence under the wheels says the dinner. A tap on the small wheel picks again for the part it shows. The
+// categories, when there are two or more, narrow the big wheel.
 //
 // Both wheels are the package's kiosk wheel with its answer card (js/wheel.js); the card's loading, empty and failed
 // states are js/card-state.js. Nothing is stored: the spin is the whole of it.
@@ -17,7 +18,7 @@ import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/
 import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachArt } from "/static/kp/js/art.js";
 
-/** @typedef {{ id: string, name: string, choices: string[] }} Part */
+/** @typedef {{ id: string, name: string, wheel: boolean, choices: string[] }} Part */
 /** @typedef {{ id: string, name: string, category: string | null, parts: Part[] }} Dish */
 /** @typedef {{ id: string, name: string, count: number }} Category */
 /** @typedef {{ lang: string, dishes: Dish[], categories: Category[] }} WheelData */
@@ -46,6 +47,7 @@ export const WORDS = {
     nothing: (/** @type {string} */ dish) => `${dish}: hier valt niets te kiezen.`,
     tagChoice: (/** @type {string[]} */ parts) => `Met een keuze: ${join(parts.map(lower), "en")}`,
     tagSame: "Altijd op dezelfde manier",
+    tagWith: (/** @type {string} */ dish) => `Bij ${dish}`,
     idle: "Tik op het grote wiel; het kiest het eten en het kleine wiel het bijgerecht.",
     turning: "De wielen draaien…",
     tonight: (/** @type {string} */ dish, /** @type {string[]} */ withs) => (withs.length ? `Vanavond: ${dish}, met ${join(withs.map(lower), "en")}.` : `Vanavond: ${dish}.`),
@@ -68,11 +70,15 @@ export const WORDS = {
     nothing: (/** @type {string} */ dish) => `${dish}: nothing to choose here.`,
     tagChoice: (/** @type {string[]} */ parts) => `With a choice of ${join(parts.map(lower), "and")}`,
     tagSame: "Always the same way",
+    tagWith: (/** @type {string} */ dish) => `With ${dish}`,
     idle: "Tap the big wheel; it picks the dish and the small wheel the side.",
     turning: "The wheels are turning…",
     tonight: (/** @type {string} */ dish, /** @type {string[]} */ withs) => (withs.length ? `Tonight: ${dish}, with ${join(withs.map(lower), "and")}.` : `Tonight: ${dish}.`),
   },
 };
+
+/** A part the small wheel picks: its kind is marked for it (the sides) and it has a real choice. @param {Part} p */
+const spins = (p) => p.wheel === true && p.choices.length > 1;
 
 /** @param {string} s */
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -161,7 +167,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
       tonight.textContent = w.idle;
       return;
     }
-    const withs = dish.parts.map((p) => (p.choices.length === 1 ? p.choices[0] : picks.get(p.id))).filter((s) => typeof s === "string");
+    const withs = dish.parts.filter((p) => p.wheel).map((p) => (p.choices.length === 1 ? p.choices[0] : picks.get(p.id))).filter((s) => typeof s === "string");
     const waiting = queue.some((p) => !picks.has(p.id));
     tonight.textContent = waiting ? w.turning : w.tonight(dish.name, /** @type {string[]} */ (withs));
   };
@@ -171,7 +177,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     at = i;
     const part = queue[i];
     smallKicker.textContent = part.name;
-    setWheelItems(small, part.choices.map((c) => ({ id: c, label: c })));
+    setWheelItems(small, part.choices.map((c) => ({ id: c, label: c, tag: w.tagWith(dish?.name ?? "") })));
     void spinWheel(small);
   };
 
@@ -180,7 +186,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     const id = /** @type {CustomEvent} */ (e).detail?.item?.id;
     dish = data?.dishes.find((d) => d.id === id) ?? null;
     picks.clear();
-    queue = (dish?.parts ?? []).filter((p) => p.choices.length > 1);
+    queue = (dish?.parts ?? []).filter(spins);
     if (!dish || !queue.length) {
       at = -1;
       smallKicker.textContent = w.sideKicker;
@@ -235,7 +241,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     setWheelItems(
       big,
       list.map((d) => {
-        const choosing = d.parts.filter((p) => p.choices.length > 1).map((p) => p.name);
+        const choosing = d.parts.filter(spins).map((p) => p.name);
         return { id: d.id, label: d.name, tag: choosing.length ? w.tagChoice(choosing) : w.tagSame };
       }),
     );

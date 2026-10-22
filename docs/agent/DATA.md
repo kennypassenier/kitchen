@@ -50,9 +50,9 @@ A step:
 ## dishes
 
 What lands on a plate, for the parents' wheel (`/dishes` keeps them;
-`src/parents.rs` makes the wheel). Every name is `{nl, en}`; one with an empty
-half shows on neither wheel, which goes for a dish, a kind of part, a
-category and a choice alike.
+`src/parents.rs` makes the wheel). Every name is `{nl, en}`; an empty half
+only drops it from that language's wheel, which goes for a dish, a kind of
+part, a category and a choice alike. At least one half is filled.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -60,12 +60,13 @@ category and a choice alike.
 | `category` | string \| null | A `dish_categories` id |
 | `parents` | boolean | On the parents' wheel |
 | `recipe_id` | string \| null | The recipe to cook it from, if there is one |
-| `parts` | `{part, choices: {nl, en}[]}`[] | `part` is a `dish_parts` id, once per dish; two or more choices are the small wheel's choice, one is how it always comes |
+| `parts` | `{part, choices: {nl, en}[]}`[] | `part` is a `dish_parts` id, once per dish; when the kind has `wheel` on and there are two or more choices, the small wheel picks one; otherwise the choices are named as they are |
 
 ## dish_parts (kinds of part) and dish_categories
 
-`{name: {nl, en}, order: number}`: "Aardappelen en co." / "Potatoes and co.",
-"Dagelijkse kost" / "Everyday". `order` is the position, 1, 2, 3, … without
+`{name: {nl, en}, order: number}`, and on `dish_parts` also `wheel: boolean`
+(picked by the small wheel): "Aardappelen, rijst of pasta" / "Potatoes, rice
+or pasta" with `wheel: true`, "Dagelijkse kost" / "Everyday". `order` is the position, 1, 2, 3, … without
 gaps; the dishes page keeps it so. A kind or category a dish uses cannot be
 deleted from the page.
 

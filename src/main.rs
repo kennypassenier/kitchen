@@ -26,7 +26,9 @@ const HELP: &str = "\
 KITCHEN_WEB_DIR=<path to web/> serves the screens from disk instead of the
 copy built into the binary (development only: a changed file shows on reload).
 KITCHEN_PARENTS_HOST=<host> (eten.kp-soft.dev) keeps that host to the parents'
-wheel: its root opens the wheel without a login, every other path leads back.";
+wheel: its root opens the wheel without a login, every other path leads back.
+KITCHEN_PARENTS_ALLOW=<addresses and ranges, comma-separated> (default
+10.10.10.0/24): the only clients the parents' wheel answers.";
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
@@ -69,13 +71,22 @@ async fn main() -> std::process::ExitCode {
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);
     }
-    if let Some(host) = std::env::var("KITCHEN_PARENTS_HOST")
+    let host = std::env::var("KITCHEN_PARENTS_HOST")
         .ok()
         .map(|h| h.trim().to_ascii_lowercase())
-        .filter(|h| !h.is_empty())
-    {
-        app.request_guard(parents::host_guard(host, files));
-    }
+        .filter(|h| !h.is_empty());
+    let allow = std::env::var("KITCHEN_PARENTS_ALLOW")
+        .ok()
+        .filter(|a| !a.trim().is_empty())
+        .unwrap_or_else(|| parents::Allow::DEFAULT.to_string());
+    let allow = match parents::Allow::parse(&allow) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("kitchen: {e}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    app.request_guard(parents::parents_guard(host, allow, files));
 
     // The app database holds only the kit's synced preferences: the recipes
     // stay in kitchen.json. A person's browser choices (the timing page's

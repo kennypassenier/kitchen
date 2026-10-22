@@ -12,14 +12,17 @@ has a Dutch and an English name, a category and its parts. A part is a kind
 from the "Kinds of part" list (potatoes and co., vegetables, sauce, …) with
 the choices for this dish: stoofvlees comes with potatoes, fries, croquettes
 or mash; spaghetti bolognese has no parts. The kinds and the categories
-("Everyday", "Special", "Festive") are lists of their own on the same page,
-so a new kind or category is one Add away. A dish, a kind, a category or a
-choice without both names shows on neither wheel; the Wheel column says what
-is missing.
+("Everyday", "Special") are lists of their own on the same page, so a new
+kind or category is one Add away. A name only needs one language: a dish
+without a Dutch name is missing only from the Dutch wheel, one without an
+English name only from the English wheel. The Wheel column says on which
+wheels the dish shows.
 
 **The parents' wheel** picks from the dishes with "On the parents' wheel"
-switched on. The big wheel picks the dish; each of its parts with two or more
-choices is then picked by the small wheel, one after the other, and the
+switched on. The big wheel picks the dish; the small wheel then picks only
+the parts whose kind has "Picked by the small wheel" switched on (in the
+sample: potatoes, rice or pasta), when the dish offers two or more choices.
+Vegetables and sauce are never spun; their choices are named as they are. The
 sentence under the wheels says the whole dinner ("Vanavond: Biefstuk, met
 frieten, sla en bearnaise."). A tap on the small wheel picks again for the
 part it shows; the category chips narrow the big wheel. Kenny's parents open
@@ -50,11 +53,20 @@ container straight from that address, not through Traefik.
 `KITCHEN_PARENTS_HOST=eten.kp-soft.dev` keeps that host to the parents'
 wheel: its root opens the Dutch wheel, `/eten…`, `/static/…` and `/healthz`
 pass, and every other path leads back to the wheel, so the login page cannot
-be reached there. The homelab points both hosts at the same container
-(kitchen.kp-soft.dev with the login, eten.kp-soft.dev without), and
-eten.kp-soft.dev must not sit behind Cloudflare Access. All the page reads is
-`/eten/data`: the names, categories and parts of the dishes on the wheel,
-nothing else.
+be reached there. The wheel only answers the home network:
+`KITCHEN_PARENTS_ALLOW` (default `10.10.10.0/24`, a comma list of addresses
+and ranges) names who may open it, everyone else gets a short Dutch
+"only at home" page. Behind Traefik that check needs the real visitor's
+address, so `KITCHEN_TRUSTED_PROXIES` must list Traefik's address; without
+it Traefik's own home address would let everyone in.
+
+The homelab points both hosts at the same container. kitchen.kp-soft.dev is
+for Kenny, with the login, behind Cloudflare Access. eten.kp-soft.dev is
+for his parents, without an account and without Cloudflare: it has no public
+DNS record, only a host override on the home router pointing it at Traefik,
+and Traefik allows only 10.10.10.0/24 on that router (Kenny, 22/10/2026).
+All the page reads is `/eten/data`: the names, categories and parts of the
+dishes on the wheel, nothing else.
 
 `/healthz`, `/metrics` and the parents' wheel (`/eten`) are open; everything
 else needs the login. The

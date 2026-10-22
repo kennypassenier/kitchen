@@ -98,9 +98,11 @@
   text-transform: uppercase;
 }
 
+/* On a phone the small wheel is as wide as the big one: its answer card lines up with the big wheel's, and its two or
+   three names are drawn as large as the big wheel's, since the package sizes a label by the disc. */
 @media (max-width: 40rem) {
   .pr-wheel--side {
-    --kp-wheel-size: min(16rem, 100%);
+    --kp-wheel-size: min(26rem, 100%);
   }
 
   .pr-wheels {
