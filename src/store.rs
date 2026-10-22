@@ -22,7 +22,16 @@ pub const FORMAT: u32 = 1;
 
 /// The collections a page may read and write. Settings is a single object
 /// and has its own routes.
-pub const COLLECTIONS: &[&str] = &["recipes", "freezer", "shelf", "log", "resting"];
+pub const COLLECTIONS: &[&str] = &[
+    "recipes",
+    "freezer",
+    "shelf",
+    "log",
+    "resting",
+    "dishes",
+    "dish_parts",
+    "dish_categories",
+];
 
 /// The first contents of a new kitchen: sample dishes, so every screen has
 /// something to show before Kenny has entered anything.
@@ -42,6 +51,12 @@ pub struct Data {
     #[serde(default)]
     pub resting: Vec<Value>,
     #[serde(default)]
+    pub dishes: Vec<Value>,
+    #[serde(default)]
+    pub dish_parts: Vec<Value>,
+    #[serde(default)]
+    pub dish_categories: Vec<Value>,
+    #[serde(default)]
     pub settings: Map<String, Value>,
 }
 
@@ -53,6 +68,9 @@ impl Data {
             "shelf" => Some(&mut self.shelf),
             "log" => Some(&mut self.log),
             "resting" => Some(&mut self.resting),
+            "dishes" => Some(&mut self.dishes),
+            "dish_parts" => Some(&mut self.dish_parts),
+            "dish_categories" => Some(&mut self.dish_categories),
             _ => None,
         }
     }
@@ -295,6 +313,9 @@ mod tests {
             shelf: vec![],
             log: vec![],
             resting: vec![],
+            dishes: vec![],
+            dish_parts: vec![],
+            dish_categories: vec![],
             settings: Map::new(),
         }
     }
@@ -345,5 +366,6 @@ mod tests {
     fn the_seed_parses() {
         let d = seed();
         assert!(!d.recipes.is_empty());
+        assert!(!d.dishes.is_empty());
     }
 }

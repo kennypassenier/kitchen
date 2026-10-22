@@ -33,6 +33,9 @@ def ref(frm, u):
 html = open(os.path.join(SRC, 'index.html')).read()
 for m in re.finditer(r'''(?:href|src)="(/[^"]+)"''', html): ref('index.html', m.group(1))
 for f in os.listdir(os.path.join(SRC, 'js/pages')): add('js/pages/' + f)
+# The parents' Dutch page (web/eten), as eten.html next to the app.
+eten = open(os.path.join(SRC, 'eten', 'index.html')).read()
+for m in re.finditer(r'''(?:href|src)="(/[^"]+)"''', eten): ref('eten/index.html', m.group(1))
 add('js/main.js')
 def rel_from(frm, target):
     r = os.path.relpath(target, os.path.dirname(frm) or '.')
@@ -42,7 +45,7 @@ for rel in sorted(need):
     os.makedirs(os.path.dirname(d_path), exist_ok=True)
     if rel.endswith(('.js', '.css')):
         s = open(s_path).read()
-        s = re.sub(r'''(["'(])/((?:static/kp|js|css|img)/[^"')]+)''', lambda m: m.group(1) + rel_from(rel, m.group(2)), s)
+        s = re.sub(r'''(["'(])/((?:static/kp|js|css|img|eten)/[^"')]+)''', lambda m: m.group(1) + rel_from(rel, m.group(2)), s)
         # fetch() resolves against the document, not the module.
         s = re.sub(r'fetch\("(?:\.\./)+(static/kp/[^"]+)"', r'fetch("./\1"', s)
         if rel == 'js/main.js':
@@ -54,8 +57,11 @@ for rel in sorted(need):
     else:
         shutil.copy(s_path, d_path)
 html = html.replace('<script src="/static/theme-boot.js"></script>', '<script src="theme-boot.js"></script>\n    <script src="preview-server.js"></script>')
-html = re.sub(r'''(href|src)="/((?:static/kp|js|css|img)/[^"]+)"''', r'\1="./\2"', html)
+html = re.sub(r'''(href|src)="/((?:static/kp|js|css|img|eten)/[^"]+)"''', r'\1="./\2"', html)
 open(os.path.join(OUT, 'index.html'), 'w').write(html)
+eten = eten.replace('<script src="/static/theme-boot.js"></script>', '<script src="theme-boot.js"></script>\n    <script src="preview-server.js"></script>')
+eten = re.sub(r'''(href|src)="/((?:static/kp|js|css|img|eten)/[^"]+)"''', r'\1="./\2"', eten)
+open(os.path.join(OUT, 'eten.html'), 'w').write(eten)
 shutil.copy(os.path.join(STATIC, 'theme-boot.js'), os.path.join(OUT, 'theme-boot.js'))
 seed = open(os.path.join(ROOT, 'src', 'seed.json')).read()
 srv = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'preview-server.js')).read().replace('__SEED__', seed)

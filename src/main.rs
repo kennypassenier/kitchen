@@ -8,12 +8,12 @@
 
 #![forbid(unsafe_code)]
 
+mod parents;
 mod routes;
 mod store;
 
 use std::sync::Arc;
 
-use axum::Router;
 use chassis::shell::pages::Page;
 use chassis::shell::webapp::WebApp;
 use chassis::storage::{AppDbSpec, BrowserKeys};
@@ -24,7 +24,9 @@ include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
 const HELP: &str = "\
 KITCHEN_WEB_DIR=<path to web/> serves the screens from disk instead of the
-copy built into the binary (development only: a changed file shows on reload).";
+copy built into the binary (development only: a changed file shows on reload).
+KITCHEN_PARENTS_HOST=<host> (eten.kp-soft.dev) keeps that host to the parents'
+wheel: its root opens the wheel without a login, every other path leads back.";
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
@@ -35,7 +37,17 @@ async fn main() -> std::process::ExitCode {
         help_extra: Some(HELP),
         ..Default::default()
     };
-    let mut app = match App::from_env_and_args(spec, Router::new()) {
+    let web_dir = std::env::var("KITCHEN_WEB_DIR")
+        .ok()
+        .filter(|d| !d.trim().is_empty());
+    let files = parents::Files {
+        dir: web_dir.as_ref().map(std::path::PathBuf::from),
+    };
+    // The parents' wheel needs no login, so its routes go on the kit's public
+    // router; the store joins them once it has opened.
+    let slot: parents::Slot = Arc::default();
+    let public = parents::router(slot.clone(), files.clone());
+    let mut app = match App::from_env_and_args(spec, public) {
         Ok(app) => app,
         Err(e) => {
             eprintln!("{e}");
@@ -53,7 +65,16 @@ async fn main() -> std::process::ExitCode {
                 return std::process::ExitCode::FAILURE;
             }
         };
-        app.dashboard_routes(routes::router(store));
+        app.dashboard_routes(routes::router(store.clone()))
+            .dashboard_routes(parents::english(store.clone()));
+        let _ = slot.set(store);
+    }
+    if let Some(host) = std::env::var("KITCHEN_PARENTS_HOST")
+        .ok()
+        .map(|h| h.trim().to_ascii_lowercase())
+        .filter(|h| !h.is_empty())
+    {
+        app.request_guard(parents::host_guard(host, files));
     }
 
     // The app database holds only the kit's synced preferences: the recipes
@@ -66,9 +87,9 @@ async fn main() -> std::process::ExitCode {
     }
     app.sync_browser_keys(BrowserKeys::new().prefix("kitchen:").prefix("kp-remember:"));
 
-    let web = match std::env::var("KITCHEN_WEB_DIR") {
-        Ok(dir) if !dir.trim().is_empty() => WebApp::dir(dir),
-        _ => WebApp::embedded(FILES),
+    let web = match web_dir {
+        Some(dir) => WebApp::dir(dir),
+        None => WebApp::embedded(FILES),
     };
     app.webapp(web);
     // The bar: the four places a person goes, in the order of an evening.
@@ -78,7 +99,9 @@ async fn main() -> std::process::ExitCode {
         .page(Page::new("baddays", "Bad days", "/bad-days"))
         .page(Page::new("settings", "Calm settings", "/settings"))
         .page(Page::new("recipes", "Recipes", "/recipes"))
-        // Kenny's parents' page: only the wheel, over the dinners marked for them.
+        // The dishes behind the parents' wheel, and the wheel itself in
+        // English; the Dutch one is /eten, without a login.
+        .page(Page::new("dishes", "Dishes", "/dishes"))
         .page(Page::new("parents", "Parents' wheel", "/parents"))
         .page(
             Page::new("recipe", "Recipe", "/recipe")

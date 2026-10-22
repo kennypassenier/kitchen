@@ -7,7 +7,7 @@
 // connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_parts: Item[], dish_categories: Item[], settings: Record<string, any> }} Kitchen */
 
 export class ApiError extends Error {
   /** @param {string} message @param {number} status */
@@ -126,6 +126,9 @@ export async function remove(list, id) {
   }
   return gone;
 }
+
+/** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */
+export const readWheelEnglish = () => call("GET", "/data/wheel/en");
 
 /** Take portions out of the freezer (negative puts them back). @param {string} id @param {number} [portions] */
 export async function takePortions(id, portions = 1) {

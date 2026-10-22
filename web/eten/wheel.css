@@ -1,5 +1,6 @@
-/* The parents' wheel. Everything with a kp- class is the package; these pr- rules only lay the two wheels out on one grid
-   and size them. Every rule is behind the screen's own prefix. */
+/* The parents' wheel (web/eten/wheel.js), shared by the Dutch page on eten.kp-soft.dev and Kitchen's English /parents.
+   Everything with a kp- class is the package; these pr- rules only lay the two wheels out on one grid, size them and
+   set the dinner sentence under them. Every rule is behind the screen's own prefix. */
 
 .pr-page {
   display: grid;
@@ -11,6 +12,31 @@
 .pr-card {
   --kp-card-stage-min: 30rem;
   min-inline-size: 0;
+}
+
+/* The card's data: the category row, the wheels, the dinner sentence, one under the other. */
+.pr-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--kp-space-lg, 1.5rem);
+}
+
+.pr-filter:empty {
+  display: none;
+}
+
+/* The whole dinner in one sentence, large enough to read from across the table; two lines are kept so the card does
+   not change height between "turning" and the answer. */
+.pr-tonight {
+  margin: 0;
+  min-block-size: calc(2lh);
+  justify-self: center;
+  max-inline-size: 40rem;
+  text-align: center;
+  text-wrap: balance;
+  font-size: var(--kp-text-xl, 1.375rem);
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 /* Two columns on one grid: the big wheel takes two parts, the small wheel one; both open with a kicker on the same line
@@ -47,6 +73,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Workaround, queued for kp-themes (KP_GAPS.md 17): a turned disc's square box sticks out past its circle, and on a
+   phone that pushes the page sideways. The corners are empty, so the column clips them. Drop it once the package
+   keeps a turned disc inside its stage. */
+.pr-wheel {
+  overflow: clip;
+}
+
 .pr-wheel--dish {
   --kp-wheel-size: min(26rem, 100%);
 }
@@ -66,6 +99,10 @@
 }
 
 @media (max-width: 40rem) {
+  .pr-wheel--side {
+    --kp-wheel-size: min(16rem, 100%);
+  }
+
   .pr-wheels {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: repeat(6, auto);

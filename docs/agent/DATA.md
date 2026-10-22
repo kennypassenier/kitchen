@@ -23,8 +23,6 @@ Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 | `portions` | number | Portions the amounts below make |
 | `prep` | `none` \| `light` \| `full` | How much preparing it needs (`none` = no prep, a bad-day dish) |
 | `safe` | boolean | A safe favourite for bad days |
-| `parents` | boolean | On the parents' wheel (`/parents`, which only takes dinners) |
-| `sides` | string[] | Sides the parents' small wheel picks from ("Fries", "Mashed potatoes"); empty when the dish always comes the same way |
 | `gear` | string | What it dirties: "1 pot", "the oven, 2 pots" |
 | `last_note` | string | The "Last time" note on the recipe page |
 | `ingredients` | `{id, name, amount: number \| null, unit, group, note?}`[] | Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
@@ -48,6 +46,28 @@ A step:
 | `note` | string | A line under the step |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
+
+## dishes
+
+What lands on a plate, for the parents' wheel (`/dishes` keeps them;
+`src/parents.rs` makes the wheel). Every name is `{nl, en}`; one with an empty
+half shows on neither wheel, which goes for a dish, a kind of part, a
+category and a choice alike.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `name` | `{nl, en}` | "Stoofvlees" / "Flemish beef stew" |
+| `category` | string \| null | A `dish_categories` id |
+| `parents` | boolean | On the parents' wheel |
+| `recipe_id` | string \| null | The recipe to cook it from, if there is one |
+| `parts` | `{part, choices: {nl, en}[]}`[] | `part` is a `dish_parts` id, once per dish; two or more choices are the small wheel's choice, one is how it always comes |
+
+## dish_parts (kinds of part) and dish_categories
+
+`{name: {nl, en}, order: number}`: "Aardappelen en co." / "Potatoes and co.",
+"Dagelijkse kost" / "Everyday". `order` is the position, 1, 2, 3, … without
+gaps; the dishes page keeps it so. A kind or category a dish uses cannot be
+deleted from the page.
 
 ## freezer
 

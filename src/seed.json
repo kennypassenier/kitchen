@@ -19,13 +19,6 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
-   "parents": true,
-   "sides": [
-    "Potatoes",
-    "Fries",
-    "Croquettes",
-    "Mashed potatoes"
-   ],
    "gear": "2 pots",
    "last_note": "",
    "ingredients": [],
@@ -52,11 +45,6 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
-   "parents": true,
-   "sides": [
-    "Potatoes",
-    "Bread"
-   ],
    "gear": "1 pot",
    "last_note": "",
    "ingredients": [],
@@ -83,8 +71,6 @@
    "portions": 2,
    "prep": "light",
    "safe": true,
-   "parents": true,
-   "sides": [],
    "gear": "1 pot, 1 pan",
    "last_note": "Keep a cup of pasta water: the sauce clings better.",
    "ingredients": [
@@ -413,8 +399,6 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
-   "parents": true,
-   "sides": [],
    "gear": "2 pans",
    "last_note": "",
    "ingredients": [],
@@ -441,11 +425,6 @@
    "portions": 2,
    "prep": "full",
    "safe": false,
-   "parents": true,
-   "sides": [
-    "Mashed potatoes",
-    "Potatoes"
-   ],
    "gear": "the oven, 2 pots",
    "last_note": "The sauce was a little salty: use unsalted butter.",
    "ingredients": [
@@ -673,13 +652,6 @@
    "portions": 2,
    "prep": "none",
    "safe": true,
-   "parents": true,
-   "sides": [
-    "Fries",
-    "Mashed potatoes",
-    "Potatoes",
-    "Bread"
-   ],
    "gear": "1 pot",
    "last_note": "",
    "ingredients": [],
@@ -1115,6 +1087,319 @@
   }
  ],
  "resting": [],
+ "dishes": [
+  {
+   "id": "f2648fde-a823-5ae0-97e7-96e78c97b0b5",
+   "name": {
+    "nl": "Stoofvlees",
+    "en": "Flemish beef stew"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": "fd0b3073-9641-5c41-80fa-1d36ac51b30c",
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Aardappelen",
+       "en": "Potatoes"
+      },
+      {
+       "nl": "Frieten",
+       "en": "Fries"
+      },
+      {
+       "nl": "Kroketten",
+       "en": "Croquettes"
+      },
+      {
+       "nl": "Aardappelpuree",
+       "en": "Mashed potatoes"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "339e4e73-cb33-5946-a363-dd962b084306",
+   "name": {
+    "nl": "Kippenwaterzooi",
+    "en": "Chicken waterzooi"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": "249d37fc-9830-5007-90c7-8045d83f3404",
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Aardappelen",
+       "en": "Potatoes"
+      },
+      {
+       "nl": "Brood",
+       "en": "Bread"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "6252976a-e1fd-583d-8185-92af892d4568",
+   "name": {
+    "nl": "Spaghetti bolognaise",
+    "en": "Spaghetti bolognese"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": null,
+   "parts": [],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "3bcf7768-b42b-51ef-8a43-48f73ec4a5d3",
+   "name": {
+    "nl": "Stoemp met worst",
+    "en": "Stoemp with sausage"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": "decd0bed-ef5e-5363-b4fb-d3cd27a20e9c",
+   "parts": [
+    {
+     "part": "c6865a14-9a1d-5b45-a1d2-18d09f596ad2",
+     "choices": [
+      {
+       "nl": "Wortelen",
+       "en": "Carrots"
+      },
+      {
+       "nl": "Prei",
+       "en": "Leek"
+      },
+      {
+       "nl": "Spinazie",
+       "en": "Spinach"
+      },
+      {
+       "nl": "Spruitjes",
+       "en": "Brussels sprouts"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "aecc9ce0-64ba-509e-b785-ef3d0c35bd54",
+   "name": {
+    "nl": "Witloof met hesp en kaas",
+    "en": "Chicory with ham and cheese"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": "d8d2019a-6e22-53cc-bf30-7af4ea0513c4",
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Aardappelpuree",
+       "en": "Mashed potatoes"
+      },
+      {
+       "nl": "Aardappelen",
+       "en": "Potatoes"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "a5aab9fe-ec71-5a98-952f-293519702c7f",
+   "name": {
+    "nl": "Balletjes in tomatensaus",
+    "en": "Meatballs in tomato sauce"
+   },
+   "category": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "parents": true,
+   "recipe_id": "defe4fce-174b-55b8-8719-8a0aca56005c",
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Frieten",
+       "en": "Fries"
+      },
+      {
+       "nl": "Aardappelpuree",
+       "en": "Mashed potatoes"
+      },
+      {
+       "nl": "Aardappelen",
+       "en": "Potatoes"
+      },
+      {
+       "nl": "Brood",
+       "en": "Bread"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "36f9b8ec-2122-5561-bd98-ba1b2defb465",
+   "name": {
+    "nl": "Biefstuk",
+    "en": "Steak"
+   },
+   "category": "bd43bef0-4a8e-5929-932b-acc30cbfd6ec",
+   "parents": true,
+   "recipe_id": null,
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Frieten",
+       "en": "Fries"
+      },
+      {
+       "nl": "Kroketten",
+       "en": "Croquettes"
+      }
+     ]
+    },
+    {
+     "part": "dd189006-f04b-5962-a422-aa7da134258b",
+     "choices": [
+      {
+       "nl": "Bearnaise",
+       "en": "Béarnaise"
+      },
+      {
+       "nl": "Pepersaus",
+       "en": "Pepper sauce"
+      },
+      {
+       "nl": "Champignonsaus",
+       "en": "Mushroom sauce"
+      }
+     ]
+    },
+    {
+     "part": "c6865a14-9a1d-5b45-a1d2-18d09f596ad2",
+     "choices": [
+      {
+       "nl": "Sla",
+       "en": "Salad"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "036bc054-46ac-5308-8c6b-b6029b33e1dc",
+   "name": {
+    "nl": "Konijn met pruimen",
+    "en": "Rabbit with prunes"
+   },
+   "category": "41a51f7c-5337-5826-aa1e-7934a6cedc88",
+   "parents": true,
+   "recipe_id": null,
+   "parts": [
+    {
+     "part": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+     "choices": [
+      {
+       "nl": "Kroketten",
+       "en": "Croquettes"
+      },
+      {
+       "nl": "Aardappelen",
+       "en": "Potatoes"
+      }
+     ]
+    }
+   ],
+   "created": "2026-10-22T20:00:00+02:00"
+  }
+ ],
+ "dish_parts": [
+  {
+   "id": "36a668f5-46a0-5712-af2e-962c5dbca3ef",
+   "name": {
+    "nl": "Aardappelen en co.",
+    "en": "Potatoes and co."
+   },
+   "order": 1,
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "c6865a14-9a1d-5b45-a1d2-18d09f596ad2",
+   "name": {
+    "nl": "Groenten",
+    "en": "Vegetables"
+   },
+   "order": 2,
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "dd189006-f04b-5962-a422-aa7da134258b",
+   "name": {
+    "nl": "Saus",
+    "en": "Sauce"
+   },
+   "order": 3,
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "88cf33bd-f51d-574d-bd44-6d6470fe002c",
+   "name": {
+    "nl": "Vlees, vis of vega",
+    "en": "Meat, fish or veggie"
+   },
+   "order": 4,
+   "created": "2026-10-22T20:00:00+02:00"
+  }
+ ],
+ "dish_categories": [
+  {
+   "id": "96890c91-bad8-5ddd-8e90-58bd482dec9a",
+   "name": {
+    "nl": "Dagelijkse kost",
+    "en": "Everyday"
+   },
+   "order": 1,
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "bd43bef0-4a8e-5929-932b-acc30cbfd6ec",
+   "name": {
+    "nl": "Speciaal",
+    "en": "Special"
+   },
+   "order": 2,
+   "created": "2026-10-22T20:00:00+02:00"
+  },
+  {
+   "id": "41a51f7c-5337-5826-aa1e-7934a6cedc88",
+   "name": {
+    "nl": "Feest",
+    "en": "Festive"
+   },
+   "order": 3,
+   "created": "2026-10-22T20:00:00+02:00"
+  }
+ ],
  "settings": {
   "dinner_time": "18:30"
  }

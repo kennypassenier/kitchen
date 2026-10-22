@@ -23,6 +23,7 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/recipes": () => import("./pages/recipes.js"),
   "/settings": () => import("./pages/settings.js"),
   "/parents": () => import("./pages/parents.js"),
+  "/dishes": () => import("./pages/dishes.js"),
 });
 
 /** The bar entry a hidden screen lights up. */

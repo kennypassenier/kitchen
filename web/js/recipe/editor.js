@@ -4,7 +4,9 @@
 // known (meals, prep, tracks, units); numbers are the package's stepper;
 // the repeatable lists (tracks, ingredients, tools, steps, what a step uses)
 // are rows on shared columns, each with its own Add and Remove buttons.
-// The form reads itself back into a recipe on Save.
+// The form reads itself back into a recipe on Save. The small form helpers
+// are exported for the dish editor (js/dishes/editor.js), which uses the same
+// drawer and grid.
 
 import { attachSegmented, getSegmentedValues } from "/static/kp/js/segmented.js";
 import { attachSelects } from "/static/kp/js/combobox.js";
@@ -23,15 +25,13 @@ const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinne
 const PREP = [["none", "None"], ["light", "Light"], ["full", "Full"]];
 /** Main ingredients the wheel knows; any other already in the kitchen is added to the list. */
 const MAIN = ["chicken", "beef", "pork", "fish", "egg", "cheese", "tomato", "potato", "vegetables", "pasta", "rice"];
-/** The sides offered first in a recipe's Sides field; any other can be typed. */
-const SIDES = ["Potatoes", "Fries", "Croquettes", "Mashed potatoes", "Rice", "Bread"];
 const UNITS = ["g", "ml", "pc", "tbsp", "tsp", "pinch", "clove", "slice", "handful"];
 const GROUPS = ["Ingredients", "From the cupboard"];
 
 let serial = 0;
 /** @param {string} p */
 const uid = (p) => `${p}-${++serial}`;
-const newId = () => (globalThis.crypto?.randomUUID?.() ?? `x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
+export const newId = () => (globalThis.crypto?.randomUUID?.() ?? `x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
 /** @param {string} s */
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -39,7 +39,7 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
  * One row of the form grid: label, control, a hint in the value track.
  * @param {string} label @param {HTMLElement} control @param {string} [hint] @param {string} [labelId]
  */
-function row(label, control, hint = "", labelId = uid("rl-l")) {
+export function row(label, control, hint = "", labelId = uid("rl-l")) {
   const first = control.querySelector("input, textarea, select, button") ?? control;
   const labelEl = control.matches("[role=radiogroup], [role=group]") || !(first instanceof HTMLElement && first.id)
     ? h("span", { class: "kp-formgrid__label", id: labelId }, label)
@@ -49,7 +49,7 @@ function row(label, control, hint = "", labelId = uid("rl-l")) {
 }
 
 /** @param {string} value @param {string} [type] @param {Record<string, string>} [attrs] */
-function input(value, type = "text", attrs = {}) {
+export function input(value, type = "text", attrs = {}) {
   return h("input", { class: "kp-field__input", type, id: uid("rl-i"), value, ...attrs });
 }
 
@@ -70,14 +70,14 @@ function stepper(value, { min = 0, max = 1000, unit = "", one = "", label }) {
 }
 
 /** @param {string} label @param {boolean} on */
-function toggle(label, on) {
+export function toggle(label, on) {
   const box = h("input", { class: "kp-switch__input", type: "checkbox", role: "switch", id: uid("rl-s") });
   box.checked = on;
   return h("label", { class: "kp-switch" }, box, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, label));
 }
 
 /** @param {HTMLElement} sw */
-const on = (sw) => /** @type {HTMLInputElement} */ (sw.querySelector("input")).checked;
+export const on = (sw) => /** @type {HTMLInputElement} */ (sw.querySelector("input")).checked;
 
 /** A segmented control. @param {[string, string][]} items @param {string[]} values @param {"single" | "multi"} mode @param {string} label */
 function segmented(items, values, mode, label) {
@@ -98,7 +98,7 @@ function segmented(items, values, mode, label) {
 }
 
 /** A native select the package draws. @param {[string, string][]} options @param {string} value @param {string} label */
-function select(options, value, label) {
+export function select(options, value, label) {
   const el = h("select", { class: "kp-field__input", id: uid("rl-sel"), "aria-label": label }, ...options.map(([v, t]) => h("option", { value: v }, t)));
   /** @type {HTMLSelectElement} */ (el).value = value;
   return /** @type {HTMLSelectElement} */ (el);
@@ -108,7 +108,7 @@ function select(options, value, label) {
  * A repeatable list on shared columns: a header line, one row per item, and an Add button that says what it adds.
  * @param {{ columns: { label: string, width: string, make: (value: any) => { el: HTMLElement, get: () => any } }[], items: any[], add: string, noun: string, blank: () => any }} spec
  */
-function rows({ columns, items, add, noun, blank }) {
+export function rows({ columns, items, add, noun, blank }) {
   const grid = h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` });
   const head = h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, "Remove"));
   const body = h("div", { class: "rl-rows__body" });
@@ -155,7 +155,7 @@ function rows({ columns, items, add, noun, blank }) {
 }
 
 /** @param {string} label @param {string} value @param {string} placeholder */
-const textCell = (label, value, placeholder = "") => {
+export const textCell = (label, value, placeholder = "") => {
   const el = input(value, "text", { "aria-label": label, placeholder });
   return { el, get: () => /** @type {HTMLInputElement} */ (el).value.trim() };
 };
@@ -166,7 +166,7 @@ const textCell = (label, value, placeholder = "") => {
  * @param {{ recipe: Record<string, any> | null, mainOptions: string[] }} spec
  */
 export function openEditor(dialog, { recipe, mainOptions }) {
-  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, parents: false, sides: [], gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
+  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
   const editing = Boolean(recipe);
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? `Edit ${r.name}` : "Add a recipe");
 
@@ -200,16 +200,6 @@ export function openEditor(dialog, { recipe, mainOptions }) {
   const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: "portions", one: "portion", label: "Portions" });
   const prep = segmented(PREP, [r.prep ?? "light"], "single", "Preparing");
   const safe = toggle("A safe favourite for bad days", Boolean(r.safe));
-  const parents = toggle("On the parents' wheel", Boolean(r.parents));
-  const sideSet = [...new Set([...SIDES, ...(r.sides ?? [])])];
-  const sidesBox = h(
-    "div",
-    { class: "kp-combobox", "data-kp-combobox": true, "data-kp-tags": true, "data-kp-creatable": true },
-    h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }, ...(r.sides ?? []).map((/** @type {string} */ t) => h("li", { class: "kp-tag", "data-value": t }, t, h("button", { type: "button", class: "kp-tag__remove", "data-kp-tag-remove": true, "aria-label": `Remove ${t}` }, "×")))),
-    h("input", { class: "kp-combobox__input", id: "rl-sides", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": "rl-sides-list", "aria-label": "Sides" }),
-    h("ul", { class: "kp-combobox__list", id: "rl-sides-list", role: "listbox", hidden: true }, ...sideSet.map((t) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": t }, t))),
-    h("p", { class: "kp-combobox__status", "data-kp-combobox-status": true, role: "status", "aria-live": "polite" }),
-  );
   const gear = input(r.gear ?? "", "text", { placeholder: "1 pot, the oven" });
   const facts = h(
     "div",
@@ -219,8 +209,6 @@ export function openEditor(dialog, { recipe, mainOptions }) {
     row("Portions", portions, "The amounts below make this many."),
     row("Preparing", prep, "None is a bad-day dish."),
     row("Safe favourite", safe, "The bad-days page offers it."),
-    row("Parents' wheel", parents, "The parents' page puts it on its wheel."),
-    row("Sides", sidesBox, "A choice the small wheel makes with it; leave empty when it always comes the same way."),
     row("Gear", gear, "What it dirties."),
   );
 
@@ -443,8 +431,6 @@ export function openEditor(dialog, { recipe, mainOptions }) {
       portions: getQuantity(portions),
       prep: getSegmentedValues(prep)[0] ?? "light",
       safe: on(safe),
-      parents: on(parents),
-      sides: combobox(sidesBox)?.values() ?? [],
       gear: /** @type {HTMLInputElement} */ (gear).value.trim(),
       last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
       mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),

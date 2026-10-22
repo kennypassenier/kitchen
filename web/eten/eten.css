@@ -1,0 +1,16 @@
+/* The page around the parents' wheel on eten.kp-soft.dev: no bar, no login, the wheel across the full width with the
+   package's page gutter. Every rule is behind the page's own prefix. */
+
+.eten-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-block-size: 100dvh;
+  padding: var(--kp-space-xl, 2rem) var(--kp-space-lg, 1.5rem);
+  box-sizing: border-box;
+}
+
+@media (max-width: 40rem) {
+  .eten-shell {
+    padding: var(--kp-space-md, 1rem);
+  }
+}

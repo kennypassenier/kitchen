@@ -4,6 +4,7 @@ Every decision Kenny made, newest first. Each line says what and when.
 
 | When | Decision |
 |---|---|
+| 22/10/2026 21:45 | Dishes get their own page with Add, Edit and Delete: a Dutch and an English name (a dish with only one shows on neither wheel), a category (everyday, special, …, a list of its own) and parts from an open list of kinds (potatoes and co., vegetables, sauce, …) with their choices. The parents' wheel is in Dutch on eten.kp-soft.dev without an account; Kitchen itself on kitchen.kp-soft.dev. Claude's choices: two or more choices in a part are picked by the small wheel one part after the other, one choice is how the dish always comes; the categories narrow the parents' wheel; Kitchen keeps the same wheel in English at /parents |
 | 22/10/2026 | A parents' page: a wheel of only the dinners marked for Kenny's parents; a dish with sides spins a second, smaller wheel for the side, a dish without sides shows none. Kenny's PC (10.10.10.10) is let in as the admin without a login |
 | 19/10/2026 22:25 | kp-themes comes only through chassis-rs: the pages load it from the kit's `/static/kp/`, never from a copy of their own; a missing piece waits for a chassis-rs release |
 | 19/10/2026 09:22 | No more demos of approved components: build the real app; every kp-themes component with its standard loading, empty and failed states, loading in the theme's own animation |

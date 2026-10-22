@@ -1,0 +1,58 @@
+/* dishes screen: rules behind the screen's own prefix (dl-). Layout only; every look is the package's. The drawer,
+   its sections and the repeatable rows are the recipe editor's (rl-, recipes.css). */
+
+.dl-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xl, 2rem);
+  align-content: start;
+}
+
+.dl-card {
+  min-inline-size: 0;
+}
+
+/* A dish's parts in the drawer: one bordered group per part, its choices on the shared two columns. */
+.dl-parts,
+.dl-parts__groups {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.dl-part {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+  padding: var(--kp-space-md, 1rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 0.5rem);
+}
+
+.dl-part__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.dl-part__head h4 {
+  margin: 0;
+}
+
+.dl-parts__add {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.dl-parts__add[hidden] {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .dl-parts__add {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
