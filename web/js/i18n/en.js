@@ -426,4 +426,12 @@ export const EN = {
   "de.sideLabelFix": "Give it both names, or leave both empty to read as its ingredients.",
   "rec.missingEn": "Missing English name",
   "rec.missingNl": "Missing Dutch name",
+  // bad days: the freezer's name in both languages (10:04)
+  "bad.dishNl": "Dish (Dutch)",
+  "bad.dishEn": "Dish (English)",
+  "bad.dishEnHint": "The same in English.",
+  // both languages in the shelf and freezer editors (10:04)
+  "rec.inNl": (x) => `${x} (Dutch)`,
+  "rec.inEn": (x) => `${x} (English)`,
+  "rec.halfText": (x) => `${x} is filled in one language only.`,
 };

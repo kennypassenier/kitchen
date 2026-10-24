@@ -34,7 +34,7 @@ import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
 import { h, $ } from "../dom.js";
 import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
-import { t, lang, nameOf } from "../i18n/index.js";
+import { t, lang, nameOf, textOf } from "../i18n/index.js";
 import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -135,12 +135,20 @@ const sections = () => `
         <div class="kp-form__summary" data-kp-form-summary tabindex="-1" hidden></div>
         <div class="kp-formgrid" data-kp-formgrid-lines="lines">
         <div class="kp-formgrid__row" data-bd-dish-row>
-          <label class="kp-formgrid__label" for="bd-add-dish">${t("bad.colDish")}</label>
+          <label class="kp-formgrid__label" for="bd-add-dish">${t("bad.dishNl")}</label>
           <div class="kp-formgrid__control">
             <input class="kp-field__input" id="bd-add-dish" name="dish" type="text" autocomplete="off"
               aria-describedby="bd-add-dish-note" />
           </div>
           <p class="kp-formgrid__value" id="bd-add-dish-note" role="status" aria-live="polite" data-bd-dish-note>${t("bad.dishHint")}</p>
+        </div>
+        <div class="kp-formgrid__row" data-bd-dish-en-row>
+          <label class="kp-formgrid__label" for="bd-add-dish-en">${t("bad.dishEn")}</label>
+          <div class="kp-formgrid__control">
+            <input class="kp-field__input" id="bd-add-dish-en" name="dish_en" type="text" autocomplete="off"
+              aria-describedby="bd-add-dish-en-note" />
+          </div>
+          <p class="kp-formgrid__value" id="bd-add-dish-en-note" role="status" aria-live="polite" data-bd-dish-en-note>${t("bad.dishEnHint")}</p>
         </div>
         <div class="kp-formgrid__row">
           <label class="kp-formgrid__label" for="bd-add-from">${t("rec.dishLink")}</label>
@@ -473,11 +481,11 @@ export function mount(root, { navigate }) {
           { class: "kp-row-actions" },
           h(
             "button",
-            { type: "button", class: "kp-button kp-button--sm", "data-bd-take": item.id, "aria-label": t("bad.takeName", item.dish) },
+            { type: "button", class: "kp-button kp-button--sm", "data-bd-take": item.id, "aria-label": t("bad.takeName", textOf(item.dish)) },
             t("bad.takeOne"),
           ),
-          h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-edit": item.id, "aria-label": t("rec.editName", item.dish) }, t("common.edit")),
-          h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-delete": item.id, "aria-label": t("rec.deleteName", item.dish) }, t("common.delete")),
+          h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-edit": item.id, "aria-label": t("rec.editName", textOf(item.dish)) }, t("common.edit")),
+          h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-delete": item.id, "aria-label": t("rec.deleteName", textOf(item.dish)) }, t("common.delete")),
         ),
       ),
     );
@@ -487,7 +495,7 @@ export function mount(root, { navigate }) {
   /** @param {Kitchen} k */
   function renderFreezer(k) {
     const items = k.freezer.filter((f) => f.portions > 0).sort((a, b) => frozenAt(a) - frozenAt(b));
-    const signature = JSON.stringify(items.map((f) => [f.id, f.dish, f.portions, f.frozen_on]));
+    const signature = JSON.stringify(items.map((f) => [f.id, textOf(f.dish), f.portions, f.frozen_on]));
     if (signature === drawn.freezer) return;
     const first = drawn.freezer === null;
     drawn.freezer = signature;
@@ -515,7 +523,7 @@ export function mount(root, { navigate }) {
     const button = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-take]")) : null;
     if (!button || button.getAttribute("aria-disabled") === "true") return;
     const id = button.getAttribute("data-bd-take") ?? "";
-    const dish = kitchenNow()?.freezer.find((f) => f.id === id)?.dish ?? t("bad.theDish");
+    const dish = textOf(kitchenNow()?.freezer.find((f) => f.id === id)?.dish) || t("bad.theDish");
     button.setAttribute("aria-disabled", "true");
     try {
       const after = await takePortions(id, 1);
@@ -554,6 +562,10 @@ export function mount(root, { navigate }) {
   // The add form: a real freezer gets filled.
   const form = /** @type {HTMLFormElement} */ ($("[data-bd-add-form]", page));
   const dishField = /** @type {HTMLInputElement} */ ($("#bd-add-dish", page));
+  // Both names (Kenny, 24/10/2026 10:04): the Dutch field above, the English one here.
+  const dishEnField = /** @type {HTMLInputElement} */ ($("#bd-add-dish-en", page));
+  const dishEnRow = /** @type {HTMLElement} */ ($("[data-bd-dish-en-row]", page));
+  const dishEnNote = /** @type {HTMLElement} */ ($("[data-bd-dish-en-note]", page));
   // Which of Kenny's dishes it is (Kenny, 24/10/2026 09:17): the wheel counts its portions for that dish. Picking one
   // with the name field still empty fills it in.
   const fromField = /** @type {HTMLSelectElement} */ ($("[data-bd-from]", page));
@@ -568,7 +580,8 @@ export function mount(root, { navigate }) {
   };
   fromField.addEventListener("change", () => {
     const d = kitchenNow()?.dishes.find((x) => x.id === fromField.value);
-    if (d && !dishField.value.trim()) dishField.value = nameOf(d).text;
+    if (d && !dishField.value.trim()) dishField.value = String(d.name?.nl ?? "");
+    if (d && !dishEnField.value.trim()) dishEnField.value = String(d.name?.en ?? "");
   });
   stops.push(onKitchen(() => alive && fillDishes()));
   fillDishes();
@@ -608,32 +621,41 @@ export function mount(root, { navigate }) {
     // (a GET to /bad-days?dish=…) before the save went out: since 1.0.0 nothing was ever added (found 24/10/2026).
     event.preventDefault();
     const dish = dishField.value.trim();
+    const dishEn = dishEnField.value.trim();
     const picked = datePicker(picker)?.get() ?? null;
     dishField.setCustomValidity(dish ? "" : DISH_WRONG);
+    dishEnField.setCustomValidity(dishEn ? "" : DISH_WRONG);
+    mark(dishEnRow, dishEnNote, dishEn ? null : DISH_WRONG, t("bad.dishEnHint"));
     dateInput.setCustomValidity(picked && picked.getTime() <= Date.now() + DAY ? "" : DATE_WRONG);
     mark(dishRow, dishNote, dish ? null : DISH_WRONG, t("bad.dishHint"));
     mark(dateRow, dateNote, dateInput.validationMessage || null, t("bad.dateHint"));
   });
   dishField.addEventListener("input", () => dishField.setCustomValidity(""));
+  dishEnField.addEventListener("input", () => {
+    dishEnField.setCustomValidity("");
+    mark(dishEnRow, dishEnNote, null, t("bad.dishEnHint"));
+  });
   dateInput.addEventListener("input", () => dateInput.setCustomValidity(""));
   const stopForms = attachForms(page, { wrapper: ".kp-formgrid__row", validateOn: "submit", revalidateOn: "none" });
   stops.push(stopForms);
   form.addEventListener(VALID_EVENT, async (event) => {
     const { done } = /** @type {CustomEvent<{ done: () => void }>} */ (event).detail;
-    const dish = dishField.value.trim();
+    const name = { nl: dishField.value.trim(), en: dishEnField.value.trim() };
+    const dish = textOf(name);
     const portions = Math.round(Number(portionsInput.value.replace(",", ".")));
     const picked = /** @type {Date} */ (datePicker(picker)?.get());
     const sameDay = picked.toLocaleDateString("en-CA") === new Date().toLocaleDateString("en-CA");
     const when = sameDay ? new Date() : new Date(picked.getFullYear(), picked.getMonth(), picked.getDate(), 12, 0, 0);
     try {
       await create("freezer", {
-        dish,
+        dish: name,
         dish_id: fromField.value || null,
         portions: Math.max(1, Number.isFinite(portions) ? portions : 1),
         frozen_on: when.toISOString(),
       });
       toast(t("bad.added", dish), { ms: 4000 });
       dishField.value = "";
+      dishEnField.value = "";
       setToday();
       dishField.focus();
     } catch (e) {
@@ -682,15 +704,15 @@ export function mount(root, { navigate }) {
             "div",
             { class: "kp-action-list__main" },
             h("strong", { class: "kp-action-list__title" }, itemLink("shelf", s)),
-            h("span", { class: "kp-action-list__text" }, s.text),
-            h("span", { class: "kp-action-list__meta" }, h("span", null, s.gear)),
+            h("span", { class: "kp-action-list__text" }, textOf(s.text)),
+            h("span", { class: "kp-action-list__meta" }, h("span", null, textOf(s.gear))),
           ),
           h(
             "div",
             { class: "kp-row-actions" },
-            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary", "data-bd-pick": s.id, "aria-label": t("bad.ateName", s.title) }, t("bad.ate")),
-            h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-shelf-edit": s.id, "aria-label": t("rec.editName", s.title) }, t("common.edit")),
-            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-shelf-delete": s.id, "aria-label": t("rec.deleteName", s.title) }, t("common.delete")),
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary", "data-bd-pick": s.id, "aria-label": t("bad.ateName", textOf(s.title)) }, t("bad.ate")),
+            h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-shelf-edit": s.id, "aria-label": t("rec.editName", textOf(s.title)) }, t("common.edit")),
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-shelf-delete": s.id, "aria-label": t("rec.deleteName", textOf(s.title)) }, t("common.delete")),
           ),
         ),
       ),
@@ -700,7 +722,7 @@ export function mount(root, { navigate }) {
 
   /** @param {Kitchen} k */
   function renderShelf(k) {
-    const signature = JSON.stringify(k.shelf.map((s) => [s.id, s.title, s.text, s.minutes, s.gear, s.energy]));
+    const signature = JSON.stringify(k.shelf.map((s) => [s.id, textOf(s.title), s.text, s.minutes, textOf(s.gear), s.energy]));
     if (signature === drawn.shelf) return;
     drawn.shelf = signature;
     shelfItems = [...k.shelf];
@@ -835,7 +857,7 @@ export function mount(root, { navigate }) {
     const byDay = {};
     for (const f of k.freezer) {
       const key = dayKey(frozenAt(f));
-      (byDay[key] ??= { dishes: [] }).dishes.push(f.dish);
+      (byDay[key] ??= { dishes: [] }).dishes.push(textOf(f.dish));
     }
     /** @type {Record<string, import("/static/kp/js/calendar.js").CalendarDay>} */
     const out = {};
@@ -864,7 +886,7 @@ export function mount(root, { navigate }) {
 
   /** @param {Kitchen} k */
   function renderMonth(k) {
-    const signature = JSON.stringify(k.freezer.map((f) => [f.id, f.dish, f.frozen_on]));
+    const signature = JSON.stringify(k.freezer.map((f) => [f.id, textOf(f.dish), f.frozen_on]));
     if (signature === drawn.month) return;
     const first = drawn.month === null;
     drawn.month = signature;

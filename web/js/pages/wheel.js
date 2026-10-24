@@ -121,7 +121,7 @@ export function mount(root, { navigate }) {
         ing: r?.ing ?? [],
         days: k ? daysSinceCooked(k, d.id) : Infinity,
         safe: !!r?.safe,
-        freezer: freezer.filter((f) => f.dish_id === d.id || [d.name?.nl, d.name?.en].some((n) => n && norm(f.dish) === norm(n))).reduce((n, f) => n + Number(f.portions), 0),
+        freezer: freezer.filter((f) => f.dish_id === d.id || [d.name?.nl, d.name?.en].some((n) => n && [f.dish?.nl, f.dish?.en, typeof f.dish === "string" ? f.dish : ""].some((x) => x && norm(x) === norm(n)))).reduce((n, f) => n + Number(f.portions), 0),
         prep: r?.prep ?? "full",
         recipe: !!r,
         cookId: r?.id ?? null,

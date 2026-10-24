@@ -15,7 +15,7 @@ import { toast } from "/static/kp/js/overlays.js";
 import { undoToast } from "/static/kp/js/undo-toast.js";
 import { h } from "./dom.js";
 import { create, replace, remove, kitchenNow, ingredientName, ApiError } from "./api.js";
-import { t, lang, nameOf } from "./i18n/index.js";
+import { t, lang, nameOf, textOf } from "./i18n/index.js";
 import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
 import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
 
@@ -52,8 +52,8 @@ const PLACES = {
   dish_categories: { home: ["/dishes", "dishes"], name: (c) => nameOf(c).text },
   ingredients: { home: ["/ingredients", "ingredients"], name: (i) => ingredientName(i.id, lang()) },
   ingredient_categories: { home: ["/ingredients", "ingredients"], name: (c) => nameOf(c).text },
-  freezer: { home: ["/bad-days#freezer", "baddays"], name: (f) => String(f.dish || t("rec.aDish")) },
-  shelf: { home: ["/bad-days#zero-prep", "baddays"], name: (s) => String(s.title || t("rec.aFood")) },
+  freezer: { home: ["/bad-days#freezer", "baddays"], name: (f) => textOf(f.dish) || t("rec.aDish") },
+  shelf: { home: ["/bad-days#zero-prep", "baddays"], name: (s) => textOf(s.title) || t("rec.aFood") },
   log: { home: ["/log", "log"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
   resting: { home: ["/", "wheel"], name: (r) => t("rec.resting", dish(r.dish_id) ? nameOf(dish(r.dish_id)).text : t("rec.aDish")) },
 };
@@ -106,7 +106,7 @@ export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} 
 
 /** What a log line is about: the recipe or the shelf food, by name. @param {Item} e */
 export function logWhat(e) {
-  if (e.shelf_id) return shelfItem(e.shelf_id)?.title ?? t("rec.goneShelf");
+  if (e.shelf_id) return textOf(shelfItem(e.shelf_id)?.title) || t("rec.goneShelf");
   return dish(e.dish_id) ? nameOf(dish(e.dish_id)).text : t("rec.goneDish");
 }
 
@@ -177,6 +177,23 @@ function dateField(iso, { max, label }) {
       return d ? d.toLocaleDateString("en-CA") : null;
     },
   };
+}
+
+/**
+ * A text in both languages (Kenny, 24/10/2026 10:04): a Dutch and an English field, each filled from `v` (`{nl, en}`,
+ * or a plain string from before, which fills both).
+ * @param {unknown} v @param {"input" | "area"} kind @param {string} placeholder
+ */
+function pair(v, kind, placeholder) {
+  const o = /** @type {Record<string, string>} */ (v && typeof v === "object" ? v : { nl: String(v ?? ""), en: String(v ?? "") });
+  const make = (/** @type {"nl" | "en"} */ l) => {
+    const el = kind === "area" ? area(String(o[l] ?? ""), 2) : input(String(o[l] ?? ""), "text", { autocomplete: "off", ...(placeholder ? { placeholder } : {}) });
+    if (l === "nl") el.setAttribute("lang", "nl");
+    return el;
+  };
+  const nl = make("nl");
+  const en = make("en");
+  return { nl, en, get: () => ({ nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() }) };
 }
 
 /** A segmented choice of one. @param {Record<string, string>} options @param {string} value @param {string} label */
@@ -266,7 +283,7 @@ export function openRecordEditor(list, item, preset = {}) {
   }
   const v = { ...preset, ...(item ?? {}) };
   if (list === "freezer") {
-    const dish = input(String(v.dish ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phDish") });
+    const dish = pair(v.dish, "input", t("rec.phDish"));
     const from = select([["", t("rec.noDish")], ...dishOptions()], v.dish_id ?? "", t("rec.dish"));
     const portions = stepper(Number(v.portions ?? 2), { min: 0, max: 99, unit: "portions", one: "portion", label: t("rec.portions") });
     portions.classList.add("kp-formgrid__fill");
@@ -277,31 +294,32 @@ export function openRecordEditor(list, item, preset = {}) {
       title: t("rec.inFreezer"),
       text: t("rec.inFreezerText"),
       rows: [
-        row(t("rec.dish"), dish, t("rec.dishHint")),
+        row(t("bad.dishNl"), dish.nl, t("rec.dishHint")),
+        row(t("bad.dishEn"), dish.en, t("bad.dishEnHint")),
         row(t("rec.dishLink"), from, t("rec.dishLinkHint")),
         row(t("rec.portions"), portions, t("rec.portionsHint")),
         row(t("rec.frozenOn"), frozen.el, t("rec.frozenHint")),
       ],
       after: frozen.start,
       body: () => {
-        const name = /** @type {HTMLInputElement} */ (dish).value.trim();
+        const name = dish.get();
         const day = frozen.get();
-        if (!name) return { error: t("rec.errDish"), remedy: t("rec.fixDish") };
+        if (!name.nl || !name.en) return { error: t(name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("rec.fixDish") };
         if (!day || day > today()) return { error: t("rec.errDay"), remedy: t("rec.fixDay") };
         // A day other than today is kept at noon, so it never slips to the day before in another time zone.
         const at = day === today() && item === null ? new Date().toISOString() : new Date(`${day}T12:00:00`).toISOString();
         return { dish: name, dish_id: from.value || null, portions: getQuantity(portions), frozen_on: at };
       },
-      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.dish),
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", textOf(b.dish)),
     });
     return;
   }
   if (list === "shelf") {
-    const title = input(String(v.title ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phFood") });
-    const text = area(String(v.text ?? ""), 2);
+    const title = pair(v.title, "input", t("rec.phFood"));
+    const text = pair(v.text, "area", "");
     const minutes = stepper(Number(v.minutes ?? 2), { min: 0, max: 60, unit: "min", label: t("rec.minutes") });
     minutes.classList.add("kp-formgrid__fill");
-    const gear = input(String(v.gear ?? ""), "text", { autocomplete: "off", placeholder: "a bowl and a spoon" });
+    const gear = pair(v.gear, "input", "");
     const energy = choiceOf(energies(), String(v.energy ?? "open"), t("rec.energy"));
     openForm({
       list,
@@ -309,24 +327,32 @@ export function openRecordEditor(list, item, preset = {}) {
       title: t("rec.onShelf"),
       text: t("rec.onShelfText"),
       rows: [
-        row(t("rec.name"), title, t("rec.nameHint")),
-        row(t("rec.whatToDo"), text, t("rec.whatToDoHint")),
+        row(t("rec.inNl", t("rec.name")), title.nl, t("rec.nameHint")),
+        row(t("rec.inEn", t("rec.name")), title.en, ""),
+        row(t("rec.inNl", t("rec.whatToDo")), text.nl, t("rec.whatToDoHint")),
+        row(t("rec.inEn", t("rec.whatToDo")), text.en, ""),
         row(t("rec.minutes"), minutes, t("rec.minutesHint")),
-        row(t("rec.gear"), gear, t("rec.gearHint")),
+        row(t("rec.inNl", t("rec.gear")), gear.nl, t("rec.gearHint")),
+        row(t("rec.inEn", t("rec.gear")), gear.en, ""),
         row(t("rec.energy"), energy, t("rec.energyHint")),
       ],
       body: () => {
-        const name = /** @type {HTMLInputElement} */ (title).value.trim();
-        if (!name) return { error: t("rec.errFood"), remedy: t("rec.fixFood") };
+        const name = title.get();
+        if (!name.nl || !name.en) return { error: t(name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("rec.fixFood") };
+        // Text and gear are optional, but one given in one language only is half of it.
+        for (const [part, label] of /** @type {const} */ ([[text, "rec.whatToDo"], [gear, "rec.gear"]])) {
+          const got = part.get();
+          if ((got.nl || got.en) && (!got.nl || !got.en)) return { error: t("rec.halfText", t(label)), remedy: t("rec.fixFood") };
+        }
         return {
           title: name,
-          text: /** @type {HTMLTextAreaElement} */ (text).value.trim(),
+          text: text.get(),
           minutes: getQuantity(minutes),
-          gear: /** @type {HTMLInputElement} */ (gear).value.trim(),
+          gear: gear.get(),
           energy: getSegmentedValues(energy)[0] ?? "open",
         };
       },
-      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.title),
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", textOf(b.title)),
     });
     return;
   }
@@ -351,9 +377,9 @@ export function openRecordEditor(list, item, preset = {}) {
     return;
   }
   if (list === "log") {
-    const shelf = [...(k?.shelf ?? [])].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+    const shelf = [...(k?.shelf ?? [])].sort((a, b) => textOf(a.title).localeCompare(textOf(b.title)));
     const what = select(
-      [...dishOptions().map(([id, n]) => /** @type {[string, string]} */ ([`d:${id}`, t("rec.optDish", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", s.title)]))],
+      [...dishOptions().map(([id, n]) => /** @type {[string, string]} */ ([`d:${id}`, t("rec.optDish", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", textOf(s.title))]))],
       v.shelf_id ? `s:${v.shelf_id}` : v.dish_id ? `d:${v.dish_id}` : "",
       t("rec.whatEaten"),
     );
@@ -465,7 +491,7 @@ export function unmarkSafe(r) {
 /** Log a shelf food as eaten today (Kenny, 24/10/2026 05:07), with Undo. Resolves to the sentence that says so. @param {Item} s */
 export async function ateShelf(s) {
   const line = await create("log", { dish_id: null, shelf_id: s.id, date: today(), feeling: null, note: "" });
-  undoToast(t("rec.loggedToday", s.title), {
+  undoToast(t("rec.loggedToday", textOf(s.title)), {
     mode: "revert",
     ms: 10_000,
     clock: "ring",
@@ -477,7 +503,7 @@ export async function ateShelf(s) {
       }
     },
   });
-  return t("rec.loggedReadout", s.title, dmy(today()));
+  return t("rec.loggedReadout", textOf(s.title), dmy(today()));
 }
 
 // ---- delete --------------------------------------------------------------------------------------------------------
@@ -487,7 +513,7 @@ function loses(list, item) {
   const k = kitchenNow();
   switch (list) {
     case "freezer":
-      return [t("rec.losesFreezer", item.dish, item.portions)];
+      return [t("rec.losesFreezer", textOf(item.dish), item.portions)];
     case "shelf":
       return [t("rec.losesShelf", (k?.log ?? []).filter((e) => e.shelf_id === item.id).length)];
     default:

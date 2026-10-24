@@ -9,7 +9,14 @@ carries a **Migration** section saying what an operator must do.
 ### Changed
 - Every name needs its Dutch and English half: dishes, categories,
   ingredients and ingredient categories (the server refuses a half name);
-  adding an ingredient inline asks both. Older items show a badge.
+  adding an ingredient inline asks both. Older items show a badge. Shelf
+  foods and freezer items keep their texts in both languages too.
+
+### Migration
+- None by hand: the first start rewrites `kitchen.json` to format 5 (a
+  shelf food's texts and a freezer item's name go into both language
+  halves). Kitchen 3.0.0 refuses a format-5 file: going back needs the
+  backup taken before the update.
 
 ## [3.0.0] - 2026-10-24
 

@@ -424,4 +424,12 @@ export const NL = {
   "de.sideLabelFix": "Geef het beide namen, of laat beide leeg zodat het als zijn ingrediënten leest.",
   "rec.missingEn": "Ontbrekende Engelse naam",
   "rec.missingNl": "Ontbrekende Nederlandse naam",
+  // bad days: the freezer's name in both languages (10:04)
+  "bad.dishNl": "Gerecht (Nederlands)",
+  "bad.dishEn": "Gerecht (Engels)",
+  "bad.dishEnHint": "Hetzelfde in het Engels.",
+  // both languages in the shelf and freezer editors (10:04)
+  "rec.inNl": (x) => `${x} (Nederlands)`,
+  "rec.inEn": (x) => `${x} (Engels)`,
+  "rec.halfText": (x) => `${x} is maar in één taal ingevuld.`,
 };

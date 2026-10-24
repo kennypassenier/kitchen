@@ -24,8 +24,10 @@ use tokio::sync::RwLock;
 /// ingredients, a recipe line points at an ingredient. [`migrate`] lifts
 /// older files. Format 4 (Kenny, 24/10/2026 09:17, 09:18, 09:27): recipes
 /// live inside their dish (`dish.recipes`, one the default), and the log,
-/// the freezer and resting point at dishes (`dish_id`).
-pub const FORMAT: u32 = 4;
+/// the freezer and resting point at dishes (`dish_id`). Format 5 (10:04):
+/// a shelf food's title, text and gear and a freezer item's name are
+/// `{nl, en}` like every other name.
+pub const FORMAT: u32 = 5;
 
 /// The collections a page may read and write. Settings is a single object
 /// and has its own routes.
@@ -323,9 +325,10 @@ fn write(path: &Path, data: &Data) -> Result<(), String> {
 }
 
 /// Every name in Kitchen has its Dutch and its English half (Kenny,
-/// 24/10/2026 10:04): a dish, a dish category, an ingredient and an
-/// ingredient category need both, and a side's or a recipe's own label,
-/// when it has one, needs both too. Items stored before that rule keep
+/// 24/10/2026 10:04): a dish, a dish category, an ingredient, an
+/// ingredient category, a shelf food's title and a freezer item's name
+/// need both, and a side's or a recipe's own label and a shelf food's text
+/// and gear, when given, need both too. Items stored before that rule keep
 /// what they have until they are saved again.
 fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
     let filled = |v: Option<&Value>, lang: &str| {
@@ -348,6 +351,14 @@ fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
         }
         Ok(())
     };
+    if coll == "shelf" {
+        whole(obj.get("title"), "title")?;
+        label(obj.get("text"), "text")?;
+        return label(obj.get("gear"), "gear");
+    }
+    if coll == "freezer" {
+        return whole(obj.get("dish"), "dish");
+    }
     if !matches!(
         coll,
         "dishes" | "dish_categories" | "ingredients" | "ingredient_categories"
@@ -378,6 +389,31 @@ fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
     Ok(())
 }
 
+/// Format 4 to 5 (Kenny, 24/10/2026 10:04): a shelf food's `title`,
+/// `text` and `gear` and a freezer item's `dish` become `{nl, en}`, the
+/// text they had in both halves, so nothing is lost; Kenny translates them
+/// from the pages.
+fn to_5(data: &mut Data) {
+    let both = |v: &mut Value| {
+        if let Some(text) = v.as_str().map(str::to_string) {
+            *v = serde_json::json!({ "nl": text, "en": text });
+        }
+    };
+    for s in &mut data.shelf {
+        for k in ["title", "text", "gear"] {
+            if let Some(v) = s.get_mut(k) {
+                both(v);
+            }
+        }
+    }
+    for f in &mut data.freezer {
+        if let Some(v) = f.get_mut("dish") {
+            both(v);
+        }
+    }
+    data.format = 5;
+}
+
 /// Lift an older file to [`FORMAT`], one format at a time.
 pub fn migrate(data: &mut Data) {
     if data.format < 2 {
@@ -388,6 +424,9 @@ pub fn migrate(data: &mut Data) {
     }
     if data.format < 4 {
         to_4(data);
+    }
+    if data.format < 5 {
+        to_5(data);
     }
     data.format = FORMAT;
 }
@@ -690,13 +729,13 @@ mod tests {
     async fn create_replace_delete_round_trip() {
         let s = Store::in_memory(empty());
         let made = s
-            .create("shelf", serde_json::json!({"name": "Stoemp"}))
+            .create("log", serde_json::json!({"name": "Stoemp"}))
             .await
             .unwrap();
         let id = made["id"].as_str().unwrap().to_string();
         let changed = s
             .replace(
-                "shelf",
+                "log",
                 &id,
                 serde_json::json!({"name": "Stoemp with sausage"}),
             )
@@ -704,8 +743,8 @@ mod tests {
             .unwrap();
         assert_eq!(changed["created"], made["created"]);
         assert_eq!(changed["name"], "Stoemp with sausage");
-        s.delete("shelf", &id).await.unwrap();
-        assert_eq!(s.delete("shelf", &id).await, Err(Refused::NotFound));
+        s.delete("log", &id).await.unwrap();
+        assert_eq!(s.delete("log", &id).await, Err(Refused::NotFound));
         assert!(matches!(
             s.list("cupboard").await,
             Err(Refused::UnknownCollection(_))
@@ -718,7 +757,7 @@ mod tests {
         let p = s
             .create(
                 "freezer",
-                serde_json::json!({"dish": "Soup", "portions": 1}),
+                serde_json::json!({"dish": {"nl": "Soep", "en": "Soup"}, "portions": 1}),
             )
             .await
             .unwrap();
@@ -779,6 +818,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn format_4_shelf_and_freezer_text_goes_into_both_halves() {
+        let mut d: Data = serde_json::from_value(serde_json::json!({
+            "format": 4,
+            "shelf": [{"id": "s1", "title": "Toast", "text": "Toast it.", "gear": "toaster", "minutes": 3}],
+            "freezer": [{"id": "f1", "dish": "Soup", "portions": 2}]
+        }))
+        .unwrap();
+        migrate(&mut d);
+        assert_eq!(d.format, FORMAT);
+        assert_eq!(
+            d.shelf[0]["title"],
+            serde_json::json!({"nl": "Toast", "en": "Toast"})
+        );
+        assert_eq!(
+            d.shelf[0]["gear"],
+            serde_json::json!({"nl": "toaster", "en": "toaster"})
+        );
+        assert_eq!(d.shelf[0]["minutes"], 3);
+        assert_eq!(
+            d.freezer[0]["dish"],
+            serde_json::json!({"nl": "Soup", "en": "Soup"})
+        );
+    }
+
     #[tokio::test]
     async fn a_name_needs_both_halves() {
         let s = Store::in_memory(empty());
@@ -807,10 +871,28 @@ mod tests {
         );
         let no_label = serde_json::json!({"name": {"nl": "Stoofvlees", "en": "Beef stew"}, "sides": [{"ingredients": []}], "recipes": [{"label": {"nl": "", "en": ""}}]});
         assert!(s.create("dishes", no_label).await.is_ok());
+        let untitled = serde_json::json!({"title": "Toast"});
+        assert_eq!(
+            s.create("shelf", untitled).await,
+            Err(Refused::MissingName("title.nl".into()))
+        );
+        let half_text = serde_json::json!({"title": {"nl": "Toast", "en": "Toast"}, "text": {"nl": "Rooster", "en": ""}});
+        assert_eq!(
+            s.create("shelf", half_text).await,
+            Err(Refused::MissingName("text.en".into()))
+        );
         assert!(
-            s.create("shelf", serde_json::json!({"title": "Toast"}))
-                .await
-                .is_ok()
+            s.create(
+                "shelf",
+                serde_json::json!({"title": {"nl": "Toast", "en": "Toast"}})
+            )
+            .await
+            .is_ok()
+        );
+        let soup = serde_json::json!({"dish": {"nl": "Soep", "en": ""}});
+        assert_eq!(
+            s.create("freezer", soup).await,
+            Err(Refused::MissingName("dish.en".into()))
         );
     }
 

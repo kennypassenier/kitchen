@@ -114,7 +114,9 @@ side of one ingredient and one with `choice` off into a fixed ingredient;
 format 4 moves each recipe into its dish's `recipes` (the dish that linked
 it, else the one with its name, else a new dish with its name; the first in
 a dish is the default), adds `dish_id` to the log and turns `recipe_id`
-into `dish_id` in the freezer and resting.
+into `dish_id` in the freezer and resting; format 5 puts a shelf food's
+title, text and gear and a freezer item's name into `{nl, en}`, the old text
+in both halves.
 
 ## dish_categories
 
@@ -142,15 +144,18 @@ every dish, recipe or ingredient that uses it.
 
 ## freezer
 
-`{dish, dish_id: string | null, portions: number, frozen_on: ISO datetime}`:
-`dish` as written, `dish_id` the dish it is when it is one of Kenny's (the
-wheel counts its portions for that dish; format 4).
+`{dish: {nl, en}, dish_id: string | null, portions: number, frozen_on: ISO datetime}`:
+`dish` its name in both languages (format 5; it was one string), `dish_id`
+the dish it is when it is one of Kenny's (the wheel counts its portions
+for that dish; format 4).
 `POST /data/freezer/{id}/take` with `{"portions": 1}` takes one out (Undo
 sends `-1`); an item at zero portions stays until a page deletes it.
 
 ## shelf (zero-prep shelf)
 
-`{title, text, minutes, gear, energy: "open" | "easy" | "any"}`: `open` is
+`{title: {nl, en}, text: {nl, en}, minutes, gear: {nl, en}, energy: "open" | "easy" | "any"}`
+(format 5: the texts in both languages; the title needs both, text and gear
+both or neither): `open` is
 "Just open it", `easy` "One easy step", `any` "Anything here".
 
 ## log (what was cooked)

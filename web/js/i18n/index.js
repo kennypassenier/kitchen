@@ -96,4 +96,16 @@ export function nameOf(item) {
   return theirs ? { text: theirs, other: o } : { text: t("common.noName"), other: null };
 }
 
+/**
+ * A text kept in both languages (`{nl, en}`, Kenny 24/10/2026 10:04) in the language shown, else its other half; a
+ * plain string, from before, as it is.
+ * @param {unknown} v
+ * @returns {string}
+ */
+export function textOf(v) {
+  if (typeof v === "string") return v;
+  const o = /** @type {Record<string, unknown> | null} */ (v && typeof v === "object" ? v : null);
+  return String(o?.[current] || o?.[current === "nl" ? "en" : "nl"] || "").trim();
+}
+
 applyKp(current);

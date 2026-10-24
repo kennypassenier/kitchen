@@ -17,7 +17,7 @@ import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
 import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
-import { t } from "../i18n/index.js";
+import { t, textOf } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -126,7 +126,7 @@ function facts(list, item, k) {
       const at = Date.parse(item.frozen_on);
       const days = Math.floor((Date.now() - at) / 86_400_000);
       return [
-        [t("rec.dish"), String(item.dish)],
+        [t("rec.dish"), textOf(item.dish)],
         [t("rec.dishLink"), item.dish_id ? dishLink(item.dish_id) : t("rec.noDish")],
         [t("it.portionsLeft"), String(item.portions)],
         [t("rec.frozenOn"), dmy(brusselsDay(item.frozen_on))],
@@ -137,10 +137,10 @@ function facts(list, item, k) {
     case "shelf": {
       const eaten = k.log.filter((e) => e.shelf_id === item.id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
       return [
-        [t("rec.name"), String(item.title)],
-        [t("rec.whatToDo"), item.text || "–"],
+        [t("rec.name"), textOf(item.title)],
+        [t("rec.whatToDo"), textOf(item.text) || "–"],
         [t("rec.minutes"), String(item.minutes ?? 0)],
-        [t("rec.gear"), item.gear || "–"],
+        [t("rec.gear"), textOf(item.gear) || "–"],
         [t("rec.energy"), energies()[item.energy] ?? "–"],
         [t("it.eaten"), linkList(eaten.map((e) => itemLink("log", e, dmy(e.date))), t("it.notLogged"))],
         ...stamps(item),
