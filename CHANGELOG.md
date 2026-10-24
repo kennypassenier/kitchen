@@ -13,9 +13,15 @@ carries a **Migration** section saying what an operator must do.
   freezer and resting point at dishes (`dish_id`).
 - "What do we eat?" picks from the dishes, with a category filter and the
   small wheel for a dish's sides; "Yes, cook this" opens cook mode.
+- The parents' page starts with the wheel card (no page header).
+- Loading, empty and failed wheel cards take the room their plate needs,
+  not the wheels' (the empty card on eten.kp-soft.dev was 1131 px high).
 
 ### Added
 - The freezer form takes the dish an item is, so the wheel counts it.
+
+### Fixed
+- An ingredient's own page did not load (2.0.0).
 
 ### Migration
 - None by hand: the first start rewrites `kitchen.json` to format 4 (each
