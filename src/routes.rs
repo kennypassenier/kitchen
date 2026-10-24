@@ -50,7 +50,9 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 Refused::NotFound | Refused::UnknownCollection(_) => StatusCode::NOT_FOUND,
                 Refused::NoPortionsLeft => StatusCode::CONFLICT,
                 Refused::Disk(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                Refused::NotAnObject | Refused::IdMismatch => StatusCode::BAD_REQUEST,
+                Refused::NotAnObject | Refused::IdMismatch | Refused::MissingName(_) => {
+                    StatusCode::BAD_REQUEST
+                }
             };
             (code, Json(json!({ "error": e.to_string() }))).into_response()
         }

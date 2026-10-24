@@ -8,7 +8,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName } from "../api.js";
 import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { names, label, languages, ordered } from "../dishes/editor.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, sideName } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, sideName, missingBadge } from "../records.js";
 import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -97,8 +97,8 @@ export function mount(root) {
         return h(
           "tr",
           { "data-kp-row-key": d.id },
-          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dishes", d, n.nl) : "–"),
-          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dishes", d, n.en) : "–"),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dishes", d, n.nl) : missingBadge("dishes", d) ?? "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dishes", d, n.en) : missingBadge("dishes", d) ?? "–"),
           h("td", { "data-label": t("rec.category") }, cat ? itemLink("dish_categories", cat) : "–"),
           h("td", { "data-label": t("dl.wheel") }, wheel),
           h("td", { "data-label": t("it.sides") }, said || t("it.noSides")),
@@ -114,8 +114,8 @@ export function mount(root) {
           "tr",
           { "data-kp-row-key": c.id },
           h("td", { "data-label": t("it.position"), class: "kp-numeric" }, String(i + 1)),
-          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dish_categories", c, n.nl) : "–"),
-          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dish_categories", c, n.en) : "–"),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dish_categories", c, n.nl) : missingBadge("dish_categories", c) ?? "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dish_categories", c, n.en) : missingBadge("dish_categories", c) ?? "–"),
           h("td", { "data-label": t("ig.usedBy"), class: "kp-numeric", "data-kp-sort-value": String(used) }, t("dl.used", used)),
           h("td", { "data-label": t("lg.actions") }, rowActions("dish_categories", c)),
         );

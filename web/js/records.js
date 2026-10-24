@@ -125,6 +125,20 @@ export function sideName(side) {
 /** Does a dish have the ingredient, fixed or in one of its sides? @param {Item} d @param {string} id */
 export const dishHas = (d, id) => (d.ingredients ?? []).includes(id) || (d.sides ?? []).some((/** @type {Item} */ s) => (s.ingredients ?? []).includes(id));
 
+/**
+ * For an item stored before every name needed both halves (Kenny, 24/10/2026 10:04): a badge that says which half is
+ * missing and opens its editor; null when both are there.
+ * @param {List} list @param {Item} item
+ */
+export function missingBadge(list, item) {
+  const nl = String(item?.name?.nl ?? "").trim();
+  const en = String(item?.name?.en ?? "").trim();
+  if (nl && en) return null;
+  const b = h("button", { type: "button", class: "kp-badge kp-badge--warning it-missing", title: t("rec.fixName") }, t(nl ? "rec.missingEn" : "rec.missingNl"));
+  b.addEventListener("click", () => openRecordEditor(list, item));
+  return b;
+}
+
 /** A link to an item's own page. @param {List} list @param {Item} item @param {string} [text] */
 export const itemLink = (list, item, text) => h("a", { href: detailHref(list, item.id) }, text ?? LISTS[list].name(item));
 
@@ -243,7 +257,7 @@ export function openRecordEditor(list, item, preset = {}) {
       ],
       body: () => {
         const name = { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() };
-        if (!name.nl && !name.en) return { error: t("rec.errIng"), remedy: t("rec.fixName") };
+        if (!name.nl || !name.en) return { error: t(name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("rec.fixName") };
         return { name, category: cat.value || null };
       },
       saved: (b) => t(item ? "rec.savedName" : "rec.addedName", nameOf(b).text),

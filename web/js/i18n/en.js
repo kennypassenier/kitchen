@@ -152,7 +152,7 @@ export const EN = {
   "rec.englishHint": "What Kitchen says.",
   "rec.ingCatHint": "Meat, potatoes, vegetables, …",
   "rec.errIng": "An ingredient needs a name.",
-  "rec.fixName": "Type its Dutch name, its English name or both.",
+  "rec.fixName": "Type both its Dutch and its English name.",
   "rec.phIngNl": "Frieten",
   "rec.phIngEn": "Fries",
   // records.js: per list (noun, add, save, delete, what a delete loses, in use)
@@ -417,4 +417,13 @@ export const EN = {
   "it.recipeLoses": "The recipe, its steps and photos. The dish stays.",
   // wheel: a dish's other recipes
   "wheel.otherRecipes": "Other recipes:",
+  // the picker asks both names (10:04)
+  "ip.newAsk": "A new ingredient: its Dutch and English name and its category.",
+  "ip.needNl": "The Dutch name is missing.",
+  "ip.needEn": "The English name is missing.",
+  // both names (10:04)
+  "de.sideLabelHalf": (n) => `Side ${n} has its own name in one language only.`,
+  "de.sideLabelFix": "Give it both names, or leave both empty to read as its ingredients.",
+  "rec.missingEn": "Missing English name",
+  "rec.missingNl": "Missing Dutch name",
 };

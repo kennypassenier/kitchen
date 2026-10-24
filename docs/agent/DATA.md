@@ -84,9 +84,12 @@ orphan file; nothing sweeps them.
 ## dishes
 
 What lands on a plate, for the parents' wheel (`/dishes` keeps them;
-`src/parents.rs` makes the wheel). Every name is `{nl, en}`; an empty half
-only drops it from that language's wheel, which goes for a dish, a side and
-a category alike. At least one half is filled.
+`src/parents.rs` makes the wheel). Every name is `{nl, en}` with both halves
+filled (Kenny, 24/10/2026 10:04): the server refuses a dish, a dish
+category, an ingredient or an ingredient category with an empty half (400,
+"name.en is empty"), and a side's or recipe's own `label` that has one half
+only. A half missing in an item stored before that rule only drops it from
+that language's wheel, and the pages mark it.
 
 | Field | Type | Meaning |
 |---|---|---|

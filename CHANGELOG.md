@@ -6,6 +6,11 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Changed
+- Every name needs its Dutch and English half: dishes, categories,
+  ingredients and ingredient categories (the server refuses a half name);
+  adding an ingredient inline asks both. Older items show a badge.
+
 ## [3.0.0] - 2026-10-24
 
 ### Changed

@@ -16,7 +16,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, make
 import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
-import { LISTS, DETAIL_BASE, itemLink, openRecordEditor, openRecipeEditor, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
+import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
@@ -402,7 +402,7 @@ export function mount(root, { params, navigate }) {
       return;
     }
     const name = meta.name(item);
-    title.textContent = name;
+    title.replaceChildren(name, ...(["dishes", "dish_categories", "ingredients", "ingredient_categories"].includes(list) ? [" ", missingBadge(list, item) ?? ""] : []));
     document.title = `${name} · Kitchen`;
     kv.replaceChildren(...facts(list, item, k).map(([key, value]) => h("div", { class: "kp-kv__row" }, h("dt", null, key), h("dd", null, value))));
     setActions(true);

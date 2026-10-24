@@ -158,7 +158,12 @@ export async function create(list, body) {
       const list = Array.isArray(at.recipes) ? at.recipes : [];
       const label = { nl: "", en: "" };
       const typed = String(body.name ?? "").trim();
-      if (typed && typed !== nameOf(at).text) label[lang()] = typed;
+      // A label needs both halves (Kenny, 24/10/2026 10:04): the editor has one name field, so the typed label fills
+      // the other half too while that is empty ("Oven" reads the same in both); the dish's page can change it.
+      if (typed && typed !== nameOf(at).text) {
+        label[lang()] = typed;
+        label[lang() === "nl" ? "en" : "nl"] ||= typed;
+      }
       await replace("dishes", { ...at, recipes: [...list, { ...recipeBody(body), id, label, default: list.length === 0 }] });
     } else {
       await create("dishes", { name: named(null, body.name), category: null, parents: false, ingredients: [], sides: [], recipes: [{ ...recipeBody(body), id, label: { nl: "", en: "" }, default: true }] });
@@ -183,7 +188,10 @@ export async function replace(list, item) {
     const typed = String(item.name ?? "").trim();
     const renamed = typed && typed !== was?.name;
     const label = { ...(old.label ?? { nl: "", en: "" }) };
-    if (renamed && list.length > 1) label[lang()] = typed;
+    if (renamed && list.length > 1) {
+      label[lang()] = typed;
+      label[lang() === "nl" ? "en" : "nl"] ||= typed;
+    }
     const recipes = list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r));
     await replace("dishes", { ...dish, name: renamed && list.length === 1 ? named(dish, typed) : dish.name, recipes });
     return copy?.recipes.find((r) => r.id === item.id) ?? item;

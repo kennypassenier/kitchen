@@ -150,7 +150,7 @@ export const NL = {
   "rec.englishHint": "Wat Kitchen in het Engels zegt.",
   "rec.ingCatHint": "Vlees, aardappelen, groenten, …",
   "rec.errIng": "Een ingrediënt heeft een naam nodig.",
-  "rec.fixName": "Typ de Nederlandse naam, de Engelse naam of allebei.",
+  "rec.fixName": "Typ zowel de Nederlandse als de Engelse naam.",
   "rec.phIngNl": "Frieten",
   "rec.phIngEn": "Fries",
   // records.js: per list (noun, add, save, delete, what a delete loses, in use)
@@ -415,4 +415,13 @@ export const NL = {
   "it.recipeLoses": "Het recept, zijn stappen en foto's. Het gerecht blijft.",
   // wheel: a dish's other recipes
   "wheel.otherRecipes": "Andere recepten:",
+  // the picker asks both names (10:04)
+  "ip.newAsk": "Een nieuw ingrediënt: zijn Nederlandse en Engelse naam en zijn categorie.",
+  "ip.needNl": "De Nederlandse naam ontbreekt.",
+  "ip.needEn": "De Engelse naam ontbreekt.",
+  // both names (10:04)
+  "de.sideLabelHalf": (n) => `Bijgerecht ${n} heeft maar in één taal een eigen naam.`,
+  "de.sideLabelFix": "Geef het beide namen, of laat beide leeg zodat het als zijn ingrediënten leest.",
+  "rec.missingEn": "Ontbrekende Engelse naam",
+  "rec.missingNl": "Ontbrekende Nederlandse naam",
 };

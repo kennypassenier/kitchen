@@ -100,6 +100,8 @@ pub enum Refused {
     NotFound,
     IdMismatch,
     NoPortionsLeft,
+    /// A name that must be in both languages misses one (the field, as `name.en`).
+    MissingName(String),
     Disk(String),
 }
 
@@ -117,6 +119,10 @@ impl std::fmt::Display for Refused {
                 write!(f, "the id in the body differs from the id in the address")
             }
             Refused::NoPortionsLeft => write!(f, "there are no portions of that dish left"),
+            Refused::MissingName(field) => write!(
+                f,
+                "{field} is empty: every name needs its Dutch and its English half"
+            ),
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }
@@ -186,6 +192,7 @@ impl Store {
         let Value::Object(mut obj) = body else {
             return Err(Refused::NotAnObject);
         };
+        both_names(coll, &obj)?;
         obj.insert("id".into(), Value::String(uuid::Uuid::new_v4().to_string()));
         obj.insert(
             "created".into(),
@@ -207,6 +214,7 @@ impl Store {
         let Value::Object(mut obj) = body else {
             return Err(Refused::NotAnObject);
         };
+        both_names(coll, &obj)?;
         if let Some(given) = obj.get("id")
             && given.as_str() != Some(id)
         {
@@ -312,6 +320,62 @@ impl Store {
 fn write(path: &Path, data: &Data) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(data).map_err(|e| e.to_string())?;
     chassis::shell::store::write_atomic(path, &bytes, "the kitchen file").map_err(|e| e.to_string())
+}
+
+/// Every name in Kitchen has its Dutch and its English half (Kenny,
+/// 24/10/2026 10:04): a dish, a dish category, an ingredient and an
+/// ingredient category need both, and a side's or a recipe's own label,
+/// when it has one, needs both too. Items stored before that rule keep
+/// what they have until they are saved again.
+fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
+    let filled = |v: Option<&Value>, lang: &str| {
+        v.and_then(|n| n.get(lang))
+            .and_then(Value::as_str)
+            .is_some_and(|s| !s.trim().is_empty())
+    };
+    let whole = |v: Option<&Value>, at: &str| -> Result<(), Refused> {
+        for lang in ["nl", "en"] {
+            if !filled(v, lang) {
+                return Err(Refused::MissingName(format!("{at}.{lang}")));
+            }
+        }
+        Ok(())
+    };
+    // A label is optional, but a label given in one language only is half a name.
+    let label = |v: Option<&Value>, at: &str| -> Result<(), Refused> {
+        if filled(v, "nl") || filled(v, "en") {
+            whole(v, at)?;
+        }
+        Ok(())
+    };
+    if !matches!(
+        coll,
+        "dishes" | "dish_categories" | "ingredients" | "ingredient_categories"
+    ) {
+        return Ok(());
+    }
+    whole(obj.get("name"), "name")?;
+    if coll == "dishes" {
+        for (i, s) in obj
+            .get("sides")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            label(s.get("label"), &format!("sides[{i}].label"))?;
+        }
+        for (i, r) in obj
+            .get("recipes")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
+            label(r.get("label"), &format!("recipes[{i}].label"))?;
+        }
+    }
+    Ok(())
 }
 
 /// Lift an older file to [`FORMAT`], one format at a time.
@@ -626,13 +690,13 @@ mod tests {
     async fn create_replace_delete_round_trip() {
         let s = Store::in_memory(empty());
         let made = s
-            .create("dishes", serde_json::json!({"name": "Stoemp"}))
+            .create("shelf", serde_json::json!({"name": "Stoemp"}))
             .await
             .unwrap();
         let id = made["id"].as_str().unwrap().to_string();
         let changed = s
             .replace(
-                "dishes",
+                "shelf",
                 &id,
                 serde_json::json!({"name": "Stoemp with sausage"}),
             )
@@ -640,8 +704,8 @@ mod tests {
             .unwrap();
         assert_eq!(changed["created"], made["created"]);
         assert_eq!(changed["name"], "Stoemp with sausage");
-        s.delete("dishes", &id).await.unwrap();
-        assert_eq!(s.delete("dishes", &id).await, Err(Refused::NotFound));
+        s.delete("shelf", &id).await.unwrap();
+        assert_eq!(s.delete("shelf", &id).await, Err(Refused::NotFound));
         assert!(matches!(
             s.list("cupboard").await,
             Err(Refused::UnknownCollection(_))
@@ -712,6 +776,41 @@ mod tests {
                 .unwrap()
                 .get("dish_parts")
                 .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_name_needs_both_halves() {
+        let s = Store::in_memory(empty());
+        let half = serde_json::json!({"name": {"nl": "Frieten", "en": ""}});
+        assert_eq!(
+            s.create("ingredients", half).await,
+            Err(Refused::MissingName("name.en".into()))
+        );
+        let ok = s
+            .create(
+                "ingredients",
+                serde_json::json!({"name": {"nl": "Frieten", "en": "Fries"}}),
+            )
+            .await
+            .unwrap();
+        let id = ok["id"].as_str().unwrap();
+        let blank = serde_json::json!({"name": {"nl": " ", "en": "Fries"}});
+        assert_eq!(
+            s.replace("ingredients", id, blank).await,
+            Err(Refused::MissingName("name.nl".into()))
+        );
+        let side = serde_json::json!({"name": {"nl": "Stoofvlees", "en": "Beef stew"}, "sides": [{"ingredients": [], "label": {"nl": "Kroketten", "en": ""}}]});
+        assert_eq!(
+            s.create("dishes", side).await,
+            Err(Refused::MissingName("sides[0].label.en".into()))
+        );
+        let no_label = serde_json::json!({"name": {"nl": "Stoofvlees", "en": "Beef stew"}, "sides": [{"ingredients": []}], "recipes": [{"label": {"nl": "", "en": ""}}]});
+        assert!(s.create("dishes", no_label).await.is_ok());
+        assert!(
+            s.create("shelf", serde_json::json!({"title": "Toast"}))
+                .await
+                .is_ok()
         );
     }
 

@@ -6,7 +6,7 @@
 //
 // One ingredient (a recipe line) is a plain combobox; several (a dish's fixed ingredients, one side) the package's tag
 // input, where an ingredient stands once (Kenny, 24/10/2026 05:27: unique within one side, free across sides).
-// A new ingredient gets the typed name in the language Kitchen is shown in; its page adds the other half.
+// A new ingredient gets both names here (the typed text fills the language Kitchen is shown in).
 
 import { attachComboboxes, attachSelects, combobox } from "/static/kp/js/combobox.js";
 import { toast } from "/static/kp/js/overlays.js";
@@ -56,12 +56,23 @@ function build(values, { label, multi }) {
   const tags = multi ? h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }) : null;
   const box = h("div", { class: "kp-combobox ip-picker__box", "data-kp-combobox": true, "data-kp-match": "substring", ...(multi ? { "data-kp-tags": true, "data-kp-stay-open": "false" } : {}) }, tags, input, list, status);
 
-  // The inline "new ingredient" step: the typed name, its category, Add and Cancel.
-  const newName = h("strong", { class: "ip-picker__name" });
+  // The inline "new ingredient" step: both names (Kenny, 24/10/2026 10:04: every name in Dutch and English; the typed
+  // text fills the language shown), its category, Add and Cancel, on the form grid.
+  const nlField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", lang: "nl", autocomplete: "off", "aria-label": t("rec.dutchName"), placeholder: "Frieten" }));
+  const enField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", autocomplete: "off", "aria-label": t("rec.englishName"), placeholder: "Fries" }));
   const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": t("ip.catAria") }));
   const add = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("ip.addIt"));
   const cancel = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("common.cancel"));
-  const asks = h("div", { class: "ip-picker__new", hidden: true }, h("p", { class: "ip-picker__ask" }, t("ip.newBefore"), newName, t("ip.newAfter")), cat, h("div", { class: "kp-row-actions" }, add, cancel));
+  const missing = h("p", { class: "ip-picker__ask", role: "status", "aria-live": "polite" });
+  const line = (/** @type {string} */ label, /** @type {HTMLElement} */ control) => h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, label), h("div", { class: "kp-formgrid__control" }, control));
+  const asks = h(
+    "div",
+    { class: "ip-picker__new", hidden: true },
+    h("p", { class: "ip-picker__ask" }, t("ip.newAsk")),
+    h("div", { class: "kp-formgrid kitchen-formgrid" }, line(t("rec.dutchName"), nlField), line(t("rec.englishName"), enField), line(t("rec.category"), cat)),
+    missing,
+    h("div", { class: "kp-row-actions" }, add, cancel),
+  );
   const el = h("div", { class: "ip-picker" }, box, asks);
 
   /** @type {string | null} */
@@ -94,9 +105,11 @@ function build(values, { label, multi }) {
     },
     choose: (option) => {
       if (option.dataset.value !== NEW) return false;
-      newName.textContent = `“${typed()}”`;
+      nlField.value = lang() === "nl" ? typed() : "";
+      enField.value = lang() === "en" ? typed() : "";
+      missing.textContent = "";
       asks.hidden = false;
-      cat.focus();
+      (lang() === "nl" ? enField : nlField).focus();
       return true;
     },
   });
@@ -109,12 +122,17 @@ function build(values, { label, multi }) {
     input.focus();
   });
   add.addEventListener("click", async () => {
-    const text = typed();
-    if (!text) return;
+    const name = { nl: nlField.value.trim(), en: enField.value.trim() };
+    const text = name[lang()] || name.nl || name.en;
+    if (!name.nl || !name.en) {
+      missing.textContent = t(!name.nl ? "ip.needNl" : "ip.needEn");
+      (!name.nl ? nlField : enField).focus();
+      return;
+    }
     add.setAttribute("aria-disabled", "true");
     try {
       const before = multi ? handle?.values() ?? [] : [];
-      const made = await create("ingredients", { name: lang() === "nl" ? { nl: text, en: "" } : { nl: "", en: text }, category: cat.value || null });
+      const made = await create("ingredients", { name, category: cat.value || null });
       chosen = made.id;
       fill();
       handle?.refresh();

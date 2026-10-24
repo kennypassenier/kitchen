@@ -229,10 +229,13 @@ export function openDishEditor(dialog, { dish, categories }) {
         ingredients: fixed.get(),
         sides: sides.get(),
       };
-      if (!body.name.nl && !body.name.en) {
-        /** @type {HTMLInputElement} */ (nl).focus();
-        return { error: t("de.dishNeedsName"), remedy: t("de.dishFixName"), word: t("rec.notSaved") };
+      // Every name in both languages (Kenny, 24/10/2026 10:04); a side's own label too, when it has one.
+      if (!body.name.nl || !body.name.en) {
+        /** @type {HTMLInputElement} */ (body.name.nl ? en : nl).focus();
+        return { error: t(body.name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("de.dishFixName"), word: t("rec.notSaved") };
       }
+      const halfLabel = body.sides.findIndex((/** @type {Item} */ s) => s.label && (!s.label.nl || !s.label.en));
+      if (halfLabel >= 0) return { error: t("de.sideLabelHalf", halfLabel + 1), remedy: t("de.sideLabelFix"), word: t("rec.notSaved") };
       try {
         if (dish) await replace("dishes", body);
         else await create("dishes", body);
@@ -291,9 +294,9 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
         name: { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() },
         order: getQuantity(position),
       };
-      if (!body.name.nl && !body.name.en) {
-        /** @type {HTMLInputElement} */ (nl).focus();
-        return { error: t("de.needsName"), remedy: t("rec.fixName"), word: t("rec.notSaved") };
+      if (!body.name.nl || !body.name.en) {
+        /** @type {HTMLInputElement} */ (body.name.nl ? en : nl).focus();
+        return { error: t(body.name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("rec.fixName"), word: t("rec.notSaved") };
       }
       try {
         const saved = item ? await replace(list, body) : await create(list, body);
