@@ -54,13 +54,19 @@
 
 /* ---- the card: its stage keeps one height in every state ------------------------------------------------------------- */
 .wl-card {
-  --kp-card-stage-min: 27rem;
+  --kp-card-stage-min: 16rem;
   --kp-wheel-size: min(24rem, 100%);
   min-inline-size: 0;
 }
 
 .wl-card--list {
-  --kp-card-stage-min: 21rem;
+  --kp-card-stage-min: 16rem;
+}
+
+/* Loading, empty and failed take the room their plate needs, not the wheel's or the list's (Kenny, 24/10/2026 09:32):
+   the content leaves the layout while the card shows a plate. */
+.wl-card:not([data-kp-state="ready"]) .kp-card__data {
+  display: none;
 }
 
 /* ---- the wheel and its answer ------------------------------------------------------------------------------------------ */
@@ -297,7 +303,7 @@
   }
 
   .wl-card {
-    --kp-card-stage-min: 40rem;
+    --kp-card-stage-min: 16rem;
   }
 
   .wl-card--list {

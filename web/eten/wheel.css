@@ -5,13 +5,20 @@
 .pr-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
 }
 
-/* The stage keeps one height in every state (loading, empty, failed, the wheels), so nothing under it moves. */
+/* Loading, empty and failed take the room their plate needs, not the wheels' (Kenny, 24/10/2026 09:32: the empty
+   card was far too tall): the wheels leave the layout while the card shows a plate, and the stage keeps a modest
+   minimum so the plate is not cramped. The filled card has its natural height. */
 .pr-card {
-  --kp-card-stage-min: 30rem;
+  --kp-card-stage-min: 16rem;
   min-inline-size: 0;
+}
+
+.pr-card:not([data-kp-state="ready"]) .kp-card__data {
+  display: none;
 }
 
 /* The card's data: the category row, the wheels, the dinner sentence, one under the other. */

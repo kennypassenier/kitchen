@@ -246,7 +246,7 @@ function dishRecipes(pageEl) {
  * @param {HTMLElement} pageEl @param {string} id
  */
 function usedBy(pageEl, id) {
-  const t = tableCard({
+  const table = tableCard({
     id: "it-used",
     title: t("it.usedTitle"),
     lede: t("it.usedLede"),
@@ -257,7 +257,7 @@ function usedBy(pageEl, id) {
     emptyTitle: t("it.usedEmpty"),
     emptyText: t("it.usedEmptyText"),
   });
-  t.addButtons.forEach((b) => b.addEventListener("click", () => openRecordEditor("dishes", null)));
+  table.addButtons.forEach((b) => b.addEventListener("click", () => openRecordEditor("dishes", null)));
   const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": t("it.dishCategory") }));
   const flags = h(
     "div",
@@ -267,7 +267,7 @@ function usedBy(pageEl, id) {
     ),
   );
   const filters = h("div", { class: "kp-formgrid kitchen-formgrid it-filters" }, h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("rec.category")), h("div", { class: "kp-formgrid__control" }, cat)), h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("it.showOnly")), h("div", { class: "kp-formgrid__control" }, flags)));
-  t.card.querySelector(".kp-lede")?.after(filters);
+  table.card.querySelector(".kp-lede")?.after(filters);
 
   const wheel = h("div", { class: "kp-wheel", "data-kp-wheel": true, "data-kp-wheel-kiosk": true, "data-kp-wheel-answer": true, "data-kp-wheel-empty": t("it.wheelEmpty"), "aria-label": t("it.wheelLabel") });
   const wheelCard = h(
@@ -277,9 +277,9 @@ function usedBy(pageEl, id) {
     h("p", { class: "kp-card__body" }, t("it.wheelText")),
     wheel,
   );
-  pageEl.append(t.card, wheelCard);
-  const stops = [attachDataTables(t.card), attachSegmented(filters), attachSelects(filters), attachWheels(wheelCard)].filter((f) => typeof f === "function");
-  const handle = dataTable(t.table);
+  pageEl.append(table.card, wheelCard);
+  const stops = [attachDataTables(table.card), attachSegmented(filters), attachSelects(filters), attachWheels(wheelCard)].filter((f) => typeof f === "function");
+  const handle = dataTable(table.table);
   /** @type {Kitchen | null} */
   let kitchen = null;
 
@@ -300,7 +300,7 @@ function usedBy(pageEl, id) {
         recipe: defaultRecipe(d),
       }))
       .filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
-    t.body.replaceChildren(
+    table.body.replaceChildren(
       ...rows.map((x) => {
         const c = k.dish_categories.find((y) => y.id === x.category);
         return h(

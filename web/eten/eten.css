@@ -5,6 +5,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-block-size: 100dvh;
+  align-content: start;
   padding: var(--kp-space-xl, 2rem) var(--kp-space-lg, 1.5rem);
   box-sizing: border-box;
 }
