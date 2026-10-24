@@ -1,5 +1,6 @@
 // The wheel, "What do we eat?" (route "/"): the kitchen's dishes on one wheel, the answer with when to start, the
-// three-way filters, "No energy today" and the dishes that fit. Everything drawn is the package's: js/wheel.js,
+// three-way filters, "No energy today" and the dishes that fit. Everything drawn is the package's: the one wheel component (web/eten/dishwheel.js, Kenny, 24/10/2026 10:27: the same
+// wheel everywhere; this page gives it the dishes and fills its answer column) over js/wheel.js,
 // js/segmented.js (three-way chips), js/toggle.js, js/card-state.js (loading, empty and failed states), js/art.js,
 // js/reason.js, js/calm.js, the kp-switch and the form grid. Data comes from api.js only.
 //
@@ -8,7 +9,7 @@
 
 import { loadKitchen, kitchenNow, onKitchen, create, remove, daysSinceCooked, defaultRecipe, recipeLabel } from "../api.js";
 import { h } from "../dom.js";
-import { attachWheels, setWheelItems, spinWheel, WHEEL_RESULT_EVENT, WHEEL_SPIN_EVENT } from "/static/kp/js/wheel.js";
+import { mountDishWheel } from "/eten/dishwheel.js";
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
 import { attachSegmented, SEGMENTED_EVENT, getSegmentedTri, setSegmentedTri, setSegmentedCounts, setSegmentedItems } from "/static/kp/js/segmented.js";
 import { attachToggles, toggle } from "/static/kp/js/toggle.js";
@@ -245,7 +246,7 @@ export function mount(root, { navigate }) {
   const chips = (/** @type {string} */ id, /** @type {string} */ labelId, /** @type {string} */ items) =>
     `<div class="kp-segmented kp-segmented--chips" data-kp-segmented="tri" data-kp-segmented-summary aria-labelledby="${labelId}" id="${id}">${items}</div>`;
   const card = (/** @type {string} */ id, /** @type {string} */ title, /** @type {string} */ badge, /** @type {string} */ body, /** @type {string} */ extra = "") => `
-    <section class="kp-card wl-card ${extra}" id="${id}" data-kp-state="${status === "ready" ? "ready" : "loading"}" aria-labelledby="${id}-t" data-kp-loading-words="${loadingWords()}">
+    <section class="kp-card wl-card dw-card ${extra}" id="${id}" data-kp-state="${status === "ready" ? "ready" : "loading"}" aria-labelledby="${id}-t" data-kp-loading-words="${loadingWords()}">
       <div class="kp-card__header">
         <h3 class="kp-card__title" id="${id}-t">${title}</h3>
         <div class="kp-card__actions"><span class="kp-badge" ${badge}></span></div>
@@ -391,8 +392,8 @@ export function mount(root, { navigate }) {
     let items = [];
     /** @type {Record<string, HTMLElement>} */
     const part = {};
-    /** @type {HTMLElement | null} */
-    let wheel = null;
+    /** @type {ReturnType<typeof mountDishWheel> | null} the one wheel component, kind "wheel" only */
+    let wheels = null;
 
     const say = (/** @type {string} */ text) => {
       if (kind === "wheel") part.live.textContent = text;
@@ -401,15 +402,13 @@ export function mount(root, { navigate }) {
 
     if (kind === "wheel") {
       data.innerHTML = `
-        <div class="wl-screen">
-          <div class="wl-wheelcol">
-            <p class="wl-result__kicker wl-wheelcol__kicker">${t("wheel.tonightsWheel")}</p>
-            <div class="kp-wheel" data-kp-wheel aria-label="${t("wheel.cardTitle")}"></div>
-            <div class="wl-sidewheel" data-wl="sidebox" hidden>
-              <p class="wl-result__kicker wl-wheelcol__kicker" id="wl-side-k">${t("wheel.sideKicker")}</p>
-              <div class="kp-wheel" data-wl="side" data-kp-wheel aria-labelledby="wl-side-k"></div>
-            </div>
-          </div>
+        <div class="wl-screen" data-wl="screen"></div>`;
+      const screen = /** @type {HTMLElement} */ (data.querySelector('[data-wl="screen"]'));
+      wheels = mountDishWheel(screen, {
+        words: { dishKicker: t("wheel.tonightsWheel"), sideKicker: t("wheel.sideKicker"), sideFirst: t("wheel.sideFirst"), nothing: () => "", oneSide: (_d, side) => t("wheel.withSide", side) },
+        onChange: (change) => onWheelChange(change),
+      });
+      /** @type {HTMLElement} */ (wheels.answer).innerHTML = `
           <div class="wl-result" role="group" aria-label="${t("wheel.answerLabel")}">
             <p class="wl-result__kicker" data-wl="kicker"></p>
             <p class="wl-result__name" data-wl="name"></p>
@@ -437,12 +436,9 @@ export function mount(root, { navigate }) {
               <div class="wl-resting__list" data-wl="resting"></div>
             </div>
             <p class="wl-live" role="status" data-wl="live"></p>
-          </div>
-        </div>`;
+          </div>`;
       for (const el of data.querySelectorAll("[data-wl]")) part[/** @type {HTMLElement} */ (el).dataset.wl ?? ""] = /** @type {HTMLElement} */ (el);
-      wheel = /** @type {HTMLElement} */ (data.querySelector(".kp-wheel"));
-      wheel.id = `${cardEl.id}-wheel`;
-      undo.push(attachWheels(cardEl) ?? (() => {}), attachDisabledReasons(cardEl));
+      undo.push(() => wheels?.destroy(), attachDisabledReasons(cardEl));
     } else {
       data.innerHTML = '<ul class="wl-fits" data-wl="list"></ul>';
       part.list = /** @type {HTMLElement} */ (data.querySelector('[data-wl="list"]'));
@@ -476,7 +472,7 @@ export function mount(root, { navigate }) {
       })[/** @type {"equal"} */ (odds())] ?? "";
 
     const paintAnswer = () => {
-      if (!wheel) return;
+      if (!wheels) return;
       const d = chosen ? byId(chosen) : undefined;
       const loaded = status === "ready";
       part.facts.replaceChildren();
@@ -586,54 +582,48 @@ export function mount(root, { navigate }) {
         paintList();
         return;
       }
-      if (status === "ready" && wheel) {
-        const next = list.map((d) => ({ id: d.id, label: d.short, weight: weight(d) }));
+      if (status === "ready" && wheels) {
+        const next = list.map((d) => ({ id: d.id, label: d.short, weight: weight(d), sides: sidesOf(d) }));
         const key = JSON.stringify(next);
         if (key !== shownKey) {
           shownKey = key;
           chosen = null;
-          setWheelItems(wheel, next);
+          wheels.setDishes(next);
         }
       }
       paintAnswer();
     };
 
-    if (wheel) {
-      wheel.addEventListener(WHEEL_SPIN_EVENT, () => {
+    /** The dish's sides by name, each one entry of the small wheel (js/records.js sideName). @param {Dish} d */
+    const sidesOf = (d) => d.sides.map((s) => sideName(s)).filter(Boolean);
+    /**
+     * What the wheels did (the one component's events). The small wheel waits for the big one to stop on a dish with
+     * two or more sides; the component does that, this says it in the answer column.
+     * @param {import("/eten/dishwheel.js").DishChange} change
+     */
+    const onWheelChange = (change) => {
+      if (change.phase === "turning") {
         spinning = true;
         chosen = null;
-        showSides(null);
+        part.sideline.textContent = "";
         paintAnswer();
-      });
-      wheel.addEventListener(WHEEL_RESULT_EVENT, (event) => {
-        spinning = false;
-        chosen = /** @type {CustomEvent} */ (event).detail.item.id;
-        paintAnswer();
-        say(t("wheel.wheelChose", byId(/** @type {string} */ (chosen))?.label));
-        showSides(byId(/** @type {string} */ (chosen)) ?? null);
-      });
-      // The dish's sides on the small wheel, as on the parents' wheel (Kenny, 24/10/2026 09:17): two or more spin, one
-      // is simply named. Each side is one entry, named by its label or its ingredients (js/records.js sideName).
-      const sideWheel = part.side;
-      /** @param {Dish | null} d */
-      const showSides = (d) => {
-        const sides = (d?.sides ?? []).map((s) => sideName(s)).filter(Boolean);
-        part.sidebox.hidden = sides.length < 2;
-        part.sideline.textContent = sides.length === 1 ? t("wheel.withSide", sides[0]) : sides.length > 1 ? t("wheel.sideTurning") : "";
-        if (sides.length < 2) return;
-        setWheelItems(sideWheel, sides.map((s, i) => ({ id: String(i), label: s })));
-        void spinWheel(sideWheel);
-      };
-      sideWheel.addEventListener(WHEEL_RESULT_EVENT, (event) => {
-        const side = /** @type {CustomEvent} */ (event).detail?.item?.label;
-        if (typeof side === "string") part.sideline.textContent = t("wheel.withSide", side);
-      });
+      } else if (change.phase === "dish" || change.phase === "side-turning" || change.phase === "side") {
+        if (change.phase === "dish") {
+          spinning = false;
+          chosen = change.dish?.id ?? null;
+          paintAnswer();
+          say(t("wheel.wheelChose", byId(/** @type {string} */ (chosen))?.label));
+        }
+        part.sideline.textContent = change.side ? t("wheel.withSide", change.side) : change.sides.length > 1 ? t("wheel.sideTurning") : "";
+      }
+    };
+    if (wheels) {
       part.yes.addEventListener("click", () => {
         // The dish's recipe opens in cook mode; a dish without a recipe opens its own page, where the recipe is added.
         const d = chosen ? byId(chosen) : null;
         if (d) navigate(d.cookId ? `/cook?id=${encodeURIComponent(d.cookId)}` : `/dishes/${encodeURIComponent(d.id)}`);
       });
-      part.again.addEventListener("click", () => void spinWheel(/** @type {HTMLElement} */ (wheel)));
+      part.again.addEventListener("click", () => void wheels?.spin());
       part.skip.addEventListener("click", () => void setAside());
     }
 

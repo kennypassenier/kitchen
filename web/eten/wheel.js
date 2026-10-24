@@ -10,10 +10,11 @@
 // The sentence under the wheels says the whole dinner. A tap on the small wheel picks the side again. The
 // categories, when there are two or more, narrow the big wheel.
 //
-// Both wheels are the package's kiosk wheel with its answer card (js/wheel.js); the card's loading, empty and failed
-// states are js/card-state.js. Nothing is stored: the spin is the whole of it.
+// The wheels, their layout and the side wheel's rule are the one wheel component (web/eten/dishwheel.js, Kenny,
+// 24/10/2026 10:27); this module only gives it the dishes and says the dinner in the answer column beside the wheels.
+// The card's loading, empty and failed states are js/card-state.js. Nothing is stored: the spin is the whole of it.
 
-import { attachWheels, setWheelItems, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_EVENT } from "/static/kp/js/wheel.js";
+import { mountDishWheel } from "./dishwheel.js";
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
 import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachArt } from "/static/kp/js/art.js";
@@ -32,6 +33,7 @@ export const WORDS = {
   nl: {
     cardTitle: "Het eten van vanavond",
     cardText: "Tik op een wiel om het te laten kiezen. Een tik op het kleine wiel kiest opnieuw voor hetzelfde gerecht.",
+    answerKicker: "Het avondeten",
     dishKicker: "Het gerecht",
     sideKicker: "Het bijgerecht",
     filterLabel: "Soort eten",
@@ -53,6 +55,7 @@ export const WORDS = {
   en: {
     cardTitle: "Tonight's dinner",
     cardText: "Tap a wheel to let it choose. A tap on the small wheel picks again for the same dish.",
+    answerKicker: "Dinner",
     dishKicker: "The dish",
     sideKicker: "The side",
     filterLabel: "Kind of food",
@@ -77,6 +80,8 @@ export const WORDS = {
 const choices = (d) => (d.sides ?? []).map((s) => s.name);
 /** The small wheel spins only when there is a real choice. @param {Dish} d */
 const spins = (d) => choices(d).length > 1;
+/** The short line about a dish on the wheel. @param {typeof WORDS["nl"]} w @param {Dish} d */
+const tagOf = (w, d) => (spins(d) ? w.tagChoice(choices(d)) : w.tagSame);
 
 /** @param {string} s */
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -95,16 +100,12 @@ export function mountWheel(root, { lang, load, emptyAction }) {
   let status = "loading";
   let failure = "";
   let filter = "";
-  /** @type {Dish | null} the dish the big wheel stands on */
-  let dish = null;
-  /** @type {string | null} the side the small wheel landed on */
-  let pick = null;
   /** @type {Array<() => void>} */
   const undo = [];
 
   root.innerHTML = `
     <div class="pr-page">
-      <section class="kp-card pr-card" data-kp-state="loading" aria-labelledby="pr-card-t" data-kp-loading-words="${esc(w.loading)}">
+      <section class="kp-card dw-card pr-card" data-kp-state="loading" aria-labelledby="pr-card-t" data-kp-loading-words="${esc(w.loading)}">
         <div class="kp-card__header">
           <h1 class="kp-card__title" id="pr-card-t">${esc(w.cardTitle)}</h1>
           <div class="kp-card__actions"><span class="kp-badge" data-pr-count></span></div>
@@ -114,17 +115,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
           <div class="kp-card__data">
             <div class="pr-stage">
               <div class="pr-filter" data-pr-filter></div>
-              <div class="pr-wheels">
-                <div class="pr-wheel pr-wheel--dish">
-                  <p class="pr-wheel__kicker" id="pr-dish-k">${esc(w.dishKicker)}</p>
-                  <div class="kp-wheel" data-pr-dish data-kp-wheel data-kp-wheel-kiosk data-kp-wheel-answer aria-labelledby="pr-dish-k"></div>
-                </div>
-                <div class="pr-wheel pr-wheel--side">
-                  <p class="pr-wheel__kicker" id="pr-side-k">${esc(w.sideKicker)}</p>
-                  <div class="kp-wheel" data-pr-side data-kp-wheel data-kp-wheel-kiosk data-kp-wheel-answer data-kp-wheel-empty="${esc(w.sideFirst)}" aria-labelledby="pr-side-k"></div>
-                </div>
-              </div>
-              <p class="pr-tonight" data-pr-tonight aria-live="polite">${esc(w.idle)}</p>
+              <div data-pr-wheels></div>
             </div>
           </div>
         </div>
@@ -134,10 +125,19 @@ export function mountWheel(root, { lang, load, emptyAction }) {
   const card = /** @type {HTMLElement} */ (root.querySelector(".pr-card"));
   const count = /** @type {HTMLElement} */ (root.querySelector("[data-pr-count]"));
   const filterBox = /** @type {HTMLElement} */ (root.querySelector("[data-pr-filter]"));
-  const big = /** @type {HTMLElement} */ (root.querySelector("[data-pr-dish]"));
-  const small = /** @type {HTMLElement} */ (root.querySelector("[data-pr-side]"));
-  const tonight = /** @type {HTMLElement} */ (root.querySelector("[data-pr-tonight]"));
-  undo.push(attachCardStates(card), attachWheels(card));
+  const wheels = mountDishWheel(/** @type {HTMLElement} */ (root.querySelector("[data-pr-wheels]")), {
+    kiosk: true,
+    words: { dishKicker: w.dishKicker, sideKicker: w.sideKicker, sideFirst: w.sideFirst, nothing: w.nothing, sideTag: w.tagWith },
+    onChange: (change) => say(change),
+  });
+  // The answer column: what the wheels chose, said as one dinner.
+  const answerBox = /** @type {HTMLElement} */ (wheels.answer);
+  answerBox.innerHTML = `<p class="pr-kicker">${esc(w.answerKicker)}</p><p class="pr-tonight" data-pr-tonight aria-live="polite"></p><p class="pr-hint" data-pr-hint></p>`;
+  const tonight = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-tonight]"));
+  const hint = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-hint]"));
+  hint.textContent = "";
+  tonight.textContent = w.idle;
+  undo.push(attachCardStates(card), () => wheels.destroy());
 
   /** The empty and failed notes carry the package's drawing. */
   const drawArt = () => {
@@ -147,87 +147,33 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     undo.push(attachArt(card));
   };
 
-  const say = () => {
-    if (!dish) {
+  /** @param {import("./dishwheel.js").DishChange} change */
+  function say(change) {
+    const d = change.dish ? (data?.dishes.find((x) => x.id === change.dish?.id) ?? null) : null;
+    if (change.phase === "turning" || (d && spins(d) && !change.side)) {
+      tonight.textContent = w.turning;
+      hint.textContent = d ? tagOf(w, d) : "";
+      return;
+    }
+    if (!d) {
       tonight.textContent = w.idle;
+      hint.textContent = "";
       return;
     }
     // The fixed ingredients (the dish's own name left out: "Stoofvlees, met stoofvlees" says it twice), then the side
     // the small wheel picked, or the only one.
-    const sides = choices(dish);
-    const chosen = sides.length === 1 ? sides[0] : pick;
-    if (spins(dish) && chosen === null) {
-      tonight.textContent = w.turning;
-      return;
-    }
-    const fixed = (dish.ingredients ?? []).filter((n) => n.toLowerCase() !== dish?.name.toLowerCase());
-    tonight.textContent = w.tonight(dish.name, [...fixed, ...(chosen ? [chosen] : [])]);
-  };
-
-  // The small wheel waits until the big one has stopped (Kenny, 24/10/2026 10:15): while the big wheel turns the small
-  // one is idle and empty and the sentence says the wheels are turning; when the big wheel lands on a dish with two
-  // or more sides the small wheel spins, otherwise it shows the one side or that there is nothing to choose.
-  const onDish = () => {
-    dish = null;
-    pick = null;
-    tonight.textContent = w.turning;
-    small.setAttribute("data-kp-wheel-empty", w.sideFirst);
-    setWheelItems(small, []);
-  };
-  const onDishDone = (/** @type {Event} */ e) => {
-    const id = /** @type {CustomEvent} */ (e).detail?.item?.id;
-    dish = data?.dishes.find((d) => d.id === id) ?? null;
-    pick = null;
-    if (!dish || !spins(dish)) {
-      small.setAttribute("data-kp-wheel-empty", dish ? w.nothing(dish.name) : w.sideFirst);
-      setWheelItems(small, []);
-      say();
-      return;
-    }
-    const name = dish.name;
-    setWheelItems(small, choices(dish).map((c) => ({ id: c, label: c, tag: w.tagWith(name) })));
-    say();
-    void spinWheel(small);
-  };
-  const onSide = (/** @type {Event} */ e) => {
-    const label = /** @type {CustomEvent} */ (e).detail?.item?.label;
-    if (!dish || typeof label !== "string") return;
-    pick = label;
-    say();
-  };
-  // A tap on the small wheel spins it again: the side is open until it lands.
-  const onSideSpin = () => {
-    pick = null;
-    say();
-  };
-  big.addEventListener(WHEEL_SPIN_EVENT, onDish);
-  big.addEventListener(WHEEL_RESULT_EVENT, onDishDone);
-  small.addEventListener(WHEEL_RESULT_EVENT, onSide);
-  small.addEventListener(WHEEL_SPIN_EVENT, onSideSpin);
-  undo.push(() => {
-    big.removeEventListener(WHEEL_SPIN_EVENT, onDish);
-    big.removeEventListener(WHEEL_RESULT_EVENT, onDishDone);
-    small.removeEventListener(WHEEL_RESULT_EVENT, onSide);
-    small.removeEventListener(WHEEL_SPIN_EVENT, onSideSpin);
-  });
+    const fixed = (d.ingredients ?? []).filter((n) => n.toLowerCase() !== d.name.toLowerCase());
+    tonight.textContent = w.tonight(d.name, [...fixed, ...(change.side ? [change.side] : [])]);
+    hint.textContent = tagOf(w, d);
+  }
 
   /** The dishes the filter lets through. */
   const shown = () => (data?.dishes ?? []).filter((d) => !filter || d.category === filter);
 
   const fillBig = () => {
-    dish = null;
-    pick = null;
-    small.setAttribute("data-kp-wheel-empty", w.sideFirst);
-    setWheelItems(small, []);
     const list = shown();
     count.textContent = w.count(list.length);
-    setWheelItems(
-      big,
-      list.map((d) => {
-        return { id: d.id, label: d.name, tag: spins(d) ? w.tagChoice(choices(d)) : w.tagSame };
-      }),
-    );
-    say();
+    wheels.setDishes(list.map((d) => ({ id: d.id, label: d.name, tag: tagOf(w, d), sides: choices(d) })));
   };
 
   // The categories as one row of choices; with fewer than two there is nothing to narrow and the row stays empty.

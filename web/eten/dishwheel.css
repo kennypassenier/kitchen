@@ -1,0 +1,145 @@
+/* The one wheel layout (web/eten/dishwheel.js; Kenny, 24/10/2026 10:27 and 10:28). The shape of the main "What do we
+   eat?" page everywhere: the big wheel on the left, the small side wheel right next to it with both bottoms on one line,
+   the answer of what the wheel chose beside them. On a phone they stack. Everything with a kp- class is the package;
+   these dw- rules only lay the parts out on one grid and size them. */
+
+/* Loading, empty and failed take the room their plate needs, not the wheels' (Kenny, 24/10/2026 09:32: the empty card
+   was far too tall): the wheels leave the layout while the card shows a plate, and the stage keeps a modest minimum so
+   the plate is not cramped. A card with wheels carries this class. */
+.dw-card {
+  --kp-card-stage-min: 16rem;
+  min-inline-size: 0;
+}
+
+.dw-card:not([data-kp-state="ready"]) .kp-card__data {
+  display: none;
+}
+
+.dw {
+  display: grid;
+  /* The wheels (24rem and 20rem with their gap) and the answer beside them. */
+  grid-template-columns: minmax(0, 46rem) minmax(16rem, 1fr);
+  column-gap: var(--kp-space-xl, 2rem);
+  row-gap: var(--kp-space-lg, 1.5rem);
+  align-items: start;
+  min-inline-size: 0;
+}
+
+/* The wheels on one row; their bottoms stand on one line, whatever size each wheel is. */
+.dw__wheels {
+  display: grid;
+  grid-template-columns: minmax(0, 24fr) minmax(0, 20fr);
+  column-gap: var(--kp-space-xl, 2rem);
+  align-items: end;
+  min-inline-size: 0;
+}
+
+/* One wheel on its own (an ingredient page): centred, no column for a side wheel or an answer. */
+.dw[data-dw-single] .dw__wheels {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dw[data-dw-single][data-dw-noanswer] {
+  grid-template-columns: minmax(0, 26rem);
+  justify-content: center;
+}
+
+.dw[data-dw-single]:not([data-dw-noanswer]) {
+  grid-template-columns: minmax(0, 24rem) minmax(16rem, 1fr);
+}
+
+.dw__wheel {
+  display: grid;
+  justify-items: center;
+  row-gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+  /* Workaround, queued for kp-themes (KP_GAPS.md 17): a turned disc's square box sticks out past its circle, and on a
+     phone that pushes the page sideways. The corners are empty, so the column clips them. Drop it once the package
+     keeps a turned disc inside its stage. */
+  overflow: clip;
+}
+
+.dw__wheel--dish {
+  --kp-wheel-size: min(24rem, 100%);
+}
+
+.dw__wheel--side {
+  --kp-wheel-size: min(20rem, 100%);
+}
+
+.dw__wheel > .kp-wheel {
+  inline-size: 100%;
+  /* Workaround, queued for kp-themes (KP_GAPS.md 14): a sentence in the wheel's result widens the wheel past its
+     --kp-wheel-size in Chromium, so the wheel's one column is held to the wheel's own width. */
+  grid-template-columns: minmax(0, 1fr);
+  /* A smaller hub than the package's 30%, so a label never touches it (its text starts at 34 of 96 of the radius). */
+  --kp-wheel-hub: 25%;
+}
+
+/* The hub's word ("Again", "Nog eens") stays on one line, inside the hub. */
+.dw .kp-wheel__spin {
+  white-space: nowrap;
+  padding-inline: var(--kp-space-xs, 0.25rem);
+}
+
+/* The answer sits in the answer column, so the wheel's own result line (its caption and name) is kept for a reader
+   only, and nothing under the wheels moves. With the package's answer card it is shown as the package draws it. */
+.dw:not([data-dw-cards]) .kp-wheel__result {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dw__kicker {
+  justify-self: start;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The answer column: starts at the top, a rule between it and the wheels. */
+.dw__answer {
+  display: grid;
+  align-content: start;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+  padding-inline-start: var(--kp-space-lg, 1.5rem);
+  border-inline-start: 1px solid var(--border);
+}
+
+.dw__answer > p {
+  margin: 0;
+}
+
+/* A medium screen: the wheels across the full width, the answer under them. */
+@media (max-width: 64rem) {
+  .dw,
+  .dw[data-dw-single]:not([data-dw-noanswer]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dw__answer {
+    padding-inline-start: 0;
+    padding-block-start: var(--kp-space-md, 1rem);
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--border);
+  }
+}
+
+/* A phone: the big wheel, the small wheel under it, the answer under that; nothing scrolls sideways. */
+@media (max-width: 40rem) {
+  .dw__wheels {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--kp-space-lg, 1.5rem);
+  }
+
+  .dw__wheel--side {
+    --kp-wheel-size: min(24rem, 100%);
+  }
+}

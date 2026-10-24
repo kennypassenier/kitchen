@@ -54,42 +54,20 @@
 
 /* ---- the card: its stage keeps one height in every state ------------------------------------------------------------- */
 .wl-card {
-  --kp-card-stage-min: 16rem;
-  --kp-wheel-size: min(24rem, 100%);
   min-inline-size: 0;
 }
 
-.wl-card--list {
+.wl-card.wl-card--list {
   --kp-card-stage-min: 16rem;
 }
 
-/* Loading, empty and failed take the room their plate needs, not the wheel's or the list's (Kenny, 24/10/2026 09:32):
-   the content leaves the layout while the card shows a plate. */
-.wl-card:not([data-kp-state="ready"]) .kp-card__data {
-  display: none;
-}
+/* Loading, empty and failed take the room their plate needs: the card carries the wheel component's class `dw-card`
+   (web/eten/dishwheel.css), which keeps the stage short and the wheels away until the card is ready. The list card
+   keeps its own minimum. */
 
-/* ---- the wheel and its answer ------------------------------------------------------------------------------------------ */
+/* ---- the wheel and its answer: the layout is the wheel component's (web/eten/dishwheel.css) ----------------------------- */
 .wl-screen {
-  display: grid;
-  grid-template-columns: minmax(16rem, 26rem) minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
-  align-items: start;
-  justify-content: center;
   min-block-size: 27rem;
-}
-
-.wl-wheelcol {
-  display: grid;
-  gap: var(--kp-space-sm, 0.5rem);
-  justify-items: center;
-  min-inline-size: 0;
-}
-
-/* Both columns open with a kicker on one line (grid rule, 19/10/2026): the wheel's name over the wheel, the answer's state over the answer. */
-.wl-wheelcol__kicker {
-  justify-self: start;
-  margin: 0;
 }
 
 .wl-result {
@@ -97,8 +75,6 @@
   align-content: start;
   gap: var(--kp-space-sm, 0.5rem);
   min-inline-size: 0;
-  padding-inline-start: var(--kp-space-lg, 1.5rem);
-  border-inline-start: 1px solid var(--border);
 }
 
 .wl-result > p {
@@ -142,10 +118,12 @@
 }
 
 /* Each action is a button in one column with its one line to the right, in the same place in every state. */
+/* Each action is its button with its one-line explanation under it: the answer column is narrower now that the small
+   wheel stands beside the big one (Kenny, 24/10/2026 10:28). */
 .wl-actions {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 1rem);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xs, 0.25rem);
   align-items: center;
   margin-block-start: var(--kp-space-xs, 0.25rem);
 }
@@ -159,7 +137,7 @@
 }
 
 .wl-action > p {
-  margin: 0;
+  margin: 0 0 var(--kp-space-sm, 0.5rem);
   color: var(--muted-foreground);
   font-size: var(--kp-text-sm, 0.8125rem);
 }
@@ -279,21 +257,6 @@
 }
 
 @media (max-width: 52rem) {
-  .wl-screen {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .wl-result {
-    padding-inline: var(--kp-space-sm, 0.5rem);
-    padding-block-start: var(--kp-space-md, 1rem);
-    border-inline-start: 0;
-    border-block-start: 1px solid var(--border);
-  }
-
-  .wl-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .wl-fits {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -302,11 +265,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .wl-card {
-    --kp-card-stage-min: 16rem;
-  }
-
-  .wl-card--list {
+  .wl-card.wl-card--list {
     --kp-card-stage-min: 30rem;
   }
 }
@@ -385,23 +344,23 @@
   padding-block-start: 5px;
 }
 
-/* The small wheel under the big one: a dish's sides (Kenny, 24/10/2026 09:17), smaller, on the same column. */
-.wl-sidewheel {
-  display: grid;
-  gap: var(--kp-space-sm, 0.5rem);
-  justify-items: center;
-  inline-size: 100%;
-  --kp-wheel-size: min(14rem, 70%);
-}
-
-.wl-sidewheel[hidden] {
-  display: none;
-}
-
 .wl-result__side:empty {
   display: none;
 }
 
 .wl-result__others:empty {
   display: none;
+}
+
+/* The hub button and the answer and action labels never break inside a word (Kenny, 24/10/2026 10:22: "Again" lost
+   its last "n" to a new line on the small wheel); the small wheel is as large as the parents' one. */
+.wl-actions .kp-button,
+.wl-rest .kp-button {
+  white-space: nowrap;
+}
+
+/* "What do we eat?" is wider than the other pages so the big wheel, the small wheel and the answer all fit side by side
+   at 1280 (Kenny, 24/10/2026 10:28); the parents' page too. Only these pages: the shell of every other page keeps its width. */
+.app-shell:has(> .wl-page, > .pr-page) {
+  inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 96rem);
 }

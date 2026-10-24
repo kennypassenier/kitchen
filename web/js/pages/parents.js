@@ -1,5 +1,5 @@
 // The parents' wheel (route "/parents"): the same page Kenny's parents open on eten.kp-soft.dev, from the same module
-// (web/eten/wheel.js), in the language Kitchen is shown in (the module has the words of both), with the dishes in that
+// (web/eten/wheel.js, with the wheels of web/eten/dishwheel.js), in the language Kitchen is shown in (the module has the words of both), with the dishes in that
 // language from behind the login (`/data/wheel/en`, `/data/wheel/nl`), so it works away from home too. The dishes are
 // kept on the Dishes page.
 

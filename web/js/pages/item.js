@@ -9,7 +9,7 @@
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
 import { agoMoment } from "/static/kp/js/freshness.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
-import { attachWheels, setWheelItems } from "/static/kp/js/wheel.js";
+import { mountDishWheel } from "/eten/dishwheel.js";
 import { attachSegmented, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachSelects } from "/static/kp/js/combobox.js";
 import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, makeDefaultRecipe, recipeLabel, remove, ApiError } from "../api.js";
@@ -269,16 +269,19 @@ function usedBy(pageEl, id) {
   const filters = h("div", { class: "kp-formgrid kitchen-formgrid it-filters" }, h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("rec.category")), h("div", { class: "kp-formgrid__control" }, cat)), h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("it.showOnly")), h("div", { class: "kp-formgrid__control" }, flags)));
   table.card.querySelector(".kp-lede")?.after(filters);
 
-  const wheel = h("div", { class: "kp-wheel", "data-kp-wheel": true, "data-kp-wheel-kiosk": true, "data-kp-wheel-answer": true, "data-kp-wheel-empty": t("it.wheelEmpty"), "aria-label": t("it.wheelLabel") });
+  // The one wheel component (web/eten/dishwheel.js): one wheel among the dishes, no side wheel and no answer column; its own
+  // answer card stands under it.
+  const wheelHost = h("div", {});
+  const wheels = mountDishWheel(wheelHost, { sides: false, answer: false, kiosk: true, cards: true, words: { dishLabel: t("it.wheelLabel"), dishEmpty: t("it.wheelEmpty") } });
   const wheelCard = h(
     "section",
     { class: "kp-card it-wheel", "aria-labelledby": "it-wheel-t" },
     h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-wheel-t" }, t("it.wheelTitle"))),
     h("p", { class: "kp-card__body" }, t("it.wheelText")),
-    wheel,
+    wheelHost,
   );
   pageEl.append(table.card, wheelCard);
-  const stops = [attachDataTables(table.card), attachSegmented(filters), attachSelects(filters), attachWheels(wheelCard)].filter((f) => typeof f === "function");
+  const stops = [attachDataTables(table.card), attachSegmented(filters), attachSelects(filters), () => wheels.destroy()].filter((f) => typeof f === "function");
   const handle = dataTable(table.table);
   /** @type {Kitchen | null} */
   let kitchen = null;
@@ -317,7 +320,7 @@ function usedBy(pageEl, id) {
     );
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
-    setWheelItems(wheel, k.dishes.filter((d) => hasIt(d, id) || inRecipe(d, id)).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
+    wheels.setDishes(k.dishes.filter((d) => hasIt(d, id) || inRecipe(d, id)).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
   };
   cat.addEventListener("change", draw);
   flags.addEventListener(SEGMENTED_EVENT, draw);

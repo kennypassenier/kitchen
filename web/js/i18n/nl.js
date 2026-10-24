@@ -402,6 +402,7 @@ export const NL = {
   "wheel.fCat": "Categorie",
   // wheel: the small wheel for a dish's sides (format 4)
   "wheel.sideKicker": "Het bijgerecht",
+  "wheel.sideFirst": "Draai eerst het grote wiel; dan kiest dit wiel het bijgerecht.",
   "wheel.withSide": (s) => `Met ${s.charAt(0).toLowerCase()}${s.slice(1)}`,
   "wheel.sideTurning": "Het kleine wiel kiest het bijgerecht…",
   // format 4: a dish's recipes

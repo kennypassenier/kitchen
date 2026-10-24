@@ -34,10 +34,6 @@
   list-style: none;
 }
 
-.it-wheel {
-  --kp-wheel-size: min(24rem, 100%);
-}
-
 /* The ingredient picker (js/ingredients/picker.js): the combobox, and under it the step that makes a new one. */
 .ip-picker,
 .ip-picker__new {

@@ -1,6 +1,6 @@
-/* The parents' wheel (web/eten/wheel.js), shared by the Dutch page on eten.kp-soft.dev and Kitchen's English /parents.
-   Everything with a kp- class is the package; these pr- rules only lay the two wheels out on one grid, size them and
-   set the dinner sentence under them. Every rule is behind the screen's own prefix. */
+/* The parents' wheel page (web/eten/wheel.js), shared by the Dutch page on eten.kp-soft.dev and Kitchen's /parents. The
+   wheels and their layout are the one wheel component (dishwheel.css); these pr- rules only set the page around them:
+   the category row and the dinner sentence in the answer column. Every rule is behind the screen's own prefix. */
 
 .pr-page {
   display: grid;
@@ -9,19 +9,7 @@
   gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
 }
 
-/* Loading, empty and failed take the room their plate needs, not the wheels' (Kenny, 24/10/2026 09:32: the empty
-   card was far too tall): the wheels leave the layout while the card shows a plate, and the stage keeps a modest
-   minimum so the plate is not cramped. The filled card has its natural height. */
-.pr-card {
-  --kp-card-stage-min: 16rem;
-  min-inline-size: 0;
-}
-
-.pr-card:not([data-kp-state="ready"]) .kp-card__data {
-  display: none;
-}
-
-/* The card's data: the category row, the wheels, the dinner sentence, one under the other. */
+/* The card's data: the category row, then the wheels with their answer. */
 .pr-stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -32,72 +20,7 @@
   display: none;
 }
 
-/* The whole dinner in one sentence, large enough to read from across the table; two lines are kept so the card does
-   not change height between "turning" and the answer. */
-.pr-tonight {
-  margin: 0;
-  min-block-size: calc(2lh);
-  justify-self: center;
-  max-inline-size: 40rem;
-  text-align: center;
-  text-wrap: balance;
-  font-size: var(--kp-text-xl, 1.375rem);
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-/* Two columns on one grid: the big wheel takes two parts, the small wheel one; both open with a kicker on the same line
-   and their answer cards end on the same line. On a phone the small wheel stands under the big one. */
-.pr-wheels {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  column-gap: var(--kp-space-xl, 2rem);
-  row-gap: var(--kp-space-sm, 0.5rem);
-  align-items: start;
-}
-
-.pr-wheel {
-  display: grid;
-  grid-row: span 3;
-  grid-template-rows: subgrid;
-  justify-items: center;
-  min-inline-size: 0;
-}
-
-/* The wheel's stage and answer sit on the page's rows too, so both wheels start on one line and both answer cards
-   start on one line, whatever size each wheel is. */
-.pr-wheel > .kp-wheel {
-  grid-row: span 2;
-  grid-template-rows: subgrid;
-  align-items: start;
-}
-
-/* Workaround, queued for kp-themes (KP_GAPS.md 14): a sentence in the wheel's answer card widens the wheel past its
-   --kp-wheel-size in Chromium, so the wheel's one column is held to the wheel's own width. Drop it once the package
-   does this itself. */
-.pr-wheel > .kp-wheel {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* Workaround, queued for kp-themes (KP_GAPS.md 17): a turned disc's square box sticks out past its circle, and on a
-   phone that pushes the page sideways. The corners are empty, so the column clips them. Drop it once the package
-   keeps a turned disc inside its stage. */
-.pr-wheel {
-  overflow: clip;
-}
-
-.pr-wheel--dish {
-  --kp-wheel-size: min(26rem, 100%);
-}
-
-.pr-wheel--side {
-  --kp-wheel-size: min(20rem, 100%);
-}
-
-.pr-wheel__kicker {
-  justify-self: center;
-  margin: 0;
+.pr-kicker {
   color: var(--muted-foreground);
   font-size: var(--kp-text-sm, 0.8125rem);
   font-weight: 600;
@@ -105,15 +28,18 @@
   text-transform: uppercase;
 }
 
-/* On a phone the small wheel is as wide as the big one: its answer card lines up with the big wheel's, and its two or
-   three names are drawn as large as the big wheel's, since the package sizes a label by the disc. */
-@media (max-width: 40rem) {
-  .pr-wheel--side {
-    --kp-wheel-size: min(26rem, 100%);
-  }
+/* The whole dinner in one sentence, large enough to read from across the table; three lines are kept so the answer
+   does not change height between "turning" and the dinner. */
+.pr-tonight {
+  min-block-size: calc(3lh);
+  text-wrap: balance;
+  font-size: var(--kp-text-xl, 1.375rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
 
-  .pr-wheels {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(6, auto);
-  }
+.pr-hint {
+  min-block-size: 1lh;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
 }

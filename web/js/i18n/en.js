@@ -404,6 +404,7 @@ export const EN = {
   "wheel.fCat": "Category",
   // wheel: the small wheel for a dish's sides (format 4)
   "wheel.sideKicker": "The side",
+  "wheel.sideFirst": "Spin the big wheel first; then this wheel picks the side.",
   "wheel.withSide": (s) => `With ${s.charAt(0).toLowerCase()}${s.slice(1)}`,
   "wheel.sideTurning": "The small wheel picks the side…",
   // format 4: a dish's recipes
