@@ -1,11 +1,18 @@
 /* The shell around every screen. Screens own their sheets under pages/,
    each behind its own class prefix; this file holds only the frame. */
 
+/* One gap between the top-level sections of every screen (Kenny, 24/10/2026 05:06: sections ran into each other):
+   one and a half times the package's section step. Pages whose sections sit straight in the shell (timing, settings,
+   cook) get it from .app-shell; pages with a root grid of their own use the same token. */
+:root {
+  --kitchen-section-gap: calc(var(--kp-section-gap, var(--kp-space-2xl, 2rem)) * 1.5);
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: var(--kp-space-6, 1.5rem);
+  gap: var(--kitchen-section-gap);
   inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 76rem);
   margin-inline: auto;
   padding-block: var(--kp-space-6, 1.5rem) var(--kp-space-10, 3rem);
@@ -17,7 +24,9 @@
 
 .app-tools {
   display: inline-grid;
+  grid-auto-flow: column;
   align-items: center;
+  column-gap: var(--kp-space-sm, 0.5rem);
   margin-inline-start: auto;
 }
 
@@ -28,4 +37,31 @@
   min-block-size: 20rem;
   place-items: center;
   text-align: center;
+}
+
+/* Every form grid in Kitchen (Kenny, 24/10/2026 05:06: "the grid and the full page width"): it spans the width it is
+   given, and its tracks always stretch, so every control fills the same control track and every hint starts on the
+   same value track. The package keeps a grid without a wide block compact (its tracks as wide as what they hold, the
+   rest a filler) and caps any grid at 60rem; both are undone here, at a higher specificity than the package's
+   compact rule. A stepper, a date picker and a combobox stretch with the fields. */
+html .kp-formgrid.kp-formgrid {
+  --kp-formgrid-max: none;
+  --kp-formgrid-tracks: [label-start] fit-content(var(--kp-formgrid-label-max, 40%)) [label-end control-start] minmax(0, var(--kp-formgrid-control, 3fr)) [control-end value-start] minmax(0, var(--kp-formgrid-value, 2fr)) [value-end actions-start] auto [actions-end];
+  inline-size: 100%;
+}
+
+.kp-formgrid :is(.kp-formgrid__control, .kp-formrow__control) > :is(.kp-quantity, .kp-datepicker, .kp-combobox, .ip-picker, .kp-formgrid__short) {
+  justify-self: stretch;
+  inline-size: 100%;
+  max-inline-size: none;
+}
+
+.kp-formgrid :is(.kp-formgrid__control, .kp-formrow__control) > .kp-formgrid__short > .kp-quantity {
+  inline-size: 100%;
+}
+
+.kp-formgrid :is(.kp-formgrid__control, .kp-formrow__control) .kp-datepicker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--kp-space-sm, 0.5rem);
 }

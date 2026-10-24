@@ -4,7 +4,7 @@
 .wl-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
 }
 
 /* research/audhd-recepten/wheel: the page's own frame. Everything with a kp- class is the package; these wl- rules only lay

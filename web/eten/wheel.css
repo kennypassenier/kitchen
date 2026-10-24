@@ -5,7 +5,7 @@
 .pr-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
 }
 
 /* The stage keeps one height in every state (loading, empty, failed, the wheels), so nothing under it moves. */

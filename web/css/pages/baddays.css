@@ -4,7 +4,7 @@
 .bd-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
   min-inline-size: 0;
 }
 
@@ -90,7 +90,7 @@
   --kp-card-stage-min: 27rem;
 }
 
-/* The lead badge, the title's first line and "This one" share one baseline, so every row reads on one line and
+/* The lead badge, the title's first line and "I ate this" share one baseline, so every row reads on one line and
    the buttons stand in one column (grid-fix, Kenny 19/10/2026 06:43). */
 .bd-shelf > li,
 .bd-shelf > li > .kp-action-list__lead,

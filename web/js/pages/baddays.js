@@ -170,8 +170,7 @@ const SECTIONS = `
           <p class="kp-formgrid__value" id="bd-add-date-note" role="status" aria-live="polite" data-bd-date-note>Today, unless you froze it earlier.</p>
         </div>
         <div class="kp-formgrid__row kp-formgrid__row--buttons">
-          <div class="kp-formgrid__control"></div>
-          <div class="kp-formgrid__actions">
+          <div class="kp-formgrid__control">
             <button type="submit" class="kp-button kp-button--primary" data-kp-submit data-bd-add-submit>Add to the freezer</button>
           </div>
         </div>

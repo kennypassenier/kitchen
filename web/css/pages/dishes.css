@@ -4,7 +4,7 @@
 .dl-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
   align-content: start;
 }
 
@@ -16,7 +16,7 @@
 .it-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
   align-content: start;
 }
 
