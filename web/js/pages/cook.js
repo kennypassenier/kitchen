@@ -9,11 +9,17 @@
 //
 // The place in the recipe (active step, every track, the steps done) is kept
 // by focus-steps itself (data-kp-remember). The page keeps only what the
-// package does not cover, per recipe in sessionStorage: the running timers
-// and whether Begin was pressed.
+// package does not cover, per recipe in sessionStorage: the running timers,
+// whether Begin was pressed and when each step really started and ended.
+//
+// The timeline (Kenny, 24/10/2026 05:16) is the timing page's gantt, set up by
+// recipe/timeline.js: the tracks as rows, a bar per step, the package's line
+// for now, the step the cook is on as its running bar and the steps passed as
+// finished bars. It follows the real progress: what is still to do is planned
+// from this moment, so a step ended early or late shifts the rest.
 
 import { h, $ } from "../dom.js";
-import { loadKitchen, onKitchen, recipeById, create } from "../api.js";
+import { loadKitchen, onKitchen, recipeById, create, ingredientName } from "../api.js";
 import { attachChecklists, setChecklistItems, setChecklistState, getChecklistItems } from "/static/kp/js/checklist.js";
 import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep } from "/static/kp/js/focus-steps.js";
 import { attachTimers, setTimersState, getTimers, restoreTimers, stopTimer } from "/static/kp/js/timer.js";
@@ -22,11 +28,15 @@ import { attachAttention, setAttention } from "/static/kp/js/attention.js";
 import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
 import { attachCalm, isCalm, calmScope, motionAllowed } from "/static/kp/js/calm.js";
 import { statePlate } from "/static/kp/js/state-plate.js";
+import { memoryFor } from "/static/kp/js/remember.js";
+import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
 
 /** @typedef {import("../api.js").Item} Item */
 
 /** The dial the discs measure: 60 minutes, the classic Time Timer (Kenny's default). */
 const DIAL_MINUTES = 60;
+const MIN = 60000;
+const TIMELINE_EVERY_MS = 10000;
 const LOAD_FAILED = "The recipe could not be loaded. Check the connection and try again.";
 
 /** Plural forms for the units that have one. */
@@ -89,7 +99,7 @@ export function mount(root, { params, navigate }) {
   let seq = 0;
 
   // ------------------------------------------------------------------ remembered place
-  /** @type {{ started?: boolean, timers?: any[] }} */
+  /** @type {{ started?: boolean, timers?: any[], marks?: Record<string, { start?: number, end?: number }> }} */
   let memo = {};
   try {
     memo = JSON.parse(sessionStorage.getItem(storeKey) ?? "{}") ?? {};
@@ -229,6 +239,20 @@ export function mount(root, { params, navigate }) {
     ),
   );
 
+  // The timeline
+  const timelineSlot = h("div", { class: "ck-timeline__slot", id: "ck-timeline-slot" });
+  const timelineCard = h(
+    "article",
+    { class: "kp-card ck-timelinecard", "data-kp-state": "ready", "aria-label": "The timeline" },
+    h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, timelineSlot)),
+  );
+  const timelineSection = section(
+    "ck-timeline",
+    "The timeline",
+    "Every track is a row; solid bars are done, the striped one is now, the outlined ones are still to come.",
+    timelineCard,
+  );
+
   // Discs
   const discs = h("div", { class: "ck-discs" });
   const discCard = h(
@@ -297,7 +321,7 @@ export function mount(root, { params, navigate }) {
     h("div", { class: "ck-begin" }, beginCard, miseOpen),
   );
 
-  root.replaceChildren(header, beginSection, cook, discSection, calmSection, doneSection);
+  root.replaceChildren(header, beginSection, cook, timelineSection, discSection, calmSection, doneSection);
 
   // Wire the package's components.
   undo.push(attachCardStates(root));
@@ -306,6 +330,13 @@ export function mount(root, { params, navigate }) {
   undo.push(attachTimers(root));
   undo.push(attachAttention(root));
   undo.push(attachCalm(root));
+  const line = mountTimeline(timelineSlot, {
+    label: "Cooking timeline, one row per track",
+    loading: "Reading the steps",
+    strings: { ganttOk: "done", ganttRunning: "now", ganttPlanned: "still to do" },
+    redraw: () => paintTimeline(),
+  });
+  undo.push(line.detach);
   setChecklistState(mise, "loading");
   setFocusStepsState(steps, "loading");
   setTimersState(timers, "loading");
@@ -487,6 +518,123 @@ export function mount(root, { params, navigate }) {
   const timerEvents = ["kp-timer-start", "kp-timer-change", "kp-timer-done", "kp-timer-stop"];
   for (const type of timerEvents) timers.addEventListener(type, onTimer);
 
+  // ------------------------------------------------------------------ the timeline follows the progress
+  let finished = false;
+
+  /**
+   * Where the cook is, as focus-steps keeps it: the step in hand and the steps passed (with tracks it stores the passed
+   * ones; one track is a plain sequence, so every step before the one in hand is passed).
+   * @returns {{ active: number, done: Set<number> }}
+   */
+  function progressNow() {
+    if (finished) return { active: -1, done: new Set(shown.map((_, i) => i)) };
+    const saved = memoryFor(steps, "focus-steps")?.read("progress", null);
+    const active = Math.max(0, Math.min(shown.length - 1, Number(saved?.index) || 0));
+    const done = Array.isArray(saved?.done) ? new Set(/** @type {number[]} */ (saved.done)) : new Set(shown.map((_, i) => i).filter((i) => i < active));
+    return { active, done };
+  }
+
+  /** The recipe's rows: each track that has a step here, else one row for the whole recipe; a step with no track is in every row. */
+  function lanesOf() {
+    const tracks = /** @type {Item[]} */ (recipe?.tracks ?? []).filter((t) => shown.some((s) => s.track === t.id));
+    const lanes = tracks.length ? tracks.map((t, i) => ({ id: t.id, label: String(t.name), series: /** @type {1 | 2 | 3 | 4 | 5} */ ((i % 5) + 1) })) : [{ id: "all", label: String(recipe?.name ?? ""), series: /** @type {const} */ (1) }];
+    /** @param {Item} s @returns {string[]} */
+    const rowsOf = (s) => (tracks.some((t) => t.id === s.track) ? [s.track] : lanes.map((l) => l.id));
+    return { lanes, rowsOf };
+  }
+
+  /** Draw the plan from this moment: passed steps where they really were, the one in hand growing, the rest counted on from now. */
+  function paintTimeline() {
+    if (!recipe) return;
+    if (!shown.length) {
+      setTimelineState(line.el, "empty", "This recipe has no steps yet", { text: "Add steps to the recipe and its timeline appears here." });
+      return;
+    }
+    const now = Date.now();
+    const { active, done } = progressNow();
+    const marks = (memo.marks ??= {});
+    // The real times: a step's start is when it came into hand, its end when it was passed.
+    shown.forEach((s, i) => {
+      const m = marks[s.id];
+      if (done.has(i)) {
+        if (!m?.end) marks[s.id] = { start: m?.start, end: now };
+      } else if (m?.end) delete marks[s.id];
+      if (i === active && !done.has(i) && !marks[s.id]?.start) marks[s.id] = { ...marks[s.id], start: now };
+    });
+    keep();
+    const { lanes, rowsOf } = lanesOf();
+    const first = Math.min(now, ...Object.values(marks).map((m) => m.start ?? now));
+    /** @type {Map<string, number>} */
+    const cursor = new Map(lanes.map((l) => [l.id, first]));
+    /** @type {import("../recipe/timeline.js").TimelineRun[]} */
+    const runs = [];
+    /** @type {import("../recipe/timeline.js").TimelineZone[]} */
+    const left = [];
+    const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
+    let last = now;
+    shown.forEach((s, i) => {
+      const rows = rowsOf(s);
+      const mins = Math.max(1, Number(s.mins) || 0);
+      const m = marks[s.id];
+      const ahead = Math.max(...rows.map((r) => cursor.get(r) ?? first));
+      const say = sentence(s.say || String(s.text));
+      const how = `${mins} min, ${s.active ? "hands on" : "you can walk away"}`;
+      /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string }[]} */
+      const parts = [];
+      let next;
+      if (done.has(i)) {
+        const start = Math.min(m?.start ?? ahead, now - 1000);
+        const end = Math.max(start + 30000, Math.min(now, m?.end ?? start + mins * MIN));
+        parts.push({ start, end, state: "ok", words: `${how}, done` });
+        next = end;
+      } else if (i === active) {
+        const start = m?.start ?? now;
+        const planned = start + mins * MIN;
+        parts.push({ start, end: now, state: "running", words: `${how}, you are on it` });
+        // What is left of its time is a thin band in the row (the package's lane stretch); past its time the rest of the plan begins from this moment.
+        if (planned > now) for (const row of rows) left.push({ id: `${row}:${s.id}`, lane: row, from: now, to: planned, label: `${say}, until ${clock(planned)}`, tone: "info" });
+        next = Math.max(now, planned);
+      } else {
+        const start = Math.max(now, ahead);
+        parts.push({ start, end: start + mins * MIN, state: "planned", words: `${how}, still to do` });
+        next = start + mins * MIN;
+      }
+      for (const row of rows) cursor.set(row, next);
+      last = Math.max(last, next);
+      for (const row of rows) {
+        parts.forEach((part) =>
+          runs.push({
+            id: `${row}:${s.id}`,
+            lane: row,
+            label: say,
+            start: part.start,
+            end: part.end,
+            state: part.state,
+            series: lanes.find((l) => l.id === row)?.series,
+            detail: `${say}, ${part.words}`,
+          }),
+        );
+      }
+    });
+    drawTimeline(line.el, {
+      lanes: lanes.map((l) => ({ ...l, sub: `${shown.filter((s, i) => rowsOf(s).includes(l.id) && done.has(i)).length} of ${shown.filter((s) => rowsOf(s).includes(l.id)).length} done` })),
+      runs,
+      zones: left,
+      from: first - MIN,
+      to: last + 3 * MIN,
+    });
+  }
+  // The place changes after the package has written it down: look a moment later.
+  const followProgress = () => window.setTimeout(() => !dead && paintTimeline(), 0);
+  for (const type of ["kp-focus-steps-change", "kp-focus-steps-track", "kp-focus-steps-resume"]) steps.addEventListener(type, followProgress);
+  steps.addEventListener("kp-focus-steps-done", () => {
+    finished = true;
+    followProgress();
+  });
+  // The plan counts on from the real now, so it is looked at again while a step runs over its time.
+  const timelineTick = window.setInterval(paintTimeline, TIMELINE_EVERY_MS);
+  undo.push(() => clearInterval(timelineTick));
+
   // ------------------------------------------------------------------ the place, and the end
   steps.addEventListener("kp-focus-steps-empty-action", () => navigate(`/recipe?id=${encodeURIComponent(recipeId)}`));
   steps.addEventListener("kp-focus-steps-done", () => {
@@ -533,6 +681,7 @@ export function mount(root, { params, navigate }) {
     setFocusStepsState(steps, "loading");
     setTimersState(timers, "loading");
     setCardState(discCard, "loading");
+    setTimelineState(line.el, "loading");
   };
   /** @param {string} message */
   const showError = (message) => {
@@ -541,6 +690,7 @@ export function mount(root, { params, navigate }) {
     setFocusStepsState(steps, "error", message);
     setTimersState(timers, "error");
     setCardState(discCard, "error", { title: "The timers could not be shown", text: message });
+    setTimelineState(line.el, "error", "The timeline could not be shown", { text: message });
   };
 
   /** @param {Item} r */
@@ -575,7 +725,7 @@ export function mount(root, { params, navigate }) {
     const order = r.tools.length ? [groups[0], "Tools", ...groups.slice(1)] : groups;
     for (const g of order) {
       if (g === "Tools" && r.tools.length) for (const t of r.tools) items.push({ id: `tool-${t.id}`, label: t.name, detail: "", group: "Tools" });
-      else for (const i of r.ingredients) if ((i.group || "Ingredients") === g) items.push({ id: i.id, label: i.name, detail: amountOf(i), group: g });
+      else for (const i of r.ingredients) if ((i.group || "Ingredients") === g) items.push({ id: i.id, label: ingredientName(i.ingredient), detail: amountOf(i), group: g });
     }
     setChecklistState(mise, "ready");
     setChecklistItems(mise, items);
@@ -592,6 +742,8 @@ export function mount(root, { params, navigate }) {
     }
     paintDiscCard();
     refreshBand();
+    finished = false;
+    paintTimeline();
     started = Boolean(memo.started);
   }
 
@@ -631,6 +783,7 @@ export function mount(root, { params, navigate }) {
     [mise, "kp-checklist-retry"],
     [steps, "kp-focus-steps-retry"],
     [timers, "kp-timers-retry"],
+    [line.el, "kp-gantt-retry"],
   ]))
     el.addEventListener(type, retry);
 

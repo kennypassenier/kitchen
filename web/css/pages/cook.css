@@ -86,6 +86,31 @@
   }
 }
 
+/* ---- The timeline (the package's gantt, full width; on a phone it scrolls inside its own card) -------- */
+.ck-timelinecard .kp-card__stage,
+.ck-timelinecard .kp-card__data,
+.ck-timeline__slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+}
+
+.ck-timelinecard {
+  min-inline-size: 0;
+}
+
+/* A phone keeps the timeline as wide as it reads: it scrolls inside its own card, never the page. */
+@media (max-width: 40rem) {
+  .ck-timeline__slot {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .ck-timeline__slot .kp-gantt {
+    min-inline-size: 38rem;
+  }
+}
+
 /* ---- The discs ----------------------------------------------------------------------------------- */
 .ck-disccard .kp-card__stage {
   --kp-card-stage-min: 22rem;

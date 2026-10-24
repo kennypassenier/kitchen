@@ -10,7 +10,7 @@ import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
 import { attachTimes, setTime } from "/static/kp/js/timefield.js";
 import { attachSelects, combobox, attachComboboxes, drawnSelect } from "/static/kp/js/combobox.js";
 import { attachSentences, sentence, setSentenceWhy } from "/static/kp/js/sentence.js";
-import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/js/gantt.js";
+import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
 import { attachTimerDiscs } from "/static/kp/js/timer-disc.js";
 import { attachCountdowns } from "/static/kp/js/countdown.js";
 import { setAttention, attachAttention } from "/static/kp/js/attention.js";
@@ -252,22 +252,13 @@ export function mount(root, { params, navigate }) {
   if (recipeId) {
     const data = /** @type {HTMLElement} */ ($("#tm-plan-card-data", root));
     const slot = h("div", { id: "tm-gantt-slot" });
-    slot.innerHTML =
-      '<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="off" data-kp-gantt-hint="off" data-kp-gantt-ghosts="1 1 1" aria-label="Tonight&#39;s cooking plan, one lane per track"></section>';
     data.append(slot, planReadout);
-    gantt = /** @type {HTMLElement} */ (slot.firstElementChild);
-    cleanups.push(attachGantts(slot, { strings: { ganttLoading: "Counting back from the step times" } }));
+    // The timeline setup is the one shared with cook mode (recipe/timeline.js).
+    const line = mountTimeline(slot, { label: "Tonight's cooking plan, one lane per track", loading: "Counting back from the step times", redraw: () => recipe && drawPlan() });
+    gantt = line.el;
+    cleanups.push(line.detach);
     // A data area loads under the busy card, with the lane names and the axis beside it.
     setCardState(planCard, "ready");
-    setGanttState(gantt, "loading");
-    let width = 0;
-    const watch = new ResizeObserver(() => {
-      const now = Math.round(/** @type {HTMLElement} */ (gantt).clientWidth / 40);
-      if (width && now !== width && recipe) drawPlan();
-      width = now;
-    });
-    watch.observe(gantt);
-    cleanups.push(() => watch.disconnect());
     gantt.addEventListener("kp-gantt-open", (event) => {
       const { run, point } = /** @type {CustomEvent} */ (event).detail;
       if (run) planReadout.textContent = `${sentenceCase(run.detail)}, ${hm(new Date(run.start).getTime())} to ${hm(new Date(run.end).getTime())}.`;
@@ -388,10 +379,9 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p || !gantt || !recipe) return;
     const lanes = p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}` }));
-    gantt.setAttribute("data-kp-gantt-ghosts", lanes.map(() => "1").join(" "));
-    setGanttRuns(
-      gantt,
-      p.lanes.flatMap((l) =>
+    drawTimeline(gantt, {
+      lanes: p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}`, series: l.series })),
+      runs: p.lanes.flatMap((l) =>
         l.steps.map((s) => ({
           id: s.id,
           lane: l.id,
@@ -403,19 +393,13 @@ export function mount(root, { params, navigate }) {
           detail: `${s.say}, ${s.mins} min, ${s.active ? "hands on" : "you can walk away"}`,
         })),
       ),
-      lanes,
-    );
-    setGanttPoints(
-      gantt,
-      p.lanes.map((l) => ({ id: `${l.id}-start`, lane: l.id, at: l.start, kind: "start", label: `Start: ${l.steps[0].say}`, planned: true })),
-      lanes,
-    );
-    // The window holds the plan, not the whole day up to the real now: ten minutes before the first start to a quarter hour after dinner.
-    const to = p.serve + 15 * MIN;
-    setGanttWindow(gantt, { span: Math.round((to - (p.start - 10 * MIN)) / 1000), live: false, to });
-    setGanttKinds(gantt, [{ kind: "start", label: "Where a track starts", shape: "diamond", tone: "info" }]);
-    setGanttZones(gantt, [{ id: "eat", from: p.serve, to: p.serve + 12 * MIN, label: `We eat at ${hm(p.serve)}`, tone: "info" }]);
-    setGanttLegend(gantt, p.lanes.length > 1 ? p.lanes.map((l) => ({ series: l.series, label: l.label })) : []);
+      points: p.lanes.map((l) => ({ id: `${l.id}-start`, lane: l.id, at: l.start, kind: "start", label: `Start: ${l.steps[0].say}`, planned: true })),
+      kinds: [{ kind: "start", label: "Where a track starts", shape: "diamond", tone: "info" }],
+      // The window holds the plan, not the whole day up to the real now: ten minutes before the first start to a quarter hour after dinner.
+      from: p.start - 10 * MIN,
+      to: p.serve + 15 * MIN,
+      zones: [{ id: "eat", from: p.serve, to: p.serve + 12 * MIN, label: `We eat at ${hm(p.serve)}`, tone: "info" }],
+    });
     const dropped = state.dropped.size > 0 ? ` Left out tonight: ${[...state.dropped].map((id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((t) => t.id === id)?.name ?? id).join(", ")}.` : "";
     /** @type {HTMLElement} */ ($("#tm-plan-card-body", root)).textContent =
       `Counted back from dinner at ${hm(p.serve)}: ${words(Math.round(p.total / MIN))} from the first step to the table. ${p.lanes.map((l) => `${l.label} at ${hm(l.start)}`).join(", ")}.${dropped}`;
@@ -645,7 +629,7 @@ export function mount(root, { params, navigate }) {
     if (gantt) {
       const o = options("The step times could not be read");
       setCardState(planCard, "ready");
-      setGanttState(gantt, "error", o.title, { text: o.text });
+      setTimelineState(gantt, "error", o.title, { text: o.text });
     } else setCardState(planCard, "error", options("The step times could not be read"));
   }
 
@@ -699,7 +683,7 @@ export function mount(root, { params, navigate }) {
         : "The link may be old. Choose one of your recipes to count back from dinner.";
       const again = () => h(recipe ? "a" : "button", recipe ? { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(recipe?.id))}` } : { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, recipe ? "Open the recipe" : "Choose a recipe");
       for (const c of dataCards) setCardState(c, "empty", plate(title, text, again()));
-      if (gantt) setGanttState(gantt, "ready");
+      if (gantt) setTimelineState(gantt, "ready");
       setCardState(planCard, "empty", plate(title, text, again()));
       return;
     }
@@ -724,7 +708,7 @@ export function mount(root, { params, navigate }) {
     /** @type {HTMLElement} */ ($("#tm-sentence-card-body", root)).textContent =
       tracks.length > 1 ? `${tracks.length} things cook at once: ${tracks.map((t) => String(t.name).toLowerCase()).join(", ").replace(/, ([^,]*)$/, " and $1")}.` : "One track, one step after the other.";
     setCardState(sentenceCard, "ready");
-    if (gantt) setGanttState(gantt, "ready");
+    if (gantt) setTimelineState(gantt, "ready");
     setCardState(planCard, "ready");
     setCardState(timerCard, "ready");
     setCardState(nudgeCard, "ready");
@@ -736,7 +720,7 @@ export function mount(root, { params, navigate }) {
     for (const c of root.querySelectorAll(".kp-card")) {
       if (c === planCard && gantt) {
         setCardState(planCard, "ready");
-        setGanttState(gantt, "loading");
+        setTimelineState(gantt, "loading");
       } else setCardState(/** @type {HTMLElement} */ (c), "loading");
     }
     try {
