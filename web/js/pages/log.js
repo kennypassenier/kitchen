@@ -62,7 +62,7 @@ export function mount(root) {
           { "data-kp-row-key": e.id },
           h("td", { "data-label": t("rec.day"), "data-kp-sort-value": String(Date.parse(`${e.date}T12:00:00Z`)) }, itemLink("log", e, dmy(e.date))),
           h("td", { "data-label": t("rec.what") }, logWhat(e)),
-          h("td", { "data-label": t("it.kind") }, t(e.shelf_id ? "lg.shelf" : "rec.recipe")),
+          h("td", { "data-label": t("it.kind") }, t(e.shelf_id ? "lg.shelf" : "rec.dish")),
           h("td", { "data-label": t("lg.felt") }, e.feeling ? (feelings()[e.feeling] ?? e.feeling) : "–"),
           h("td", { "data-label": t("rec.note") }, e.note || "–"),
           h("td", { "data-label": t("lg.actions") }, rowActions("log", e)),

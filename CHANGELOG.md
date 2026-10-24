@@ -6,6 +6,23 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Changed
+- Recipes belong to their dish (`dish.recipes`, one the default); the
+  separate recipe list is gone. Add, edit and pick the default from the
+  dish's page; Recipes lists every recipe of every dish. The log, the
+  freezer and resting point at dishes (`dish_id`).
+- "What do we eat?" picks from the dishes, with a category filter and the
+  small wheel for a dish's sides; "Yes, cook this" opens cook mode.
+
+### Added
+- The freezer form takes the dish an item is, so the wheel counts it.
+
+### Migration
+- None by hand: the first start rewrites `kitchen.json` to format 4 (each
+  recipe into its dish, the first the default; `dish_id` on log lines,
+  freezer items and resting marks). Kitchen 2.0.0 refuses a
+  format-4 file: going back needs the backup taken before the update.
+
 ## [2.0.0] - 2026-10-24
 
 ### Changed

@@ -7,7 +7,18 @@ evening: **What do we eat?**, **When do I start?**, **Bad days**,
 **Calm settings**, **Recipes** and **Dishes**. A recipe's own page and cook
 mode open from a recipe.
 
-**Dishes** is what lands on a plate, kept apart from the recipes: each dish
+**What do we eat?** picks from your dishes (every dish, whatever its
+parents' mark): the filters narrow by meal, time, main ingredient and
+category, and when the chosen dish has sides the small wheel under the big
+one picks the side. "Yes, cook this" opens the dish's default recipe in
+cook mode, with its other recipes listed under the answer; a dish without a
+recipe opens its page.
+
+**Dishes** is what lands on a plate, and its recipes are its own: a dish's
+page lists them (one for the oven, one for the pressure cooker, …) with
+Add, Edit, Delete, Cook and Make default; the default is the one the wheel
+uses. **Recipes** lists every recipe of every dish ("Stoofvlees · Oven"); a
+recipe added there is a new dish. Each dish
 has a Dutch and an English name, a category, the ingredients that always
 come with it and its sides. A side is one or more ingredients that go
 together, with an optional label of its own: stoofvlees comes with salad

@@ -9,7 +9,7 @@ pages.
 
 | Item | Where | Before (C R U D, own page) | After (C R U D, own page) |
 |---|---|---|---|
-| Recipe | /recipes, /recipe?id= | C R U D, page | C R U D, page |
+| Recipe (a dish's own, format 4) | the dish's page, /recipes, /recipe?id= | C R U D, page | C R U D from the dish's page and /recipes; Delete takes it off the dish (the dish stays) |
 | Recipe lines, steps, tracks, tools | inside the recipe editor | C R U D, no page | C R U D on the recipe; no own page (by design) |
 | Dish | /dishes | C R U D, no page | C R U D, `/dishes/<id>` |
 | Dish side | inside the dish editor | C R U D, no page | C R U D, order, label; shown on the dish's page |
@@ -20,7 +20,7 @@ pages.
 | Freezer item | /bad-days | C (form), R, take a portion | C R U D, take a portion, `/freezer/<id>` |
 | Shelf food | /bad-days | R only | C R U D, I ate this, `/shelf/<id>` (its days) |
 | Safe dish (a recipe's `safe`) | /bad-days | R; set only in the recipe editor | Add (pick a recipe or write a new one), Edit (the recipe), Not safe any more (the recipe stays) |
-| Log line | /log, recipe page | C R U D on the recipe page only, no list | C R U D on `/log` and the recipe page, `/log/<id>`; shelf foods too |
+| Log line | /log, recipe page | C R U D on the recipe page only, no list | C R U D on `/log` and the recipe page, `/log/<id>`; dishes and shelf foods |
 | Resting dish | / (the wheel) | C (set aside), R, D (bring back) | C R U D (Edit the last day), `/resting/<id>` |
 | Settings | /settings | R U (one object) | R U; nothing to add or delete |
 

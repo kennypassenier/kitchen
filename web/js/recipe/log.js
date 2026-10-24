@@ -162,7 +162,7 @@ export function createLog(card, { recipeId, retry }) {
   });
   narrow.addEventListener("change", paint);
 
-  const item = () => ({ recipe_id: recipeId, date: view.day, feeling: feeling === "none" ? null : feeling, note: "" });
+  const item = () => ({ dish_id: kitchen?.recipes.find((r) => r.id === recipeId)?.dish_id ?? null, recipe_id: recipeId, date: view.day, feeling: feeling === "none" ? null : feeling, note: "" });
   add.addEventListener("click", () => {
     void runFlashButton(add, async () => {
       try {

@@ -6,7 +6,7 @@
 // What a person did that is kept: a dish set aside ("Not this one, not again this week") is a `resting` item with an
 // `until` date; the filters, the switch and the spin are never stored.
 
-import { loadKitchen, kitchenNow, onKitchen, create, remove, daysSinceCooked } from "../api.js";
+import { loadKitchen, kitchenNow, onKitchen, create, remove, daysSinceCooked, defaultRecipe, recipeLabel } from "../api.js";
 import { h } from "../dom.js";
 import { attachWheels, setWheelItems, spinWheel, WHEEL_RESULT_EVENT, WHEEL_SPIN_EVENT } from "/static/kp/js/wheel.js";
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
@@ -15,21 +15,23 @@ import { attachToggles, toggle } from "/static/kp/js/toggle.js";
 import { attachArt } from "/static/kp/js/art.js";
 import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
-import { openRecordEditor, detailHref } from "../records.js";
-import { t } from "../i18n/index.js";
+import { openRecordEditor, detailHref, sideName } from "../records.js";
+import { t, nameOf } from "../i18n/index.js";
 
 /**
- * @typedef {object} Dish a recipe as the wheel sees it
+ * @typedef {object} Dish a dish as the wheel sees it, with what its recipe adds (Kenny, 24/10/2026 09:17, 09:18)
  * @property {string} id @property {string} label the full name @property {string} short the slice label
  * @property {string[]} meals @property {number} minutes @property {string[]} ing
  * @property {number} days days since last cooked (Infinity: never)
  * @property {boolean} safe @property {number} freezer portions in the freezer
  * @property {string} prep `none` | `light` | `full`
+ * @property {boolean} recipe the dish has a recipe @property {string | null} category @property {any[]} sides
+ * @property {string | null} cookId its default recipe @property {{ id: string, label: string }[]} others its other recipes
  */
 /** @typedef {{ include: string[], exclude: string[] }} Tri */
 /**
  * @typedef {object} Model what the person asked for, in memory only
- * @property {Tri} meal @property {Tri} time @property {Tri} ing @property {boolean} easy
+ * @property {Tri} meal @property {Tri} time @property {Tri} ing @property {Tri} cat the dish categories @property {boolean} easy
  * @property {Set<string>} kinds @property {Set<string>} resting recipe ids set aside @property {string[]} order the order constraints were set in
  */
 
@@ -63,7 +65,7 @@ function countOf(dishes, group, values) {
   /** @type {Record<string, number>} */
   const out = {};
   for (const v of values) {
-    out[v] = dishes.filter((d) => (group === "meal" ? d.meals.includes(v) : group === "time" ? band(d.minutes) === v : d.ing.includes(v))).length;
+    out[v] = dishes.filter((d) => (group === "meal" ? d.meals.includes(v) : group === "time" ? band(d.minutes) === v : group === "cat" ? d.category === v : d.ing.includes(v))).length;
   }
   return out;
 }
@@ -83,7 +85,7 @@ export function mount(root, { navigate }) {
   /** @type {Map<string, any>} recipe id -> its active resting item */
   let restItems = new Map();
   /** @type {Model} */
-  const M = { meal: emptyTri(), time: emptyTri(), ing: emptyTri(), easy: false, kinds: new Set(Object.keys(kindLabels())), resting: new Set(), order: [] };
+  const M = { meal: emptyTri(), time: emptyTri(), ing: emptyTri(), cat: emptyTri(), easy: false, kinds: new Set(Object.keys(kindLabels())), resting: new Set(), order: [] };
   /** @type {(() => void)[]} */
   const undo = [];
   let writing = false;
@@ -101,22 +103,40 @@ export function mount(root, { navigate }) {
     const today = iso(new Date());
     const freezer = (k?.freezer ?? []).filter((f) => Number(f.portions) > 0);
     restItems = new Map();
-    for (const r of k?.resting ?? []) if (String(r.until) >= today) restItems.set(r.recipe_id, r);
+    for (const r of k?.resting ?? []) if (String(r.until) >= today && r.dish_id) restItems.set(r.dish_id, r);
     M.resting = new Set(restItems.keys());
-    dishes = (k?.recipes ?? []).map((r) => ({
-      id: r.id,
-      label: r.name,
-      short: r.short || r.name,
-      meals: r.meals ?? [],
-      minutes: Number(r.minutes) || 0,
-      ing: r.ing ?? [],
-      days: k ? daysSinceCooked(k, r.id) : Infinity,
-      safe: !!r.safe,
-      freezer: freezer.filter((f) => f.recipe_id === r.id || norm(f.dish) === norm(r.name) || norm(f.dish) === norm(r.short)).reduce((n, f) => n + Number(f.portions), 0),
-      prep: r.prep ?? "full",
-    }));
+    // The wheel picks from the dishes (Kenny, 24/10/2026 09:17): every dish is on it, whatever its parents' mark. A
+    // dish's own recipe (09:18) gives what the filters and the answer need; a dish without one has no time, meal or
+    // main ingredients yet, and only a filter that asks for those leaves it out.
+    dishes = (k?.dishes ?? []).map((d) => {
+      // The default recipe speaks for the dish (Kenny, 24/10/2026 09:27: a dish may have several).
+      const r = defaultRecipe(d);
+      const label = nameOf(d).text;
+      return {
+        id: d.id,
+        label,
+        short: label,
+        meals: r?.meals ?? [],
+        minutes: Number(r?.minutes) || 0,
+        ing: r?.ing ?? [],
+        days: k ? daysSinceCooked(k, d.id) : Infinity,
+        safe: !!r?.safe,
+        freezer: freezer.filter((f) => f.dish_id === d.id || [d.name?.nl, d.name?.en].some((n) => n && norm(f.dish) === norm(n))).reduce((n, f) => n + Number(f.portions), 0),
+        prep: r?.prep ?? "full",
+        recipe: !!r,
+        cookId: r?.id ?? null,
+        others: (d.recipes ?? []).filter((/** @type {any} */ x) => x.id !== r?.id).map((/** @type {any} */ x) => ({ id: x.id, label: recipeLabel(x, (d.recipes ?? []).indexOf(x)) })),
+        category: d.category ?? null,
+        sides: d.sides ?? [],
+      };
+    });
   }
   const byId = (/** @type {string} */ id) => dishes.find((d) => d.id === id);
+  /** A dish category's name in the language shown. @param {string} id */
+  const catName = (id) => {
+    const c = kitchen?.dish_categories.find((x) => x.id === id);
+    return c ? nameOf(c).text : id;
+  };
 
   // ---- what fits ------------------------------------------------------------------------------------------------------
   /** @param {Dish} d @param {Model} m @param {{ filters?: boolean, resting?: boolean, easy?: boolean }} [skip] */
@@ -128,6 +148,8 @@ export function mount(root, { navigate }) {
       if (m.time.exclude.includes(band(d.minutes))) return false;
       if (!m.ing.include.every((x) => d.ing.includes(x))) return false;
       if (m.ing.exclude.some((x) => d.ing.includes(x))) return false;
+      if (m.cat.include.length && !m.cat.include.includes(String(d.category))) return false;
+      if (m.cat.exclude.includes(String(d.category))) return false;
     }
     if (!skip.resting && m.resting.has(d.id)) return false;
     if (!skip.easy && m.easy && ![...m.kinds].some((k) => isKind(d, k))) return false;
@@ -150,6 +172,7 @@ export function mount(root, { navigate }) {
     meal: structuredClone(m.meal),
     time: structuredClone(m.time),
     ing: structuredClone(m.ing),
+    cat: structuredClone(m.cat),
     easy: m.easy,
     kinds: new Set(m.kinds),
     resting: new Set(m.resting),
@@ -164,7 +187,7 @@ export function mount(root, { navigate }) {
   function constraints(m) {
     /** @type {{ key: string, label: string, release: () => void }[]} */
     const out = [];
-    /** @param {"meal" | "time" | "ing"} group @param {(v: string) => string} name */
+    /** @param {"meal" | "time" | "ing" | "cat"} group @param {(v: string) => string} name */
     const tri = (group, name) => {
       for (const state of /** @type {const} */ (["include", "exclude"])) {
         for (const value of m[group][state]) {
@@ -177,6 +200,7 @@ export function mount(root, { navigate }) {
     tri("meal", (v) => mealLabels()[v] ?? v);
     tri("time", (v) => bandLabels()[v] ?? v);
     tri("ing", (v) => v);
+    tri("cat", (v) => catName(v));
     for (const id of m.resting) out.push({ key: `rest:${id}`, label: t("wheel.restingLabel", byId(id)?.label ?? t("wheel.aDish")), release: () => m.resting.delete(id) });
     if (m.easy) {
       for (const k of Object.keys(kindLabels())) {
@@ -186,7 +210,7 @@ export function mount(root, { navigate }) {
     if (m.easy && !out.length) out.push({ key: "easy", label: t("wheel.noEnergyLabel"), release: () => (m.easy = false) });
     return out;
   }
-  const filterCount = (/** @type {Model} */ m) => constraints(m).filter((c) => /^(meal|time|ing):/.test(c.key)).length;
+  const filterCount = (/** @type {Model} */ m) => constraints(m).filter((c) => /^(meal|time|ing|cat):/.test(c.key)).length;
   const blockText = (/** @type {Model} */ m) => {
     const all = constraints(m);
     return all.length ? t("wheel.noFitAll", all.map((c) => c.label).join(", ")) : t("wheel.noneLeft");
@@ -269,6 +293,12 @@ export function mount(root, { navigate }) {
               ${chips("wl-f-ing", "wl-f-ing-l", FIRST_INGREDIENTS.map((v) => chip(v, cap(v))).join(""))}
             </div>
           </div>
+          <div class="kp-formgrid__row">
+            <p class="kp-formgrid__label wl-filters__name" id="wl-f-cat-l">${t("wheel.fCat")}</p>
+            <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
+              ${chips("wl-f-cat", "wl-f-cat-l", "")}
+            </div>
+          </div>
           <div class="kp-formgrid__row wl-filters__foot">
             <div class="kp-formgrid__control wl-filters__foot-cell" data-kp-formgrid-span="wide">
               <button type="button" class="kp-button kp-button--sm" id="wl-f-clear" disabled data-kp-disabled-reason="${t("wheel.nothingFiltered")}" title="${t("wheel.clearTitle")}">${t("wheel.clearAll")}</button>
@@ -324,7 +354,7 @@ export function mount(root, { navigate }) {
   const q = (id) => /** @type {HTMLElement} */ (root.querySelector(`#${id}`));
   const cardMain = q("wl-card");
   const cardList = q("wl-fits");
-  const groups = { meal: q("wl-f-meal"), time: q("wl-f-time"), ing: q("wl-f-ing") };
+  const groups = { meal: q("wl-f-meal"), time: q("wl-f-time"), ing: q("wl-f-ing"), cat: q("wl-f-cat") };
   const clearBtn = /** @type {HTMLButtonElement} */ (q("wl-f-clear"));
   const filtersLive = q("wl-f-live");
   const easyLive = q("wl-easy-live");
@@ -375,13 +405,19 @@ export function mount(root, { navigate }) {
           <div class="wl-wheelcol">
             <p class="wl-result__kicker wl-wheelcol__kicker">${t("wheel.tonightsWheel")}</p>
             <div class="kp-wheel" data-kp-wheel aria-label="${t("wheel.cardTitle")}"></div>
+            <div class="wl-sidewheel" data-wl="sidebox" hidden>
+              <p class="wl-result__kicker wl-wheelcol__kicker" id="wl-side-k">${t("wheel.sideKicker")}</p>
+              <div class="kp-wheel" data-wl="side" data-kp-wheel aria-labelledby="wl-side-k"></div>
+            </div>
           </div>
           <div class="wl-result" role="group" aria-label="${t("wheel.answerLabel")}">
             <p class="wl-result__kicker" data-wl="kicker"></p>
             <p class="wl-result__name" data-wl="name"></p>
+            <p class="wl-result__side" data-wl="sideline"></p>
             <div class="wl-result__facts" data-wl="facts"></div>
             <p class="wl-result__why" data-wl="why"></p>
             <p class="wl-result__timing" data-wl="timing"></p>
+            <p class="wl-result__others" data-wl="others"></p>
             <div class="wl-actions">
               <div class="wl-action">
                 <button type="button" class="kp-button kp-button--primary" data-wl="yes" disabled data-kp-disabled-reason="${t("wheel.spinFirst")}">${t("wheel.yes")}</button>
@@ -449,28 +485,33 @@ export function mount(root, { navigate }) {
         part.name.textContent = "";
         part.why.textContent = "";
         part.timing.textContent = "";
+        part.others.replaceChildren();
       } else if (spinning) {
         part.kicker.textContent = t("wheel.turning");
         part.name.textContent = "…";
         part.why.textContent = t("wheel.holdOn");
         part.timing.textContent = "";
+        part.others.replaceChildren();
       } else if (!d) {
         part.kicker.textContent = t("wheel.notChosen");
         part.name.textContent = items.length ? t("wheel.pressSpin") : t("wheel.nothingToSpin");
         part.facts.append(badgeOf(t("wheel.onWheel", items.length)));
         part.why.textContent = oddsLine();
         part.timing.textContent = t("wheel.timingHint");
+        part.others.replaceChildren();
       } else {
         part.kicker.textContent = items.length === 1 ? t("wheel.onlyOne") : t("wheel.chose");
         part.name.textContent = d.label;
         for (const m of d.meals) part.facts.append(badgeOf(mealLabels()[m] ?? cap(m)));
-        part.facts.append(badgeOf(minutesText(d.minutes)));
+        part.facts.append(badgeOf(d.recipe ? minutesText(d.minutes) : t("wheel.noRecipeBadge")));
         if (d.safe) part.facts.append(badgeOf(t("wheel.safeFavourite"), "success"));
         if (d.freezer > 0) part.facts.append(badgeOf(t("wheel.freezerPortions", d.freezer), "info"));
         if (d.prep === "none") part.facts.append(badgeOf(t("wheel.kindNoprep"), "success"));
         if (bigger(d)) part.facts.append(badgeOf(t("wheel.biggerSlice"), "warning"));
         part.why.textContent = `${lastCooked(d)} ${bigger(d) ? t("wheel.sliceBigger") : odds() === "equal" ? t("wheel.sliceSame") : t("wheel.sliceSmaller")}`;
-        part.timing.textContent = timingOf(d);
+        part.timing.textContent = d.recipe ? timingOf(d) : t("wheel.noRecipeTiming");
+        // The dish's other recipes, each straight into cook mode (09:27).
+        part.others.replaceChildren(...(d.others.length ? [t("wheel.otherRecipes"), " ", ...d.others.flatMap((o, i) => [i ? " · " : "", h("a", { href: `/cook?id=${encodeURIComponent(o.id)}` }, o.label)])] : []));
       }
       const idle = loaded && !spinning && !writing;
       const why = (/** @type {string} */ idleWhy) => (!loaded ? t("wheel.dishesLoading") : spinning ? t("wheel.wheelTurning") : writing ? t("wheel.saving") : idleWhy);
@@ -484,7 +525,7 @@ export function mount(root, { navigate }) {
       part.rest.textContent = rest.length ? t("wheel.restingLabelList") : t("wheel.nothingResting");
       part.resting.replaceChildren(
         ...rest.map((item) => {
-          const name = byId(item.recipe_id)?.label ?? t("wheel.aDishCap");
+          const name = byId(item.dish_id)?.label ?? t("wheel.aDishCap");
           const until = new Date(`${item.until}T12:00:00`);
           const back = h("button", { type: "button", class: "kp-button kp-button--sm", title: t("wheel.bringBackTitle"), "aria-label": t("wheel.bringBackName", name) }, t("wheel.bringBack"));
           back.addEventListener("click", () => void bringBack(item, name));
@@ -506,7 +547,7 @@ export function mount(root, { navigate }) {
       part.list.replaceChildren(
         ...items.map((id) => {
           const d = /** @type {Dish} */ (byId(id));
-          const meta = `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmy(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
+          const meta = `${d.recipe ? `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)}` : t("wheel.noRecipeBadge")} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmy(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
           return h("li", { class: "wl-fit" }, h("span", { class: "wl-fit__text" }, h("b", null, d.label), h("span", null, meta)), h("span", { class: "wl-fit__tags" }, bigger(d) ? badgeOf(t("wheel.biggerSlice"), "warning") : null));
         }),
       );
@@ -526,7 +567,7 @@ export function mount(root, { navigate }) {
         /** @type {HTMLElement[]} */
         const action = [];
         if (!dishes.length) {
-          action.push(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/recipes", title: t("wheel.openRecipesTitle") }, t("wheel.openRecipes")));
+          action.push(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/dishes", title: t("wheel.openDishesTitle") }, t("wheel.openDishes")));
           setCardState(cardEl, "empty", { title: t("wheel.noDishes"), text: t("wheel.noDishesText"), action });
         } else {
           action.push(h("button", { type: "button", class: "kp-button kp-button--primary kp-stateplate__action", title: t("wheel.loosenTitle"), onclick: () => void loosenOne(say) }, t("wheel.loosen")));
@@ -561,6 +602,7 @@ export function mount(root, { navigate }) {
       wheel.addEventListener(WHEEL_SPIN_EVENT, () => {
         spinning = true;
         chosen = null;
+        showSides(null);
         paintAnswer();
       });
       wheel.addEventListener(WHEEL_RESULT_EVENT, (event) => {
@@ -568,9 +610,28 @@ export function mount(root, { navigate }) {
         chosen = /** @type {CustomEvent} */ (event).detail.item.id;
         paintAnswer();
         say(t("wheel.wheelChose", byId(/** @type {string} */ (chosen))?.label));
+        showSides(byId(/** @type {string} */ (chosen)) ?? null);
+      });
+      // The dish's sides on the small wheel, as on the parents' wheel (Kenny, 24/10/2026 09:17): two or more spin, one
+      // is simply named. Each side is one entry, named by its label or its ingredients (js/records.js sideName).
+      const sideWheel = part.side;
+      /** @param {Dish | null} d */
+      const showSides = (d) => {
+        const sides = (d?.sides ?? []).map((s) => sideName(s)).filter(Boolean);
+        part.sidebox.hidden = sides.length < 2;
+        part.sideline.textContent = sides.length === 1 ? t("wheel.withSide", sides[0]) : sides.length > 1 ? t("wheel.sideTurning") : "";
+        if (sides.length < 2) return;
+        setWheelItems(sideWheel, sides.map((s, i) => ({ id: String(i), label: s })));
+        void spinWheel(sideWheel);
+      };
+      sideWheel.addEventListener(WHEEL_RESULT_EVENT, (event) => {
+        const side = /** @type {CustomEvent} */ (event).detail?.item?.label;
+        if (typeof side === "string") part.sideline.textContent = t("wheel.withSide", side);
       });
       part.yes.addEventListener("click", () => {
-        if (chosen) navigate(`/recipe?id=${encodeURIComponent(chosen)}`);
+        // The dish's recipe opens in cook mode; a dish without a recipe opens its own page, where the recipe is added.
+        const d = chosen ? byId(chosen) : null;
+        if (d) navigate(d.cookId ? `/cook?id=${encodeURIComponent(d.cookId)}` : `/dishes/${encodeURIComponent(d.id)}`);
       });
       part.again.addEventListener("click", () => void spinWheel(/** @type {HTMLElement} */ (wheel)));
       part.skip.addEventListener("click", () => void setAside());
@@ -585,7 +646,7 @@ export function mount(root, { navigate }) {
       writing = true;
       paintAnswer();
       try {
-        await create("resting", { recipe_id: d.id, until: iso(until) });
+        await create("resting", { dish_id: d.id, until: iso(until) });
         say(t("wheel.setAside", d.label, dmy(until)));
       } catch (e) {
         say(t("wheel.setAsideFailed", d.label, e instanceof Error ? e.message : String(e)));
@@ -646,7 +707,8 @@ export function mount(root, { navigate }) {
     M.meal = emptyTri();
     M.time = emptyTri();
     M.ing = emptyTri();
-    M.order = M.order.filter((k) => !/^(meal|time|ing):/.test(k));
+    M.cat = emptyTri();
+    M.order = M.order.filter((k) => !/^(meal|time|ing|cat):/.test(k));
     paintChips();
     filtersLive.textContent = t("wheel.allLetGo");
   }
@@ -668,6 +730,7 @@ export function mount(root, { navigate }) {
   // ---- the filter chips -------------------------------------------------------------------------------------------------
   let ingKey = FIRST_INGREDIENTS.join();
   let ingCounts = /** @type {Record<string, number>} */ ({});
+  let catKey = "";
   function paintCounts() {
     const loading = status === "loading";
     for (const g of Object.values(groups)) g.toggleAttribute("aria-busy", loading);
@@ -688,15 +751,26 @@ export function mount(root, { navigate }) {
       setSegmentedCounts(groups.meal, countOf(dishes, "meal", Object.keys(mealLabels())));
       setSegmentedCounts(groups.time, countOf(dishes, "time", Object.keys(bandLabels())));
       setSegmentedCounts(groups.ing, ingCounts);
+      // The category chips are the dish categories the dishes use, in their order (Kenny, 24/10/2026 09:17).
+      const cats = [...(kitchen?.dish_categories ?? [])].sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9)).map((c) => String(c.id)).filter((id) => dishes.some((d) => d.category === id));
+      const catCounts = countOf(dishes, "cat", cats);
+      if (cats.join() !== catKey) {
+        catKey = cats.join();
+        setSegmentedItems(groups.cat, cats.map((v) => ({ value: v, label: catName(v), count: catCounts[v] })));
+        M.cat = getSegmentedTri(groups.cat);
+        M.order = M.order.filter((k) => !k.startsWith("cat:") || cats.includes(k.slice(4)));
+      }
+      setSegmentedCounts(groups.cat, catCounts);
     }
   }
   function paintChips() {
     setSegmentedTri(groups.meal, M.meal);
     setSegmentedTri(groups.time, M.time);
     setSegmentedTri(groups.ing, M.ing);
+    setSegmentedTri(groups.cat, M.cat);
     paintAll();
   }
-  /** @param {"meal" | "time" | "ing"} group */
+  /** @param {"meal" | "time" | "ing" | "cat"} group */
   function readChips(group) {
     const now = getSegmentedTri(groups[group]);
     for (const state of /** @type {const} */ (["include", "exclude"])) for (const v of now[state]) if (!M[group][state].includes(v)) track(`${group}:${v}`, true);
@@ -704,7 +778,7 @@ export function mount(root, { navigate }) {
     M[group] = now;
     paintAll();
   }
-  for (const group of /** @type {const} */ (["meal", "time", "ing"])) {
+  for (const group of /** @type {const} */ (["meal", "time", "ing", "cat"])) {
     const on = () => readChips(group);
     groups[group].addEventListener(SEGMENTED_EVENT, on);
     undo.push(() => groups[group].removeEventListener(SEGMENTED_EVENT, on));
@@ -712,7 +786,7 @@ export function mount(root, { navigate }) {
   clearBtn.addEventListener("click", clearFilters);
 
   function describeFilters() {
-    const all = constraints(M).filter((c) => /^(meal|time|ing):/.test(c.key));
+    const all = constraints(M).filter((c) => /^(meal|time|ing|cat):/.test(c.key));
     clearBtn.disabled = status !== "ready" || !all.length;
     clearBtn.setAttribute("data-kp-disabled-reason", status !== "ready" ? t("wheel.dishesLoading") : t("wheel.nothingFiltered"));
     if (status === "loading") filtersLive.textContent = t("wheel.loadingDot");

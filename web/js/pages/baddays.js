@@ -34,7 +34,8 @@ import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
 import { h, $ } from "../dom.js";
 import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
-import { t, lang } from "../i18n/index.js";
+import { t, lang, nameOf } from "../i18n/index.js";
+import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("../api.js").Item} Item */
@@ -140,6 +141,13 @@ const sections = () => `
               aria-describedby="bd-add-dish-note" />
           </div>
           <p class="kp-formgrid__value" id="bd-add-dish-note" role="status" aria-live="polite" data-bd-dish-note>${t("bad.dishHint")}</p>
+        </div>
+        <div class="kp-formgrid__row">
+          <label class="kp-formgrid__label" for="bd-add-from">${t("rec.dishLink")}</label>
+          <div class="kp-formgrid__control">
+            <select class="kp-field__input" id="bd-add-from" data-bd-from><option value="">${t("rec.noDish")}</option></select>
+          </div>
+          <p class="kp-formgrid__value">${t("rec.dishLinkHint")}</p>
         </div>
         <div class="kp-formgrid__row">
           <label class="kp-formgrid__label" for="bd-add-portions">${t("bad.colPortions")}</label>
@@ -324,6 +332,7 @@ export function mount(root, { navigate }) {
     attachActionColumns,
     attachDatePickers,
     attachQuantities,
+    attachSelects,
     attachLoadingPieces,
     attachMotion,
   ]) {
@@ -545,6 +554,24 @@ export function mount(root, { navigate }) {
   // The add form: a real freezer gets filled.
   const form = /** @type {HTMLFormElement} */ ($("[data-bd-add-form]", page));
   const dishField = /** @type {HTMLInputElement} */ ($("#bd-add-dish", page));
+  // Which of Kenny's dishes it is (Kenny, 24/10/2026 09:17): the wheel counts its portions for that dish. Picking one
+  // with the name field still empty fills it in.
+  const fromField = /** @type {HTMLSelectElement} */ ($("[data-bd-from]", page));
+  const fillDishes = () => {
+    const was = fromField.value;
+    fromField.replaceChildren(
+      h("option", { value: "" }, t("rec.noDish")),
+      ...[...(kitchenNow()?.dishes ?? [])].map((d) => [d.id, nameOf(d).text]).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => h("option", { value: id }, n)),
+    );
+    fromField.value = was;
+    drawnSelect(fromField)?.refresh();
+  };
+  fromField.addEventListener("change", () => {
+    const d = kitchenNow()?.dishes.find((x) => x.id === fromField.value);
+    if (d && !dishField.value.trim()) dishField.value = nameOf(d).text;
+  });
+  stops.push(onKitchen(() => alive && fillDishes()));
+  fillDishes();
   const dishRow = /** @type {HTMLElement} */ ($("[data-bd-dish-row]", page));
   const dishNote = /** @type {HTMLElement} */ ($("[data-bd-dish-note]", page));
   const dateInput = /** @type {HTMLInputElement} */ ($("#bd-add-date", page));
@@ -601,7 +628,7 @@ export function mount(root, { navigate }) {
     try {
       await create("freezer", {
         dish,
-        recipe_id: null,
+        dish_id: fromField.value || null,
         portions: Math.max(1, Number.isFinite(portions) ? portions : 1),
         frozen_on: when.toISOString(),
       });

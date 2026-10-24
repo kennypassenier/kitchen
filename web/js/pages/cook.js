@@ -652,7 +652,7 @@ export function mount(root, { params, navigate }) {
     doneBtn.setAttribute("aria-disabled", "true");
     doneFail.hidden = true;
     try {
-      await create("log", { recipe_id: recipe.id, date: today(), feeling: null, note: "" });
+      await create("log", { dish_id: recipe.dish_id ?? null, recipe_id: recipe.id, date: today(), feeling: null, note: "" });
       if (dead) return;
       doneCard.replaceChildren(
         statePlate(document, {

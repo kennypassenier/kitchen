@@ -12,9 +12,11 @@ import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { attachWheels, setWheelItems } from "/static/kp/js/wheel.js";
 import { attachSegmented, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachSelects } from "/static/kp/js/combobox.js";
-import { loadKitchen, onKitchen, kitchenNow, ingredientName } from "../api.js";
+import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, makeDefaultRecipe, recipeLabel, remove, ApiError } from "../api.js";
+import { toast } from "/static/kp/js/overlays.js";
+import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
-import { LISTS, DETAIL_BASE, itemLink, openRecordEditor, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
+import { LISTS, DETAIL_BASE, itemLink, openRecordEditor, openRecipeEditor, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
@@ -33,10 +35,10 @@ const ingLink = (k, id) => {
 
 /** A list of links, or the words for none. @param {HTMLElement[]} links @param {string} none */
 const linkList = (links, none) => (links.length ? h("ul", { class: "it-links" }, ...links.map((a) => h("li", null, a))) : h("span", { class: "kp-kv__none" }, none));
-/** @param {string} id */
-const recipeLink = (id) => {
-  const r = kitchenNow()?.recipes.find((x) => x.id === id);
-  return r ? itemLink("recipes", r) : h("span", { class: "kp-kv__none" }, id ? t("rec.goneRecipe") : t("it.none"));
+/** A link to a dish's page, or the words for one that is gone. @param {string | null | undefined} id */
+const dishLink = (id) => {
+  const d = id ? kitchenNow()?.dishes.find((x) => x.id === id) : null;
+  return d ? itemLink("dishes", d) : h("span", { class: "kp-kv__none" }, id ? t("rec.goneDish") : t("it.none"));
 };
 /** The created and updated moments, as dd/mm/yyyy HH:mm. @param {Item} item */
 const stamps = (item) =>
@@ -46,8 +48,8 @@ const stamps = (item) =>
   ]);
 
 const hasIt = dishHas;
-/** Does a recipe have a line with the ingredient? @param {Item} r @param {string} id */
-const inRecipe = (r, id) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === id);
+/** Does one of a dish's recipes have a line with the ingredient? @param {Item} d @param {string} id */
+const inRecipe = (d, id) => (d.recipes ?? []).some((/** @type {Item} */ r) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === id));
 
 /**
  * The facts of an item, as [key, value] rows.
@@ -66,7 +68,7 @@ function facts(list, item, k) {
         [t("rec.englishName"), n.en || "–"],
         [t("rec.category"), cat ? itemLink("dish_categories", cat) : t("it.noCategory")],
         [t("it.parentsWheel"), t(item.parents !== true ? "it.wheelOff" : on === "both" ? "it.wheelBoth" : on === "nl" ? "it.wheelNl" : "it.wheelEn")],
-        [t("rec.recipe"), item.recipe_id ? recipeLink(item.recipe_id) : t("rec.noRecipe")],
+        [t("nav.recipes"), String((item.recipes ?? []).length)],
         [t("it.always"), linkList(/** @type {string[]} */ (item.ingredients ?? []).map((id) => ingLink(k, id)), t("it.nothingFixed"))],
         [
           t("it.sides"),
@@ -105,7 +107,7 @@ function facts(list, item, k) {
         [t("rec.englishName"), n.en || "–"],
         [t("rec.category"), cat ? itemLink("ingredient_categories", cat) : t("it.noCategory")],
         [t("nav.dishes"), String(k.dishes.filter((d) => hasIt(d, item.id)).length)],
-        [t("nav.recipes"), String(k.recipes.filter((r) => inRecipe(r, item.id)).length)],
+        [t("it.inRecipes"), String(k.dishes.filter((d) => inRecipe(d, item.id)).length)],
         ...stamps(item),
       ];
     }
@@ -125,7 +127,7 @@ function facts(list, item, k) {
       const days = Math.floor((Date.now() - at) / 86_400_000);
       return [
         [t("rec.dish"), String(item.dish)],
-        [t("rec.recipe"), item.recipe_id ? recipeLink(item.recipe_id) : t("rec.noRecipe")],
+        [t("rec.dishLink"), item.dish_id ? dishLink(item.dish_id) : t("rec.noDish")],
         [t("it.portionsLeft"), String(item.portions)],
         [t("rec.frozenOn"), dmy(brusselsDay(item.frozen_on))],
         [t("it.inFreezerFor"), Number.isFinite(days) ? t("it.days", Math.max(0, days)) : "–"],
@@ -147,7 +149,7 @@ function facts(list, item, k) {
     case "log": {
       const shelf = item.shelf_id ? k.shelf.find((s) => s.id === item.shelf_id) : null;
       return [
-        [t("rec.what"), item.shelf_id ? (shelf ? itemLink("shelf", shelf) : logWhat(item)) : recipeLink(item.recipe_id)],
+        [t("rec.what"), item.shelf_id ? (shelf ? itemLink("shelf", shelf) : logWhat(item)) : dishLink(item.dish_id)],
         [t("it.kind"), t(item.shelf_id ? "it.kindShelf" : "it.kindRecipe")],
         [t("rec.day"), dmy(item.date)],
         [t("rec.howFelt"), item.feeling ? (feelings()[item.feeling] ?? item.feeling) : t("rec.noAnswer")],
@@ -158,13 +160,84 @@ function facts(list, item, k) {
     case "resting": {
       const back = item.until ? new Date(Date.parse(`${item.until}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10) : "";
       return [
-        [t("rec.recipe"), recipeLink(item.recipe_id)],
+        [t("rec.dish"), dishLink(item.dish_id)],
         [t("rec.restingUntil"), dmy(item.until)],
         [t("it.back"), back ? dmy(back) : "–"],
         ...stamps(item),
       ];
     }
   }
+}
+
+/**
+ * A dish's recipes (Kenny, 24/10/2026 09:18, 09:27: the recipe belongs to the dish, and a dish may have several, one
+ * the default): one row per recipe with its label, Open, Cook, Make default, Edit and Delete, and Add a recipe.
+ * @param {HTMLElement} pageEl
+ */
+function dishRecipes(pageEl) {
+  const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
+  const listEl = h("ul", { class: "kp-action-list it-recipes" });
+  const card = h(
+    "section",
+    { class: "kp-card it-card", "data-kp-state": "ready", "aria-labelledby": "it-recipes-t" },
+    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), h("div", { class: "kp-card__actions" }, add)),
+    h("p", { class: "kp-card__body" }, t("it.recipesLede")),
+    h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, listEl)),
+  );
+  pageEl.append(card);
+  const stopCard = attachCardStates(card);
+  /** @type {Item | null} */
+  let dish = null;
+  add.addEventListener("click", () => {
+    if (!dish) return;
+    const n = (dish.recipes ?? []).length;
+    openRecipeEditor(null, { ...BLANK_RECIPE, dish_id: dish.id, name: n ? t("recipes.numbered", n + 1) : LISTS.dishes.name(dish) });
+  });
+  return {
+    /** @param {Kitchen} k @param {Item} d */
+    show(k, d) {
+      dish = d;
+      const recipes = /** @type {Item[]} */ (d.recipes ?? []);
+      if (!recipes.length) {
+        const first = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
+        first.addEventListener("click", () => add.click());
+        setCardState(card, "empty", { title: t("it.noRecipeYet"), text: t("it.noRecipeText"), action: first });
+        return;
+      }
+      listEl.replaceChildren(
+        ...recipes.map((r, i) => {
+          const view = k.recipes.find((x) => x.id === r.id) ?? r;
+          const label = recipeLabel(r, i);
+          const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", label) }, t("common.edit"));
+          edit.addEventListener("click", () => openRecipeEditor(view));
+          const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", label) }, t("common.delete"));
+          del.addEventListener("click", () =>
+            openConfirmation(del, {
+              phrase: t("rec.deleteAsk", view.name),
+              typeName: label,
+              acceptLabel: t("list.recipes.delete"),
+              loses: [t("it.recipeLoses")],
+              onAccept: () => void remove("recipes", r.id).then(() => toast(t("rec.deleted", view.name)), (e) => toast(t("rec.notDeleted", e instanceof ApiError ? e.message : String(e)), { live: "assertive", sticky: true })),
+            }),
+          );
+          const isDefault = r.default === true || (i === 0 && !recipes.some((x) => x.default === true));
+          const def = isDefault
+            ? h("span", { class: "kp-badge kp-badge--success" }, t("it.default"))
+            : h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("it.makeDefaultName", label) }, t("it.makeDefault"));
+          if (!isDefault) def.addEventListener("click", () => void makeDefaultRecipe(r.id).catch((e) => toast(String(e), { live: "assertive" })));
+          return h(
+            "li",
+            { "data-key": r.id },
+            h("span", { class: "kp-action-list__lead" }, h("span", { class: "kp-badge" }, `${r.minutes ?? 0} min`)),
+            h("div", { class: "kp-action-list__main" }, h("strong", { class: "kp-action-list__title" }, h("a", { href: `/recipe?id=${encodeURIComponent(r.id)}` }, label)), h("span", { class: "kp-action-list__text" }, r.summary || "")),
+            h("div", { class: "kp-row-actions" }, def, h("a", { class: "kp-button kp-button--sm kp-button--primary", href: `/cook?id=${encodeURIComponent(r.id)}` }, t("it.cook")), edit, del),
+          );
+        }),
+      );
+      setCardState(card, "ready");
+    },
+    stop: stopCard,
+  };
 }
 
 /**
@@ -214,30 +287,37 @@ function usedBy(pageEl, id) {
     const k = kitchen;
     if (!k) return;
     const on = new Set(getSegmentedValues(flags));
-    const recipeOf = (/** @type {Item} */ d) => k.recipes.find((r) => r.id === d.recipe_id) ?? null;
-    /** @type {{ kind: "dish" | "recipe", item: Item, category: string | null, parents: boolean | null, safe: boolean, recipe: Item | null }[]} */
-    const rows = [
-      ...k.dishes.filter((d) => hasIt(d, id)).map((d) => ({ kind: /** @type {const} */ ("dish"), item: d, category: d.category ?? null, parents: d.parents === true, safe: recipeOf(d)?.safe === true, recipe: recipeOf(d) })),
-      ...k.recipes.filter((r) => inRecipe(r, id)).map((r) => ({ kind: /** @type {const} */ ("recipe"), item: r, category: null, parents: null, safe: r.safe === true, recipe: r })),
-    ].filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
+    // One row per dish that has it: fixed, in a side, or as a line of its recipe (the recipe belongs to the dish).
+    /** @type {{ kind: string, item: Item, category: string | null, parents: boolean | null, safe: boolean, recipe: Item | null }[]} */
+    const rows = k.dishes
+      .filter((d) => hasIt(d, id) || inRecipe(d, id))
+      .map((d) => ({
+        kind: [hasIt(d, id) ? t("it.inDish") : "", inRecipe(d, id) ? t("it.inRecipe") : ""].filter(Boolean).join(", "),
+        item: d,
+        category: d.category ?? null,
+        parents: d.parents === true,
+        safe: defaultRecipe(d)?.safe === true,
+        recipe: defaultRecipe(d),
+      }))
+      .filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
     t.body.replaceChildren(
       ...rows.map((x) => {
         const c = k.dish_categories.find((y) => y.id === x.category);
         return h(
           "tr",
           { "data-kp-row-key": x.item.id },
-          h("td", { "data-label": t("rec.name") }, x.kind === "dish" ? itemLink("dishes", x.item) : itemLink("recipes", x.item)),
-          h("td", { "data-label": t("it.kind") }, t(x.kind === "dish" ? "rec.dish" : "rec.recipe")),
+          h("td", { "data-label": t("rec.name") }, itemLink("dishes", x.item)),
+          h("td", { "data-label": t("it.kind") }, x.kind),
           h("td", { "data-label": t("rec.category") }, c ? itemLink("dish_categories", c) : "–"),
           h("td", { "data-label": t("it.parentsWheel") }, x.parents === null ? "–" : t(x.parents ? "it.yes" : "it.no")),
           h("td", { "data-label": t("it.safe") }, t(x.safe ? "it.yes" : "it.no")),
-          h("td", { "data-label": t("rec.recipe") }, x.recipe ? itemLink("recipes", x.recipe) : "–"),
+          h("td", { "data-label": t("rec.recipe") }, x.recipe ? h("a", { href: `/recipe?id=${encodeURIComponent(x.recipe.id)}` }, t("it.openRecipe")) : "–"),
         );
       }),
     );
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
-    setWheelItems(wheel, k.dishes.filter((d) => hasIt(d, id)).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
+    setWheelItems(wheel, k.dishes.filter((d) => hasIt(d, id) || inRecipe(d, id)).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
   };
   cat.addEventListener("change", draw);
   flags.addEventListener(SEGMENTED_EVENT, draw);
@@ -276,6 +356,7 @@ export function mount(root, { params, navigate }) {
   const crumb = h("nav", { class: "kp-breadcrumb", "aria-label": t("it.crumb") }, h("ol", null, h("li", null, h("a", { href: homeHref }, homeName)), h("li", { "aria-current": "page" }, meta.noun)));
   const title = h("h1", { class: "kp-page-header__title" }, "…");
   const edit = h("button", { type: "button", class: "kp-button" }, t("common.edit"));
+
   const del = h("button", { type: "button", class: "kp-button kp-button--destructive" }, t("common.delete"));
   const head = h(
     "header",
@@ -294,6 +375,7 @@ export function mount(root, { params, navigate }) {
   root.replaceChildren(pageEl);
   const stopCard = attachCardStates(card);
   const extra = list === "ingredients" ? usedBy(pageEl, id) : null;
+  const recipesCard = list === "dishes" ? dishRecipes(pageEl) : null;
 
   /** @type {Item | null} */
   let item = null;
@@ -305,6 +387,7 @@ export function mount(root, { params, navigate }) {
   };
   setActions(false);
   edit.addEventListener("click", () => item && edit.getAttribute("aria-disabled") !== "true" && openRecordEditor(list, item));
+
   del.addEventListener("click", () => item && del.getAttribute("aria-disabled") !== "true" && deleteRecord(del, list, item, { after: () => navigate(homeHref) }));
 
   /** @param {Kitchen} k */
@@ -323,6 +406,7 @@ export function mount(root, { params, navigate }) {
     document.title = `${name} · Kitchen`;
     kv.replaceChildren(...facts(list, item, k).map(([key, value]) => h("div", { class: "kp-kv__row" }, h("dt", null, key), h("dd", null, value))));
     setActions(true);
+    recipesCard?.show(k, item);
     setCardState(card, "ready");
     extra?.show(k);
   }
@@ -350,6 +434,7 @@ export function mount(root, { params, navigate }) {
     stop();
     stopCard();
     extra?.stop();
+    recipesCard?.stop();
     card.removeEventListener(CARD_RETRY_EVENT, retry);
   };
 }

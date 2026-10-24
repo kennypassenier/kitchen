@@ -111,7 +111,7 @@ export function mount(root) {
   /** @param {Kitchen} k */
   function rowsFor(k) {
     const last = new Map();
-    for (const e of k.log) if (!last.has(e.recipe_id) || e.date > last.get(e.recipe_id)) last.set(e.recipe_id, e.date);
+    for (const e of k.log) if (e.recipe_id && (!last.has(e.recipe_id) || e.date > last.get(e.recipe_id))) last.set(e.recipe_id, e.date);
     return k.recipes.map((r) => {
       const cooked = last.get(r.id) ?? null;
       const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));

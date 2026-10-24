@@ -37,7 +37,7 @@ export const feelings = () => /** @type {Record<string, string>} */ ({ easy: t("
 /** @param {unknown} e */
 const why = (e) => (e instanceof ApiError ? e.message : String(e));
 /** @param {string} id */
-const recipe = (id) => kitchenNow()?.recipes.find((r) => r.id === id) ?? null;
+const dish = (id) => (id ? kitchenNow()?.dishes.find((d) => d.id === id) ?? null : null);
 /** @param {string} id */
 const shelfItem = (id) => kitchenNow()?.shelf.find((s) => s.id === id) ?? null;
 
@@ -55,7 +55,7 @@ const PLACES = {
   freezer: { home: ["/bad-days#freezer", "baddays"], name: (f) => String(f.dish || t("rec.aDish")) },
   shelf: { home: ["/bad-days#zero-prep", "baddays"], name: (s) => String(s.title || t("rec.aFood")) },
   log: { home: ["/log", "log"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
-  resting: { home: ["/", "wheel"], name: (r) => t("rec.resting", recipe(r.recipe_id)?.name ?? t("rec.aDish")) },
+  resting: { home: ["/", "wheel"], name: (r) => t("rec.resting", dish(r.dish_id) ? nameOf(dish(r.dish_id)).text : t("rec.aDish")) },
 };
 
 /**
@@ -107,7 +107,7 @@ export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} 
 /** What a log line is about: the recipe or the shelf food, by name. @param {Item} e */
 export function logWhat(e) {
   if (e.shelf_id) return shelfItem(e.shelf_id)?.title ?? t("rec.goneShelf");
-  return recipe(e.recipe_id)?.name ?? t("rec.goneRecipe");
+  return dish(e.dish_id) ? nameOf(dish(e.dish_id)).text : t("rec.goneDish");
 }
 
 /** "Fries and mayonnaise", or the side's own label: one entry of the small wheel, in the current language. @param {Item} side */
@@ -176,9 +176,11 @@ function choiceOf(options, value, label) {
   );
 }
 
-/** The recipes as select options, by name. */
-const recipeOptions = () =>
-  [...(kitchenNow()?.recipes ?? [])].sort((a, b) => String(a.name).localeCompare(String(b.name))).map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)]));
+/** The dishes as select options, by name (the recipe of a dish has the dish's id). */
+const dishOptions = () =>
+  [...(kitchenNow()?.dishes ?? [])]
+    .map((d) => /** @type {[string, string]} */ ([d.id, nameOf(d).text]))
+    .sort((a, b) => a[1].localeCompare(b[1]));
 
 /**
  * One form in the drawer: rows on one `.kp-formgrid`, saved as a create or a replace.
@@ -215,7 +217,7 @@ function openForm({ list, item, title, text, rows, body, after, saved }) {
 export function openRecordEditor(list, item, preset = {}) {
   const k = kitchenNow();
   if (list === "dishes") {
-    openDishEditor(drawer(), { dish: item, categories: ordered(k?.dish_categories ?? []), recipes: k?.recipes ?? [] });
+    openDishEditor(drawer(), { dish: item, categories: ordered(k?.dish_categories ?? []) });
     return;
   }
   if (list === "dish_categories" || list === "ingredient_categories") {
@@ -251,7 +253,7 @@ export function openRecordEditor(list, item, preset = {}) {
   const v = { ...preset, ...(item ?? {}) };
   if (list === "freezer") {
     const dish = input(String(v.dish ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phDish") });
-    const from = select([["", t("rec.noRecipe")], ...recipeOptions()], v.recipe_id ?? "", t("rec.recipe"));
+    const from = select([["", t("rec.noDish")], ...dishOptions()], v.dish_id ?? "", t("rec.dish"));
     const portions = stepper(Number(v.portions ?? 2), { min: 0, max: 99, unit: "portions", one: "portion", label: t("rec.portions") });
     portions.classList.add("kp-formgrid__fill");
     const frozen = dateField(v.frozen_on ? brusselsDay(v.frozen_on) : today(), { max: today(), label: t("rec.frozenOn") });
@@ -262,7 +264,7 @@ export function openRecordEditor(list, item, preset = {}) {
       text: t("rec.inFreezerText"),
       rows: [
         row(t("rec.dish"), dish, t("rec.dishHint")),
-        row(t("rec.recipe"), from, t("rec.recipeHint")),
+        row(t("rec.dishLink"), from, t("rec.dishLinkHint")),
         row(t("rec.portions"), portions, t("rec.portionsHint")),
         row(t("rec.frozenOn"), frozen.el, t("rec.frozenHint")),
       ],
@@ -274,7 +276,7 @@ export function openRecordEditor(list, item, preset = {}) {
         if (!day || day > today()) return { error: t("rec.errDay"), remedy: t("rec.fixDay") };
         // A day other than today is kept at noon, so it never slips to the day before in another time zone.
         const at = day === today() && item === null ? new Date().toISOString() : new Date(`${day}T12:00:00`).toISOString();
-        return { dish: name, recipe_id: from.value || null, portions: getQuantity(portions), frozen_on: at };
+        return { dish: name, dish_id: from.value || null, portions: getQuantity(portions), frozen_on: at };
       },
       saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.dish),
     });
@@ -315,30 +317,30 @@ export function openRecordEditor(list, item, preset = {}) {
     return;
   }
   if (list === "resting") {
-    const what = select(recipeOptions(), v.recipe_id ?? "", t("rec.recipe"));
+    const what = select(dishOptions(), v.dish_id ?? "", t("rec.dish"));
     const until = dateField(String(v.until ?? today()), { label: t("rec.restingUntil") });
     openForm({
       list,
       item,
       title: t("rec.restingTitle"),
       text: t("rec.restingText"),
-      rows: [row(t("rec.recipe"), what, t("rec.restingHint")), row(t("rec.until"), until.el, t("rec.untilHint"))],
+      rows: [row(t("rec.dish"), what, t("rec.restingHint")), row(t("rec.until"), until.el, t("rec.untilHint"))],
       after: until.start,
       body: () => {
         const day = until.get();
         if (!what.value) return { error: t("rec.errRest"), remedy: t("rec.fixRest") };
         if (!day) return { error: t("rec.errUntil"), remedy: t("rec.fixUntil") };
-        return { recipe_id: what.value, until: day };
+        return { dish_id: what.value, until: day };
       },
-      saved: (b) => t("rec.restsUntil", recipe(b.recipe_id)?.name ?? t("rec.theDish"), dmy(b.until)),
+      saved: (b) => t("rec.restsUntil", dish(b.dish_id) ? nameOf(dish(b.dish_id)).text : t("rec.theDish"), dmy(b.until)),
     });
     return;
   }
   if (list === "log") {
     const shelf = [...(k?.shelf ?? [])].sort((a, b) => String(a.title).localeCompare(String(b.title)));
     const what = select(
-      [...recipeOptions().map(([id, n]) => /** @type {[string, string]} */ ([`r:${id}`, t("rec.optRecipe", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", s.title)]))],
-      v.shelf_id ? `s:${v.shelf_id}` : v.recipe_id ? `r:${v.recipe_id}` : "",
+      [...dishOptions().map(([id, n]) => /** @type {[string, string]} */ ([`d:${id}`, t("rec.optDish", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", s.title)]))],
+      v.shelf_id ? `s:${v.shelf_id}` : v.dish_id ? `d:${v.dish_id}` : "",
       t("rec.whatEaten"),
     );
     const day = dateField(String(v.date ?? today()), { max: today(), label: t("rec.day") });
@@ -363,7 +365,7 @@ export function openRecordEditor(list, item, preset = {}) {
         if (!d || d > today()) return { error: t("rec.errDay2"), remedy: t("rec.fixDay") };
         const feeling = getSegmentedValues(felt)[0] ?? "none";
         return {
-          recipe_id: kind === "r" ? id : null,
+          dish_id: kind === "d" ? id : null,
           shelf_id: kind === "s" ? id : null,
           date: d,
           feeling: feeling === "none" ? null : feeling,
@@ -376,6 +378,9 @@ export function openRecordEditor(list, item, preset = {}) {
 }
 
 // ---- safe dishes: a recipe's `safe` flag ----------------------------------------------------------------------------
+
+/** An empty recipe, for a dish that has none yet. */
+export const BLANK_RECIPE = { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
 
 /** Open the recipe editor for a recipe, or a new one that starts with `preset` (a new safe dish: `{ safe: true }`). @param {Item | null} r @param {Item} [preset] */
 export function openRecipeEditor(r, preset = {}) {
@@ -445,7 +450,7 @@ export function unmarkSafe(r) {
 
 /** Log a shelf food as eaten today (Kenny, 24/10/2026 05:07), with Undo. Resolves to the sentence that says so. @param {Item} s */
 export async function ateShelf(s) {
-  const line = await create("log", { recipe_id: null, shelf_id: s.id, date: today(), feeling: null, note: "" });
+  const line = await create("log", { dish_id: null, shelf_id: s.id, date: today(), feeling: null, note: "" });
   undoToast(t("rec.loggedToday", s.title), {
     mode: "revert",
     ms: 10_000,

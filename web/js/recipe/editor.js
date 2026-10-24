@@ -439,7 +439,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     const nameValue = /** @type {HTMLInputElement} */ (name).value.trim();
     const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
     return {
-      ...(recipe ?? {}),
+      // A new recipe carries its preset along: `dish_id` puts it into that dish (Kenny, 24/10/2026 09:27).
+      ...(recipe ?? preset),
       name: nameValue,
       short: shortValue || nameValue.split(/\s+/)[0] || "",
       summary: /** @type {HTMLTextAreaElement} */ (summary).value.trim(),

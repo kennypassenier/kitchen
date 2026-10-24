@@ -9,11 +9,21 @@ that needs it; add it here in the same change.
 Dates and times shown to a person are `dd/mm/yyyy HH:mm`, Europe/Brussels.
 Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 
-## recipes
+## a dish's recipes (`dish.recipes`)
+
+Since format 4 (Kenny, 24/10/2026 09:18, 09:27: "the recipe belongs to the
+dish", and a dish may have several) a recipe is not a list of its own: it
+is one entry of `dish.recipes`, with its own `id`, a `label` `{nl, en}` (the
+pages say "Recipe 1", "Recipe 2" while it is empty: "Oven", "Snelkookpan")
+and `default` on one of them (the one the wheel uses and "Yes, cook this"
+opens). The pages read them through a view (`web/js/api.js`: `k.recipes` is
+every recipe of every dish, named "Stoofvlees · Oven" when the dish has
+several or the recipe has a label, with `dish_id`; a create, replace or
+remove on "recipes" goes to the dish). The fields below are a recipe's;
+there is no `name` in it.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `name` | string | Full name: "Spaghetti with tomato sauce and meatballs" |
 | `short` | string | Short label for the wheel's slice ("Pasta"); the wheel's `short` option |
 | `summary` | string | A few sentences for the recipe page's lede; may be empty |
 | `meals` | string[] | `breakfast`, `lunch`, `dinner` |
@@ -83,7 +93,7 @@ a category alike. At least one half is filled.
 | `name` | `{nl, en}` | "Stoofvlees" / "Flemish beef stew" |
 | `category` | string \| null | A `dish_categories` id |
 | `parents` | boolean | On the parents' wheel |
-| `recipe_id` | string \| null | The recipe to cook it from, if there is one |
+| `recipes` | recipe[] | Its recipes (the fields above, with `id`, `label` and `default`), added and edited from the dish's page; empty while it has none |
 | `ingredients` | string[] | `ingredients` ids that always come with the dish: the stew itself, "Sla" (Kenny, 24/10/2026 05:26) |
 | `sides` | `{ingredients: string[], label?: {nl, en}}`[] | The choices, in the dish's order. Each side is one or more ingredients that go together ("Frieten" + "Mayonaise") and is one entry on the small wheel, which spins when there are two or more; one side is simply named. The entry reads as the side's `label` in that language ("Kroketten met mayonaise"; 05:27), else as its ingredients joined ("Frieten en mayonaise"). An ingredient stands once within a side but may stand in several sides |
 
@@ -97,7 +107,11 @@ format 1 kept "kinds of part" in a `dish_parts` list that a dish's `parts`
 pointed at; format 2 turned each choice into a side `{name, choice}`;
 format 3 turns every distinct side name and recipe line name into one
 ingredient (category "Andere" / "Other"), a side with `choice` on into a
-side of one ingredient and one with `choice` off into a fixed ingredient.
+side of one ingredient and one with `choice` off into a fixed ingredient;
+format 4 moves each recipe into its dish's `recipes` (the dish that linked
+it, else the one with its name, else a new dish with its name; the first in
+a dish is the default), adds `dish_id` to the log and turns `recipe_id`
+into `dish_id` in the freezer and resting.
 
 ## dish_categories
 
@@ -125,7 +139,9 @@ every dish, recipe or ingredient that uses it.
 
 ## freezer
 
-`{dish, recipe_id: string | null, portions: number, frozen_on: ISO datetime}`.
+`{dish, dish_id: string | null, portions: number, frozen_on: ISO datetime}`:
+`dish` as written, `dish_id` the dish it is when it is one of Kenny's (the
+wheel counts its portions for that dish; format 4).
 `POST /data/freezer/{id}/take` with `{"portions": 1}` takes one out (Undo
 sends `-1`); an item at zero portions stays until a page deletes it.
 
@@ -136,17 +152,19 @@ sends `-1`); an item at zero portions stays until a page deletes it.
 
 ## log (what was cooked)
 
-`{recipe_id, shelf_id?, date: "YYYY-MM-DD", feeling: string | null, note}`.
-Exactly one of `recipe_id` and `shelf_id` is set: a recipe that was cooked,
-or a zero-prep shelf food that was eaten ("I ate this" on /bad-days, Kenny,
-24/10/2026 05:07). The wheel's "days since last cooked" and the recipe
-page's heat log read only the recipe lines; "What I ate" (`/log`) and a
-shelf food's own page show both.
+`{dish_id, recipe_id?, shelf_id?, date: "YYYY-MM-DD", feeling: string | null, note}`.
+Exactly one of `dish_id` and `shelf_id` is set: a dish that was cooked
+(format 4; `recipe_id` says which of its recipes, when known), or a
+zero-prep shelf food that was eaten
+("I ate this" on /bad-days, Kenny, 24/10/2026 05:07). The wheel's "days
+since last cooked" and the recipe page's heat log read only the dish lines;
+"What I ate" (`/log`) and a shelf food's own page show both.
 
 ## resting
 
-`{recipe_id, until: "YYYY-MM-DD"}`: "Not this one, not again this week".
-The wheel leaves a resting dish out until `until` has passed.
+`{dish_id, until: "YYYY-MM-DD"}`: "Not this one, not again this week".
+The wheel leaves a resting dish out until `until` has passed (format 4: a
+mark whose recipe no dish carried was dropped).
 
 ## settings (one object, `PATCH /data/settings`)
 

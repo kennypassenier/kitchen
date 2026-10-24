@@ -378,3 +378,24 @@
   font-size: var(--kp-text-sm, 0.8125rem);
   padding-block-start: 5px;
 }
+
+/* The small wheel under the big one: a dish's sides (Kenny, 24/10/2026 09:17), smaller, on the same column. */
+.wl-sidewheel {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  justify-items: center;
+  inline-size: 100%;
+  --kp-wheel-size: min(14rem, 70%);
+}
+
+.wl-sidewheel[hidden] {
+  display: none;
+}
+
+.wl-result__side:empty {
+  display: none;
+}
+
+.wl-result__others:empty {
+  display: none;
+}

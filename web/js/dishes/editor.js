@@ -1,7 +1,9 @@
-// The dish editor and the small name editor, both in the recipe editor's drawer on `.kp-formgrid`.
+// The dish editor and the small name editor, both in the recipe editor's drawer on `.kp-formgrid`. A dish's recipes
+// are its own (Kenny, 24/10/2026 09:18, 09:27) and are edited with the recipe editor from the dish's page; saving the
+// dish here keeps them (the body spreads the dish).
 //
 // A dish (docs/agent/DATA.md "dishes") is what lands on a plate: a Dutch and an English name, a category, whether it
-// is on the parents' wheel, an optional recipe to cook it from, its fixed ingredients and its sides (Kenny,
+// is on the parents' wheel, its fixed ingredients and its sides (Kenny,
 // 24/10/2026 05:03, 05:15, 05:26, 05:27). The fixed ingredients always come with the dish (the stew itself, salad).
 // A side is one or more ingredients that go together ("frieten en mayonaise", "kroketten met mayonaise"), with an
 // optional label of its own; each side is one entry on the small wheel, which spins when the dish has two or more.
@@ -174,20 +176,15 @@ function sidesBlock(sides) {
 /**
  * Open the editor for a dish, or for a new one.
  * @param {HTMLDialogElement} dialog
- * @param {{ dish: Item | null, categories: Item[], recipes: Item[] }} spec
+ * @param {{ dish: Item | null, categories: Item[] }} spec
  */
-export function openDishEditor(dialog, { dish, categories, recipes }) {
-  const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipe_id: null, ingredients: [], sides: [] };
+export function openDishEditor(dialog, { dish, categories }) {
+  const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipes: [], ingredients: [], sides: [] };
   const n = names(d);
   const nl = input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees" });
   const en = input(n.en, "text", { autocomplete: "off", placeholder: t("de.phEn") });
   const category = select([["", t("it.noCategory")], ...categories.map((c) => /** @type {[string, string]} */ ([c.id, label(c)]))], d.category ?? "", t("rec.category"));
   const parents = toggle(t("it.onParents"), d.parents === true);
-  const recipe = select(
-    [["", t("rec.noRecipe")], ...[...recipes].sort((a, b) => String(a.name).localeCompare(String(b.name))).map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)]))],
-    d.recipe_id ?? "",
-    t("rec.recipe"),
-  );
   const fixed = ingredientsPicker(Array.isArray(d.ingredients) ? d.ingredients : [], { label: t("de.fixedAria") });
   const sides = sidesBlock(Array.isArray(d.sides) ? d.sides : []);
   const form = /** @type {HTMLFormElement} */ (
@@ -204,7 +201,6 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
           row(t("rec.englishName"), en, t("rec.englishHint")),
           row(t("rec.category"), category, t("de.catHint")),
           row(t("it.parentsWheel"), parents, t("de.parentsHint")),
-          row(t("rec.recipe"), recipe, t("de.recipeHint")),
         ),
       ),
       sec(
@@ -230,7 +226,6 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
         name: { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() },
         category: category.value || null,
         parents: on(parents),
-        recipe_id: recipe.value || null,
         ingredients: fixed.get(),
         sides: sides.get(),
       };

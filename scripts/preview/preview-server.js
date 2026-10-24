@@ -1,9 +1,9 @@
 // The kitchen server's JSON routes, answered inside the browser for the
 // preview: the same answers as src/routes.rs, kept in localStorage.
 (function () {
-  var KEY = "kitchen-preview-v5";
+  var KEY = "kitchen-preview-v6";
   var SEED = __SEED__;
-  var LISTS = ["recipes", "freezer", "shelf", "log", "resting", "dishes", "dish_categories", "ingredients", "ingredient_categories"];
+  var LISTS = ["freezer", "shelf", "log", "resting", "dishes", "dish_categories", "ingredients", "ingredient_categories"];
   function load() {
     try { var s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {}
     return JSON.parse(JSON.stringify(SEED));
