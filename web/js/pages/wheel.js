@@ -15,6 +15,7 @@ import { attachToggles, toggle } from "/static/kp/js/toggle.js";
 import { attachArt } from "/static/kp/js/art.js";
 import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
+import { openRecordEditor, detailHref } from "../records.js";
 
 /**
  * @typedef {object} Dish a recipe as the wheel sees it
@@ -486,7 +487,16 @@ export function mount(root, { navigate }) {
           const until = new Date(`${item.until}T12:00:00`);
           const back = h("button", { type: "button", class: "kp-button kp-button--sm", title: "Put this dish back on the wheel", "aria-label": `Bring back ${name}` }, "Bring back");
           back.addEventListener("click", () => void bringBack(item, name));
-          return h("div", { class: "wl-rest" }, h("span", { class: "wl-rest__name" }, name), h("span", { class: "wl-rest__until" }, Number.isNaN(until.getTime()) ? "" : dmy(until)), back);
+          // Edit changes the last day it rests (Kenny, 24/10/2026 05:07: every item has full CRUD and its own page).
+          const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `Change how long ${name} rests` }, "Edit");
+          edit.addEventListener("click", () => openRecordEditor("resting", item));
+          return h(
+            "div",
+            { class: "wl-rest" },
+            h("span", { class: "wl-rest__name" }, h("a", { href: detailHref("resting", item.id) }, name)),
+            h("span", { class: "wl-rest__until" }, Number.isNaN(until.getTime()) ? "" : dmy(until)),
+            h("span", { class: "kp-row-actions" }, edit, back),
+          );
         }),
       );
     };

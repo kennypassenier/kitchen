@@ -33,6 +33,7 @@ import { attachLoadingPieces } from "/static/kp/js/loading-pieces.js";
 import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
 import { h, $ } from "../dom.js";
+import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("../api.js").Item} Item */
@@ -66,7 +67,7 @@ const SECTIONS = `
       data-kp-loading-words="Opening your safe dishes…">
       <div class="kp-card__header">
         <h3 class="kp-card__title" id="bd-safe-t">Your safe dishes</h3>
-        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span></div>
+        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span><button type="button" class="kp-button kp-button--primary" data-bd-safe-add>Add a safe dish</button></div>
       </div>
       <p class="kp-card__body">Pick one and that is dinner decided. Each one is a recipe you marked as a safe favourite.</p>
       <div class="kp-card__stage">
@@ -203,15 +204,16 @@ const SECTIONS = `
               <span class="kp-segmented__label">Anything here</span><span class="kp-segmented__count"></span>
             </button>
           </div>
+          <button type="button" class="kp-button kp-button--primary" data-bd-shelf-add>Add a food</button>
         </div>
       </div>
-      <p class="kp-card__body">No stove, no oven, no pan. Choose what fits today, not what you think you should manage.</p>
+      <p class="kp-card__body">No stove, no oven, no pan. Choose what fits today, not what you think you should manage; I ate this writes it in the log.</p>
       <div class="kp-card__stage">
         <div class="kp-card__data">
           <ul class="kp-action-list kp-action-list--lead bd-shelf" aria-label="Foods without cooking" data-bd-shelf></ul>
         </div>
       </div>
-      <div class="kp-card__footer"><p class="bd-readout" role="status" data-bd-shelf-readout>Nothing chosen yet.</p></div>
+      <div class="kp-card__footer"><p class="bd-readout" role="status" data-bd-shelf-readout>Nothing from the shelf logged yet.</p></div>
     </section>
   </section>
 
@@ -405,11 +407,11 @@ export function mount(root, { navigate }) {
     drawn.safe = signature;
     safeCount.textContent = count(dishes.length, "dish", "dishes");
     if (!dishes.length) {
-      const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Pick from my recipes");
-      pick.addEventListener("click", () => navigate("/recipes"));
+      const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Add a safe dish");
+      pick.addEventListener("click", () => openSafePicker());
       setCardState(safeCard, "empty", {
         title: "No safe dishes yet",
-        text: "Mark three dishes as safe favourites in your recipes. They will wait here, in this exact place, and never move.",
+        text: "Pick a few of your recipes as safe favourites, or write a new one. They will wait here, in this exact place, and never move.",
         action: pick,
       });
       return;
@@ -418,9 +420,13 @@ export function mount(root, { navigate }) {
       ...dishes.map((r) => {
         const made = lastMade(k, r.id);
         const text = r.summary ? firstSentence(String(r.summary)) : `Takes about ${r.minutes} minutes and uses ${r.gear}.`;
+        const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `Edit ${r.name}` }, "Edit");
+        const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `${r.name} is not safe any more` }, "Not safe any more");
+        edit.addEventListener("click", () => openRecipeEditor(r));
+        unsafe.addEventListener("click", () => unmarkSafe(r));
         return h(
           "li",
-          null,
+          { class: "bd-safe__item" },
           h(
             "a",
             { class: "kp-action", href: `/recipe?id=${encodeURIComponent(r.id)}` },
@@ -434,6 +440,7 @@ export function mount(root, { navigate }) {
               h("span", null, made ? `last made ${dmy(made)}` : "not made yet"),
             ),
           ),
+          h("div", { class: "kp-row-actions" }, edit, unsafe),
         );
       }),
     );
@@ -447,7 +454,7 @@ export function mount(root, { navigate }) {
     const old = (Date.now() - at) / DAY >= OLD_AFTER_DAYS;
     const tr = h("tr", { "data-key": item.id });
     tr.append(
-      h("td", null, h("strong", null, item.dish)),
+      h("td", null, h("strong", null, itemLink("freezer", item))),
       h("td", { "data-kp-sort-value": String(item.portions) }, String(item.portions)),
       h("td", { "data-kp-sort-value": String(at) }, agoMoment(at).slice(0, 10)),
       h("td", null, h("time", { class: "kp-ago", "data-kp-ago": "", "data-kp-ago-verb": "frozen", datetime: new Date(at).toISOString() }, "")),
@@ -471,6 +478,8 @@ export function mount(root, { navigate }) {
             { type: "button", class: "kp-button kp-button--sm", "data-bd-take": item.id, "aria-label": `Take one portion of ${item.dish}` },
             "Take one portion",
           ),
+          h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-edit": item.id, "aria-label": `Edit ${item.dish}` }, "Edit"),
+          h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-delete": item.id, "aria-label": `Delete ${item.dish}` }, "Delete"),
         ),
       ),
     );
@@ -494,6 +503,16 @@ export function mount(root, { navigate }) {
     }
   }
 
+  // Edit and Delete of a freezer row: the shared drawer and the typed-name confirmation (js/records.js).
+  rows.addEventListener("click", (event) => {
+    const el = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-edit], [data-bd-delete]")) : null;
+    if (!el) return;
+    const id = el.getAttribute("data-bd-edit") ?? el.getAttribute("data-bd-delete");
+    const item = kitchenNow()?.freezer.find((f) => f.id === id);
+    if (!item) return;
+    if (el.hasAttribute("data-bd-edit")) openRecordEditor("freezer", item);
+    else deleteRecord(el, "freezer", item);
+  });
   rows.addEventListener("click", async (event) => {
     const button = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-take]")) : null;
     if (!button || button.getAttribute("aria-disabled") === "true") return;
@@ -568,7 +587,10 @@ export function mount(root, { navigate }) {
   // fires VALID_EVENT. This listener runs first and turns the page's own rules into the browser's validity.
   const DISH_WRONG = "Say what you froze, so you can find it again.";
   const DATE_WRONG = "Use a date up to today, as dd/mm/yyyy.";
-  form.addEventListener("submit", () => {
+  form.addEventListener("submit", (event) => {
+    // The package's form fires its valid event and leaves the browser's own submit running, which reloaded the page
+    // (a GET to /bad-days?dish=…) before the save went out: since 1.0.0 nothing was ever added (found 24/10/2026).
+    event.preventDefault();
     const dish = dishField.value.trim();
     const picked = datePicker(picker)?.get() ?? null;
     dishField.setCustomValidity(dish ? "" : DISH_WRONG);
@@ -614,10 +636,9 @@ export function mount(root, { navigate }) {
 
   function drawShelf() {
     const shown = shelfItems.filter((s) => LEVELS[level].includes(s.energy));
-    shelfReadout.textContent = "Nothing chosen yet.";
     if (!shelfItems.length) {
-      const go = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Look at the safe dishes");
-      go.addEventListener("click", () => $("#safe-dishes", page)?.scrollIntoView({ block: "start" }));
+      const go = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Add a food");
+      go.addEventListener("click", () => openRecordEditor("shelf", null));
       setCardState(shelfCard, "empty", {
         title: "The shelf is empty",
         text: "Foods that need no cooking, like yoghurt or crackers, wait here on the days you need them. Until then the safe dishes work on any day.",
@@ -644,11 +665,17 @@ export function mount(root, { navigate }) {
           h(
             "div",
             { class: "kp-action-list__main" },
-            h("strong", { class: "kp-action-list__title" }, s.title),
+            h("strong", { class: "kp-action-list__title" }, itemLink("shelf", s)),
             h("span", { class: "kp-action-list__text" }, s.text),
             h("span", { class: "kp-action-list__meta" }, h("span", null, s.gear)),
           ),
-          h("div", { class: "kp-row-actions" }, h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-pick": s.title, "aria-label": `This one: ${s.title}` }, "This one")),
+          h(
+            "div",
+            { class: "kp-row-actions" },
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary", "data-bd-pick": s.id, "aria-label": `I ate this: ${s.title}` }, "I ate this"),
+            h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-shelf-edit": s.id, "aria-label": `Edit ${s.title}` }, "Edit"),
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-shelf-delete": s.id, "aria-label": `Delete ${s.title}` }, "Delete"),
+          ),
         ),
       ),
     );
@@ -673,10 +700,26 @@ export function mount(root, { navigate }) {
     level = value;
     drawShelf();
   });
-  shelfList.addEventListener("click", (event) => {
-    const button = event.target instanceof Element ? event.target.closest("[data-bd-pick]") : null;
-    if (button) shelfReadout.textContent = `Chosen: ${button.getAttribute("data-bd-pick")}. A plate and you are done.`;
+  // I ate this writes a log line for today (Kenny, 24/10/2026 05:07), with Undo; the footer says what was logged.
+  shelfList.addEventListener("click", async (event) => {
+    const el = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-pick], [data-bd-shelf-edit], [data-bd-shelf-delete]")) : null;
+    if (!el || el.getAttribute("aria-disabled") === "true") return;
+    const id = el.getAttribute("data-bd-pick") ?? el.getAttribute("data-bd-shelf-edit") ?? el.getAttribute("data-bd-shelf-delete");
+    const item = kitchenNow()?.shelf.find((x) => x.id === id);
+    if (!item) return;
+    if (el.hasAttribute("data-bd-shelf-edit")) return openRecordEditor("shelf", item);
+    if (el.hasAttribute("data-bd-shelf-delete")) return deleteRecord(el, "shelf", item);
+    el.setAttribute("aria-disabled", "true");
+    try {
+      shelfReadout.textContent = await ateShelf(item);
+    } catch (e) {
+      toast(`Not logged: ${reason(e)}`, { live: "assertive", sticky: true });
+    } finally {
+      el.removeAttribute("aria-disabled");
+    }
   });
+  $("[data-bd-shelf-add]", page)?.addEventListener("click", () => openRecordEditor("shelf", null));
+  $("[data-bd-safe-add]", page)?.addEventListener("click", () => openSafePicker());
   shelfCard.addEventListener("kp-card-retry", reload);
   safeCard.addEventListener("kp-card-retry", reload);
 

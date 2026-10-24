@@ -331,7 +331,8 @@
 
 /* ---- what this screen adds to the approved design: real data ---- */
 
-/* Each dish set aside is one row on three shared tracks: its name, the date it comes back, and Bring back. */
+/* Each dish set aside is one row on three shared tracks: its name (a link to its page), the date it comes back, and
+   Edit with Bring back. */
 .wl-resting__list {
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content max-content;
