@@ -11,6 +11,14 @@ carries a **Migration** section saying what an operator must do.
   ingredients and ingredient categories (the server refuses a half name);
   adding an ingredient inline asks both. Older items show a badge. Shelf
   foods and freezer items keep their texts in both languages too.
+- One wheel component for every wheel (eten.kp-soft.dev, /parents, "What do
+  we eat?", an ingredient's page): the small wheel beside the big one,
+  bottoms aligned, the answer beside them; a wider page. Names fit their
+  slice from the first paint, a little room around the hub, no rewinding
+  after the stop (the pastel theme overshot by up to 122.6 degrees).
+- The small wheel spins only after the big one has stopped on a dish with
+  two or more sides.
+- The recipe editor picks several ingredients at once, one line each.
 
 ### Migration
 - None by hand: the first start rewrites `kitchen.json` to format 5 (a
