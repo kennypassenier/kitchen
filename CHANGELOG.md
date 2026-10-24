@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-24
+
 ### Added
 - eten.kp-soft.dev is a web app: a manifest, home-screen icons and the iOS
   meta tags, so the parents' wheel can be pinned and opens full screen;
