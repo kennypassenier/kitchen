@@ -30,8 +30,6 @@ const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
 
 export const WORDS = {
   nl: {
-    pageTitle: "Wat eten we vanavond?",
-    pageText: "Tik op het grote wiel en het kiest een gerecht. Hoort er een keuze bij, zoals frieten of puree, dan kiest het kleine wiel mee.",
     cardTitle: "Het eten van vanavond",
     cardText: "Tik op een wiel om het te laten kiezen. Een tik op het kleine wiel kiest opnieuw voor hetzelfde gerecht.",
     dishKicker: "Het gerecht",
@@ -53,8 +51,6 @@ export const WORDS = {
     tonight: (/** @type {string} */ dish, /** @type {string[]} */ withs) => (withs.length ? `Vanavond: ${dish}, met ${join(withs.map(lower), "en")}.` : `Vanavond: ${dish}.`),
   },
   en: {
-    pageTitle: "Parents' wheel",
-    pageText: "The wheel Kenny's parents see on eten.kp-soft.dev, in English. Tap the big wheel and it picks a dish; when the dish comes with a choice, such as fries or mash, the small wheel picks along.",
     cardTitle: "Tonight's dinner",
     cardText: "Tap a wheel to let it choose. A tap on the small wheel picks again for the same dish.",
     dishKicker: "The dish",
@@ -108,17 +104,9 @@ export function mountWheel(root, { lang, load, emptyAction }) {
 
   root.innerHTML = `
     <div class="pr-page">
-      <header class="kp-page-header">
-        <div class="kp-page-header__inner">
-          <div>
-            <h1 class="kp-page-header__title">${esc(w.pageTitle)}</h1>
-            <p class="kp-page-header__description">${esc(w.pageText)}</p>
-          </div>
-        </div>
-      </header>
       <section class="kp-card pr-card" data-kp-state="loading" aria-labelledby="pr-card-t" data-kp-loading-words="${esc(w.loading)}">
         <div class="kp-card__header">
-          <h2 class="kp-card__title" id="pr-card-t">${esc(w.cardTitle)}</h2>
+          <h1 class="kp-card__title" id="pr-card-t">${esc(w.cardTitle)}</h1>
           <div class="kp-card__actions"><span class="kp-badge" data-pr-count></span></div>
         </div>
         <p class="kp-card__body">${esc(w.cardText)}</p>
