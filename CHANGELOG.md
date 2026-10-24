@@ -6,6 +6,30 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Changed
+- The kitchen file is format 3, lifted on the first start: dishes have
+  fixed ingredients and sides of one or more ingredients instead of parts
+  and kinds of part; recipe lines point at one shared list of ingredients.
+- A new kitchen starts with only the two dish categories, "Other" for
+  ingredients and the dinner time; no sample recipes or dishes.
+
+### Added
+- Ingredients and ingredient categories (`/ingredients`), with a page per
+  ingredient: its dishes and recipes, filters and a wheel among its dishes.
+- Every item has its own page (`/dishes/<id>`, `/freezer/<id>`, …) with
+  Edit and Delete; "What I ate" (`/log`) lists the log.
+- Cook mode shows the recipe's timeline, as the timing page does.
+
+### Fixed
+- Kitchen's English parents' wheel (`/parents`) loaded its script and
+  sheet from `/eten/`, which only the home network may open, so away from
+  home it did not draw; only the Dutch page and its data stay home-only.
+
+### Migration
+- None by hand: the first start of this version rewrites `kitchen.json`
+  to format 3. An older kitchen refuses a format-3 file, so keep the
+  backup from before the update if a rollback may be needed.
+
 ## [1.0.0] - 2026-10-22
 
 ### Added

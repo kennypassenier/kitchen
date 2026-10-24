@@ -113,6 +113,8 @@ async fn main() -> std::process::ExitCode {
         // The dishes behind the parents' wheel, and the wheel itself in
         // English; the Dutch one is /eten, without a login.
         .page(Page::new("dishes", "Dishes", "/dishes"))
+        // The one list of ingredients dishes and recipes point at.
+        .page(Page::new("ingredients", "Ingredients", "/ingredients"))
         .page(Page::new("parents", "Parents' wheel", "/parents"))
         // Every line of the log, recipes cooked and shelf foods eaten.
         .page(Page::new("log", "What I ate", "/log"))

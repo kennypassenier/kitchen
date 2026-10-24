@@ -4,11 +4,11 @@
 // this. The data comes ready from the server (src/parents.rs `wheel`): the dishes with a name in the page's language,
 // each with its category and its sides, every name already in that language.
 //
-// The big wheel picks a dish. The small wheel picks one of the dish's sides marked "Choice" (Kenny, 24/10/2026 05:03:
-// frieten, kroketten, puree, …), when there are two or more; a dish with one marked side simply comes with it. The
-// other sides (sauce, salad, …) always come with the dish and are not spun. The sentence under the wheels says the
-// whole dinner. A tap on the small wheel picks the side again. The categories, when there are two or more, narrow
-// the big wheel.
+// The big wheel picks a dish. The small wheel picks one of the dish's sides (Kenny, 24/10/2026 05:26: a side is one
+// or more ingredients that go together, "Frieten en mayonaise", "Kroketten"), when there are two or more; a dish
+// with one side simply comes with it. The dish's fixed ingredients (salad, …) always come with it and are not spun.
+// The sentence under the wheels says the whole dinner. A tap on the small wheel picks the side again. The
+// categories, when there are two or more, narrow the big wheel.
 //
 // Both wheels are the package's kiosk wheel with its answer card (js/wheel.js); the card's loading, empty and failed
 // states are js/card-state.js. Nothing is stored: the spin is the whole of it.
@@ -18,8 +18,8 @@ import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/
 import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachArt } from "/static/kp/js/art.js";
 
-/** @typedef {{ name: string, choice: boolean }} Side */
-/** @typedef {{ id: string, name: string, category: string | null, sides: Side[] }} Dish */
+/** @typedef {{ name: string, ingredients: string[] }} Side */
+/** @typedef {{ id: string, name: string, category: string | null, ingredients: string[], sides: Side[] }} Dish */
 /** @typedef {{ id: string, name: string, count: number }} Category */
 /** @typedef {{ lang: string, dishes: Dish[], categories: Category[] }} WheelData */
 
@@ -77,8 +77,8 @@ export const WORDS = {
   },
 };
 
-/** The sides of a dish the small wheel picks from: those marked "Choice". @param {Dish} d */
-const choices = (d) => d.sides.filter((s) => s.choice === true).map((s) => s.name);
+/** The entries of the small wheel: the dish's sides by name. @param {Dish} d */
+const choices = (d) => (d.sides ?? []).map((s) => s.name);
 /** The small wheel spins only when there is a real choice. @param {Dish} d */
 const spins = (d) => choices(d).length > 1;
 
@@ -164,15 +164,16 @@ export function mountWheel(root, { lang, load, emptyAction }) {
       tonight.textContent = w.idle;
       return;
     }
-    // The sides in the dish's order; of the marked ones only the one the small wheel picked (or the only one).
-    const marked = choices(dish);
-    const chosen = marked.length === 1 ? marked[0] : pick;
+    // The fixed ingredients (the dish's own name left out: "Stoofvlees, met stoofvlees" says it twice), then the side
+    // the small wheel picked, or the only one.
+    const sides = choices(dish);
+    const chosen = sides.length === 1 ? sides[0] : pick;
     if (spins(dish) && chosen === null) {
       tonight.textContent = w.turning;
       return;
     }
-    const withs = dish.sides.filter((s) => !s.choice || s.name === chosen).map((s) => s.name);
-    tonight.textContent = w.tonight(dish.name, [...new Set(withs)]);
+    const fixed = (dish.ingredients ?? []).filter((n) => n.toLowerCase() !== dish?.name.toLowerCase());
+    tonight.textContent = w.tonight(dish.name, [...fixed, ...(chosen ? [chosen] : [])]);
   };
 
   // The big wheel draws its dish before it turns: the small wheel starts on the dish's choice at once.

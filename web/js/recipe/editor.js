@@ -19,6 +19,7 @@ import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
+import { ingredientPicker } from "../ingredients/picker.js";
 
 /** Meals and preparation, as the data names them. */
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
@@ -224,12 +225,12 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   });
   const ingredients = rows({
     columns: [
-      { label: "Ingredient", width: "minmax(0, 1fr)", make: (i) => { const c = textCell("Ingredient name", i.name ?? "", "spaghetti"); return { el: c.el, get: () => ({ id: i.id ?? (i.id = newId()), name: c.get() }) }; } },
+      { label: "Ingredient", width: "minmax(0, 1fr)", make: (i) => { const c = ingredientPicker(i.ingredient ?? null, { label: "Ingredient" }); return { el: c.el, get: () => ({ ...i, id: i.id ?? (i.id = newId()), ingredient: c.get() }) }; } },
       { label: "Amount", width: "6rem", make: (i) => { const el = input(i.amount ?? "", "number", { "aria-label": "Amount", step: "any", min: "0", inputmode: "decimal" }); return { el, get: () => (/** @type {HTMLInputElement} */ (el).value === "" ? null : Number(/** @type {HTMLInputElement} */ (el).value)) }; } },
       { label: "Unit", width: "8rem", make: (i) => { const el = select([...new Set([...UNITS, i.unit].filter(Boolean))].map((u) => [u, u]), i.unit ?? "g", "Unit"); return { el, get: () => el.value }; } },
       { label: "List", width: "14rem", make: (i) => { const el = select([...new Set([...GROUPS, ...(r.ingredients ?? []).map((/** @type {any} */ x) => x.group), i.group].filter(Boolean))].map((g) => [g, g]), i.group ?? GROUPS[0], "Which list it is on"); return { el, get: () => el.value }; } },
     ],
-    items: r.ingredients ?? [], add: "Add an ingredient", noun: "ingredient", blank: () => ({ name: "", amount: null, unit: "g", group: GROUPS[0] }),
+    items: r.ingredients ?? [], add: "Add an ingredient", noun: "ingredient", blank: () => ({ ingredient: null, amount: null, unit: "g", group: GROUPS[0] }),
   });
   const tools = rows({
     columns: [{ label: "Tool", width: "minmax(0, 1fr)", make: (t) => { const c = textCell("Tool name", t.name ?? "", "big pot"); return { el: c.el, get: () => ({ id: t.id ?? (t.id = newId()), name: c.get() }) }; } }],
@@ -435,7 +436,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
       mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),
       tracks: tracks.get().map(([t]) => t).filter((t) => t.name),
-      ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.name),
+      ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient),
       tools: tools.get().map(([t]) => t).filter((t) => t.name),
       steps: stepList.map((e) => e.get()).filter((s) => s.text),
     };

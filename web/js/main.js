@@ -25,12 +25,15 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/parents": () => import("./pages/parents.js"),
   "/dishes": () => import("./pages/dishes.js"),
   "/log": () => import("./pages/log.js"),
+  "/ingredients": () => import("./pages/ingredients.js"),
 });
 
 /** Every item's own page, `/<word>/<id>` (pages/item.js), and the bar entry it lights up. */
 const DETAIL = /** @type {Record<string, string>} */ ({
   dishes: "/dishes",
   categories: "/dishes",
+  ingredients: "/ingredients",
+  "ingredient-categories": "/ingredients",
   freezer: "/bad-days",
   shelf: "/bad-days",
   log: "/log",
@@ -48,7 +51,7 @@ const GROUP = /** @type {Record<string, string>} */ ({ "/recipe": "/recipes", "/
 function route(path, search) {
   const params = new URLSearchParams(search);
   if (path in ROUTES) return { load: ROUTES[path], params, bar: GROUP[path] ?? path };
-  const m = path.match(/^\/([a-z]+)\/([^/]+)$/);
+  const m = path.match(/^\/([a-z-]+)\/([^/]+)$/);
   if (!m || !(m[1] in DETAIL)) return null;
   params.set("list", m[1]);
   params.set("id", decodeURIComponent(m[2]));

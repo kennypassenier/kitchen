@@ -4,11 +4,11 @@
 // (js/dishes/editor.js); Delete asks for the typed name. A category a dish still uses cannot be deleted, so no dish
 // ever points at nothing.
 
-import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
+import { loadKitchen, onKitchen, kitchenNow, ingredientName } from "../api.js";
 import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { names, label, languages, ordered } from "../dishes/editor.js";
-import { tableCard, rowActions, itemLink, openRecordEditor } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, sideName } from "../records.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
@@ -82,10 +82,10 @@ export function mount(root) {
         const n = names(d);
         const only = languages(d);
         const cat = catList.find((c) => c.id === d.category);
-        // "Choice of fries or mash; with mayonnaise": the small wheel's sides first, then what always comes along.
-        const sides = /** @type {Item[]} */ (d.sides ?? []);
-        const pick = sides.filter((x) => x.choice === true).map(label);
-        const always = sides.filter((x) => x.choice !== true).map(label);
+        // "Choice of fries and mayonnaise or croquettes; with salad": the small wheel's sides first, then what always
+        // comes along.
+        const pick = /** @type {Item[]} */ (d.sides ?? []).map((x) => sideName(x));
+        const always = /** @type {string[]} */ (d.ingredients ?? []).map((id) => ingredientName(id));
         const said = [pick.length > 1 ? `Choice of ${pick.join(" or ")}` : pick.length ? `With ${pick[0]}` : "", always.length ? `${pick.length ? "with" : "With"} ${always.join(", ")}` : ""].filter(Boolean).join("; ");
         const wheel =
           d.parents !== true

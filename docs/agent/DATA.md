@@ -25,7 +25,7 @@ Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 | `safe` | boolean | A safe favourite for bad days |
 | `gear` | string | What it dirties: "1 pot", "the oven, 2 pots" |
 | `last_note` | string | The "Last time" note on the recipe page |
-| `ingredients` | `{id, name, amount: number \| null, unit, group, note?}`[] | Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
+| `ingredients` | `{id, ingredient, amount: number \| null, unit, group, note?}`[] | `ingredient` is an `ingredients` id (format 3; the name comes from there). Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
 | `tools` | `{id, name}`[] | Gathered before cooking (the Begin checklist's "Tools") |
 | `tracks` | `{id, name}`[] | Parallel tracks ("Pasta", "Sauce"); empty for a one-track dish |
 | `steps` | step[] | In cooking order, see below |
@@ -60,18 +60,44 @@ a category alike. At least one half is filled.
 | `category` | string \| null | A `dish_categories` id |
 | `parents` | boolean | On the parents' wheel |
 | `recipe_id` | string \| null | The recipe to cook it from, if there is one |
-| `sides` | `{name: {nl, en}, choice: boolean}`[] | What comes with the dish, in the dish's order (Kenny, 24/10/2026 05:03). The small wheel picks one of the sides with `choice` on when there are two or more ("Frieten", "Kroketten", "Puree"); a single one simply comes with the dish. Sides with `choice` off always come with it ("Bearnaise", "Sla") |
+| `ingredients` | string[] | `ingredients` ids that always come with the dish: the stew itself, "Sla" (Kenny, 24/10/2026 05:26) |
+| `sides` | `{ingredients: string[], label?: {nl, en}}`[] | The choices, in the dish's order. Each side is one or more ingredients that go together ("Frieten" + "Mayonaise") and is one entry on the small wheel, which spins when there are two or more; one side is simply named. The entry reads as the side's `label` in that language ("Kroketten met mayonaise"; 05:27), else as its ingredients joined ("Frieten en mayonaise"). An ingredient stands once within a side but may stand in several sides |
 
-Format 1 kept "kinds of part" in a `dish_parts` list and a dish's `parts`
-pointed at them; `src/store.rs` `migrate` turns each choice of a part into a
-side, with `choice` on when its kind was picked by the small wheel, and
-drops the list on the first start of format 2.
+The wheel data (`/eten/data`, `/data/wheel/en`) gives each dish its fixed
+`ingredients` as names and each side as `{name, ingredients}`, already in
+the page's language; an ingredient without a name in it is left out, and a
+side with none left goes.
+
+Older files are lifted on the first start (`src/store.rs` `migrate`):
+format 1 kept "kinds of part" in a `dish_parts` list that a dish's `parts`
+pointed at; format 2 turned each choice into a side `{name, choice}`;
+format 3 turns every distinct side name and recipe line name into one
+ingredient (category "Andere" / "Other"), a side with `choice` on into a
+side of one ingredient and one with `choice` off into a fixed ingredient.
 
 ## dish_categories
 
 `{name: {nl, en}, order: number}`: "Dagelijkse kost" / "Everyday". `order`
 is the position, 1, 2, 3, … without gaps; the dishes page keeps it so. A
 category a dish uses cannot be deleted from the page.
+
+## ingredients and ingredient_categories
+
+One list of ingredients for the whole kitchen (Kenny, 24/10/2026 05:15):
+a dish's fixed ingredients and sides and a recipe's lines point at it, so
+"Mayonaise" is one thing with one page (`/ingredients/<id>`) that lists
+every dish and recipe with it.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `name` | `{nl, en}` | "Frieten" / "Fries"; an empty half drops it only from that language |
+| `category` | string \| null | An `ingredient_categories` id |
+
+`ingredient_categories` are `{name: {nl, en}, order}` like the dish
+categories: "Vlees" / "Meat", "Aardappelen" / "Potatoes", "Andere" /
+"Other" (in a new kitchen and made by the migration when missing). An
+ingredient or a category still in use cannot be deleted; the refusal names
+every dish, recipe or ingredient that uses it.
 
 ## freezer
 

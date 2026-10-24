@@ -19,8 +19,11 @@ use tokio::sync::RwLock;
 
 /// The file's own format version; a newer file is refused, not misread.
 /// Format 2 (Kenny, 24/10/2026 05:03): a dish holds its own sides and the
-/// "kinds of part" list is gone; [`migrate`] lifts a format-1 file.
-pub const FORMAT: u32 = 2;
+/// "kinds of part" list is gone. Format 3 (05:15, 05:26): one shared list
+/// of ingredients; a dish has fixed ingredients and sides of one or more
+/// ingredients, a recipe line points at an ingredient. [`migrate`] lifts
+/// older files.
+pub const FORMAT: u32 = 3;
 
 /// The collections a page may read and write. Settings is a single object
 /// and has its own routes.
@@ -32,6 +35,8 @@ pub const COLLECTIONS: &[&str] = &[
     "resting",
     "dishes",
     "dish_categories",
+    "ingredients",
+    "ingredient_categories",
 ];
 
 /// The first contents of a new kitchen: the two dish categories and the
@@ -61,6 +66,10 @@ pub struct Data {
     #[serde(default)]
     pub dish_categories: Vec<Value>,
     #[serde(default)]
+    pub ingredients: Vec<Value>,
+    #[serde(default)]
+    pub ingredient_categories: Vec<Value>,
+    #[serde(default)]
     pub settings: Map<String, Value>,
 }
 
@@ -74,6 +83,8 @@ impl Data {
             "resting" => Some(&mut self.resting),
             "dishes" => Some(&mut self.dishes),
             "dish_categories" => Some(&mut self.dish_categories),
+            "ingredients" => Some(&mut self.ingredients),
+            "ingredient_categories" => Some(&mut self.ingredient_categories),
             _ => None,
         }
     }
@@ -301,12 +312,23 @@ fn write(path: &Path, data: &Data) -> Result<(), String> {
     chassis::shell::store::write_atomic(path, &bytes, "the kitchen file").map_err(|e| e.to_string())
 }
 
-/// Lift a format-1 file to format 2 (Kenny, 24/10/2026 05:03). Each dish's
-/// `parts` become its `sides`, in the kinds' order: every choice of a part
-/// becomes one side, with `choice` on when its kind was picked by the small
-/// wheel. The kinds of part are dropped. Nothing else changes, and no dish
-/// is added or removed.
+/// Lift an older file to [`FORMAT`], one format at a time.
 pub fn migrate(data: &mut Data) {
+    if data.format < 2 {
+        to_2(data);
+    }
+    if data.format < 3 {
+        to_3(data);
+    }
+    data.format = FORMAT;
+}
+
+/// Format 1 to 2 (Kenny, 24/10/2026 05:03). Each dish's `parts` become its
+/// `sides`, in the kinds' order: every choice of a part becomes one side,
+/// with `choice` on when its kind was picked by the small wheel. The kinds
+/// of part are dropped. Nothing else changes, and no dish is added or
+/// removed.
+fn to_2(data: &mut Data) {
     let kinds = std::mem::take(&mut data.dish_parts);
     let kind = |id: Option<&Value>| {
         let id = id.and_then(Value::as_str)?;
@@ -348,7 +370,121 @@ pub fn migrate(data: &mut Data) {
         }
         obj.entry("sides").or_insert(Value::Array(sides));
     }
-    data.format = FORMAT;
+    data.format = 2;
+}
+
+/// The id of the ingredient named `nl` or `en` (any case), made when there
+/// is none yet; a half the ingredient misses is filled from the name given.
+fn ingredient_id(list: &mut Vec<Value>, other: &str, nl: &str, en: &str) -> Option<String> {
+    let (nl, en) = (nl.trim(), en.trim());
+    if nl.is_empty() && en.is_empty() {
+        return None;
+    }
+    let same = |v: &Value, lang: &str, name: &str| {
+        !name.is_empty()
+            && v["name"][lang]
+                .as_str()
+                .is_some_and(|n| n.trim().to_lowercase() == name.to_lowercase())
+    };
+    if let Some(found) = list
+        .iter_mut()
+        .find(|v| same(v, "nl", nl) || same(v, "en", en))
+    {
+        for (lang, name) in [("nl", nl), ("en", en)] {
+            if !name.is_empty()
+                && found["name"][lang]
+                    .as_str()
+                    .is_none_or(|n| n.trim().is_empty())
+            {
+                found["name"][lang] = Value::from(name);
+            }
+        }
+        return found["id"].as_str().map(str::to_string);
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    list.push(serde_json::json!({
+        "id": id,
+        "name": { "nl": nl, "en": en },
+        "category": other,
+        "created": chassis::shell::time::now_rfc3339(),
+    }));
+    Some(id)
+}
+
+/// Format 2 to 3 (Kenny, 24/10/2026 05:15, 05:26). Every distinct side name
+/// and recipe ingredient name becomes one ingredient (matched on its Dutch
+/// or English name, any case; a recipe line's name is English), in the
+/// category "Andere" / "Other", made when missing. A dish's side with
+/// `choice` on becomes a side of one ingredient (`sides: [{ingredients:
+/// [id]}]`, one entry on the small wheel); one with `choice` off becomes
+/// one of the dish's fixed `ingredients`. A recipe line keeps its amount,
+/// unit, group and note and gets `ingredient` instead of `name`. Nothing
+/// else changes.
+fn to_3(data: &mut Data) {
+    let is_other = |c: &Value| {
+        c["name"]["en"]
+            .as_str()
+            .is_some_and(|n| n.trim().eq_ignore_ascii_case("other"))
+    };
+    let other = match data.ingredient_categories.iter().find(|c| is_other(c)) {
+        Some(c) => c["id"].as_str().unwrap_or_default().to_string(),
+        None => {
+            let id = uuid::Uuid::new_v4().to_string();
+            data.ingredient_categories.push(serde_json::json!({
+                "id": id,
+                "name": { "nl": "Andere", "en": "Other" },
+                "order": data.ingredient_categories.len() + 1,
+                "created": chassis::shell::time::now_rfc3339(),
+            }));
+            id
+        }
+    };
+    let mut list = std::mem::take(&mut data.ingredients);
+    for dish in &mut data.dishes {
+        let Some(obj) = dish.as_object_mut() else {
+            continue;
+        };
+        let old = obj
+            .remove("sides")
+            .and_then(|v| v.as_array().cloned())
+            .unwrap_or_default();
+        let mut fixed: Vec<Value> = Vec::new();
+        let mut sides: Vec<Value> = Vec::new();
+        for side in &old {
+            let half = |lang: &str| side["name"][lang].as_str().unwrap_or_default().to_string();
+            let Some(id) = ingredient_id(&mut list, &other, &half("nl"), &half("en")) else {
+                continue;
+            };
+            if side.get("choice").and_then(Value::as_bool) == Some(true) {
+                sides.push(serde_json::json!({ "ingredients": [id] }));
+            } else if !fixed.contains(&Value::String(id.clone())) {
+                fixed.push(Value::String(id));
+            }
+        }
+        obj.insert("ingredients".into(), Value::Array(fixed));
+        obj.insert("sides".into(), Value::Array(sides));
+    }
+    for recipe in &mut data.recipes {
+        let Some(lines) = recipe.get_mut("ingredients").and_then(Value::as_array_mut) else {
+            continue;
+        };
+        for line in lines.iter_mut() {
+            let Some(obj) = line.as_object_mut() else {
+                continue;
+            };
+            let name = obj
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            if let Some(id) = ingredient_id(&mut list, &other, "", &name) {
+                obj.remove("name");
+                obj.insert("ingredient".into(), Value::String(id));
+            }
+        }
+    }
+    data.ingredients = list;
+    data.format = 3;
 }
 
 /// The seed with ids issued, so every item looks as if a page created it.
@@ -373,6 +509,8 @@ mod tests {
             dishes: vec![],
             dish_parts: vec![],
             dish_categories: vec![],
+            ingredients: vec![],
+            ingredient_categories: vec![],
             settings: Map::new(),
         }
     }
@@ -427,6 +565,8 @@ mod tests {
         );
         assert!(d.dishes.is_empty());
         assert_eq!(d.dish_categories.len(), 2);
+        assert!(d.ingredients.is_empty());
+        assert_eq!(d.ingredient_categories.len(), 1);
     }
 
     #[test]
@@ -446,8 +586,8 @@ mod tests {
             ]
         }))
         .unwrap();
-        migrate(&mut d);
-        assert_eq!(d.format, FORMAT);
+        to_2(&mut d);
+        assert_eq!(d.format, 2);
         assert!(d.dish_parts.is_empty());
         assert_eq!(d.dishes.len(), 2);
         assert_eq!(
@@ -466,5 +606,66 @@ mod tests {
                 .get("dish_parts")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn format_2_names_become_one_list_of_ingredients() {
+        let mut d: Data = serde_json::from_value(serde_json::json!({
+            "format": 2,
+            "dishes": [
+                {"id": "d1", "name": {"nl": "Biefstuk", "en": "Steak"}, "sides": [
+                    {"name": {"nl": "Frieten", "en": ""}, "choice": true},
+                    {"name": {"nl": "Sla", "en": "Salad"}, "choice": false}
+                ]}
+            ],
+            "recipes": [
+                {"id": "r1", "name": "Steak", "ingredients": [
+                    {"id": "i1", "name": "FRIES", "amount": 300, "unit": "g", "group": "Ingredients"},
+                    {"id": "i2", "name": "salad", "amount": 1, "unit": "pc", "group": "Ingredients"},
+                    {"id": "i3", "name": "butter", "amount": 20, "unit": "g", "group": "From the cupboard"}
+                ]}
+            ],
+            "dish_categories": [{"id": "c1", "name": {"nl": "Dagelijkse kost", "en": "Everyday"}}]
+        }))
+        .unwrap();
+        // "Frieten" has no English half: "FRIES" from the recipe becomes an ingredient of its own; "salad" is "Sla".
+        migrate(&mut d);
+        assert_eq!(d.format, FORMAT);
+        assert_eq!(d.ingredient_categories.len(), 1);
+        let other = d.ingredient_categories[0]["id"].clone();
+        let names: Vec<_> = d
+            .ingredients
+            .iter()
+            .map(|i| {
+                (
+                    i["name"]["nl"].as_str().unwrap(),
+                    i["name"]["en"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ("Frieten", ""),
+                ("Sla", "Salad"),
+                ("", "FRIES"),
+                ("", "butter")
+            ]
+        );
+        assert!(d.ingredients.iter().all(|i| i["category"] == other));
+        let id = |n: usize| d.ingredients[n]["id"].clone();
+        assert_eq!(
+            d.dishes[0]["sides"],
+            serde_json::json!([{"ingredients": [id(0)]}])
+        );
+        assert_eq!(d.dishes[0]["ingredients"], serde_json::json!([id(1)]));
+        let lines = &d.recipes[0]["ingredients"];
+        assert_eq!(
+            lines[1],
+            serde_json::json!({"id": "i2", "ingredient": id(1), "amount": 1, "unit": "pc", "group": "Ingredients"})
+        );
+        assert_eq!(lines[0]["ingredient"], id(2));
+        assert!(lines[2].get("name").is_none());
+        assert_eq!(d.dish_categories.len(), 1);
     }
 }

@@ -16,8 +16,10 @@
 //!
 //! The wheel answers only Kenny's home network (`KITCHEN_PARENTS_ALLOW`,
 //! default `10.10.10.0/24`; Kenny, 22/10/2026 23:08): eten.kp-soft.dev has
-//! no public record and no Cloudflare, and [`parents_guard`] refuses `/eten…`
-//! to any other address as a second lock. When `KITCHEN_PARENTS_HOST` names
+//! no public record and no Cloudflare, and [`parents_guard`] refuses the page
+//! and its data (`/eten`, `/eten/data`) to any other address as a second
+//! lock; the wheel's script and sheet pass, since Kitchen's own `/parents`
+//! loads them too. When `KITCHEN_PARENTS_HOST` names
 //! a host, the guard also keeps that host to the wheel: its root answers the
 //! page, `/eten…`, `/static/…` and `/healthz` pass, and every other path
 //! sends the visitor back to the wheel, so the login page is never reachable
@@ -173,12 +175,40 @@ fn order(v: &Value) -> f64 {
     v.get("order").and_then(Value::as_f64).unwrap_or(f64::MAX)
 }
 
+/// "Frieten en mayonaise", "Fries, peas and mayonnaise": a side's ingredients as one entry on the small wheel, the
+/// first as written and the others starting small.
+fn joined(names: &[String], lang: Lang) -> String {
+    let and = if lang == Lang::Nl { "en" } else { "and" };
+    let small = |s: &String| -> String {
+        let mut c = s.chars();
+        match c.next() {
+            Some(f) => f.to_lowercase().chain(c).collect(),
+            None => String::new(),
+        }
+    };
+
+    match names {
+        [] => String::new(),
+        [one] => one.clone(),
+        [first, rest @ .., last] => {
+            let mut out = first.clone();
+            for n in rest {
+                out.push_str(", ");
+                out.push_str(&small(n));
+            }
+            format!("{out} {and} {}", small(last))
+        }
+    }
+}
+
 /// The dishes on the parents' wheel in one language.
 ///
 /// A dish shows when `parents` is true and it has a name in `lang`. Its
-/// sides come in the dish's own order, each one that has a name in `lang`,
-/// with its `choice` mark: the small wheel picks one of the marked sides
-/// (Kenny, 24/10/2026 05:03), the others always come with the dish.
+/// fixed `ingredients` always come with it; each of its `sides` is one
+/// entry on the small wheel, named by its ingredients ("Frieten en
+/// mayonaise"; Kenny, 24/10/2026 05:26) or by its own `label` (05:27). The
+/// same ingredient may stand in several sides. An ingredient without a name
+/// in `lang` is left out, and a side with none left goes.
 /// Categories are the ones the shown dishes use, in their order, with how
 /// many dishes each holds.
 pub fn wheel(data: &Data, lang: Lang) -> Value {
@@ -190,15 +220,28 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
         let Some(name) = named(d.get("name"), lang) else {
             continue;
         };
+        // The names in `lang` of a list of ingredient ids, the ones without such a name left out.
+        let names = |ids: Option<&Value>| -> Vec<String> {
+            ids.and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|id| named(by_id(&data.ingredients, Some(id))?.get("name"), lang))
+                .collect()
+        };
+        let fixed = names(d.get("ingredients"));
         let sides: Vec<Value> = d
             .get("sides")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
             .filter_map(|side| {
-                let name = named(side.get("name"), lang)?;
-                let choice = side.get("choice").and_then(Value::as_bool) == Some(true);
-                Some(json!({ "name": name, "choice": choice }))
+                let shown = names(side.get("ingredients"));
+                if shown.is_empty() {
+                    return None;
+                }
+                // The side's own label when it has one in `lang` ("Kroketten met mayonaise"; 05:27).
+                let name = named(side.get("label"), lang).unwrap_or_else(|| joined(&shown, lang));
+                Some(json!({ "name": name, "ingredients": side["ingredients"] }))
             })
             .collect();
         let category = by_id(&data.dish_categories, d.get("category"))
@@ -209,6 +252,7 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
             "id": d["id"],
             "name": name,
             "category": category,
+            "ingredients": fixed,
             "sides": sides,
         }));
     }
@@ -292,6 +336,15 @@ fn not_home() -> Response {
         .into_response()
 }
 
+/// The paths only the home network may open: the Dutch page and its dishes.
+/// The wheel's script and sheet under `/eten/` hold no data and pass from
+/// anywhere, because Kitchen's own English page (`/parents`, behind the
+/// login) loads them too: refused, the wheel broke for Kenny away from home
+/// (found 24/10/2026, in Kitchen 1.0.0).
+fn home_only(path: &str) -> bool {
+    path == "/eten" || path == "/eten/data"
+}
+
 /// The parents' wheel's own gate (see the module comment): `/eten…` answers
 /// only `allow`, on every host, and `host` (when set) is kept to the wheel.
 /// The client address is the kit's: behind Traefik that is the address
@@ -309,6 +362,7 @@ pub fn parents_guard(
     move |req| {
         let path = req.path.as_str();
         let wheel = path == "/eten" || path.starts_with("/eten/");
+        let private = home_only(path);
         let asked = req
             .headers
             .get(header::HOST)
@@ -316,7 +370,7 @@ pub fn parents_guard(
             .map(|h| h.split(':').next().unwrap_or("").to_ascii_lowercase())
             .unwrap_or_default();
         let ours = host.as_deref() == Some(asked.as_str());
-        let verdict = if (wheel || (ours && path == "/")) && !allow.allows(req.client_ip) {
+        let verdict = if (private || (ours && path == "/")) && !allow.allows(req.client_ip) {
             Err(not_home())
         } else if !ours || wheel || path.starts_with("/static/") || path == "/healthz" {
             Ok(())
@@ -339,13 +393,21 @@ mod tests {
             json!({"id": "c-day", "name": {"nl": "Dagelijkse kost", "en": "Everyday"}, "order": 1}),
             json!({"id": "c-special", "name": {"nl": "Speciaal", "en": "Special"}, "order": 2}),
         ];
+        d.ingredients = vec![
+            json!({"id": "i-stew", "name": {"nl": "Stoofvlees", "en": "Beef stew"}}),
+            json!({"id": "i-fries", "name": {"nl": "Frieten", "en": "Fries"}}),
+            json!({"id": "i-croq", "name": {"nl": "Kroketten", "en": "Croquettes"}}),
+            json!({"id": "i-mayo", "name": {"nl": "Mayonaise", "en": "Mayonnaise"}}),
+            json!({"id": "i-salad", "name": {"nl": "Sla", "en": ""}}),
+        ];
         d.dishes = vec![
             json!({"id": "d1", "name": {"nl": "Stoofvlees", "en": "Beef stew"}, "parents": true, "category": "c-day",
+            "ingredients": ["i-stew", "i-salad", "i-gone"],
             "sides": [
-                {"name": {"nl": "Frieten", "en": "Fries"}, "choice": true},
-                {"name": {"nl": "Puree", "en": ""}, "choice": true},
-                {"name": {"nl": "Mayonaise", "en": "Mayonnaise"}, "choice": false},
-                {"name": {"nl": "Wortelen", "en": ""}}
+                {"ingredients": ["i-fries", "i-mayo"]},
+                {"ingredients": ["i-croq", "i-mayo"], "label": {"nl": "Kroketten met mayonaise", "en": ""}},
+                {"ingredients": ["i-salad"]},
+                {"ingredients": ["i-gone"]}
             ]}),
             json!({"id": "d2", "name": {"nl": "Konijn", "en": ""}, "parents": true, "category": "c-special", "sides": []}),
             json!({"id": "d3", "name": {"nl": "", "en": "Shakshuka"}, "parents": true}),
@@ -370,23 +432,49 @@ mod tests {
     }
 
     #[test]
-    fn sides_follow_the_language_in_the_dishs_order_with_their_choice_mark() {
+    fn a_side_is_one_wheel_entry_named_by_its_label_or_its_ingredients() {
         let nl = wheel(&data(), Lang::Nl);
+        let d1 = &nl["dishes"][1];
+        assert_eq!(d1["ingredients"], json!(["Stoofvlees", "Sla"]));
         assert_eq!(
-            nl["dishes"][1]["sides"],
+            d1["sides"],
             json!([
-                {"name": "Frieten", "choice": true},
-                {"name": "Puree", "choice": true},
-                {"name": "Mayonaise", "choice": false},
-                {"name": "Wortelen", "choice": false}
+                {"name": "Frieten en mayonaise", "ingredients": ["i-fries", "i-mayo"]},
+                {"name": "Kroketten met mayonaise", "ingredients": ["i-croq", "i-mayo"]},
+                {"name": "Sla", "ingredients": ["i-salad"]}
             ])
         );
+        // English: no English label, so the ingredients; "Sla" has no English name, so its side goes.
         let en = wheel(&data(), Lang::En);
+        assert_eq!(en["dishes"][0]["ingredients"], json!(["Beef stew"]));
         assert_eq!(
             en["dishes"][0]["sides"],
-            json!([{"name": "Fries", "choice": true}, {"name": "Mayonnaise", "choice": false}])
+            json!([
+                {"name": "Fries and mayonnaise", "ingredients": ["i-fries", "i-mayo"]},
+                {"name": "Croquettes and mayonnaise", "ingredients": ["i-croq", "i-mayo"]}
+            ])
         );
         assert_eq!(en["dishes"][1]["sides"], json!([]));
+    }
+
+    #[test]
+    fn two_sides_may_share_an_ingredient() {
+        let w = wheel(&data(), Lang::Nl);
+        let sides = w["dishes"][1]["sides"].as_array().unwrap();
+        let with_mayo = sides
+            .iter()
+            .filter(|s| {
+                s["ingredients"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!("i-mayo"))
+            })
+            .count();
+        assert_eq!(with_mayo, 2);
+        assert_eq!(
+            joined(&["A".into(), "B".into(), "C".into()], Lang::En),
+            "A, b and c"
+        );
     }
 
     #[test]
@@ -421,6 +509,19 @@ mod tests {
         assert!(two.allows("127.0.0.1".parse().unwrap()));
         assert!(Allow::parse("10.10.10.0/33").is_err());
         assert!(Allow::parse("home").is_err());
+    }
+
+    #[test]
+    fn only_the_page_and_its_data_are_kept_home() {
+        assert!(home_only("/eten") && home_only("/eten/data"));
+        for open in [
+            "/eten/wheel.js",
+            "/eten/wheel.css",
+            "/eten/eten.js",
+            "/parents",
+        ] {
+            assert!(!home_only(open), "{open}");
+        }
     }
 
     #[test]

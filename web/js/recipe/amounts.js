@@ -6,7 +6,7 @@
 // pinch never changes; an ingredient with no amount ("to taste") stays
 // without one.
 
-/** @typedef {{ id: string, name: string, amount: number | null, unit: string, group?: string, note?: string }} Ingredient */
+/** A recipe line: `ingredient` is an id in the kitchen's ingredients (Kenny, 24/10/2026 05:15). @typedef {{ id: string, ingredient: string, amount: number | null, unit: string, group?: string, note?: string }} Ingredient */
 /** @typedef {import("./words.js").Words} Words */
 
 const FRACTIONS = /** @type {Record<number, string>} */ ({ 0.25: "¼", 0.5: "½", 0.75: "¾" });

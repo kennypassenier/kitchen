@@ -8,20 +8,27 @@ evening: **What do we eat?**, **When do I start?**, **Bad days**,
 mode open from a recipe.
 
 **Dishes** is what lands on a plate, kept apart from the recipes: each dish
-has a Dutch and an English name, a category and its own sides. Each side
-has its two names and a **Choice** switch: stoofvlees comes with fries,
-croquettes or mash (Choice on) and mayonnaise (Choice off); spaghetti
-bolognese has no sides. The categories ("Everyday", "Special") are a list of
-their own on the same page, so a new category is one Add away. A name only needs one language: a dish
+has a Dutch and an English name, a category, the ingredients that always
+come with it and its sides. A side is one or more ingredients that go
+together, with an optional label of its own: stoofvlees comes with salad
+every time and with "frieten en mayonaise" or "kroketten met mayonaise" as
+its two sides; spaghetti bolognese has none. The categories ("Everyday",
+"Special") are a list of their own on the same page.
+
+**Ingredients** is one list for the whole kitchen: a dish's ingredients and
+sides and a recipe's lines are picked from it, and a name that is not there
+yet is added right in the field ("Add “…” as a new ingredient", with its
+category). An ingredient's page shows every dish and recipe with it, with a
+search and filters, and a wheel that picks among those dishes. A name only needs one language: a dish
 without a Dutch name is missing only from the Dutch wheel, one without an
 English name only from the English wheel. The Wheel column says on which
 wheels the dish shows.
 
 **The parents' wheel** picks from the dishes with "On the parents' wheel"
 switched on. The big wheel picks the dish; the small wheel then picks one
-of its sides with Choice on, when there are two or more. The other sides are
-never spun; they always come with the dish. The sentence under the wheels
-says the whole dinner ("Vanavond: Biefstuk, met frieten, sla en
+of its sides, when there are two or more. The ingredients that always come
+with the dish are never spun. The sentence under the wheels says the whole
+dinner ("Vanavond: Biefstuk, met frieten, sla en
 bearnaise."). A tap on the small wheel picks the side again; the category chips narrow the big wheel. Kenny's parents open
 it in Dutch on **eten.kp-soft.dev**, without an account; Kitchen shows the
 same wheel in English under **Parents' wheel**.

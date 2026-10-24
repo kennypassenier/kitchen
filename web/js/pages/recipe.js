@@ -8,7 +8,7 @@
 // quantity, the hover card, the flash button, the QR code, the print sheet,
 // the heat grid.
 
-import { loadKitchen, onKitchen, kitchenNow, ApiError } from "../api.js";
+import { loadKitchen, onKitchen, kitchenNow, ingredientName, ApiError } from "../api.js";
 import { h } from "../dom.js";
 import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
 import { attachLedes } from "/static/kp/js/lede.js";
@@ -17,7 +17,7 @@ import { attachHoverCards } from "/static/kp/js/hovercard.js";
 import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { setQr } from "/static/kp/js/qr.js";
 import { attachSegmented } from "/static/kp/js/segmented.js";
-import { WORDS, wordsFor } from "../recipe/words.js";
+import { WORDS, wordsFor, langOf } from "../recipe/words.js";
 import { amountOf, minutesText } from "../recipe/amounts.js";
 import { createSheet } from "../recipe/sheet.js";
 import { createLog, dmy } from "../recipe/log.js";
@@ -186,7 +186,8 @@ export function mount(root, { params, navigate }) {
     for (const group of groups) {
       if (groups.length > 1) ingList.append(h("li", { class: "rp-ings__group" }, h("h4", { class: "kp-fw-semibold" }, group)));
       for (const ing of ingredients.filter((i) => (i.group || "") === group)) {
-        const word = h("span", { class: "rp-ing__word" }, ing.name);
+        // The name links to the ingredient's own page (Kenny, 24/10/2026 05:15).
+        const word = h("a", { class: "rp-ing__word", href: `/ingredients/${encodeURIComponent(ing.ingredient ?? "")}` }, ingredientName(ing.ingredient, langOf(kitchenNow()?.settings.lang)));
         const name = h("span", { class: "rp-ing__name" }, word);
         if (ing.note) {
           word.setAttribute("data-kp-hovercard", ing.note);

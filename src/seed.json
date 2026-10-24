@@ -1,5 +1,5 @@
 {
- "format": 2,
+ "format": 3,
  "recipes": [],
  "freezer": [],
  "shelf": [],
@@ -24,6 +24,18 @@
    },
    "order": 2,
    "created": "2026-10-22T20:00:00+02:00"
+  }
+ ],
+ "ingredients": [],
+ "ingredient_categories": [
+  {
+   "id": "4f0e7c2a-6b1d-5e8a-9c3f-2d7b1a0e5c41",
+   "name": {
+    "nl": "Andere",
+    "en": "Other"
+   },
+   "order": 1,
+   "created": "2026-10-24T05:15:00+02:00"
   }
  ],
  "settings": {

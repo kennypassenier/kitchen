@@ -11,3 +11,73 @@
 .dl-card {
   min-inline-size: 0;
 }
+
+/* An item's own page (js/pages/item.js) and the ingredient screens: one column of cards, the same gap as every page. */
+.it-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-xl, 2rem);
+  align-content: start;
+}
+
+.it-card,
+.it-wheel {
+  min-inline-size: 0;
+}
+
+/* Links listed in a fact (a category's dishes, a shelf food's days): one per line. */
+.it-links {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.it-wheel {
+  --kp-wheel-size: min(24rem, 100%);
+}
+
+/* The ingredient picker (js/ingredients/picker.js): the combobox, and under it the step that makes a new one. */
+.ip-picker,
+.ip-picker__new {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.ip-picker__new[hidden] {
+  display: none;
+}
+
+.ip-picker__ask {
+  margin: 0;
+}
+
+/* A dish's sides in the drawer: one bordered group per side, its ingredients and labels on the drawer's form grid. */
+.dl-sides,
+.dl-sides__groups {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.dl-side {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+  padding: var(--kp-space-md, 1rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 0.5rem);
+}
+
+.dl-side__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.dl-side__head h4 {
+  margin: 0;
+}

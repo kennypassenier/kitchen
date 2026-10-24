@@ -1,9 +1,9 @@
 // The kitchen server's JSON routes, answered inside the browser for the
 // preview: the same answers as src/routes.rs, kept in localStorage.
 (function () {
-  var KEY = "kitchen-preview-v4";
+  var KEY = "kitchen-preview-v5";
   var SEED = __SEED__;
-  var LISTS = ["recipes", "freezer", "shelf", "log", "resting", "dishes", "dish_categories"];
+  var LISTS = ["recipes", "freezer", "shelf", "log", "resting", "dishes", "dish_categories", "ingredients", "ingredient_categories"];
   function load() {
     try { var s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch (e) {}
     return JSON.parse(JSON.stringify(SEED));
@@ -19,8 +19,8 @@
     ["wheel", "What do we eat?", "/"], ["timing", "When do I start?", "/timing"], ["baddays", "Bad days", "/bad-days"],
     ["settings", "Calm settings", "/settings"], ["recipes", "Recipes", "/recipes"], ["dishes", "Dishes", "/dishes"], ["parents", "Parents' wheel", "/parents"]
   ].map(function (p) { return { id: p[0], title: p[1], path: p[2], group: null, order: 0, nav: true, source: "app", render: "app" }; }) };
-  // The parents' wheel in one language, as src/parents.rs `wheel` makes it: a dish or a side shows in each language
-  // it has a name in; a side keeps its Choice mark.
+  // The parents' wheel in one language, as src/parents.rs `wheel` makes it: a dish or a side's ingredient shows in
+  // each language it has a name in; a side keeps its Choice mark.
   function both(v, lang) {
     var s = v && String(v[lang] || "").trim();
     return s || null;
@@ -29,12 +29,22 @@
   function wheel(lang) {
     var cats = data.dish_categories || [];
     var dishes = (data.dishes || []).filter(function (d) { return d.parents === true && both(d.name, lang); }).map(function (d) {
+      var named = function (ids) {
+        return (ids || []).map(function (id) {
+          var ing = (data.ingredients || []).find(function (i) { return i.id === id; });
+          return ing && both(ing.name, lang);
+        }).filter(Boolean);
+      };
+      var and = lang === "nl" ? " en " : " and ";
       var sides = (d.sides || []).map(function (s) {
-        var name = both(s.name, lang);
-        return name ? { name: name, choice: s.choice === true } : null;
+        var shown = named(s.ingredients);
+        if (!shown.length) return null;
+        var small = shown.map(function (n, i) { return i ? n.charAt(0).toLowerCase() + n.slice(1) : n; });
+        var joined = small.length < 2 ? small[0] : small.slice(0, -1).join(", ") + and + small[small.length - 1];
+        return { name: both(s.label, lang) || joined, ingredients: s.ingredients };
       }).filter(Boolean);
       var c = cats.find(function (x) { return x.id === d.category && both(x.name, lang); });
-      return { id: d.id, name: both(d.name, lang), category: c ? c.id : null, sides: sides };
+      return { id: d.id, name: both(d.name, lang), category: c ? c.id : null, ingredients: named(d.ingredients), sides: sides };
     }).sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
     var categories = cats.filter(function (c) { return both(c.name, lang); }).sort(byOrder).map(function (c) {
       return { id: c.id, name: both(c.name, lang), count: dishes.filter(function (d) { return d.category === c.id; }).length };

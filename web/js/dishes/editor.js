@@ -1,10 +1,13 @@
 // The dish editor and the small name editor, both in the recipe editor's drawer on `.kp-formgrid`.
 //
 // A dish (docs/agent/DATA.md "dishes") is what lands on a plate: a Dutch and an English name, a category, whether it
-// is on the parents' wheel, an optional recipe to cook it from, and its sides (Kenny, 24/10/2026 05:03). A side is
-// its own two names and a "Choice" switch: the small wheel picks one of the sides with Choice on (fries, mash, rice,
-// …); the others always come with the dish. Every name has a Dutch and an English half, and a dish or side shows on
-// the wheel of each language it has a name in (src/parents.rs; Kenny, 22/10/2026 23:08).
+// is on the parents' wheel, an optional recipe to cook it from, its fixed ingredients and its sides (Kenny,
+// 24/10/2026 05:03, 05:15, 05:26, 05:27). The fixed ingredients always come with the dish (the stew itself, salad).
+// A side is one or more ingredients that go together ("frieten en mayonaise", "kroketten met mayonaise"), with an
+// optional label of its own; each side is one entry on the small wheel, which spins when the dish has two or more.
+// The same ingredient may stand in several sides. Ingredients are chosen with js/ingredients/picker.js. Every name
+// has a Dutch and an English half, and a dish shows on the wheel of each language it has a name in (src/parents.rs;
+// Kenny, 22/10/2026 23:08).
 //
 // The name editor edits one category: its two names and its position in the list.
 
@@ -17,7 +20,8 @@ import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
-import { row, input, toggle, on, select, rows, textCell } from "../recipe/editor.js";
+import { ingredientsPicker } from "../ingredients/picker.js";
+import { row, input, toggle, on, select } from "../recipe/editor.js";
 
 /** @typedef {Record<string, any>} Item */
 
@@ -87,40 +91,83 @@ export function openDrawer(dialog, { title, text, form, saveLabel, onSave }) {
 const why = (e) => (e instanceof ApiError ? e.message : String(e));
 
 /**
- * A row's Choice switch: the package's switch, named for the row by its column header.
- * @param {boolean} value
- */
-function choiceCell(value) {
-  const box = h("input", { class: "kp-switch__input", type: "checkbox", role: "switch", "aria-label": "Choice: the small wheel picks from it" });
-  /** @type {HTMLInputElement} */ (box).checked = value;
-  const el = h("label", { class: "kp-switch" }, box, h("span", { class: "kp-switch__state", "aria-hidden": "true" }));
-  return { el, get: () => /** @type {HTMLInputElement} */ (box).checked };
-}
-
-/**
- * The sides block: one row per side on three columns (Dutch, English, Choice).
+ * The sides block: one bordered group per side, each with its ingredients, an optional label in both languages, Up,
+ * Down and Remove; "Add a side" under them.
  * @param {Item[]} sides the dish's sides
  */
 function sidesBlock(sides) {
-  const list = rows({
-    columns: [
-      { label: "Dutch", width: "minmax(0, 1fr)", make: (/** @type {any} */ s) => textCell("Dutch name of the side", s.name?.nl ?? "", "Frieten") },
-      { label: "English", width: "minmax(0, 1fr)", make: (/** @type {any} */ s) => textCell("English name of the side", s.name?.en ?? "", "Fries") },
-      { label: "Choice", width: "max-content", make: (/** @type {any} */ s) => choiceCell(s.choice === true) },
-    ],
-    items: sides,
-    add: "Add a side",
-    noun: "side",
-    blank: () => ({ name: { nl: "", en: "" }, choice: false }),
-  });
-  return {
-    el: list.el,
-    get: () =>
-      list
-        .get()
-        .map(([nl, en, choice]) => ({ name: { nl, en }, choice }))
-        .filter((/** @type {any} */ s) => s.name.nl || s.name.en),
+  const box = h("div", { class: "dl-sides" });
+  const groups = h("div", { class: "dl-sides__groups" });
+  const none = h("p", { class: "rl-rows__empty" }, "No sides: the dish always comes the same way.");
+  const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Add a side");
+  /** @type {{ el: HTMLElement, get: () => Item | null }[]} */
+  let list = [];
+
+  const sync = () => {
+    none.hidden = list.length > 0;
+    list.forEach((entry, i) => {
+      const head = /** @type {HTMLElement} */ (entry.el.querySelector(".dl-side__title"));
+      head.textContent = `Side ${i + 1}`;
+      const [up, down] = /** @type {HTMLButtonElement[]} */ ([...entry.el.querySelectorAll("[data-dl-move]")]);
+      up.disabled = i === 0;
+      down.disabled = i === list.length - 1;
+    });
+    groups.replaceChildren(...list.map((e) => e.el));
   };
+  /** @param {Item} side @param {boolean} [focus] */
+  const push = (side, focus = false) => {
+    const picker = ingredientsPicker(Array.isArray(side.ingredients) ? side.ingredients : [], { label: "Ingredients of the side" });
+    const nl = input(String(side.label?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: "e.g. Kroketten met mayonaise", "aria-label": "Dutch label of the side" });
+    const en = input(String(side.label?.en ?? ""), "text", { autocomplete: "off", placeholder: "e.g. Croquettes with mayonnaise", "aria-label": "English label of the side" });
+    const up = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "up", "aria-label": "Move the side up" }, "Up");
+    const down = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "down", "aria-label": "Move the side down" }, "Down");
+    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, "Remove");
+    const el = h(
+      "div",
+      { class: "dl-side" },
+      h("div", { class: "dl-side__head" }, h("h4", { class: "kp-fw-semibold dl-side__title" }), h("div", { class: "kp-row-actions" }, up, down, remove)),
+      h(
+        "div",
+        { class: "kp-formgrid kitchen-formgrid" },
+        row("Ingredients", picker.el, "What goes together on this side; one entry on the small wheel."),
+        row("Dutch label", nl, "Optional; without it the side reads as its ingredients."),
+        row("English label", en, "Optional, as the Dutch label."),
+      ),
+    );
+    const entry = {
+      el,
+      get: () => {
+        const ingredients = picker.get();
+        if (!ingredients.length) return null;
+        const label = { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() };
+        return label.nl || label.en ? { ingredients, label } : { ingredients };
+      },
+    };
+    const move = (/** @type {number} */ by) => {
+      const at = list.indexOf(entry);
+      const to = at + by;
+      if (to < 0 || to >= list.length) return;
+      list.splice(at, 1);
+      list.splice(to, 0, entry);
+      sync();
+      (by < 0 ? up : down).focus();
+    };
+    up.addEventListener("click", () => move(-1));
+    down.addEventListener("click", () => move(1));
+    remove.addEventListener("click", () => {
+      list = list.filter((e) => e !== entry);
+      sync();
+      addButton.focus();
+    });
+    list.push(entry);
+    sync();
+    if (focus) el.querySelector("input")?.focus();
+  };
+  for (const side of sides) push(side);
+  addButton.addEventListener("click", () => push({ ingredients: [] }, true));
+  box.append(groups, none, h("div", { class: "rl-rows__add" }, addButton));
+  sync();
+  return { el: box, get: () => /** @type {Item[]} */ (list.map((e) => e.get()).filter(Boolean)) };
 }
 
 /**
@@ -129,7 +176,7 @@ function sidesBlock(sides) {
  * @param {{ dish: Item | null, categories: Item[], recipes: Item[] }} spec
  */
 export function openDishEditor(dialog, { dish, categories, recipes }) {
-  const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipe_id: null, sides: [] };
+  const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipe_id: null, ingredients: [], sides: [] };
   const n = names(d);
   const nl = input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees" });
   const en = input(n.en, "text", { autocomplete: "off", placeholder: "Flemish beef stew" });
@@ -140,6 +187,7 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
     d.recipe_id ?? "",
     "Recipe",
   );
+  const fixed = ingredientsPicker(Array.isArray(d.ingredients) ? d.ingredients : [], { label: "Ingredients that always come with the dish" });
   const sides = sidesBlock(Array.isArray(d.sides) ? d.sides : []);
   const form = /** @type {HTMLFormElement} */ (
     h(
@@ -159,8 +207,13 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
         ),
       ),
       sec(
+        "Always with it",
+        "The ingredients that come with the dish every time, such as the stew itself or a salad.",
+        h("div", { class: "kp-formgrid kitchen-formgrid" }, row("Ingredients", fixed.el, "Type to search; a new one can be added right here.")),
+      ),
+      sec(
         "Sides",
-        "What comes with the dish. Switch Choice on for the sides to choose between, such as fries, croquettes or mash: the small wheel picks one of them when there are two or more. A side with Choice off always comes with the dish.",
+        "The choices that go with the dish: each side is one or more ingredients that go together, such as fries with mayonnaise. The small wheel picks one side when there are two or more; one side is simply named.",
         sides.el,
       ),
     )
@@ -177,6 +230,7 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
         category: category.value || null,
         parents: on(parents),
         recipe_id: recipe.value || null,
+        ingredients: fixed.get(),
         sides: sides.get(),
       };
       if (!body.name.nl && !body.name.en) {
@@ -198,9 +252,9 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
 }
 
 /**
- * Open the name editor for a category, or a new one.
+ * Open the name editor for a dish category or an ingredient category, or a new one.
  * @param {HTMLDialogElement} dialog
- * @param {{ list: "dish_categories", item: Item | null, items: Item[], noun: string, example: { nl: string, en: string } }} spec
+ * @param {{ list: "dish_categories" | "ingredient_categories", item: Item | null, items: Item[], noun: string, example: { nl: string, en: string } }} spec
  */
 export function openNameEditor(dialog, { list, item, items, noun, example }) {
   const count = items.length;
@@ -225,7 +279,7 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
           { class: "kp-formgrid" },
           row("Dutch name", nl, "What the parents' page says."),
           row("English name", en, "What Kitchen says."),
-          row("Position", position, "Where it stands in the list of categories."),
+          row("Position", position, `Where it stands in the list of ${noun === "category" ? "categories" : "ingredient categories"}.`),
         ),
       ),
     )

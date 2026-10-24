@@ -14,12 +14,12 @@ import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { undoToast } from "/static/kp/js/undo-toast.js";
 import { h } from "./dom.js";
-import { create, replace, remove, kitchenNow, ApiError } from "./api.js";
+import { create, replace, remove, kitchenNow, ingredientName, ApiError } from "./api.js";
 import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
 import { openDrawer, sec, openDishEditor, openNameEditor, label as nameLabel, ordered } from "./dishes/editor.js";
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {"recipes" | "dishes" | "dish_categories" | "freezer" | "shelf" | "log" | "resting"} List */
+/** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting"} List */
 
 /** The day it is in Brussels, as YYYY-MM-DD. */
 export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
@@ -48,6 +48,8 @@ export const LISTS = {
   recipes: { noun: "recipe", home: ["/recipes", "Recipes"], name: (r) => String(r.name || "A recipe") },
   dishes: { noun: "dish", home: ["/dishes", "Dishes"], name: nameLabel },
   dish_categories: { noun: "category", home: ["/dishes", "Dishes"], name: nameLabel },
+  ingredients: { noun: "ingredient", home: ["/ingredients", "Ingredients"], name: (i) => ingredientName(i.id) },
+  ingredient_categories: { noun: "ingredient category", home: ["/ingredients", "Ingredients"], name: nameLabel },
   freezer: { noun: "freezer item", home: ["/bad-days#freezer", "Bad days"], name: (f) => String(f.dish || "A dish") },
   shelf: { noun: "shelf food", home: ["/bad-days#zero-prep", "Bad days"], name: (s) => String(s.title || "A food") },
   log: { noun: "log line", home: ["/log", "What I ate"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
@@ -63,6 +65,8 @@ export function detailHref(list, id) {
 export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} */ ({
   dishes: "dishes",
   dish_categories: "categories",
+  ingredients: "ingredients",
+  ingredient_categories: "ingredient-categories",
   freezer: "freezer",
   shelf: "shelf",
   log: "log",
@@ -74,6 +78,20 @@ export function logWhat(e) {
   if (e.shelf_id) return shelfItem(e.shelf_id)?.title ?? "A shelf food that was deleted";
   return recipe(e.recipe_id)?.name ?? "A recipe that was deleted";
 }
+
+/** "Fries and mayonnaise", or the side's own label: one entry of the small wheel, in English. @param {Item} side */
+export function sideName(side) {
+  const label = String(side.label?.en || side.label?.nl || "").trim();
+  if (label) return label;
+  const parts = /** @type {string[]} */ (side.ingredients ?? []).map((id, i) => {
+    const n = ingredientName(id);
+    return i ? n.charAt(0).toLowerCase() + n.slice(1) : n;
+  });
+  return parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+}
+
+/** Does a dish have the ingredient, fixed or in one of its sides? @param {Item} d @param {string} id */
+export const dishHas = (d, id) => (d.ingredients ?? []).includes(id) || (d.sides ?? []).some((/** @type {Item} */ s) => (s.ingredients ?? []).includes(id));
 
 /** A link to an item's own page. @param {List} list @param {Item} item @param {string} [text] */
 export const itemLink = (list, item, text) => h("a", { href: detailHref(list, item.id) }, text ?? LISTS[list].name(item));
@@ -169,8 +187,34 @@ export function openRecordEditor(list, item, preset = {}) {
     openDishEditor(drawer(), { dish: item, categories: ordered(k?.dish_categories ?? []), recipes: k?.recipes ?? [] });
     return;
   }
-  if (list === "dish_categories") {
-    openNameEditor(drawer(), { list, item, items: k?.dish_categories ?? [], noun: "category", example: { nl: "Speciaal", en: "Special" } });
+  if (list === "dish_categories" || list === "ingredient_categories") {
+    const dish = list === "dish_categories";
+    openNameEditor(drawer(), { list, item, items: k?.[list] ?? [], noun: LISTS[list].noun, example: dish ? { nl: "Speciaal", en: "Special" } : { nl: "Vlees", en: "Meat" } });
+    return;
+  }
+  if (list === "ingredients") {
+    const v = { ...preset, ...(item ?? {}) };
+    const nl = input(String(v.name?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: "Frieten" });
+    const en = input(String(v.name?.en ?? ""), "text", { autocomplete: "off", placeholder: "Fries" });
+    const cats = ordered(k?.ingredient_categories ?? []);
+    const cat = select(cats.map((c) => /** @type {[string, string]} */ ([c.id, nameLabel(c)])), v.category ?? cats.find((c) => c.name?.en === "Other")?.id ?? cats[0]?.id ?? "", "Category");
+    openForm({
+      list,
+      item,
+      title: "The ingredient",
+      text: "One ingredient for the whole kitchen: dishes take it as a side, recipes as a line. It shows in each language it has a name in.",
+      rows: [
+        row("Dutch name", nl, "What the parents' wheel says."),
+        row("English name", en, "What Kitchen says."),
+        row("Category", cat, "Meat, potatoes, vegetables, …"),
+      ],
+      body: () => {
+        const name = { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() };
+        if (!name.nl && !name.en) return { error: "An ingredient needs a name.", remedy: "Type its Dutch name, its English name or both." };
+        return { name, category: cat.value || null };
+      },
+      saved: (b) => `${item ? "Saved" : "Added"} ${b.name.en || b.name.nl}`,
+    });
     return;
   }
   const v = { ...preset, ...(item ?? {}) };
@@ -396,6 +440,10 @@ function loses(list, item) {
       return ["The dish and its sides. A recipe it points at stays."];
     case "dish_categories":
       return ["The category; no dish uses it."];
+    case "ingredient_categories":
+      return ["The ingredient category; no ingredient is in it."];
+    case "ingredients":
+      return ["The ingredient; no dish or recipe uses it."];
     case "freezer":
       return [`${item.dish}: ${item.portions} ${item.portions === 1 ? "portion" : "portions"} in the list. The food in the freezer is not touched.`];
     case "shelf": {
@@ -407,11 +455,25 @@ function loses(list, item) {
   }
 }
 
-/** Is `item` still in use so it cannot go? Returns the sentence that says so. @param {List} list @param {Item} item */
+/** What still points at an item, by name: a category's dishes, an ingredient's dishes and recipes, an ingredient category's ingredients. @param {List} list @param {Item} item */
+export function usersOf(list, item) {
+  const k = kitchenNow();
+  if (list === "dish_categories") return (k?.dishes ?? []).filter((d) => d.category === item.id).map(nameLabel);
+  if (list === "ingredient_categories") return (k?.ingredients ?? []).filter((i) => i.category === item.id).map((i) => ingredientName(i.id));
+  if (list === "ingredients")
+    return [
+      ...(k?.dishes ?? []).filter((d) => dishHas(d, item.id)).map((d) => `${nameLabel(d)} (dish)`),
+      ...(k?.recipes ?? []).filter((r) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === item.id)).map((r) => `${r.name} (recipe)`),
+    ];
+  return [];
+}
+
+/** Is `item` still in use so it cannot go? Returns the sentence that says so, naming every user. @param {List} list @param {Item} item */
 function inUse(list, item) {
-  if (list !== "dish_categories") return null;
-  const n = (kitchenNow()?.dishes ?? []).filter((d) => d.category === item.id).length;
-  return n ? `${nameLabel(item)} is used by ${n} ${n === 1 ? "dish" : "dishes"}; take it out of ${n === 1 ? "that dish" : "them"} first.` : null;
+  const users = usersOf(list, item);
+  if (!users.length) return null;
+  const what = list === "ingredient_categories" ? (users.length === 1 ? "ingredient" : "ingredients") : list === "ingredients" ? (users.length === 1 ? "dish or recipe" : "dishes and recipes") : users.length === 1 ? "dish" : "dishes";
+  return `${LISTS[list].name(item)} is used by ${users.length} ${what}: ${users.join(", ")}. Take it out of ${users.length === 1 ? "that one" : "them"} first.`;
 }
 
 /**
@@ -457,8 +519,8 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
       void remove(list, item.id)
         .then(async () => {
           // A deleted category leaves no gap: the others close up to 1, 2, 3, ….
-          if (list === "dish_categories") {
-            const rest = ordered(kitchenNow()?.dish_categories ?? []);
+          if (list === "dish_categories" || list === "ingredient_categories") {
+            const rest = ordered(kitchenNow()?.[list] ?? []);
             for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
           }
         })

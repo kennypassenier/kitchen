@@ -7,7 +7,7 @@
 // connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], settings: Record<string, any> }} Kitchen */
 
 export class ApiError extends Error {
   /** @param {string} message @param {number} status */
@@ -159,4 +159,18 @@ export function daysSinceCooked(k, recipeId, now = new Date()) {
   for (const e of k.log) if (e.recipe_id === recipeId) last = Math.max(last, Date.parse(e.date));
   if (last === -Infinity) return Infinity;
   return Math.floor((now.getTime() - last) / 86_400_000);
+}
+
+/** An ingredient by id (Kenny, 24/10/2026 05:15: sides and recipe lines point at one list). @param {string | null | undefined} id */
+export const ingredientById = (id) => (id ? copy?.ingredients?.find((i) => i.id === id) ?? null : null);
+
+/**
+ * An ingredient's name in `lang`, else its other half; an id that points at nothing says so.
+ * @param {string | null | undefined} id @param {"en" | "nl"} [lang]
+ */
+export function ingredientName(id, lang = "en") {
+  const i = ingredientById(id);
+  if (!i) return lang === "nl" ? "(verwijderd ingrediënt)" : "(deleted ingredient)";
+  const other = lang === "nl" ? "en" : "nl";
+  return String(i.name?.[lang] || i.name?.[other] || "").trim() || "(no name)";
 }
