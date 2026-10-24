@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-24
+
 ### Changed
 - The kitchen file is format 3, lifted on the first start: dishes have
   fixed ingredients and sides of one or more ingredients instead of parts
