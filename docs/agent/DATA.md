@@ -51,8 +51,8 @@ A step:
 
 What lands on a plate, for the parents' wheel (`/dishes` keeps them;
 `src/parents.rs` makes the wheel). Every name is `{nl, en}`; an empty half
-only drops it from that language's wheel, which goes for a dish, a kind of
-part, a category and a choice alike. At least one half is filled.
+only drops it from that language's wheel, which goes for a dish, a side and
+a category alike. At least one half is filled.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -60,15 +60,18 @@ part, a category and a choice alike. At least one half is filled.
 | `category` | string \| null | A `dish_categories` id |
 | `parents` | boolean | On the parents' wheel |
 | `recipe_id` | string \| null | The recipe to cook it from, if there is one |
-| `parts` | `{part, choices: {nl, en}[]}`[] | `part` is a `dish_parts` id, once per dish; when the kind has `wheel` on and there are two or more choices, the small wheel picks one; otherwise the choices are named as they are |
+| `sides` | `{name: {nl, en}, choice: boolean}`[] | What comes with the dish, in the dish's order (Kenny, 24/10/2026 05:03). The small wheel picks one of the sides with `choice` on when there are two or more ("Frieten", "Kroketten", "Puree"); a single one simply comes with the dish. Sides with `choice` off always come with it ("Bearnaise", "Sla") |
 
-## dish_parts (kinds of part) and dish_categories
+Format 1 kept "kinds of part" in a `dish_parts` list and a dish's `parts`
+pointed at them; `src/store.rs` `migrate` turns each choice of a part into a
+side, with `choice` on when its kind was picked by the small wheel, and
+drops the list on the first start of format 2.
 
-`{name: {nl, en}, order: number}`, and on `dish_parts` also `wheel: boolean`
-(picked by the small wheel): "Aardappelen, rijst of pasta" / "Potatoes, rice
-or pasta" with `wheel: true`, "Dagelijkse kost" / "Everyday". `order` is the position, 1, 2, 3, … without
-gaps; the dishes page keeps it so. A kind or category a dish uses cannot be
-deleted from the page.
+## dish_categories
+
+`{name: {nl, en}, order: number}`: "Dagelijkse kost" / "Everyday". `order`
+is the position, 1, 2, 3, … without gaps; the dishes page keeps it so. A
+category a dish uses cannot be deleted from the page.
 
 ## freezer
 

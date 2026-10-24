@@ -1,8 +1,8 @@
 // The dishes screen, `/dishes` (Kenny, 22/10/2026): what lands on a plate, the dishes the parents' wheel picks from.
-// Three cards, each the package's data table with its own loading, empty and failed states: the dishes, the kinds of
-// part a dish can have ("Potatoes and co.", "Sauce", …) and the categories ("Everyday", "Special", …). Add and Edit
-// open the drawer (js/dishes/editor.js); Delete asks for the typed name. A part kind or a category a dish still uses
-// cannot be deleted, so no dish ever points at nothing.
+// Two cards, each the package's data table with its own loading, empty and failed states: the dishes, each with its
+// own sides (Kenny, 24/10/2026 05:03), and the categories ("Everyday", "Special", …). Add and Edit open the drawer
+// (js/dishes/editor.js); Delete asks for the typed name. A category a dish still uses cannot be deleted, so no dish
+// ever points at nothing.
 
 import { loadKitchen, onKitchen, kitchenNow, remove, replace, ApiError } from "../api.js";
 import { h } from "../dom.js";
@@ -84,7 +84,7 @@ export function mount(root) {
         "div",
         null,
         h("h1", { class: "kp-page-header__title" }, "Dishes"),
-        h("p", { class: "kp-page-header__description" }, "What lands on a plate, with its Dutch and English name and the parts that come with it. The parents' wheel picks from the dishes marked for it."),
+        h("p", { class: "kp-page-header__description" }, "What lands on a plate, with its Dutch and English name and the sides that come with it. The parents' wheel picks from the dishes marked for it."),
       ),
       h("div", { class: "kp-page-header__actions" }, h("a", { class: "kp-button", href: "/parents", title: "The wheel as Kenny's parents see it, in English" }, "Open the parents' wheel")),
     ),
@@ -96,21 +96,10 @@ export function mount(root) {
     lede: "A dish shows on the Dutch wheel with a Dutch name and on the English wheel with an English name; the Wheel column says which.",
     noun: "dish",
     plural: "dishes",
-    columns: [["Dutch name", "text"], ["English name", "text"], ["Category", "text"], ["Wheel", "text"], ["Parts"], ["Actions"]],
+    columns: [["Dutch name", "text"], ["English name", "text"], ["Category", "text"], ["Wheel", "text"], ["Sides"], ["Actions"]],
     add: "Add a dish",
     emptyTitle: "No dishes yet",
     emptyText: "The parents' wheel has nothing to pick from until you add one.",
-  });
-  const kinds = tableCard({
-    id: "dl-kinds",
-    title: "Kinds of part",
-    lede: "What a dish can come with: potatoes, rice or pasta, vegetables, a sauce. Add a kind and every dish can use it; only a kind marked for the small wheel is picked by it.",
-    noun: "kind",
-    plural: "kinds of part",
-    columns: [["Position", "number"], ["Dutch name", "text"], ["English name", "text"], ["Small wheel", "text"], ["Used by", "number"], ["Actions"]],
-    add: "Add a kind of part",
-    emptyTitle: "No kinds of part yet",
-    emptyText: "Without one, every dish always comes the same way.",
   });
   const cats = tableCard({
     id: "dl-cats",
@@ -125,10 +114,10 @@ export function mount(root) {
   });
 
   const drawer = h("dialog", { class: "kp-drawer kp-dialog rl-editor", "aria-labelledby": "rl-editor-t" });
-  const page = h("div", { class: "dl-page" }, head, dishes.card, kinds.card, cats.card);
+  const page = h("div", { class: "dl-page" }, head, dishes.card, cats.card);
   root.replaceChildren(page, drawer);
   const detach = attachDataTables(page);
-  const handles = [dishes, kinds, cats].map((c) => dataTable(c.table));
+  const handles = [dishes, cats].map((c) => dataTable(c.table));
   const dialog = /** @type {HTMLDialogElement} */ (drawer);
 
   const busy = () => {
@@ -142,21 +131,14 @@ export function mount(root) {
   /** @param {Item | null} dish */
   const editDish = (dish) => {
     const k = kitchenNow();
-    openDishEditor(dialog, { dish, kinds: k?.dish_parts ?? [], categories: ordered(k?.dish_categories ?? []), recipes: k?.recipes ?? [] });
+    openDishEditor(dialog, { dish, categories: ordered(k?.dish_categories ?? []), recipes: k?.recipes ?? [] });
   };
-  /** @param {"dish_parts" | "dish_categories"} list @param {Item | null} item */
+  /** @param {"dish_categories"} list @param {Item | null} item */
   const editName = (list, item) => {
     const k = kitchenNow();
-    openNameEditor(dialog, {
-      list,
-      item,
-      items: k?.[list] ?? [],
-      noun: list === "dish_parts" ? "kind of part" : "category",
-      example: list === "dish_parts" ? { nl: "Saus", en: "Sauce" } : { nl: "Speciaal", en: "Special" },
-    });
+    openNameEditor(dialog, { list, item, items: k?.[list] ?? [], noun: "category", example: { nl: "Speciaal", en: "Special" } });
   };
   for (const b of dishes.addButtons) b.addEventListener("click", () => editDish(null));
-  for (const b of kinds.addButtons) b.addEventListener("click", () => editName("dish_parts", null));
   for (const b of cats.addButtons) b.addEventListener("click", () => editName("dish_categories", null));
 
   /** @param {string} list @param {Item} item @param {string} what @param {string[]} loses */
@@ -170,9 +152,9 @@ export function mount(root) {
         onAccept: () =>
           void remove(list, item.id)
             .then(async () => {
-              // A deleted kind or category leaves no gap: the others close up to 1, 2, 3, ….
+              // A deleted category leaves no gap: the others close up to 1, 2, 3, ….
               if (list === "dishes") return;
-              const rest = ordered(kitchenNow()?.[/** @type {"dish_parts" | "dish_categories"} */ (list)] ?? []);
+              const rest = ordered(kitchenNow()?.dish_categories ?? []);
               for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
             })
             .then(
@@ -184,7 +166,6 @@ export function mount(root) {
 
   /** @param {Kitchen} k */
   function show(k) {
-    const kindList = k.dish_parts ?? [];
     const catList = k.dish_categories ?? [];
     const dishList = k.dishes ?? [];
     dishes.body.replaceChildren(
@@ -192,21 +173,18 @@ export function mount(root) {
         const n = names(d);
         const only = languages(d);
         const cat = catList.find((c) => c.id === d.category);
-        const parts = (d.parts ?? [])
-          .map((/** @type {Item} */ p) => {
-            const kind = kindList.find((x) => x.id === p.part);
-            const count = (p.choices ?? []).length;
-            return kind ? `${label(kind)} (${count === 1 ? (p.choices[0].en || p.choices[0].nl) : `${count} choices`})` : null;
-          })
-          .filter(Boolean)
-          .join(", ");
+        // "Choice of fries or mash; with mayonnaise": the small wheel's sides first, then what always comes along.
+        const sides = /** @type {Item[]} */ (d.sides ?? []);
+        const pick = sides.filter((x) => x.choice === true).map(label);
+        const always = sides.filter((x) => x.choice !== true).map(label);
+        const said = [pick.length > 1 ? `Choice of ${pick.join(" or ")}` : pick.length ? `With ${pick[0]}` : "", always.length ? `${pick.length ? "with" : "With"} ${always.join(", ")}` : ""].filter(Boolean).join("; ");
         const wheel =
           d.parents !== true
             ? h("span", { class: "kp-badge" }, "Not on the wheel")
             : only === "both"
               ? h("span", { class: "kp-badge kp-badge--success" }, "Both wheels")
               : h("span", { class: "kp-badge kp-badge--warning" }, only === "nl" ? "Dutch wheel only" : "English wheel only");
-        const { cell } = actions(label(d), () => editDish(d), askDelete("dishes", d, "dish", ["The dish, its parts and their choices. A recipe it points at stays."]));
+        const { cell } = actions(label(d), () => editDish(d), askDelete("dishes", d, "dish", ["The dish and its sides. A recipe it points at stays."]));
         return h(
           "tr",
           { "data-kp-row-key": d.id },
@@ -214,12 +192,12 @@ export function mount(root) {
           h("td", { "data-label": "English name" }, n.en || "–"),
           h("td", { "data-label": "Category" }, cat ? label(cat) : "–"),
           h("td", { "data-label": "Wheel" }, wheel),
-          h("td", { "data-label": "Parts" }, parts || "Always the same way"),
+          h("td", { "data-label": "Sides" }, said || "No sides"),
           h("td", { "data-label": "Actions" }, cell),
         );
       }),
     );
-    /** @param {"dish_parts" | "dish_categories"} list @param {Item[]} items @param {(d: Item, id: string) => boolean} uses @param {string} what */
+    /** @param {"dish_categories"} list @param {Item[]} items @param {(d: Item, id: string) => boolean} uses @param {string} what */
     const nameRows = (list, items, uses, what) =>
       ordered(items).map((item, i) => {
         const n = names(item);
@@ -238,12 +216,10 @@ export function mount(root) {
           h("td", { "data-label": "Position", class: "kp-numeric" }, String(i + 1)),
           h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl || "–"),
           h("td", { "data-label": "English name" }, n.en || "–"),
-          list === "dish_parts" ? h("td", { "data-label": "Small wheel" }, item.wheel === true ? h("span", { class: "kp-badge kp-badge--success" }, "Picks it") : "–") : null,
           h("td", { "data-label": "Used by", class: "kp-numeric", "data-kp-sort-value": String(used) }, `${used} ${used === 1 ? "dish" : "dishes"}`),
           h("td", { "data-label": "Actions" }, cell),
         );
       });
-    kinds.body.replaceChildren(...nameRows("dish_parts", kindList, (d, id) => (d.parts ?? []).some((/** @type {Item} */ p) => p.part === id), "kind of part"));
     cats.body.replaceChildren(...nameRows("dish_categories", catList, (d, id) => d.category === id, "category"));
     for (const handle of handles) {
       handle?.refresh({ keepPage: true });
@@ -261,7 +237,7 @@ export function mount(root) {
       if (alive) for (const handle of handles) handle?.fail(e instanceof Error ? e.message : String(e));
     }
   }
-  for (const c of [dishes, kinds, cats]) c.table.addEventListener("kp-datatable-retry", () => void load(true));
+  for (const c of [dishes, cats]) c.table.addEventListener("kp-datatable-retry", () => void load(true));
   const stop = onKitchen((k) => alive && show(k));
   void load();
 

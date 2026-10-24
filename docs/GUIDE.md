@@ -8,24 +8,21 @@ evening: **What do we eat?**, **When do I start?**, **Bad days**,
 mode open from a recipe.
 
 **Dishes** is what lands on a plate, kept apart from the recipes: each dish
-has a Dutch and an English name, a category and its parts. A part is a kind
-from the "Kinds of part" list (potatoes and co., vegetables, sauce, …) with
-the choices for this dish: stoofvlees comes with potatoes, fries, croquettes
-or mash; spaghetti bolognese has no parts. The kinds and the categories
-("Everyday", "Special") are lists of their own on the same page, so a new
-kind or category is one Add away. A name only needs one language: a dish
+has a Dutch and an English name, a category and its own sides. Each side
+has its two names and a **Choice** switch: stoofvlees comes with fries,
+croquettes or mash (Choice on) and mayonnaise (Choice off); spaghetti
+bolognese has no sides. The categories ("Everyday", "Special") are a list of
+their own on the same page, so a new category is one Add away. A name only needs one language: a dish
 without a Dutch name is missing only from the Dutch wheel, one without an
 English name only from the English wheel. The Wheel column says on which
 wheels the dish shows.
 
 **The parents' wheel** picks from the dishes with "On the parents' wheel"
-switched on. The big wheel picks the dish; the small wheel then picks only
-the parts whose kind has "Picked by the small wheel" switched on (in the
-sample: potatoes, rice or pasta), when the dish offers two or more choices.
-Vegetables and sauce are never spun; their choices are named as they are. The
-sentence under the wheels says the whole dinner ("Vanavond: Biefstuk, met
-frieten, sla en bearnaise."). A tap on the small wheel picks again for the
-part it shows; the category chips narrow the big wheel. Kenny's parents open
+switched on. The big wheel picks the dish; the small wheel then picks one
+of its sides with Choice on, when there are two or more. The other sides are
+never spun; they always come with the dish. The sentence under the wheels
+says the whole dinner ("Vanavond: Biefstuk, met frieten, sla en
+bearnaise."). A tap on the small wheel picks the side again; the category chips narrow the big wheel. Kenny's parents open
 it in Dutch on **eten.kp-soft.dev**, without an account; Kitchen shows the
 same wheel in English under **Parents' wheel**.
 
@@ -42,7 +39,8 @@ The recipes, the bad-days freezer and the calm settings are
 `kitchen-kit.db` (login sessions and passkeys) and `kitchen.db` (the browser
 choices that follow you between devices, such as the timing page's numbers
 and where cook mode stands). The homelab's backup takes the whole state
-directory. A new state directory is filled with sample dishes on first start.
+directory. A new state directory starts with no recipes or dishes: only the two categories
+("Dagelijkse kost", "Speciaal"); Kenny enters the real recipes and dishes.
 The Storage page shows how much room the databases take.
 
 On the homelab, `/etc/kitchen/kitchen.env` carries

@@ -18,7 +18,9 @@ use serde_json::{Map, Value};
 use tokio::sync::RwLock;
 
 /// The file's own format version; a newer file is refused, not misread.
-pub const FORMAT: u32 = 1;
+/// Format 2 (Kenny, 24/10/2026 05:03): a dish holds its own sides and the
+/// "kinds of part" list is gone; [`migrate`] lifts a format-1 file.
+pub const FORMAT: u32 = 2;
 
 /// The collections a page may read and write. Settings is a single object
 /// and has its own routes.
@@ -29,12 +31,12 @@ pub const COLLECTIONS: &[&str] = &[
     "log",
     "resting",
     "dishes",
-    "dish_parts",
     "dish_categories",
 ];
 
-/// The first contents of a new kitchen: sample dishes, so every screen has
-/// something to show before Kenny has entered anything.
+/// The first contents of a new kitchen: the two dish categories and the
+/// default dinner time, nothing else (Kenny, 24/10/2026 05:04: he enters
+/// the real recipes and dishes himself).
 const SEED: &str = include_str!("seed.json");
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -52,7 +54,9 @@ pub struct Data {
     pub resting: Vec<Value>,
     #[serde(default)]
     pub dishes: Vec<Value>,
-    #[serde(default)]
+    /// Format 1's kinds of part, read only so [`migrate`] can lift them
+    /// into the dishes; never written again.
+    #[serde(default, skip_serializing)]
     pub dish_parts: Vec<Value>,
     #[serde(default)]
     pub dish_categories: Vec<Value>,
@@ -69,7 +73,6 @@ impl Data {
             "log" => Some(&mut self.log),
             "resting" => Some(&mut self.resting),
             "dishes" => Some(&mut self.dishes),
-            "dish_parts" => Some(&mut self.dish_parts),
             "dish_categories" => Some(&mut self.dish_categories),
             _ => None,
         }
@@ -117,7 +120,7 @@ impl Store {
         let path = dir.join("kitchen.json");
         let data = match std::fs::read(&path) {
             Ok(bytes) => {
-                let data: Data = serde_json::from_slice(&bytes)
+                let mut data: Data = serde_json::from_slice(&bytes)
                     .map_err(|e| format!("{} is not a kitchen file: {e}", path.display()))?;
                 if data.format > FORMAT {
                     return Err(format!(
@@ -125,6 +128,10 @@ impl Store {
                         path.display(),
                         data.format
                     ));
+                }
+                if data.format < FORMAT {
+                    migrate(&mut data);
+                    write(&path, &data)?;
                 }
                 data
             }
@@ -294,6 +301,56 @@ fn write(path: &Path, data: &Data) -> Result<(), String> {
     chassis::shell::store::write_atomic(path, &bytes, "the kitchen file").map_err(|e| e.to_string())
 }
 
+/// Lift a format-1 file to format 2 (Kenny, 24/10/2026 05:03). Each dish's
+/// `parts` become its `sides`, in the kinds' order: every choice of a part
+/// becomes one side, with `choice` on when its kind was picked by the small
+/// wheel. The kinds of part are dropped. Nothing else changes, and no dish
+/// is added or removed.
+pub fn migrate(data: &mut Data) {
+    let kinds = std::mem::take(&mut data.dish_parts);
+    let kind = |id: Option<&Value>| {
+        let id = id.and_then(Value::as_str)?;
+        kinds
+            .iter()
+            .find(|k| k.get("id").and_then(Value::as_str) == Some(id))
+    };
+    let order = |k: Option<&Value>| {
+        k.and_then(|k| k.get("order"))
+            .and_then(Value::as_f64)
+            .unwrap_or(f64::MAX)
+    };
+    for dish in &mut data.dishes {
+        let Some(obj) = dish.as_object_mut() else {
+            continue;
+        };
+        let Some(parts) = obj.remove("parts") else {
+            continue;
+        };
+        let mut parts: Vec<&Value> = parts.as_array().into_iter().flatten().collect();
+        parts.sort_by(|a, b| order(kind(a.get("part"))).total_cmp(&order(kind(b.get("part")))));
+        let mut sides: Vec<Value> = Vec::new();
+        for p in parts {
+            let choice = kind(p.get("part"))
+                .and_then(|k| k.get("wheel"))
+                .and_then(Value::as_bool)
+                == Some(true);
+            for c in p
+                .get("choices")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                sides.push(serde_json::json!({
+                    "name": { "nl": c.get("nl").cloned().unwrap_or_default(), "en": c.get("en").cloned().unwrap_or_default() },
+                    "choice": choice,
+                }));
+            }
+        }
+        obj.entry("sides").or_insert(Value::Array(sides));
+    }
+    data.format = FORMAT;
+}
+
 /// The seed with ids issued, so every item looks as if a page created it.
 pub fn seed() -> Data {
     let mut data: Data = serde_json::from_str(SEED).expect("src/seed.json is valid");
@@ -363,9 +420,51 @@ mod tests {
     }
 
     #[test]
-    fn the_seed_parses() {
+    fn the_seed_holds_only_the_categories() {
         let d = seed();
-        assert!(!d.recipes.is_empty());
-        assert!(!d.dishes.is_empty());
+        assert!(
+            d.recipes.is_empty() && d.freezer.is_empty() && d.shelf.is_empty() && d.log.is_empty()
+        );
+        assert!(d.dishes.is_empty());
+        assert_eq!(d.dish_categories.len(), 2);
+    }
+
+    #[test]
+    fn format_1_parts_become_sides_with_the_small_wheel_as_choice() {
+        let mut d: Data = serde_json::from_value(serde_json::json!({
+            "format": 1,
+            "dish_parts": [
+                {"id": "k-sauce", "name": {"nl": "Saus", "en": "Sauce"}, "order": 2},
+                {"id": "k-starch", "name": {"nl": "Aardappelen", "en": "Potatoes"}, "order": 1, "wheel": true}
+            ],
+            "dishes": [
+                {"id": "d1", "name": {"nl": "Biefstuk", "en": "Steak"}, "parts": [
+                    {"part": "k-sauce", "choices": [{"nl": "Bearnaise", "en": ""}]},
+                    {"part": "k-starch", "choices": [{"nl": "Frieten", "en": "Fries"}, {"nl": "Puree", "en": "Mash"}]}
+                ]},
+                {"id": "d2", "name": {"nl": "Soep", "en": "Soup"}, "parts": []}
+            ]
+        }))
+        .unwrap();
+        migrate(&mut d);
+        assert_eq!(d.format, FORMAT);
+        assert!(d.dish_parts.is_empty());
+        assert_eq!(d.dishes.len(), 2);
+        assert_eq!(
+            d.dishes[0]["sides"],
+            serde_json::json!([
+                {"name": {"nl": "Frieten", "en": "Fries"}, "choice": true},
+                {"name": {"nl": "Puree", "en": "Mash"}, "choice": true},
+                {"name": {"nl": "Bearnaise", "en": ""}, "choice": false}
+            ])
+        );
+        assert!(d.dishes[0].get("parts").is_none());
+        assert_eq!(d.dishes[1]["sides"], serde_json::json!([]));
+        assert!(
+            serde_json::to_value(&d)
+                .unwrap()
+                .get("dish_parts")
+                .is_none()
+        );
     }
 }

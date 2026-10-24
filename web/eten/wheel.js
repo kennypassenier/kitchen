@@ -1,14 +1,14 @@
 // The parents' wheel, one module for both languages (Kenny, 22/10/2026).
 //
 // The Dutch page on eten.kp-soft.dev (web/eten/eten.js, no login) and Kitchen's own English page (/parents) both mount
-// this. The data comes ready from the server (src/parents.rs `wheel`): only dishes with both names, each with its
-// category and its parts, every name already in the page's language.
+// this. The data comes ready from the server (src/parents.rs `wheel`): the dishes with a name in the page's language,
+// each with its category and its sides, every name already in that language.
 //
-// The big wheel picks a dish. The small wheel is only for the sides (Kenny, 22/10/2026 23:08): a part whose kind is
-// marked for it ("Aardappelen, rijst of pasta": frieten, kroketten, rijst, …) with two or more choices; it picks them
-// one after the other while its heading names the part. Sauces, salad and the like are not spun and not shown here.
-// The sentence under the wheels says the dinner. A tap on the small wheel picks again for the part it shows. The
-// categories, when there are two or more, narrow the big wheel.
+// The big wheel picks a dish. The small wheel picks one of the dish's sides marked "Choice" (Kenny, 24/10/2026 05:03:
+// frieten, kroketten, puree, …), when there are two or more; a dish with one marked side simply comes with it. The
+// other sides (sauce, salad, …) always come with the dish and are not spun. The sentence under the wheels says the
+// whole dinner. A tap on the small wheel picks the side again. The categories, when there are two or more, narrow
+// the big wheel.
 //
 // Both wheels are the package's kiosk wheel with its answer card (js/wheel.js); the card's loading, empty and failed
 // states are js/card-state.js. Nothing is stored: the spin is the whole of it.
@@ -18,8 +18,8 @@ import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/
 import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachArt } from "/static/kp/js/art.js";
 
-/** @typedef {{ id: string, name: string, wheel: boolean, choices: string[] }} Part */
-/** @typedef {{ id: string, name: string, category: string | null, parts: Part[] }} Dish */
+/** @typedef {{ name: string, choice: boolean }} Side */
+/** @typedef {{ id: string, name: string, category: string | null, sides: Side[] }} Dish */
 /** @typedef {{ id: string, name: string, count: number }} Category */
 /** @typedef {{ lang: string, dishes: Dish[], categories: Category[] }} WheelData */
 
@@ -45,7 +45,7 @@ export const WORDS = {
     count: (/** @type {number} */ n) => `${n} ${n === 1 ? "gerecht" : "gerechten"}`,
     sideFirst: "Draai eerst het grote wiel; dan kiest dit wiel het bijgerecht.",
     nothing: (/** @type {string} */ dish) => `${dish}: hier valt niets te kiezen.`,
-    tagChoice: (/** @type {string[]} */ parts) => `Met een keuze: ${join(parts.map(lower), "en")}`,
+    tagChoice: (/** @type {string[]} */ sides) => `Met een keuze: ${join(sides.map(lower), "of")}`,
     tagSame: "Altijd op dezelfde manier",
     tagWith: (/** @type {string} */ dish) => `Bij ${dish}`,
     idle: "Tik op het grote wiel; het kiest het eten en het kleine wiel het bijgerecht.",
@@ -68,7 +68,7 @@ export const WORDS = {
     count: (/** @type {number} */ n) => `${n} ${n === 1 ? "dish" : "dishes"}`,
     sideFirst: "Spin the big wheel first; then this wheel picks the side.",
     nothing: (/** @type {string} */ dish) => `${dish}: nothing to choose here.`,
-    tagChoice: (/** @type {string[]} */ parts) => `With a choice of ${join(parts.map(lower), "and")}`,
+    tagChoice: (/** @type {string[]} */ sides) => `With a choice of ${join(sides.map(lower), "or")}`,
     tagSame: "Always the same way",
     tagWith: (/** @type {string} */ dish) => `With ${dish}`,
     idle: "Tap the big wheel; it picks the dish and the small wheel the side.",
@@ -77,8 +77,10 @@ export const WORDS = {
   },
 };
 
-/** A part the small wheel picks: its kind is marked for it (the sides) and it has a real choice. @param {Part} p */
-const spins = (p) => p.wheel === true && p.choices.length > 1;
+/** The sides of a dish the small wheel picks from: those marked "Choice". @param {Dish} d */
+const choices = (d) => d.sides.filter((s) => s.choice === true).map((s) => s.name);
+/** The small wheel spins only when there is a real choice. @param {Dish} d */
+const spins = (d) => choices(d).length > 1;
 
 /** @param {string} s */
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -99,12 +101,8 @@ export function mountWheel(root, { lang, load, emptyAction }) {
   let filter = "";
   /** @type {Dish | null} the dish the big wheel stands on */
   let dish = null;
-  /** @type {Part[]} its parts with a choice, in order */
-  let queue = [];
-  /** @type {number} the part the small wheel shows */
-  let at = -1;
-  /** @type {Map<string, string>} part id → the choice made */
-  const picks = new Map();
+  /** @type {string | null} the side the small wheel landed on */
+  let pick = null;
   /** @type {Array<() => void>} */
   const undo = [];
 
@@ -134,7 +132,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
                   <div class="kp-wheel" data-pr-dish data-kp-wheel data-kp-wheel-kiosk data-kp-wheel-answer aria-labelledby="pr-dish-k"></div>
                 </div>
                 <div class="pr-wheel pr-wheel--side">
-                  <p class="pr-wheel__kicker" id="pr-side-k" data-pr-side-k>${esc(w.sideKicker)}</p>
+                  <p class="pr-wheel__kicker" id="pr-side-k">${esc(w.sideKicker)}</p>
                   <div class="kp-wheel" data-pr-side data-kp-wheel data-kp-wheel-kiosk data-kp-wheel-answer data-kp-wheel-empty="${esc(w.sideFirst)}" aria-labelledby="pr-side-k"></div>
                 </div>
               </div>
@@ -150,7 +148,6 @@ export function mountWheel(root, { lang, load, emptyAction }) {
   const filterBox = /** @type {HTMLElement} */ (root.querySelector("[data-pr-filter]"));
   const big = /** @type {HTMLElement} */ (root.querySelector("[data-pr-dish]"));
   const small = /** @type {HTMLElement} */ (root.querySelector("[data-pr-side]"));
-  const smallKicker = /** @type {HTMLElement} */ (root.querySelector("[data-pr-side-k]"));
   const tonight = /** @type {HTMLElement} */ (root.querySelector("[data-pr-tonight]"));
   undo.push(attachCardStates(card), attachWheels(card));
 
@@ -167,51 +164,42 @@ export function mountWheel(root, { lang, load, emptyAction }) {
       tonight.textContent = w.idle;
       return;
     }
-    const withs = dish.parts.filter((p) => p.wheel).map((p) => (p.choices.length === 1 ? p.choices[0] : picks.get(p.id))).filter((s) => typeof s === "string");
-    const waiting = queue.some((p) => !picks.has(p.id));
-    tonight.textContent = waiting ? w.turning : w.tonight(dish.name, /** @type {string[]} */ (withs));
-  };
-
-  /** Show part `i` of the queue on the small wheel and spin it. @param {number} i */
-  const spinPart = (i) => {
-    at = i;
-    const part = queue[i];
-    smallKicker.textContent = part.name;
-    setWheelItems(small, part.choices.map((c) => ({ id: c, label: c, tag: w.tagWith(dish?.name ?? "") })));
-    void spinWheel(small);
-  };
-
-  // The big wheel draws its dish before it turns: the small wheel starts on the first part with a choice at once.
-  const onDish = (/** @type {Event} */ e) => {
-    const id = /** @type {CustomEvent} */ (e).detail?.item?.id;
-    dish = data?.dishes.find((d) => d.id === id) ?? null;
-    picks.clear();
-    queue = (dish?.parts ?? []).filter(spins);
-    if (!dish || !queue.length) {
-      at = -1;
-      smallKicker.textContent = w.sideKicker;
-      small.setAttribute("data-kp-wheel-empty", dish ? w.nothing(dish.name) : w.sideFirst);
-      setWheelItems(small, []);
+    // The sides in the dish's order; of the marked ones only the one the small wheel picked (or the only one).
+    const marked = choices(dish);
+    const chosen = marked.length === 1 ? marked[0] : pick;
+    if (spins(dish) && chosen === null) {
       tonight.textContent = w.turning;
       return;
     }
+    const withs = dish.sides.filter((s) => !s.choice || s.name === chosen).map((s) => s.name);
+    tonight.textContent = w.tonight(dish.name, [...new Set(withs)]);
+  };
+
+  // The big wheel draws its dish before it turns: the small wheel starts on the dish's choice at once.
+  const onDish = (/** @type {Event} */ e) => {
+    const id = /** @type {CustomEvent} */ (e).detail?.item?.id;
+    dish = data?.dishes.find((d) => d.id === id) ?? null;
+    pick = null;
     tonight.textContent = w.turning;
-    spinPart(0);
+    if (!dish || !spins(dish)) {
+      small.setAttribute("data-kp-wheel-empty", dish ? w.nothing(dish.name) : w.sideFirst);
+      setWheelItems(small, []);
+      return;
+    }
+    const name = dish.name;
+    setWheelItems(small, choices(dish).map((c) => ({ id: c, label: c, tag: w.tagWith(name) })));
+    void spinWheel(small);
   };
   const onDishDone = () => say();
-  // A part chosen: remember it, then the next part, until the dinner is whole.
   const onSide = (/** @type {Event} */ e) => {
     const label = /** @type {CustomEvent} */ (e).detail?.item?.label;
-    const part = queue[at];
-    if (!part || typeof label !== "string") return;
-    picks.set(part.id, label);
-    if (at + 1 < queue.length) spinPart(at + 1);
-    else say();
+    if (!dish || typeof label !== "string") return;
+    pick = label;
+    say();
   };
-  // A tap on the small wheel spins it again for the part it shows: that choice is open until it lands.
+  // A tap on the small wheel spins it again: the side is open until it lands.
   const onSideSpin = () => {
-    const part = queue[at];
-    if (part) picks.delete(part.id);
+    pick = null;
     say();
   };
   big.addEventListener(WHEEL_SPIN_EVENT, onDish);
@@ -230,10 +218,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
 
   const fillBig = () => {
     dish = null;
-    queue = [];
-    at = -1;
-    picks.clear();
-    smallKicker.textContent = w.sideKicker;
+    pick = null;
     small.setAttribute("data-kp-wheel-empty", w.sideFirst);
     setWheelItems(small, []);
     const list = shown();
@@ -241,8 +226,7 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     setWheelItems(
       big,
       list.map((d) => {
-        const choosing = d.parts.filter(spins).map((p) => p.name);
-        return { id: d.id, label: d.name, tag: choosing.length ? w.tagChoice(choosing) : w.tagSame };
+        return { id: d.id, label: d.name, tag: spins(d) ? w.tagChoice(choices(d)) : w.tagSame };
       }),
     );
     say();

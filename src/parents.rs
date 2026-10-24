@@ -8,7 +8,7 @@
 //! |---|---|
 //! | `GET /eten` | the Dutch page (`web/eten/index.html`) |
 //! | `GET /eten/{file}` | its script and sheet, and the wheel module Kitchen's own English page shares |
-//! | `GET /eten/data` | the dishes on the wheel, in Dutch: names, category, the parts |
+//! | `GET /eten/data` | the dishes on the wheel, in Dutch: names, category, the sides |
 //!
 //! The English copy of the same list (`GET /data/wheel/en`) sits behind the
 //! login with the rest of Kitchen. Both come from [`wheel`], so the rule
@@ -175,10 +175,10 @@ fn order(v: &Value) -> f64 {
 
 /// The dishes on the parents' wheel in one language.
 ///
-/// A dish shows when `parents` is true and it has a name in `lang`. A part
-/// shows when its kind has a name in `lang` and at least one choice does;
-/// parts come in the kinds' order, each with its kind's `wheel` mark (only a
-/// marked kind, such as potatoes and co., is picked by the small wheel).
+/// A dish shows when `parents` is true and it has a name in `lang`. Its
+/// sides come in the dish's own order, each one that has a name in `lang`,
+/// with its `choice` mark: the small wheel picks one of the marked sides
+/// (Kenny, 24/10/2026 05:03), the others always come with the dish.
 /// Categories are the ones the shown dishes use, in their order, with how
 /// many dishes each holds.
 pub fn wheel(data: &Data, lang: Lang) -> Value {
@@ -190,40 +190,17 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
         let Some(name) = named(d.get("name"), lang) else {
             continue;
         };
-        let mut parts: Vec<(f64, Value)> = Vec::new();
-        for p in d
-            .get("parts")
+        let sides: Vec<Value> = d
+            .get("sides")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
-        {
-            let Some(kind) = by_id(&data.dish_parts, p.get("part")) else {
-                continue;
-            };
-            let Some(kind_name) = named(kind.get("name"), lang) else {
-                continue;
-            };
-            let choices: Vec<String> = p
-                .get("choices")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .filter_map(|c| named(Some(c), lang))
-                .collect();
-            if choices.is_empty() {
-                continue;
-            }
-            parts.push((
-                order(kind),
-                json!({
-                    "id": kind["id"],
-                    "name": kind_name,
-                    "wheel": kind.get("wheel").and_then(Value::as_bool) == Some(true),
-                    "choices": choices,
-                }),
-            ));
-        }
-        parts.sort_by(|a, b| a.0.total_cmp(&b.0));
+            .filter_map(|side| {
+                let name = named(side.get("name"), lang)?;
+                let choice = side.get("choice").and_then(Value::as_bool) == Some(true);
+                Some(json!({ "name": name, "choice": choice }))
+            })
+            .collect();
         let category = by_id(&data.dish_categories, d.get("category"))
             .filter(|c| named(c.get("name"), lang).is_some())
             .map(|c| c["id"].clone())
@@ -232,7 +209,7 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
             "id": d["id"],
             "name": name,
             "category": category,
-            "parts": parts.into_iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            "sides": sides,
         }));
     }
     dishes.sort_by(|a, b| {
@@ -358,26 +335,21 @@ mod tests {
 
     fn data() -> Data {
         let mut d = crate::store::seed();
-        d.dishes.clear();
-        d.dish_parts = vec![
-            json!({"id": "p-starch", "name": {"nl": "Aardappelen en co.", "en": "Potatoes and co."}, "order": 1, "wheel": true}),
-            json!({"id": "p-sauce", "name": {"nl": "Saus", "en": "Sauce"}, "order": 2}),
-            json!({"id": "p-half", "name": {"nl": "Groenten", "en": ""}, "order": 3}),
-        ];
         d.dish_categories = vec![
             json!({"id": "c-day", "name": {"nl": "Dagelijkse kost", "en": "Everyday"}, "order": 1}),
             json!({"id": "c-special", "name": {"nl": "Speciaal", "en": "Special"}, "order": 2}),
         ];
         d.dishes = vec![
             json!({"id": "d1", "name": {"nl": "Stoofvlees", "en": "Beef stew"}, "parents": true, "category": "c-day",
-            "parts": [
-                {"part": "p-sauce", "choices": [{"nl": "Mayonaise", "en": "Mayonnaise"}]},
-                {"part": "p-starch", "choices": [{"nl": "Frieten", "en": "Fries"}, {"nl": "Puree", "en": ""}]},
-                {"part": "p-half", "choices": [{"nl": "Wortelen", "en": "Carrots"}]}
+            "sides": [
+                {"name": {"nl": "Frieten", "en": "Fries"}, "choice": true},
+                {"name": {"nl": "Puree", "en": ""}, "choice": true},
+                {"name": {"nl": "Mayonaise", "en": "Mayonnaise"}, "choice": false},
+                {"name": {"nl": "Wortelen", "en": ""}}
             ]}),
-            json!({"id": "d2", "name": {"nl": "Konijn", "en": ""}, "parents": true, "category": "c-special", "parts": []}),
-            json!({"id": "d3", "name": {"nl": "", "en": "Shakshuka"}, "parents": true, "parts": []}),
-            json!({"id": "d4", "name": {"nl": "Pasta", "en": "Pasta"}, "parents": false, "parts": []}),
+            json!({"id": "d2", "name": {"nl": "Konijn", "en": ""}, "parents": true, "category": "c-special", "sides": []}),
+            json!({"id": "d3", "name": {"nl": "", "en": "Shakshuka"}, "parents": true}),
+            json!({"id": "d4", "name": {"nl": "Pasta", "en": "Pasta"}, "parents": false, "sides": []}),
         ];
         d
     }
@@ -398,18 +370,23 @@ mod tests {
     }
 
     #[test]
-    fn parts_and_choices_follow_the_language_in_the_kinds_order() {
+    fn sides_follow_the_language_in_the_dishs_order_with_their_choice_mark() {
         let nl = wheel(&data(), Lang::Nl);
-        let parts = &nl["dishes"][1]["parts"];
-        assert_eq!(parts.as_array().unwrap().len(), 3);
-        assert_eq!(parts[0]["name"], "Aardappelen en co.");
-        assert_eq!(parts[0]["wheel"], true);
-        assert_eq!(parts[0]["choices"], json!(["Frieten", "Puree"]));
-        assert_eq!(parts[1]["wheel"], false);
+        assert_eq!(
+            nl["dishes"][1]["sides"],
+            json!([
+                {"name": "Frieten", "choice": true},
+                {"name": "Puree", "choice": true},
+                {"name": "Mayonaise", "choice": false},
+                {"name": "Wortelen", "choice": false}
+            ])
+        );
         let en = wheel(&data(), Lang::En);
-        let parts = &en["dishes"][0]["parts"];
-        assert_eq!(parts.as_array().unwrap().len(), 2);
-        assert_eq!(parts[0]["choices"], json!(["Fries"]));
+        assert_eq!(
+            en["dishes"][0]["sides"],
+            json!([{"name": "Fries", "choice": true}, {"name": "Mayonnaise", "choice": false}])
+        );
+        assert_eq!(en["dishes"][1]["sides"], json!([]));
     }
 
     #[test]
@@ -425,10 +402,10 @@ mod tests {
     }
 
     #[test]
-    fn the_seed_puts_eight_dinners_on_the_wheel() {
+    fn the_seed_leaves_the_wheel_empty() {
         let w = wheel(&crate::store::seed(), Lang::Nl);
-        assert_eq!(w["dishes"].as_array().unwrap().len(), 8);
-        assert_eq!(w["categories"].as_array().unwrap().len(), 2);
+        assert_eq!(w["dishes"], json!([]));
+        assert_eq!(w["categories"], json!([]));
     }
 
     #[test]

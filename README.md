@@ -26,7 +26,7 @@ KITCHEN_TOKEN=… KITCHEN_SECRET_KEY=… KITCHEN_STATE_DIR=/tmp/kitchen \
 ```
 
 Log in on http://127.0.0.1:8080 with the token. A new state directory is
-filled with sample dishes. `KITCHEN_WEB_DIR` serves the screens from disk
+empty but for the two dish categories and the default dinner time. `KITCHEN_WEB_DIR` serves the screens from disk
 so a changed file shows on reload; without it the copy in the binary is
 served.
 

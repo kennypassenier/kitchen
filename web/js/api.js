@@ -7,7 +7,7 @@
 // connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_parts: Item[], dish_categories: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], settings: Record<string, any> }} Kitchen */
 
 export class ApiError extends Error {
   /** @param {string} message @param {number} status */
