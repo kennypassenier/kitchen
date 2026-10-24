@@ -24,10 +24,36 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/settings": () => import("./pages/settings.js"),
   "/parents": () => import("./pages/parents.js"),
   "/dishes": () => import("./pages/dishes.js"),
+  "/log": () => import("./pages/log.js"),
+});
+
+/** Every item's own page, `/<word>/<id>` (pages/item.js), and the bar entry it lights up. */
+const DETAIL = /** @type {Record<string, string>} */ ({
+  dishes: "/dishes",
+  categories: "/dishes",
+  freezer: "/bad-days",
+  shelf: "/bad-days",
+  log: "/log",
+  resting: "/",
 });
 
 /** The bar entry a hidden screen lights up. */
 const GROUP = /** @type {Record<string, string>} */ ({ "/recipe": "/recipes", "/cook": "/recipes" });
+
+/**
+ * The screen a path opens, with the parameters it reads: the query, plus `list` and `id` for an item's own page.
+ * @param {string} path @param {string} search
+ * @returns {{ load: () => Promise<{ mount: Mount }>, params: URLSearchParams, bar: string } | null}
+ */
+function route(path, search) {
+  const params = new URLSearchParams(search);
+  if (path in ROUTES) return { load: ROUTES[path], params, bar: GROUP[path] ?? path };
+  const m = path.match(/^\/([a-z]+)\/([^/]+)$/);
+  if (!m || !(m[1] in DETAIL)) return null;
+  params.set("list", m[1]);
+  params.set("id", decodeURIComponent(m[2]));
+  return { load: () => import("./pages/item.js"), params, bar: DETAIL[m[1]] };
+}
 
 const page = /** @type {HTMLElement} */ (document.getElementById("page"));
 const nav = /** @type {HTMLElement} */ (document.getElementById("nav"));
@@ -50,16 +76,16 @@ async function render() {
   const path = location.pathname.replace(/\/+$/, "") || "/";
   cleanup();
   cleanup = () => {};
-  markNav(GROUP[path] ?? path);
-  const load = ROUTES[path];
-  if (!load) {
+  const found = route(path, location.search);
+  markNav(found?.bar ?? path);
+  if (!found) {
     page.replaceChildren(notFound());
     document.title = "Not found · Kitchen";
     return;
   }
   let mod;
   try {
-    mod = await load();
+    mod = await found.load();
   } catch (e) {
     if (mine !== seq) return;
     page.replaceChildren(failed(e));
@@ -67,7 +93,7 @@ async function render() {
   }
   if (mine !== seq) return;
   page.replaceChildren();
-  const done = mod.mount(page, { params: new URLSearchParams(location.search), navigate });
+  const done = mod.mount(page, { params: found.params, navigate });
   if (typeof done === "function") cleanup = done;
 }
 
@@ -118,7 +144,8 @@ async function drawNav() {
         .map(([href, t]) => h("li", null, h("a", { class: "kp-nav__link", href }, t))),
     );
   }
-  markNav(GROUP[location.pathname] ?? location.pathname);
+  const path = location.pathname.replace(/\/+$/, "") || "/";
+  markNav(route(path, location.search)?.bar ?? path);
 }
 
 tools.innerHTML = themeMenuMarkup({ id: "app-theme-menu", label: "Theme" });
@@ -134,7 +161,7 @@ document.addEventListener("click", (e) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target || a.hasAttribute("download")) return;
   const url = new URL(a.href);
   if (url.origin !== location.origin) return;
-  if (!((url.pathname.replace(/\/+$/, "") || "/") in ROUTES)) return;
+  if (!route(url.pathname.replace(/\/+$/, "") || "/", url.search)) return;
   e.preventDefault();
   navigate(url.pathname + url.search + url.hash);
 });

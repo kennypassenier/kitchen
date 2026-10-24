@@ -114,6 +114,8 @@ async fn main() -> std::process::ExitCode {
         // English; the Dutch one is /eten, without a login.
         .page(Page::new("dishes", "Dishes", "/dishes"))
         .page(Page::new("parents", "Parents' wheel", "/parents"))
+        // Every line of the log, recipes cooked and shelf foods eaten.
+        .page(Page::new("log", "What I ate", "/log"))
         .page(
             Page::new("recipe", "Recipe", "/recipe")
                 .group("Recipes")

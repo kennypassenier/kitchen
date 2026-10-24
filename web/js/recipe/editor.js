@@ -54,14 +54,14 @@ export function input(value, type = "text", attrs = {}) {
 }
 
 /** @param {string} value @param {number} rows */
-function area(value, rows = 3) {
+export function area(value, rows = 3) {
   const el = h("textarea", { class: "kp-field__input kp-field__input--multiline", id: uid("rl-t"), rows, "data-kp-autosize": true });
   el.textContent = value;
   return el;
 }
 
 /** A stepper: the package's quantity. @param {number} value @param {{ min?: number, max?: number, unit?: string, one?: string, label: string }} o */
-function stepper(value, { min = 0, max = 1000, unit = "", one = "", label }) {
+export function stepper(value, { min = 0, max = 1000, unit = "", one = "", label }) {
   return h(
     "div",
     { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": String(min), "data-kp-quantity-max": String(max), "data-kp-quantity-unit": unit, "data-kp-quantity-unit-one": one || unit, "data-kp-quantity-label": label },
@@ -163,10 +163,10 @@ export const textCell = (label, value, placeholder = "") => {
 /**
  * Open the editor for a recipe, or for a new one.
  * @param {HTMLDialogElement} dialog
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[] }} spec
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any> }} spec
  */
-export function openEditor(dialog, { recipe, mainOptions }) {
-  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
+export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
+  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const editing = Boolean(recipe);
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? `Edit ${r.name}` : "Add a recipe");
 

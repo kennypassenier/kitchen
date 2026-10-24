@@ -34,14 +34,14 @@ export function languages(dish) {
 export const ordered = (list) => [...list].sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9));
 
 /** A section of the drawer's form. @param {string} title @param {string} text @param {...HTMLElement} body */
-const sec = (title, text, ...body) => h("section", { class: "rl-formsec" }, h("h3", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...body);
+export const sec = (title, text, ...body) => h("section", { class: "rl-formsec" }, h("h3", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...body);
 
 /**
  * Fill the drawer and open it.
  * @param {HTMLDialogElement} dialog
  * @param {{ title: string, text: string, form: HTMLFormElement, saveLabel: string, onSave: () => Promise<string | { error: string, remedy?: string, word: string }> }} spec
  */
-function openDrawer(dialog, { title, text, form, saveLabel, onSave }) {
+export function openDrawer(dialog, { title, text, form, saveLabel, onSave }) {
   const save = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-flash-button": true, "data-kp-flash-words": "Saved", form: form.id }, saveLabel);
   const cancel = h("button", { type: "button", class: "kp-button" }, "Cancel");
   const line = h("p", { class: "rl-editor__line", role: "status" });
