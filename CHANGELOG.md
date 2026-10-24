@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-24
+
 ### Changed
 - Recipes belong to their dish (`dish.recipes`, one the default); the
   separate recipe list is gone. Add, edit and pick the default from the
