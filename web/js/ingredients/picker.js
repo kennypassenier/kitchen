@@ -32,7 +32,7 @@ const categories = () => [...(kitchenNow()?.ingredient_categories ?? [])].sort((
  */
 export function ingredientsPicker(values, { label }) {
   const p = build(values, { label, multi: true });
-  return { el: p.el, get: () => /** @type {string[]} */ (p.all()) };
+  return { el: p.el, get: () => /** @type {string[]} */ (p.all()), clear: p.clear };
 }
 
 /**
@@ -169,5 +169,5 @@ function build(values, { label, multi }) {
   };
   const known = new Set((kitchenNow()?.ingredients ?? []).map((i) => i.id));
   const all = () => (handle?.values() ?? []).filter((v) => v !== NEW && (known.has(v) || (kitchenNow()?.ingredients ?? []).some((i) => i.id === v)));
-  return { el, one, all };
+  return { el, one, all, clear: () => handle?.set([]) };
 }

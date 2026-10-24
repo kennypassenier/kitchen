@@ -432,4 +432,7 @@ export const NL = {
   "rec.inNl": (x) => `${x} (Nederlands)`,
   "rec.inEn": (x) => `${x} (Engels)`,
   "rec.halfText": (x) => `${x} is maar in één taal ingevuld.`,
+  // recipe editor: several ingredients at once (10:14)
+  "edit.manyLabel": "Ingrediënten om als regels toe te voegen",
+  "edit.manyAdd": "Als regels toevoegen",
 };

@@ -434,4 +434,7 @@ export const EN = {
   "rec.inNl": (x) => `${x} (Dutch)`,
   "rec.inEn": (x) => `${x} (English)`,
   "rec.halfText": (x) => `${x} is filled in one language only.`,
+  // recipe editor: several ingredients at once (10:14)
+  "edit.manyLabel": "Ingredients to add as lines",
+  "edit.manyAdd": "Add as lines",
 };

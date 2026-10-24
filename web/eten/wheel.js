@@ -164,22 +164,31 @@ export function mountWheel(root, { lang, load, emptyAction }) {
     tonight.textContent = w.tonight(dish.name, [...fixed, ...(chosen ? [chosen] : [])]);
   };
 
-  // The big wheel draws its dish before it turns: the small wheel starts on the dish's choice at once.
-  const onDish = (/** @type {Event} */ e) => {
+  // The small wheel waits until the big one has stopped (Kenny, 24/10/2026 10:15): while the big wheel turns the small
+  // one is idle and empty and the sentence says the wheels are turning; when the big wheel lands on a dish with two
+  // or more sides the small wheel spins, otherwise it shows the one side or that there is nothing to choose.
+  const onDish = () => {
+    dish = null;
+    pick = null;
+    tonight.textContent = w.turning;
+    small.setAttribute("data-kp-wheel-empty", w.sideFirst);
+    setWheelItems(small, []);
+  };
+  const onDishDone = (/** @type {Event} */ e) => {
     const id = /** @type {CustomEvent} */ (e).detail?.item?.id;
     dish = data?.dishes.find((d) => d.id === id) ?? null;
     pick = null;
-    tonight.textContent = w.turning;
     if (!dish || !spins(dish)) {
       small.setAttribute("data-kp-wheel-empty", dish ? w.nothing(dish.name) : w.sideFirst);
       setWheelItems(small, []);
+      say();
       return;
     }
     const name = dish.name;
     setWheelItems(small, choices(dish).map((c) => ({ id: c, label: c, tag: w.tagWith(name) })));
+    say();
     void spinWheel(small);
   };
-  const onDishDone = () => say();
   const onSide = (/** @type {Event} */ e) => {
     const label = /** @type {CustomEvent} */ (e).detail?.item?.label;
     if (!dish || typeof label !== "string") return;

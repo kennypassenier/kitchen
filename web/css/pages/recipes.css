@@ -176,3 +176,11 @@
 .rl-editor .kp-formgrid__control > .kp-segmented {
   inline-size: 100%;
 }
+
+/* Several ingredients picked at once above the lines (Kenny, 24/10/2026 10:14). */
+.rl-many {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: start;
+}

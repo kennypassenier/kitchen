@@ -19,7 +19,7 @@ import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
-import { ingredientPicker } from "../ingredients/picker.js";
+import { ingredientPicker, ingredientsPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
 import { wordsFor } from "./words.js";
 import { t, lang } from "../i18n/index.js";
@@ -158,7 +158,18 @@ export function rows({ columns, items, add, noun, blank }) {
   });
   grid.append(head, body, empty, h("div", { class: "rl-rows__add" }, addButton));
   sync();
-  return { el: grid, get: () => lines.map((l) => l.cells.map((c) => c.get())) };
+  return {
+    el: grid,
+    get: () => lines.map((l) => l.cells.map((c) => c.get())),
+    /** Add a line from outside (several ingredients picked at once). @param {any} item */
+    add: (item) => {
+      const line = push(item);
+      attachSelects(line);
+      attachQuantities(line);
+      attachSwitches(line);
+      return line;
+    },
+  };
 }
 
 /** @param {string} label @param {string} value @param {string} placeholder */
@@ -241,18 +252,27 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       { label: t("edit.list"), width: "14rem", make: (i) => { const el = select([...new Set([...groups(), ...(r.ingredients ?? []).map((/** @type {any} */ x) => x.group), i.group].filter(Boolean))].map((g) => [g, g]), i.group ?? groups()[0], t("edit.whichList")); return { el, get: () => el.value }; } },
     ],
     items: r.ingredients ?? [], add: t("list.ingredients.add"), noun: "ingredient", blank: () => ({ ingredient: null, amount: null, unit: "g", group: groups()[0] }),
+  });  // Several ingredients at once (Kenny, 24/10/2026 10:14): pick them in one go, then each becomes its own line with its
+  // own amount; a new one can be added right in the picker, as in the lines.
+  const many = ingredientsPicker([], { label: t("edit.manyLabel") });
+  const manyAdd = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.manyAdd"));
+  manyAdd.addEventListener("click", () => {
+    const ids = many.get();
+    for (const id of ids) ingredients.add({ ingredient: id, amount: null, unit: "g", group: GROUPS[0] });
+    if (ids.length) many.clear();
   });
+
   const tools = rows({
     columns: [{ label: t("edit.tool"), width: "minmax(0, 1fr)", make: (tk) => { const c = textCell(t("edit.toolName"), tk.name ?? "", t("edit.toolPh")); return { el: c.el, get: () => ({ id: tk.id ?? (tk.id = newId()), name: c.get() }) }; } }],
     items: r.tools ?? [], add: t("edit.addTool"), noun: "tool", blank: () => ({ name: "" }),
   });
-  /** A repeatable list under its own small heading and sentence. @param {string} title @param {string} text @param {HTMLElement} el */
-  const listBlock = (title, text, el) => h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), el);
+  /** A repeatable list under its own small heading and sentence. @param {string} title @param {string} text @param {...HTMLElement} els */
+  const listBlock = (title, text, ...els) => h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...els);
   const lists = h(
     "div",
     { class: "rl-lists" },
     listBlock(t("edit.tracks"), t("edit.tracksHint"), tracks.el),
-    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), ingredients.el),
+    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), h("div", { class: "rl-many" }, many.el, manyAdd), ingredients.el),
     listBlock(t("edit.tools"), t("edit.toolsHint"), tools.el),
   );
 
