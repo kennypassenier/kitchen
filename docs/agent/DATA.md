@@ -30,6 +30,7 @@ Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 | `tracks` | `{id, name}`[] | Parallel tracks ("Pasta", "Sauce"); empty for a one-track dish |
 | `steps` | step[] | In cooking order, see below |
 | `mini_note` | string | What the mini version (bad days) leaves out |
+| `photo` | string \| null | A photo id (see Photos below): the one picture of the dish, at the top of the recipe page (Kenny, 24/10/2026 05:23) |
 
 A step:
 
@@ -46,6 +47,29 @@ A step:
 | `note` | string | A line under the step |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
+| `photos` | string[] | Photo ids in show order (at most 8 in the editor): shown under the step on the recipe page and large in cook mode while the step is in hand. Missing = none |
+
+### Photos
+
+Not part of `kitchen.json`: files in `<state dir>/photos/<uuid>.jpg|webp`
+(so the backup of the state directory takes them), referenced by the uuid.
+Routes behind the login (`src/photos.rs`): `POST /data/photos` (body = the
+image bytes, `Content-Type` `image/jpeg` or `image/webp`, checked against the
+first bytes, at most 4 MiB; answers `{"id"}`), `GET /data/photos/{id}` (long
+private cache), `DELETE /data/photos/{id}`. The id in the address must be a
+plain lower-case UUID. The browser makes the picture at most 1600 px on the
+long side (WebP, JPEG as fallback) before sending (`web/js/recipe/photos.js`).
+The kit refuses any request body above `KITCHEN_MAX_BODY_BYTES` (1 MiB by
+default), which is lower than the 4 MiB cap here, so the browser shrinks a
+photo further until it is under about 1 MB; raise the knob only if that ever
+bites.
+
+Who deletes: the editor deletes the photos a recipe no longer refers to when it
+saves (a removed photo, a removed step) and the ones it uploaded when it is
+cancelled; the recipes page deletes a recipe's photos when the recipe is
+deleted. Known limit: a photo that was uploaded and then never saved nor
+cancelled cleanly (tab closed, connection lost during delete) stays as an
+orphan file; nothing sweeps them.
 
 ## dishes
 
@@ -112,8 +136,12 @@ sends `-1`); an item at zero portions stays until a page deletes it.
 
 ## log (what was cooked)
 
-`{recipe_id, date: "YYYY-MM-DD", feeling: string | null, note}`. The wheel's
-"days since last cooked" and the recipe page's heat log both read it.
+`{recipe_id, shelf_id?, date: "YYYY-MM-DD", feeling: string | null, note}`.
+Exactly one of `recipe_id` and `shelf_id` is set: a recipe that was cooked,
+or a zero-prep shelf food that was eaten ("I ate this" on /bad-days, Kenny,
+24/10/2026 05:07). The wheel's "days since last cooked" and the recipe
+page's heat log read only the recipe lines; "What I ate" (`/log`) and a
+shelf food's own page show both.
 
 ## resting
 

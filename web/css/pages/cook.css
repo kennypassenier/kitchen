@@ -141,3 +141,20 @@
   min-block-size: 30rem;
   align-items: stretch;
 }
+
+/* ---- The photos of the step in hand, large under the step (Kenny, 24/10/2026 05:23) ---- */
+.ck-photos {
+  min-inline-size: 0;
+}
+
+.ck-photos[hidden] {
+  display: none;
+}
+
+.ck-photos .kp-gallery__grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.ck-photos .rp-photos {
+  min-block-size: 0;
+}

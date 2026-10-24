@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 
 mod parents;
+mod photos;
 mod routes;
 mod store;
 
@@ -67,7 +68,7 @@ async fn main() -> std::process::ExitCode {
                 return std::process::ExitCode::FAILURE;
             }
         };
-        app.dashboard_routes(routes::router(store.clone()))
+        app.dashboard_routes(routes::router(store.clone(), &dir))
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);
     }

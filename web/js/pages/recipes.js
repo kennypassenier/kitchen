@@ -10,6 +10,7 @@ import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { openEditor } from "../recipe/editor.js";
+import { deletePhoto, photosOf } from "../recipe/photos.js";
 import { dmy } from "../recipe/log.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -119,10 +120,14 @@ export function mount(root) {
           phrase: `Delete ${r.name}?`,
           typeName: r.name,
           acceptLabel: "Delete recipe",
-          loses: ["The recipe, its ingredients, tools and steps."],
+          loses: ["The recipe, its ingredients, tools, steps and photos."],
           onAccept: () =>
             void remove("recipes", r.id).then(
-              () => toast(`Deleted ${r.name}`),
+              () => {
+                // Its photos go with it (Kenny, 24/10/2026 05:23).
+                for (const photo of photosOf(r)) void deletePhoto(photo);
+                toast(`Deleted ${r.name}`);
+              },
               (e) => toast(`Not deleted: ${e instanceof ApiError ? e.message : e}`, { live: "assertive", sticky: true }),
             ),
         });

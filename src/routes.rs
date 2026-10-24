@@ -11,6 +11,7 @@
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
 //! | `GET`/`PATCH /data/settings` | the settings; PATCH merges, `null` removes a key |
+//! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
 //!
 //! A refusal is HTTP 4xx (5xx for a failed save) with `{"error": "…"}` in
 //! words a page shows as they are.
@@ -28,7 +29,8 @@ use crate::store::{Refused, Store};
 
 type Shared = State<Arc<Store>>;
 
-pub fn router(store: Arc<Store>) -> Router {
+/// `state_dir` is where the photos directory lives, next to `kitchen.json`.
+pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
     Router::new()
         .route("/data/kitchen", get(kitchen))
         .route("/data/settings", get(settings).patch(patch_settings))
@@ -36,6 +38,8 @@ pub fn router(store: Arc<Store>) -> Router {
         .route("/data/{list}", get(list).post(create))
         .route("/data/{list}/{id}", put(replace).delete(delete))
         .with_state(store)
+        // Static segments win over `/data/{list}`, so the photo routes sit beside it.
+        .merge(crate::photos::router(state_dir))
 }
 
 fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {

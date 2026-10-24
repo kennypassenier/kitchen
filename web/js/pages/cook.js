@@ -21,7 +21,7 @@
 import { h, $ } from "../dom.js";
 import { loadKitchen, onKitchen, recipeById, create, ingredientName } from "../api.js";
 import { attachChecklists, setChecklistItems, setChecklistState, getChecklistItems } from "/static/kp/js/checklist.js";
-import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep } from "/static/kp/js/focus-steps.js";
+import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep, getStepIndex } from "/static/kp/js/focus-steps.js";
 import { attachTimers, setTimersState, getTimers, restoreTimers, stopTimer } from "/static/kp/js/timer.js";
 import { attachTimerDiscs, timerDiscOf } from "/static/kp/js/timer-disc.js";
 import { attachAttention, setAttention } from "/static/kp/js/attention.js";
@@ -29,6 +29,7 @@ import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
 import { attachCalm, isCalm, calmScope, motionAllowed } from "/static/kp/js/calm.js";
 import { statePlate } from "/static/kp/js/state-plate.js";
 import { memoryFor } from "/static/kp/js/remember.js";
+import { showPhotos } from "../recipe/photos.js";
 import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
 
 /** @typedef {import("../api.js").Item} Item */
@@ -212,6 +213,8 @@ export function mount(root, { params, navigate }) {
     "data-kp-remember": storeKey,
     "aria-label": "Steps",
   });
+  // The photos of the step in hand, large (Kenny, 24/10/2026 05:23); empty and hidden for a step without any.
+  const stepPhotos = h("div", { class: "ck-photos", hidden: true });
   const timers = h("div", {
     class: "kp-timers",
     id: "ck-timers",
@@ -228,7 +231,7 @@ export function mount(root, { params, navigate }) {
     h(
       "div",
       { class: "ck-cook" },
-      h("div", { class: "ck-cook__main" }, h("h3", { class: "ck-part" }, "Steps"), band, steps),
+      h("div", { class: "ck-cook__main" }, h("h3", { class: "ck-part" }, "Steps"), band, steps, stepPhotos),
       h(
         "div",
         { class: "ck-cook__side" },
@@ -625,7 +628,7 @@ export function mount(root, { params, navigate }) {
     });
   }
   // The place changes after the package has written it down: look a moment later.
-  const followProgress = () => window.setTimeout(() => !dead && paintTimeline(), 0);
+  const followProgress = () => window.setTimeout(() => !dead && (paintTimeline(), paintPhotos()), 0);
   for (const type of ["kp-focus-steps-change", "kp-focus-steps-track", "kp-focus-steps-resume"]) steps.addEventListener(type, followProgress);
   steps.addEventListener("kp-focus-steps-done", () => {
     finished = true;
@@ -693,6 +696,20 @@ export function mount(root, { params, navigate }) {
     setTimelineState(line.el, "error", "The timeline could not be shown", { text: message });
   };
 
+  /** The photos of the step the cook is on. */
+  function paintPhotos() {
+    const step = shown[getStepIndex(steps)];
+    const ids = /** @type {string[]} */ (step?.photos ?? []);
+    stepPhotos.hidden = ids.length === 0;
+    if (ids.length === 0) return;
+    const key = ids.join(",");
+    if (stepPhotos.dataset.key === key) return;
+    stepPhotos.dataset.key = key;
+    const gallery = stepPhotos.firstElementChild;
+    if (gallery instanceof HTMLElement) showPhotos(gallery, ids, "Step photo");
+    else stepPhotos.append(showPhotos(null, ids, "Step photo"));
+  }
+
   /** @param {Item} r */
   function fill(r) {
     recipe = r;
@@ -734,6 +751,8 @@ export function mount(root, { params, navigate }) {
     setFocusStepsState(steps, "ready");
     setFocusSteps(steps, focusSteps(r, shown));
     steps.setAttribute("aria-label", r.name);
+    delete stepPhotos.dataset.key;
+    paintPhotos();
 
     setTimersState(timers, "ready");
     if (Array.isArray(memo.timers) && memo.timers.length && !getTimers(timers).length) {

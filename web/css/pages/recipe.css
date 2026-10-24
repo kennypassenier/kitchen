@@ -4,7 +4,7 @@
 .rp-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-xl, 2rem);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
 }
 
 .rp-page > [hidden] {
@@ -348,4 +348,81 @@ html[data-kp-calm] .rp-ing__amount[data-changed] {
   .rp-recipe__head {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ---- Photos (Kenny, 24/10/2026 05:23): the recipe's own at the top, the steps' under each step, and the editor's field ---- */
+
+.rp-recipe__photo {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+
+.rp-recipe__photo .kp-gallery__grid {
+  grid-template-columns: minmax(0, 32rem);
+}
+
+.rp-stepphotos {
+  display: grid;
+  gap: var(--kp-space-lg, 1.5rem);
+  margin: 0;
+  padding-inline-start: 1.5rem;
+}
+
+.rp-stepphotos__item {
+  min-inline-size: 0;
+}
+
+.rp-stepphotos__item::marker {
+  font-weight: 600;
+}
+
+.rp-stepphotos__text {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  margin-block-end: var(--kp-space-sm, 0.5rem);
+}
+
+.rp-stepphotos__text :is(h3, p) {
+  margin: 0;
+}
+
+.rp-photofield {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.rp-photoedit {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-photoedit[hidden] {
+  display: none;
+}
+
+.rp-photoedit__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.rp-photoedit__buttons {
+  display: grid;
+  grid-auto-flow: column;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+/* The package's gallery keeps room for three rows of tiles (its states fill that); a handful of photos need only their own height. */
+.rp-photos {
+  min-block-size: 0;
+}
+
+.rp-photofield .rp-photos {
+  --kp-gallery-tile: 5.5rem;
 }

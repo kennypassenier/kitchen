@@ -20,6 +20,7 @@ import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
 import { ingredientPicker } from "../ingredients/picker.js";
+import { photoField, photoTracker, photosOf } from "./photos.js";
 
 /** Meals and preparation, as the data names them. */
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
@@ -169,6 +170,9 @@ export const textCell = (label, value, placeholder = "") => {
 export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const editing = Boolean(recipe);
+  // Photos (Kenny, 24/10/2026 05:23): what this session uploads and what the recipe had, so Save and Cancel leave no stray file.
+  const tracker = photoTracker(photosOf(r));
+  const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: "Recipe photo", tracker });
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? `Edit ${r.name}` : "Add a recipe");
 
   // ---- the dish -----------------------------------------------------------------------------------------------
@@ -193,6 +197,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     row("Summary", summary, "A few sentences under the title."),
     row("Meals", meals, "Where the wheel may pick it."),
     row("Main ingredients", mainBox, "What the wheel filters on."),
+    row("Photo", recipePhoto.el, "One picture of the dish, at the top of the recipe page."),
   );
 
   // ---- time, portions, how much preparing ---------------------------------------------------------------------
@@ -274,6 +279,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       items: s.uses ?? [], add: "Add something this step needs", noun: "item", blank: () => ({ amount: "", name: "" }),
     });
     const timerRow = h("div", { class: "rl-pair" }, timerName, timerSecs);
+    const photos = photoField({ ids: s.photos ?? [], max: 8, label: "Step photo", tracker });
     const fields = h(
       "div",
       { class: "kp-formgrid" },
@@ -287,6 +293,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       row("Note", note, ""),
       row("Warning", warn, ""),
       row("Mini", mini, ""),
+      row("Photos", photos.el, "Pictures that make the step clearer; a phone can take one now."),
     );
     const form = h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, "What this step needs"), uses.el));
     const head = h("h3", { class: "kp-fw-semibold" });
@@ -315,6 +322,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
           note: /** @type {HTMLInputElement} */ (note).value.trim(),
           note_tone: on(warn) ? "warning" : "",
           mini: on(mini),
+          photos: photos.get(),
         };
       },
     };
@@ -410,11 +418,16 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   attachControls(dialog);
 
   const close = () => void closeDialog(dialog);
-  cancel.addEventListener("click", close);
-  dialog.querySelector("[data-close]")?.addEventListener("click", close);
+  // Leaving without saving: the photos this session sent are not wanted any more.
+  const leave = () => {
+    void tracker.discard();
+    close();
+  };
+  cancel.addEventListener("click", leave);
+  dialog.querySelector("[data-close]")?.addEventListener("click", leave);
   dialog.addEventListener("cancel", (e) => {
     e.preventDefault();
-    close();
+    leave();
   }, { once: true });
 
   const collect = () => {
@@ -439,6 +452,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient),
       tools: tools.get().map(([t]) => t).filter((t) => t.name),
       steps: stepList.map((e) => e.get()).filter((s) => s.text),
+      photo: recipePhoto.get()[0] ?? null,
     };
   };
 
@@ -456,6 +470,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       } catch (e) {
         return { error: e instanceof ApiError ? e.message : String(e), word: "Not saved" };
       }
+      await tracker.settle(photosOf(body));
       toast(editing ? `Saved ${body.name}` : `Added ${body.name}`);
       close();
       return "Saved";

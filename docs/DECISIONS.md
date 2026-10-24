@@ -4,6 +4,7 @@ Every decision Kenny made, newest first. Each line says what and when.
 
 | When | Decision |
 |---|---|
+| 24/10/2026 05:23 | Photos on recipes: one or more per step and one for the recipe, added in the recipe editor (the phone offers its camera), shown under the step and large in cook mode; stored as files in the state directory behind the login, made smaller in the browser before upload |
 | 24/10/2026 05:26, 05:27 | A side can hold several ingredients that stay together ("frieten en mayonaise", "kroketten"): each side is one entry on the small wheel, which spins with two or more sides. A dish also has fixed ingredients that always come with it. The Choice switch goes. The same ingredient may stand in several sides of a dish; a side may have its own label ("kroketten met mayonaise") |
 | 24/10/2026 05:16 | Cook mode shows the timing page's timeline: the tracks as rows, a now line, the current step highlighted, done steps marked, the plan shifting when a step ends early or late |
 | 24/10/2026 05:15 | One list of ingredients (with categories: Vlees → Steak, Aardappelen → Frieten) that dishes and recipe lines point at; picked with a searchable field that can add a new one with its category on the spot; every ingredient and category has full CRUD and its own page, the ingredient's page listing its dishes and recipes with a search and filters and a wheel among its dishes; an ingredient in use cannot be deleted |

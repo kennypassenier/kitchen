@@ -21,9 +21,16 @@ import { WORDS, wordsFor, langOf } from "../recipe/words.js";
 import { amountOf, minutesText } from "../recipe/amounts.js";
 import { createSheet } from "../recipe/sheet.js";
 import { createLog, dmy } from "../recipe/log.js";
+import { showPhotos } from "../recipe/photos.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("../recipe/words.js").Words} Words */
+
+/** The words of the steps-with-photos section (Kenny, 24/10/2026 05:23); the rest of the page keeps its words in recipe/words.js. */
+const STEP_WORDS = {
+  nl: { title: "De stappen", lede: "Elke stap met de foto's die hem duidelijker maken.", step: (/** @type {number} */ n) => `Stap ${n}`, photo: "Foto van het gerecht", stepPhoto: "Foto bij de stap" },
+  en: { title: "The steps", lede: "Every step with the photos that make it clearer.", step: (/** @type {number} */ n) => `Step ${n}`, photo: "Photo of the dish", stepPhoto: "Step photo" },
+};
 
 /** A card whose stage holds a header-less body or a data area. @param {string} dataClass */
 const stage = (dataClass = "") => h("div", { class: "kp-card__stage" }, h("div", { class: `kp-card__data ${dataClass}`.trim() }));
@@ -84,7 +91,13 @@ export function mount(root, { params, navigate }) {
   const logSec = section("rp-log", "rp-logcard", { "data-kp-state": "loading" }, stage());
   const log = createLog(logSec.el, { recipeId: id, retry: () => void load(true) });
 
-  const page = h("div", { class: "rp-page" }, card, share.el, paper.el, logSec.el);
+  // The steps with their photos; there only when a step has a photo.
+  const stepCard = section("rp-stepcard", "rp-sec");
+  const stepList = h("ol", { class: "rp-stepphotos" });
+  stepCard.el.append(stepList);
+  stepCard.el.hidden = true;
+
+  const page = h("div", { class: "rp-page" }, card, stepCard.el, share.el, paper.el, logSec.el);
   root.replaceChildren(page);
   attachCardStates(page);
   cleanups.push(attachHoverCards(page));
@@ -96,6 +109,7 @@ export function mount(root, { params, navigate }) {
   /** The lower sections show once there is a recipe to show. @param {boolean} on */
   const lower = (on) => {
     for (const el of [share.el, paper.el, logSec.el]) el.hidden = !on;
+    if (!on) stepCard.el.hidden = true;
   };
 
   // ---- the words that do not depend on the recipe -----------------------------------------------------------------
@@ -228,6 +242,7 @@ export function mount(root, { params, navigate }) {
         { class: "rp-recipe" },
         // The title row spans both columns, so the two columns under it start on one line.
         h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("span", { class: "kp-badge" }, words.effortBadge(effort))),
+        r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[langOf(k.settings.lang)].photo)) : null,
         h(
           "div",
           { class: "rp-recipe__main" },
@@ -271,6 +286,25 @@ export function mount(root, { params, navigate }) {
     });
   }
 
+  /** The steps, each with the photos it carries. @param {Record<string, any>} r */
+  function paintSteps(r) {
+    const text = STEP_WORDS[langOf(kitchenNow()?.settings.lang)];
+    const list = /** @type {Record<string, any>[]} */ (r.steps ?? []);
+    stepCard.el.hidden = !list.some((s) => (s.photos ?? []).length > 0);
+    stepCard.title.textContent = text.title;
+    stepCard.lede.textContent = text.lede;
+    stepList.replaceChildren(
+      ...list.map((s, i) =>
+        h(
+          "li",
+          { class: "rp-stepphotos__item" },
+          h("div", { class: "rp-stepphotos__text" }, h("h3", { class: "kp-fw-semibold" }, text.step(i + 1)), h("p", null, s.text)),
+          (s.photos ?? []).length > 0 ? showPhotos(null, s.photos, `${text.stepPhoto} ${i + 1}`) : null,
+        ),
+      ),
+    );
+  }
+
   /** The code and the sheet, for the recipe and the portions as they are now. */
   function paintShare() {
     if (!recipe) return;
@@ -312,6 +346,7 @@ export function mount(root, { params, navigate }) {
       paintWords();
       drawPrintOptions();
       drawCard(found, k);
+      paintSteps(found);
       paintShare();
       paintSheet();
     }
