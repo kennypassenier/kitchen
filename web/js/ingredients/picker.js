@@ -12,6 +12,7 @@ import { attachComboboxes, attachSelects, combobox } from "/static/kp/js/combobo
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
 import { create, kitchenNow, onKitchen, ingredientName, ApiError } from "../api.js";
+import { t, lang as shownLang } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
 
@@ -19,7 +20,7 @@ const NEW = "__new__";
 let seq = 0;
 
 /** The language names are shown in. */
-const lang = () => /** @type {"en" | "nl"} */ (kitchenNow()?.settings?.lang === "nl" ? "nl" : "en");
+const lang = shownLang;
 
 /** Ingredient categories in their order. */
 const categories = () => [...(kitchenNow()?.ingredient_categories ?? [])].sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9));
@@ -49,7 +50,7 @@ export function ingredientPicker(value, { label }) {
 function build(values, { label, multi }) {
   const n = ++seq;
   const value = values[0] ?? null;
-  const input = h("input", { class: "kp-combobox__input", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": `ip-list-${n}`, "aria-label": label, placeholder: multi ? "Search, or type a new one" : "Search or type a new one" });
+  const input = h("input", { class: "kp-combobox__input", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": `ip-list-${n}`, "aria-label": label, placeholder: t("ip.placeholder") });
   const list = h("ul", { class: "kp-combobox__list", id: `ip-list-${n}`, role: "listbox", hidden: true });
   const status = h("p", { class: "kp-combobox__status", "data-kp-combobox-status": true, role: "status", "aria-live": "polite" });
   const tags = multi ? h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }) : null;
@@ -57,10 +58,10 @@ function build(values, { label, multi }) {
 
   // The inline "new ingredient" step: the typed name, its category, Add and Cancel.
   const newName = h("strong", { class: "ip-picker__name" });
-  const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": "Category of the new ingredient" }));
-  const add = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, "Add it");
-  const cancel = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Cancel");
-  const asks = h("div", { class: "ip-picker__new", hidden: true }, h("p", { class: "ip-picker__ask" }, "New ingredient ", newName, " in the category"), cat, h("div", { class: "kp-row-actions" }, add, cancel));
+  const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": t("ip.catAria") }));
+  const add = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("ip.addIt"));
+  const cancel = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("common.cancel"));
+  const asks = h("div", { class: "ip-picker__new", hidden: true }, h("p", { class: "ip-picker__ask" }, t("ip.newBefore"), newName, t("ip.newAfter")), cat, h("div", { class: "kp-row-actions" }, add, cancel));
   const el = h("div", { class: "ip-picker" }, box, asks);
 
   /** @type {string | null} */
@@ -69,9 +70,9 @@ function build(values, { label, multi }) {
     const items = [...(kitchenNow()?.ingredients ?? [])].sort((a, b) => ingredientName(a.id, lang()).localeCompare(ingredientName(b.id, lang())));
     list.replaceChildren(
       ...items.map((i) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": i.id }, ingredientName(i.id, lang()))),
-      h("li", { class: "kp-combobox__option ip-picker__create", role: "option", "data-kp-option": true, "data-value": NEW }, "Add as a new ingredient"),
+      h("li", { class: "kp-combobox__option ip-picker__create", role: "option", "data-kp-option": true, "data-value": NEW }, t("ip.addNewPlain")),
     );
-    cat.replaceChildren(...categories().map((c) => h("option", { value: c.id }, String(c.name?.[lang()] || c.name?.en || c.name?.nl || "Other"))));
+    cat.replaceChildren(...categories().map((c) => h("option", { value: c.id }, String(c.name?.[lang()] || c.name?.en || c.name?.nl || t("ip.other")))));
   };
   fill();
   attachComboboxes(el);
@@ -87,7 +88,7 @@ function build(values, { label, multi }) {
     shown: (option, query, matched) => {
       if (option.dataset.value !== NEW) return matched;
       const text = typed();
-      option.textContent = `Add “${text}” as a new ingredient`;
+      option.textContent = t("ip.addNew", text);
       option.dataset.kpLabel = text;
       return Boolean(text) && !named(text);
     },
@@ -120,10 +121,10 @@ function build(values, { label, multi }) {
       handle?.set(multi ? [...before, made.id] : [made.id]);
       if (multi) /** @type {HTMLInputElement} */ (input).value = "";
       asks.hidden = true;
-      toast(`Added ${text} to the ingredients`);
+      toast(t("ip.added", text));
       input.focus();
     } catch (e) {
-      toast(`Not added: ${e instanceof ApiError ? e.message : String(e)}`, { live: "assertive", sticky: true });
+      toast(t("ip.notAdded", e instanceof ApiError ? e.message : String(e)), { live: "assertive", sticky: true });
     } finally {
       add.removeAttribute("aria-disabled");
     }

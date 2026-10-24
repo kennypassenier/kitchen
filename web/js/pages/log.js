@@ -5,14 +5,15 @@
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, logWhat, dmy, FEELING } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, logWhat, dmy, feelings } from "../records.js";
+import { t } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
 
 /** @param {HTMLElement} root */
 export function mount(root) {
-  document.title = "What I ate · Kitchen";
+  document.title = `${t("nav.log")} · Kitchen`;
   let alive = true;
 
   const head = h(
@@ -24,21 +25,21 @@ export function mount(root) {
       h(
         "div",
         null,
-        h("h1", { class: "kp-page-header__title" }, "What I ate"),
-        h("p", { class: "kp-page-header__description" }, "Every day a recipe was cooked or a food from the zero-prep shelf was eaten. The wheel reads it for “days since last cooked”; nothing here counts or judges."),
+        h("h1", { class: "kp-page-header__title" }, t("nav.log")),
+        h("p", { class: "kp-page-header__description" }, t("lg.lede")),
       ),
     ),
   );
   const log = tableCard({
     id: "lg-log",
-    title: "The log",
-    lede: "Cook mode and the recipe page add a line when you cook; the bad-days shelf adds one when you press I ate this.",
-    noun: "line",
-    plural: "lines",
-    columns: [["Day", "number"], ["What", "text"], ["Kind", "text"], ["How it felt", "text"], ["Note"], ["Actions"]],
-    add: "Add a line",
-    emptyTitle: "Nothing logged yet",
-    emptyText: "A line appears when you finish cooking a recipe or eat something from the zero-prep shelf.",
+    title: t("lg.title"),
+    lede: t("lg.cardLede"),
+    noun: t("lg.noun"),
+    plural: t("lg.plural"),
+    columns: [[t("rec.day"), "number"], [t("rec.what"), "text"], [t("it.kind"), "text"], [t("lg.felt"), "text"], [t("rec.note")], [t("lg.actions")]],
+    add: t("list.log.add"),
+    emptyTitle: t("lg.emptyTitle"),
+    emptyText: t("lg.emptyText"),
   });
   const page = h("div", { class: "dl-page" }, head, log.card);
   root.replaceChildren(page);
@@ -47,7 +48,7 @@ export function mount(root) {
   for (const b of log.addButtons) b.addEventListener("click", () => openRecordEditor("log", null));
 
   const busy = () => {
-    handle?.busy({ text: "Reading the log", overlay: true });
+    handle?.busy({ text: t("lg.reading"), overlay: true });
     handle?.state("loading");
   };
 
@@ -59,12 +60,12 @@ export function mount(root) {
         h(
           "tr",
           { "data-kp-row-key": e.id },
-          h("td", { "data-label": "Day", "data-kp-sort-value": String(Date.parse(`${e.date}T12:00:00Z`)) }, itemLink("log", e, dmy(e.date))),
-          h("td", { "data-label": "What" }, logWhat(e)),
-          h("td", { "data-label": "Kind" }, e.shelf_id ? "Zero-prep shelf" : "Recipe"),
-          h("td", { "data-label": "How it felt" }, e.feeling ? (FEELING[e.feeling] ?? e.feeling) : "–"),
-          h("td", { "data-label": "Note" }, e.note || "–"),
-          h("td", { "data-label": "Actions" }, rowActions("log", e)),
+          h("td", { "data-label": t("rec.day"), "data-kp-sort-value": String(Date.parse(`${e.date}T12:00:00Z`)) }, itemLink("log", e, dmy(e.date))),
+          h("td", { "data-label": t("rec.what") }, logWhat(e)),
+          h("td", { "data-label": t("it.kind") }, t(e.shelf_id ? "lg.shelf" : "rec.recipe")),
+          h("td", { "data-label": t("lg.felt") }, e.feeling ? (feelings()[e.feeling] ?? e.feeling) : "–"),
+          h("td", { "data-label": t("rec.note") }, e.note || "–"),
+          h("td", { "data-label": t("lg.actions") }, rowActions("log", e)),
         ),
       ),
     );

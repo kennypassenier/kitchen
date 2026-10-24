@@ -14,6 +14,7 @@
 import { h } from "../dom.js";
 import { setGallery, setGalleryUploading, GALLERY_ADD_EVENT } from "/static/kp/js/gallery.js";
 import { toast } from "/static/kp/js/overlays.js";
+import { t } from "../i18n/index.js";
 
 /** The long side, in pixels, a photo is made smaller to. */
 export const MAX_SIDE = 1600;
@@ -44,7 +45,7 @@ export async function shrink(file) {
       source = await new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("That file is not a picture this browser can read."));
+        img.onerror = () => reject(new Error(t("photo.unreadable")));
         img.src = url;
       });
     } finally {
@@ -56,7 +57,7 @@ export async function shrink(file) {
   let scale = Math.min(1, MAX_SIDE / Math.max(width, height));
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("This browser cannot make the picture smaller.");
+  if (!ctx) throw new Error(t("photo.noCanvas"));
   // Smaller still, step by step, until it fits under SEND_BYTES (a busy photo at 1600 px can be large).
   for (let round = 0; round < 4; round++) {
     canvas.width = Math.max(1, Math.round(width * scale));
@@ -74,25 +75,25 @@ export async function shrink(file) {
     scale *= 0.75;
   }
   if ("close" in source) source.close();
-  throw new Error("The picture is still too large after making it smaller.");
+  throw new Error(t("photo.tooLarge"));
 }
 
 /** Send one picture; resolves to its new id. @param {File} file */
 export async function uploadPhoto(file) {
-  if (!file.type.startsWith("image/")) throw new Error(`${file.name || "That file"} is not a picture.`);
+  if (!file.type.startsWith("image/")) throw new Error(t("photo.notPicture", file.name || t("photo.thatFile")));
   const blob = await shrink(file);
   let res;
   try {
     res = await fetch("/data/photos", { method: "POST", headers: { "Content-Type": blob.type }, body: blob, credentials: "same-origin" });
   } catch {
-    throw new Error("The connection to the kitchen dropped. Nothing is lost; try again.");
+    throw new Error(t("photo.dropped"));
   }
   if (res.status === 401) {
     location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-    throw new Error("Signed out; opening the login page.");
+    throw new Error(t("photo.signedOut"));
   }
   const data = await res.json().catch(() => null);
-  if (!res.ok || !data?.id) throw new Error(data?.error ?? `The kitchen answered ${res.status}.`);
+  if (!res.ok || !data?.id) throw new Error(data?.error ?? t("photo.answered", res.status));
   return /** @type {string} */ (data.id);
 }
 
@@ -155,7 +156,7 @@ export function showPhotos(el, ids, label) {
 export function photoField({ ids, max, label, tracker }) {
   let list = [...ids];
   const gallery = galleryEl(label, { "data-kp-grid-columns": "3" });
-  const controls = h("ul", { class: "rp-photoedit", "aria-label": `${label}: order and removal` });
+  const controls = h("ul", { class: "rp-photoedit", "aria-label": t("photo.orderRemoval", label) });
   let busy = false;
 
   /** @param {string} id @param {string} act */
@@ -177,15 +178,15 @@ export function photoField({ ids, max, label, tracker }) {
 
   function paint() {
     setGallery(gallery, { items: itemsOf(list, label), state: "ready", add: list.length < max, label });
-    if (busy) setGalleryUploading(gallery, "A photo is being sent.");
+    if (busy) setGalleryUploading(gallery, t("photo.sending"));
     controls.hidden = list.length === 0;
     controls.replaceChildren(
       ...list.map((id, i) => {
         const button = (/** @type {string} */ act, /** @type {string} */ text, /** @type {string} */ extra = "") =>
           h("button", { type: "button", class: `kp-button kp-button--sm ${extra}`.trim(), "data-act": act, "aria-label": `${text}: ${label} ${i + 1}` }, text);
-        const earlier = button("earlier", "Earlier");
-        const later = button("later", "Later");
-        const remove = button("remove", "Remove", "kp-button--ghost");
+        const earlier = button("earlier", t("photo.earlier"));
+        const later = button("later", t("photo.later"));
+        const remove = button("remove", t("photo.remove"), "kp-button--ghost");
         /** @type {HTMLButtonElement} */ (earlier).disabled = i === 0;
         /** @type {HTMLButtonElement} */ (later).disabled = i === list.length - 1;
         earlier.addEventListener("click", () => move(id, -1));
@@ -195,7 +196,7 @@ export function photoField({ ids, max, label, tracker }) {
           paint();
           /** @type {HTMLElement | null} */ (gallery.querySelector(".kp-gallery__open, .kp-gallery__add"))?.focus();
         });
-        return h("li", { class: "rp-photoedit__row", "data-id": id }, h("span", { class: "rp-photoedit__name" }, `Photo ${i + 1}`), h("span", { class: "rp-photoedit__buttons" }, earlier, later, remove));
+        return h("li", { class: "rp-photoedit__row", "data-id": id }, h("span", { class: "rp-photoedit__name" }, t("photo.name", i + 1)), h("span", { class: "rp-photoedit__buttons" }, earlier, later, remove));
       }),
     );
   }
@@ -205,7 +206,7 @@ export function photoField({ ids, max, label, tracker }) {
     const files = /** @type {CustomEvent} */ (event).detail.files.slice(0, Math.max(0, max - list.length));
     void (async () => {
       busy = true;
-      setGalleryUploading(gallery, "A photo is being sent.");
+      setGalleryUploading(gallery, t("photo.sending"));
       for (const file of files) {
         try {
           const id = await uploadPhoto(file);
@@ -213,7 +214,7 @@ export function photoField({ ids, max, label, tracker }) {
           list.push(id);
           paint();
         } catch (e) {
-          toast(`Photo not added: ${e instanceof Error ? e.message : e}`, { live: "assertive", sticky: true });
+          toast(t("photo.notAdded", e instanceof Error ? e.message : String(e)), { live: "assertive", sticky: true });
         }
       }
       busy = false;

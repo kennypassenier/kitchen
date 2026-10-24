@@ -16,6 +16,7 @@ import { attachArt } from "/static/kp/js/art.js";
 import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
 import { openRecordEditor, detailHref } from "../records.js";
+import { t } from "../i18n/index.js";
 
 /**
  * @typedef {object} Dish a recipe as the wheel sees it
@@ -32,14 +33,14 @@ import { openRecordEditor, detailHref } from "../records.js";
  * @property {Set<string>} kinds @property {Set<string>} resting recipe ids set aside @property {string[]} order the order constraints were set in
  */
 
-const MEALS = /** @type {Record<string, string>} */ ({ breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" });
-const BANDS = /** @type {Record<string, string>} */ ({ quick: "up to 20 min", mid: "21 to 45 min", long: "over 45 min" });
-const KINDS = /** @type {Record<string, string>} */ ({ safe: "Safe favourites", freezer: "Freezer portions", noprep: "No prep" });
+const mealLabels = () => /** @type {Record<string, string>} */ ({ breakfast: t("wheel.mealBreakfast"), lunch: t("wheel.mealLunch"), dinner: t("wheel.mealDinner") });
+const bandLabels = () => /** @type {Record<string, string>} */ ({ quick: t("wheel.bandQuick"), mid: t("wheel.bandMid"), long: t("wheel.bandLong") });
+const kindLabels = () => /** @type {Record<string, string>} */ ({ safe: t("wheel.kindSafe"), freezer: t("wheel.kindFreezer"), noprep: t("wheel.kindNoprep") });
 /** The ingredient chips before the dishes have loaded; once they have, the chips are the ingredients the dishes use. */
 const FIRST_INGREDIENTS = ["chicken", "beef", "egg", "cheese", "tomato", "potato"];
 /** A dish not cooked for this many days gets a bigger slice (when the odds are not equal). */
 const LONG_DAYS = 21;
-const LOADING_WORDS = "Reading your dishes";
+const loadingWords = () => t("wheel.loading");
 
 const pad = (/** @type {number} */ n) => String(n).padStart(2, "0");
 const hhmm = (/** @type {number} */ m) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
@@ -50,8 +51,7 @@ const daysAgo = (/** @type {number} */ n) => {
   d.setDate(d.getDate() - n);
   return d;
 };
-const minutesText = (/** @type {number} */ m) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`);
-const plural = (/** @type {number} */ n, /** @type {string} */ one, /** @type {string} */ many) => `${n} ${n === 1 ? one : many}`;
+const minutesText = (/** @type {number} */ m) => (m >= 60 ? t("wheel.hm", Math.floor(m / 60), m % 60) : t("wheel.min", m));
 const cap = (/** @type {string} */ s) => s.charAt(0).toUpperCase() + s.slice(1);
 const norm = (/** @type {unknown} */ s) => String(s ?? "").trim().toLowerCase();
 const band = (/** @type {number} */ m) => (m <= 20 ? "quick" : m <= 45 ? "mid" : "long");
@@ -70,7 +70,7 @@ function countOf(dishes, group, values) {
 
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
 export function mount(root, { navigate }) {
-  document.title = "What do we eat? · Kitchen";
+  document.title = `${t("wheel.title")} · Kitchen`;
 
   // ---- the data, as the wheel reads it -------------------------------------------------------------------------------
   /** @type {import("../api.js").Kitchen | null} */
@@ -83,7 +83,7 @@ export function mount(root, { navigate }) {
   /** @type {Map<string, any>} recipe id -> its active resting item */
   let restItems = new Map();
   /** @type {Model} */
-  const M = { meal: emptyTri(), time: emptyTri(), ing: emptyTri(), easy: false, kinds: new Set(Object.keys(KINDS)), resting: new Set(), order: [] };
+  const M = { meal: emptyTri(), time: emptyTri(), ing: emptyTri(), easy: false, kinds: new Set(Object.keys(kindLabels())), resting: new Set(), order: [] };
   /** @type {(() => void)[]} */
   const undo = [];
   let writing = false;
@@ -169,27 +169,27 @@ export function mount(root, { navigate }) {
       for (const state of /** @type {const} */ (["include", "exclude"])) {
         for (const value of m[group][state]) {
           const n = name(value);
-          const label = group === "ing" ? (state === "include" ? `with ${n}` : `without ${n}`) : state === "include" ? n : `not ${n}`;
+          const label = group === "ing" ? (state === "include" ? t("wheel.with", n) : t("wheel.without", n)) : state === "include" ? n : t("wheel.not", n);
           out.push({ key: `${group}:${value}`, label, release: () => (m[group][state] = m[group][state].filter((x) => x !== value)) });
         }
       }
     };
-    tri("meal", (v) => MEALS[v] ?? v);
-    tri("time", (v) => BANDS[v] ?? v);
+    tri("meal", (v) => mealLabels()[v] ?? v);
+    tri("time", (v) => bandLabels()[v] ?? v);
     tri("ing", (v) => v);
-    for (const id of m.resting) out.push({ key: `rest:${id}`, label: `resting: ${byId(id)?.label ?? "a dish"}`, release: () => m.resting.delete(id) });
+    for (const id of m.resting) out.push({ key: `rest:${id}`, label: t("wheel.restingLabel", byId(id)?.label ?? t("wheel.aDish")), release: () => m.resting.delete(id) });
     if (m.easy) {
-      for (const k of Object.keys(KINDS)) {
-        if (!m.kinds.has(k)) out.push({ key: `kind:${k}`, label: `not counting ${KINDS[k].toLowerCase()}`, release: () => m.kinds.add(k) });
+      for (const k of Object.keys(kindLabels())) {
+        if (!m.kinds.has(k)) out.push({ key: `kind:${k}`, label: t("wheel.notCounting", kindLabels()[k].toLowerCase()), release: () => m.kinds.add(k) });
       }
     }
-    if (m.easy && !out.length) out.push({ key: "easy", label: "no energy today", release: () => (m.easy = false) });
+    if (m.easy && !out.length) out.push({ key: "easy", label: t("wheel.noEnergyLabel"), release: () => (m.easy = false) });
     return out;
   }
   const filterCount = (/** @type {Model} */ m) => constraints(m).filter((c) => /^(meal|time|ing):/.test(c.key)).length;
   const blockText = (/** @type {Model} */ m) => {
     const all = constraints(m);
-    return all.length ? `No dish fits all of: ${all.map((c) => c.label).join(", ")}.` : "No dish is left on the wheel.";
+    return all.length ? t("wheel.noFitAll", all.map((c) => c.label).join(", ")) : t("wheel.noneLeft");
   };
   /** @param {string} key @param {boolean} on */
   function track(key, on) {
@@ -221,7 +221,7 @@ export function mount(root, { navigate }) {
   const chips = (/** @type {string} */ id, /** @type {string} */ labelId, /** @type {string} */ items) =>
     `<div class="kp-segmented kp-segmented--chips" data-kp-segmented="tri" data-kp-segmented-summary aria-labelledby="${labelId}" id="${id}">${items}</div>`;
   const card = (/** @type {string} */ id, /** @type {string} */ title, /** @type {string} */ badge, /** @type {string} */ body, /** @type {string} */ extra = "") => `
-    <section class="kp-card wl-card ${extra}" id="${id}" data-kp-state="${status === "ready" ? "ready" : "loading"}" aria-labelledby="${id}-t" data-kp-loading-words="${LOADING_WORDS}">
+    <section class="kp-card wl-card ${extra}" id="${id}" data-kp-state="${status === "ready" ? "ready" : "loading"}" aria-labelledby="${id}-t" data-kp-loading-words="${loadingWords()}">
       <div class="kp-card__header">
         <h3 class="kp-card__title" id="${id}-t">${title}</h3>
         <div class="kp-card__actions"><span class="kp-badge" ${badge}></span></div>
@@ -233,87 +233,87 @@ export function mount(root, { navigate }) {
   root.innerHTML = `
     <div class="wl-page">
       <header class="wl-intro">
-        <h1>What do we eat?</h1>
-        <p>One press and the wheel picks tonight&rsquo;s dinner from your own recipes; all you do is say yes or spin again.</p>
+        <h1>${t("wheel.title")}</h1>
+        <p>${t("wheel.intro")}</p>
       </header>
 
       <section class="wl-sec" id="wl-wheel" aria-labelledby="wl-h-wheel">
         <div class="wl-sec__head">
-          <h2 id="wl-h-wheel">The wheel and its answer</h2>
-          <p>Press Spin and the wheel picks a dish, tells you when to start cooking it, and lets you say yes, spin again or set the dish aside for a week.</p>
+          <h2 id="wl-h-wheel">${t("wheel.secWheel")}</h2>
+          <p>${t("wheel.secWheelText")}</p>
         </div>
-        ${card("wl-card", "Tonight&rsquo;s dinner", "data-wl-fitcount", "Spin once; if the answer does not feel right, spin again or set that dish aside.")}
+        ${card("wl-card", t("wheel.cardTitle"), "data-wl-fitcount", t("wheel.cardBody"))}
       </section>
 
       <section class="wl-sec" id="wl-filters-sec" aria-labelledby="wl-h-filters">
         <div class="wl-sec__head">
-          <h2 id="wl-h-filters">Filters: want, not, or either way</h2>
-          <p>Press a chip once to require it, twice to leave it out and a third time to let it go; the wheel and the list below only hold what fits.</p>
+          <h2 id="wl-h-filters">${t("wheel.secFilters")}</h2>
+          <p>${t("wheel.secFiltersText")}</p>
         </div>
         <div class="kp-formgrid wl-filters" id="wl-filters">
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-f-meal-l">Meal</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-f-meal-l">${t("wheel.fMeal")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
-              ${chips("wl-f-meal", "wl-f-meal-l", Object.entries(MEALS).map(([v, l]) => chip(v, l)).join(""))}
+              ${chips("wl-f-meal", "wl-f-meal-l", Object.entries(mealLabels()).map(([v, l]) => chip(v, l)).join(""))}
             </div>
           </div>
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-f-time-l">Time</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-f-time-l">${t("wheel.fTime")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
-              ${chips("wl-f-time", "wl-f-time-l", Object.entries(BANDS).map(([v, l]) => chip(v, cap(l))).join(""))}
+              ${chips("wl-f-time", "wl-f-time-l", Object.entries(bandLabels()).map(([v, l]) => chip(v, cap(l))).join(""))}
             </div>
           </div>
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-f-ing-l">Ingredients</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-f-ing-l">${t("wheel.fIng")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
               ${chips("wl-f-ing", "wl-f-ing-l", FIRST_INGREDIENTS.map((v) => chip(v, cap(v))).join(""))}
             </div>
           </div>
           <div class="kp-formgrid__row wl-filters__foot">
             <div class="kp-formgrid__control wl-filters__foot-cell" data-kp-formgrid-span="wide">
-              <button type="button" class="kp-button kp-button--sm" id="wl-f-clear" disabled data-kp-disabled-reason="Nothing is filtered yet" title="Let go of every chip at once">Clear all filters</button>
+              <button type="button" class="kp-button kp-button--sm" id="wl-f-clear" disabled data-kp-disabled-reason="${t("wheel.nothingFiltered")}" title="${t("wheel.clearTitle")}">${t("wheel.clearAll")}</button>
               <p class="wl-live" role="status" id="wl-f-live"></p>
             </div>
           </div>
         </div>
-        ${card("wl-fits", "Dishes that fit", 'id="wl-fits-count"', "These are the dishes on the wheel right now, with how long ago each was cooked.", "wl-card--list")}
+        ${card("wl-fits", t("wheel.fitsTitle"), 'id="wl-fits-count"', t("wheel.fitsText"), "wl-card--list")}
       </section>
 
       <section class="wl-sec" id="wl-easy-sec" aria-labelledby="wl-h-easy">
         <div class="wl-sec__head">
-          <h2 id="wl-h-easy">No energy today: only what is possible</h2>
-          <p>One switch for the days with nothing in the tank: the wheel only holds safe favourites, portions from the freezer and food that needs no preparing.</p>
+          <h2 id="wl-h-easy">${t("wheel.secEasy")}</h2>
+          <p>${t("wheel.secEasyText")}</p>
         </div>
         <div class="kp-formgrid wl-easy" id="wl-easy">
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name wl-easy__name" id="wl-easy-l">No energy today</p>
+            <p class="kp-formgrid__label wl-filters__name wl-easy__name" id="wl-easy-l">${t("wheel.noEnergy")}</p>
             <div class="kp-formgrid__control" data-kp-formgrid-span="wide">
               <label class="kp-switch">
                 <input class="kp-switch__input" type="checkbox" role="switch" id="wl-easy-switch" aria-labelledby="wl-easy-l" disabled />
                 <span class="kp-switch__state" aria-hidden="true"></span>
-                <span>Limit the wheel to what I can manage</span>
+                <span>${t("wheel.limit")}</span>
               </label>
             </div>
           </div>
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-says-l">What it does</p>
-            <p class="kp-formgrid__control wl-easy__says" data-kp-formgrid-span="wide" aria-labelledby="wl-easy-says-l">On: the wheel only holds dishes you can manage today. Nothing is deleted; switch it off and everything is back. Calm mode comes on with it and goes off again.</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-says-l">${t("wheel.whatItDoes")}</p>
+            <p class="kp-formgrid__control wl-easy__says" data-kp-formgrid-span="wide" aria-labelledby="wl-easy-says-l">${t("wheel.easySays")}</p>
           </div>
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-kinds-l">What counts as easy</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-kinds-l">${t("wheel.whatCounts")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
               <div class="kp-toggles" role="group" aria-labelledby="wl-easy-kinds-l" id="wl-easy-kinds" data-kp-toggle-group="easy" data-kp-toggle-mode="multi">
-                ${Object.entries(KINDS)
+                ${Object.entries(kindLabels())
                   .map(
                     ([v, l]) =>
-                      `<button type="button" class="kp-button" data-kp-toggle data-kp-look="chip" data-kp-pressed-mark="check" aria-pressed="true" data-kp-toggle-value="${v}" data-kp-count="loading" disabled data-kp-disabled-reason="Turn on No energy today first">${l}</button>`,
+                      `<button type="button" class="kp-button" data-kp-toggle data-kp-look="chip" data-kp-pressed-mark="check" aria-pressed="true" data-kp-toggle-value="${v}" data-kp-count="loading" disabled data-kp-disabled-reason="${t("wheel.turnOnFirst")}">${l}</button>`,
                   )
                   .join("")}
               </div>
             </div>
           </div>
           <div class="kp-formgrid__row">
-            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-now-l">Right now</p>
+            <p class="kp-formgrid__label wl-filters__name" id="wl-easy-now-l">${t("wheel.rightNow")}</p>
             <p class="kp-formgrid__control wl-live" role="status" data-kp-formgrid-span="wide" id="wl-easy-live" aria-labelledby="wl-easy-now-l"></p>
           </div>
         </div>
@@ -373,10 +373,10 @@ export function mount(root, { navigate }) {
       data.innerHTML = `
         <div class="wl-screen">
           <div class="wl-wheelcol">
-            <p class="wl-result__kicker wl-wheelcol__kicker">Tonight&rsquo;s wheel</p>
-            <div class="kp-wheel" data-kp-wheel aria-label="Tonight’s dinner"></div>
+            <p class="wl-result__kicker wl-wheelcol__kicker">${t("wheel.tonightsWheel")}</p>
+            <div class="kp-wheel" data-kp-wheel aria-label="${t("wheel.cardTitle")}"></div>
           </div>
-          <div class="wl-result" role="group" aria-label="The wheel’s answer">
+          <div class="wl-result" role="group" aria-label="${t("wheel.answerLabel")}">
             <p class="wl-result__kicker" data-wl="kicker"></p>
             <p class="wl-result__name" data-wl="name"></p>
             <div class="wl-result__facts" data-wl="facts"></div>
@@ -384,15 +384,15 @@ export function mount(root, { navigate }) {
             <p class="wl-result__timing" data-wl="timing"></p>
             <div class="wl-actions">
               <div class="wl-action">
-                <button type="button" class="kp-button kp-button--primary" data-wl="yes" disabled data-kp-disabled-reason="Spin first: the wheel has not chosen yet">Yes, cook this</button>
-                <p>Open this recipe, where you can begin cooking it.</p>
+                <button type="button" class="kp-button kp-button--primary" data-wl="yes" disabled data-kp-disabled-reason="${t("wheel.spinFirst")}">${t("wheel.yes")}</button>
+                <p>${t("wheel.yesSays")}</p>
               </div>
               <div class="wl-action">
-                <button type="button" class="kp-button" data-wl="again" disabled data-kp-disabled-reason="The dishes are loading">Spin again</button>
-                <p>Let the wheel choose another dish.</p>
+                <button type="button" class="kp-button" data-wl="again" disabled data-kp-disabled-reason="${t("wheel.dishesLoading")}">${t("wheel.again")}</button>
+                <p>${t("wheel.againSays")}</p>
               </div>
               <div class="wl-action">
-                <button type="button" class="kp-button" data-wl="skip" disabled data-kp-disabled-reason="Spin first: there is no dish to set aside yet">Not this one, not again this week</button>
+                <button type="button" class="kp-button" data-wl="skip" disabled data-kp-disabled-reason="${t("wheel.spinFirstSkip")}">${t("wheel.skip")}</button>
                 <p data-wl="skip-says"></p>
               </div>
             </div>
@@ -425,18 +425,18 @@ export function mount(root, { navigate }) {
       const nowMin = now.getHours() * 60 + now.getMinutes();
       const start = hh * 60 + mm - d.minutes;
       return start >= nowMin
-        ? `Start at ${hhmm(start)} to eat at ${dinnerTime()} (${minutesText(d.minutes)}).`
-        : `Dinner at ${dinnerTime()} is too soon for this one: start now and eat at ${hhmm(nowMin + d.minutes)}.`;
+        ? t("wheel.startAt", hhmm(start), dinnerTime(), minutesText(d.minutes))
+        : t("wheel.tooSoon", dinnerTime(), hhmm(nowMin + d.minutes));
     };
     const lastCooked = (/** @type {Dish} */ d) =>
       !Number.isFinite(d.days)
-        ? "Not cooked yet."
-        : `Last cooked ${d.days === 0 ? "today" : d.days === 1 ? "yesterday" : `${dmy(daysAgo(d.days))}, ${d.days} days ago`}.`;
+        ? t("wheel.notCooked")
+        : t("wheel.lastCooked", d.days === 0 ? t("wheel.today") : d.days === 1 ? t("wheel.yesterday") : t("wheel.daysAgo", dmy(daysAgo(d.days)), d.days));
     const oddsLine = () =>
       ({
-        equal: "Every dish has a slice of the same size.",
-        recency: `A dish you have not cooked for ${LONG_DAYS} days or more gets a bigger slice.`,
-        freezer: `A dish not cooked for ${LONG_DAYS} days gets a bigger slice, and one with portions in the freezer a bigger one still.`,
+        equal: t("wheel.oddsEqual"),
+        recency: t("wheel.oddsRecency", LONG_DAYS),
+        freezer: t("wheel.oddsFreezer", LONG_DAYS),
       })[/** @type {"equal"} */ (odds())] ?? "";
 
     const paintAnswer = () => {
@@ -445,50 +445,51 @@ export function mount(root, { navigate }) {
       const loaded = status === "ready";
       part.facts.replaceChildren();
       if (!loaded) {
-        part.kicker.textContent = status === "error" ? "The dishes could not be read" : "Reading your dishes";
+        part.kicker.textContent = status === "error" ? t("wheel.failedTitle") : t("wheel.loading");
         part.name.textContent = "";
         part.why.textContent = "";
         part.timing.textContent = "";
       } else if (spinning) {
-        part.kicker.textContent = "The wheel is turning";
+        part.kicker.textContent = t("wheel.turning");
         part.name.textContent = "…";
-        part.why.textContent = "Hold on a moment: it will stop by itself.";
+        part.why.textContent = t("wheel.holdOn");
         part.timing.textContent = "";
       } else if (!d) {
-        part.kicker.textContent = "Not chosen yet";
-        part.name.textContent = items.length ? "Press Spin" : "Nothing to spin";
-        part.facts.append(badgeOf(`${plural(items.length, "dish", "dishes")} on the wheel`));
+        part.kicker.textContent = t("wheel.notChosen");
+        part.name.textContent = items.length ? t("wheel.pressSpin") : t("wheel.nothingToSpin");
+        part.facts.append(badgeOf(t("wheel.onWheel", items.length)));
         part.why.textContent = oddsLine();
-        part.timing.textContent = "Once the wheel has chosen, this says when to start.";
+        part.timing.textContent = t("wheel.timingHint");
       } else {
-        part.kicker.textContent = items.length === 1 ? "Only one dish fits" : "The wheel chose";
+        part.kicker.textContent = items.length === 1 ? t("wheel.onlyOne") : t("wheel.chose");
         part.name.textContent = d.label;
-        for (const m of d.meals) part.facts.append(badgeOf(MEALS[m] ?? cap(m)));
+        for (const m of d.meals) part.facts.append(badgeOf(mealLabels()[m] ?? cap(m)));
         part.facts.append(badgeOf(minutesText(d.minutes)));
-        if (d.safe) part.facts.append(badgeOf("Safe favourite", "success"));
-        if (d.freezer > 0) part.facts.append(badgeOf(`Freezer, ${plural(d.freezer, "portion", "portions")}`, "info"));
-        if (d.prep === "none") part.facts.append(badgeOf("No prep", "success"));
-        if (bigger(d)) part.facts.append(badgeOf("Bigger slice", "warning"));
-        part.why.textContent = `${lastCooked(d)} ${bigger(d) ? "Its slice was bigger." : odds() === "equal" ? "Every slice was the same size." : "Its slice was smaller."}`;
+        if (d.safe) part.facts.append(badgeOf(t("wheel.safeFavourite"), "success"));
+        if (d.freezer > 0) part.facts.append(badgeOf(t("wheel.freezerPortions", d.freezer), "info"));
+        if (d.prep === "none") part.facts.append(badgeOf(t("wheel.kindNoprep"), "success"));
+        if (bigger(d)) part.facts.append(badgeOf(t("wheel.biggerSlice"), "warning"));
+        part.why.textContent = `${lastCooked(d)} ${bigger(d) ? t("wheel.sliceBigger") : odds() === "equal" ? t("wheel.sliceSame") : t("wheel.sliceSmaller")}`;
         part.timing.textContent = timingOf(d);
       }
       const idle = loaded && !spinning && !writing;
-      setReason(part.yes, !d || !idle, !loaded ? "The dishes are loading" : spinning ? "The wheel is turning" : writing ? "Saving a change" : "Spin first: the wheel has not chosen yet");
-      setReason(part.again, !idle || items.length < 2, !loaded ? "The dishes are loading" : spinning ? "The wheel is turning" : writing ? "Saving a change" : "Only one dish is on the wheel: there is nothing to spin");
-      setReason(part.skip, !d || !idle, !loaded ? "The dishes are loading" : spinning ? "The wheel is turning" : writing ? "Saving a change" : "Spin first: there is no dish to set aside yet");
+      const why = (/** @type {string} */ idleWhy) => (!loaded ? t("wheel.dishesLoading") : spinning ? t("wheel.wheelTurning") : writing ? t("wheel.saving") : idleWhy);
+      setReason(part.yes, !d || !idle, why(t("wheel.spinFirst")));
+      setReason(part.again, !idle || items.length < 2, why(t("wheel.nothingToSpinWhy")));
+      setReason(part.skip, !d || !idle, why(t("wheel.spinFirstSkip")));
       const until = new Date();
       until.setDate(until.getDate() + 7);
-      part["skip-says"].textContent = `Take this dish off the wheel until ${dmy(until)}.`;
+      part["skip-says"].textContent = t("wheel.skipSays", dmy(until));
       const rest = [...restItems.values()];
-      part.rest.textContent = rest.length ? "Resting, off the wheel until the date shown:" : "Nothing is resting: every dish that fits is on the wheel.";
+      part.rest.textContent = rest.length ? t("wheel.restingLabelList") : t("wheel.nothingResting");
       part.resting.replaceChildren(
         ...rest.map((item) => {
-          const name = byId(item.recipe_id)?.label ?? "A dish";
+          const name = byId(item.recipe_id)?.label ?? t("wheel.aDishCap");
           const until = new Date(`${item.until}T12:00:00`);
-          const back = h("button", { type: "button", class: "kp-button kp-button--sm", title: "Put this dish back on the wheel", "aria-label": `Bring back ${name}` }, "Bring back");
+          const back = h("button", { type: "button", class: "kp-button kp-button--sm", title: t("wheel.bringBackTitle"), "aria-label": t("wheel.bringBackName", name) }, t("wheel.bringBack"));
           back.addEventListener("click", () => void bringBack(item, name));
           // Edit changes the last day it rests (Kenny, 24/10/2026 05:07: every item has full CRUD and its own page).
-          const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `Change how long ${name} rests` }, "Edit");
+          const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("wheel.changeRest", name) }, t("common.edit"));
           edit.addEventListener("click", () => openRecordEditor("resting", item));
           return h(
             "div",
@@ -505,8 +506,8 @@ export function mount(root, { navigate }) {
       part.list.replaceChildren(
         ...items.map((id) => {
           const d = /** @type {Dish} */ (byId(id));
-          const meta = `${d.meals.map((m) => MEALS[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)} · ${Number.isFinite(d.days) ? `last cooked ${dmy(daysAgo(d.days))}` : "not cooked yet"}`;
-          return h("li", { class: "wl-fit" }, h("span", { class: "wl-fit__text" }, h("b", null, d.label), h("span", null, meta)), h("span", { class: "wl-fit__tags" }, bigger(d) ? badgeOf("Bigger slice", "warning") : null));
+          const meta = `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmy(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
+          return h("li", { class: "wl-fit" }, h("span", { class: "wl-fit__text" }, h("b", null, d.label), h("span", null, meta)), h("span", { class: "wl-fit__tags" }, bigger(d) ? badgeOf(t("wheel.biggerSlice"), "warning") : null));
         }),
       );
     };
@@ -514,23 +515,23 @@ export function mount(root, { navigate }) {
     /** The card's state follows the data and the model. */
     const syncCard = () => {
       const n = items.length;
-      badge.textContent = status !== "ready" ? "" : kind === "list" ? `${n} of ${dishes.length}` : plural(n, "dish", "dishes");
+      badge.textContent = status !== "ready" ? "" : kind === "list" ? t("wheel.nOfM", n, dishes.length) : t("wheel.dishCount", n);
       const none = status === "ready" && n === 0;
       const key = status === "ready" ? (none ? `empty:${dishes.length}:${blockText(M)}:${filterCount(M)}` : "ready") : `${status}:${failure}`;
       if (key === cardKey) return;
       cardKey = key;
-      if (status === "loading") setCardState(cardEl, "loading", { words: LOADING_WORDS });
-      else if (status === "error") setCardState(cardEl, "error", { title: "The dishes could not be read", text: failure });
+      if (status === "loading") setCardState(cardEl, "loading", { words: loadingWords() });
+      else if (status === "error") setCardState(cardEl, "error", { title: t("wheel.failedTitle"), text: failure });
       else if (none) {
         /** @type {HTMLElement[]} */
         const action = [];
         if (!dishes.length) {
-          action.push(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/recipes", title: "Go to the recipes, where a new dish can be added" }, "Open the recipes"));
-          setCardState(cardEl, "empty", { title: "There are no dishes yet", text: "Add a recipe and it joins the wheel.", action });
+          action.push(h("a", { class: "kp-button kp-button--primary kp-stateplate__action", href: "/recipes", title: t("wheel.openRecipesTitle") }, t("wheel.openRecipes")));
+          setCardState(cardEl, "empty", { title: t("wheel.noDishes"), text: t("wheel.noDishesText"), action });
         } else {
-          action.push(h("button", { type: "button", class: "kp-button kp-button--primary kp-stateplate__action", title: "Let go of the one thing that holds the most dishes back", onclick: () => void loosenOne(say) }, "Loosen a filter"));
-          if (filterCount(M)) action.push(h("button", { type: "button", class: "kp-button kp-stateplate__action", title: "Let go of every filter chip at once", onclick: () => clearFilters() }, "Clear all filters"));
-          setCardState(cardEl, "empty", { title: "No dish matches these filters", text: `${blockText(M)} Loosen a filter and the wheel is back.`, action });
+          action.push(h("button", { type: "button", class: "kp-button kp-button--primary kp-stateplate__action", title: t("wheel.loosenTitle"), onclick: () => void loosenOne(say) }, t("wheel.loosen")));
+          if (filterCount(M)) action.push(h("button", { type: "button", class: "kp-button kp-stateplate__action", title: t("wheel.clearTitle"), onclick: () => clearFilters() }, t("wheel.clearAll")));
+          setCardState(cardEl, "empty", { title: t("wheel.noMatch"), text: `${blockText(M)} ${t("wheel.loosenAndBack")}`, action });
         }
       } else setCardState(cardEl, "ready");
       drawArt(cardEl);
@@ -566,7 +567,7 @@ export function mount(root, { navigate }) {
         spinning = false;
         chosen = /** @type {CustomEvent} */ (event).detail.item.id;
         paintAnswer();
-        say(`The wheel chose ${byId(/** @type {string} */ (chosen))?.label}.`);
+        say(t("wheel.wheelChose", byId(/** @type {string} */ (chosen))?.label));
       });
       part.yes.addEventListener("click", () => {
         if (chosen) navigate(`/recipe?id=${encodeURIComponent(chosen)}`);
@@ -585,9 +586,9 @@ export function mount(root, { navigate }) {
       paintAnswer();
       try {
         await create("resting", { recipe_id: d.id, until: iso(until) });
-        say(`${d.label} is set aside until ${dmy(until)} and off the wheel.`);
+        say(t("wheel.setAside", d.label, dmy(until)));
       } catch (e) {
-        say(`${d.label} could not be set aside: ${e instanceof Error ? e.message : String(e)}`);
+        say(t("wheel.setAsideFailed", d.label, e instanceof Error ? e.message : String(e)));
       } finally {
         writing = false;
         paintAnswer();
@@ -601,9 +602,9 @@ export function mount(root, { navigate }) {
       paintAnswer();
       try {
         await remove("resting", item.id);
-        say(`${name} is back on the wheel.`);
+        say(t("wheel.backOn", name));
       } catch (e) {
-        say(`${name} could not be brought back: ${e instanceof Error ? e.message : String(e)}`);
+        say(t("wheel.bringBackFailed", name, e instanceof Error ? e.message : String(e)));
       } finally {
         writing = false;
         paintAnswer();
@@ -628,7 +629,7 @@ export function mount(root, { navigate }) {
       try {
         await remove("resting", item.id);
       } catch (e) {
-        say(`Could not let go of “${pick.label}”: ${e instanceof Error ? e.message : String(e)}`);
+        say(t("wheel.letGoFailed", pick.label, e instanceof Error ? e.message : String(e)));
         return;
       }
     } else {
@@ -638,7 +639,7 @@ export function mount(root, { navigate }) {
     M.order = M.order.filter((k) => k !== pick.key);
     paintChips();
     const n = onWheel(M).length;
-    say(`Let go of “${pick.label}”: ${n === 1 ? "1 dish fits" : `${n} dishes fit`} again.`);
+    say(t("wheel.letGo", pick.label, n));
   }
 
   function clearFilters() {
@@ -647,7 +648,7 @@ export function mount(root, { navigate }) {
     M.ing = emptyTri();
     M.order = M.order.filter((k) => !/^(meal|time|ing):/.test(k));
     paintChips();
-    filtersLive.textContent = "Every filter is let go: every dish is on the list.";
+    filtersLive.textContent = t("wheel.allLetGo");
   }
 
   async function reload() {
@@ -684,8 +685,8 @@ export function mount(root, { navigate }) {
         M.ing = getSegmentedTri(groups.ing);
         M.order = M.order.filter((k) => !k.startsWith("ing:") || shown.includes(k.slice(4)));
       }
-      setSegmentedCounts(groups.meal, countOf(dishes, "meal", Object.keys(MEALS)));
-      setSegmentedCounts(groups.time, countOf(dishes, "time", Object.keys(BANDS)));
+      setSegmentedCounts(groups.meal, countOf(dishes, "meal", Object.keys(mealLabels())));
+      setSegmentedCounts(groups.time, countOf(dishes, "time", Object.keys(bandLabels())));
       setSegmentedCounts(groups.ing, ingCounts);
     }
   }
@@ -713,11 +714,11 @@ export function mount(root, { navigate }) {
   function describeFilters() {
     const all = constraints(M).filter((c) => /^(meal|time|ing):/.test(c.key));
     clearBtn.disabled = status !== "ready" || !all.length;
-    clearBtn.setAttribute("data-kp-disabled-reason", status !== "ready" ? "The dishes are loading" : "Nothing is filtered yet");
-    if (status === "loading") filtersLive.textContent = "Reading your dishes.";
-    else if (status === "error") filtersLive.textContent = "The dishes could not be read, so there is nothing to filter yet.";
-    else if (!all.length) filtersLive.textContent = "Nothing is filtered: every dish is on the list.";
-    else filtersLive.textContent = `${all.map((c) => c.label).join(", ")}: ${onWheel(M).length} of ${dishes.length} dishes fit.`;
+    clearBtn.setAttribute("data-kp-disabled-reason", status !== "ready" ? t("wheel.dishesLoading") : t("wheel.nothingFiltered"));
+    if (status === "loading") filtersLive.textContent = t("wheel.loadingDot");
+    else if (status === "error") filtersLive.textContent = t("wheel.failedFilter");
+    else if (!all.length) filtersLive.textContent = t("wheel.nothingFilteredLive");
+    else filtersLive.textContent = t("wheel.filterFit", all.map((c) => c.label).join(", "), onWheel(M).length, dishes.length);
   }
 
   // ---- No energy today --------------------------------------------------------------------------------------------------
@@ -726,21 +727,21 @@ export function mount(root, { navigate }) {
     switchEl.disabled = !ready;
     switchEl.checked = M.easy;
     for (const b of kindButtons) {
-      const t = toggle(b);
-      if (ready) t?.setCount(dishes.filter((d) => isKind(d, b.dataset.kpToggleValue ?? "")).length);
-      t?.set(M.kinds.has(b.dataset.kpToggleValue ?? ""), { silent: true });
+      const tg = toggle(b);
+      if (ready) tg?.setCount(dishes.filter((d) => isKind(d, b.dataset.kpToggleValue ?? "")).length);
+      tg?.set(M.kinds.has(b.dataset.kpToggleValue ?? ""), { silent: true });
       /** @type {HTMLButtonElement} */ (b).disabled = !ready || !M.easy;
-      b.setAttribute("data-kp-disabled-reason", ready ? "Turn on No energy today first" : "The dishes are loading");
+      b.setAttribute("data-kp-disabled-reason", ready ? t("wheel.turnOnFirst") : t("wheel.dishesLoading"));
     }
     const n = onWheel(M).length;
     easyLive.textContent =
       status === "loading"
-        ? "Reading your dishes."
+        ? t("wheel.loadingDot")
         : status === "error"
-          ? "The dishes could not be read."
+          ? t("wheel.failedDot")
           : M.easy
-            ? `No energy today is on: ${n === 1 ? "1 dish is" : `${n} dishes are`} on the wheel.`
-            : "No energy today is off: the wheel holds every dish.";
+            ? t("wheel.easyOn", n)
+            : t("wheel.easyOff");
   }
   const onSwitch = () => {
     M.easy = switchEl.checked;
@@ -756,7 +757,7 @@ export function mount(root, { navigate }) {
   };
   const onKinds = (/** @type {Event} */ event) => {
     M.kinds = new Set(/** @type {CustomEvent} */ (event).detail.pressedKeys);
-    for (const k of Object.keys(KINDS)) track(`kind:${k}`, !M.kinds.has(k));
+    for (const k of Object.keys(kindLabels())) track(`kind:${k}`, !M.kinds.has(k));
     paintAll();
   };
   switchEl.addEventListener("change", onSwitch);
@@ -767,7 +768,7 @@ export function mount(root, { navigate }) {
   function paintAll() {
     derive();
     const body = root.querySelector("#wl-card-body");
-    if (body) body.textContent = `Dinner is at ${dinnerTime()}. Spin once; if the answer does not feel right, spin again or set that dish aside.`;
+    if (body) body.textContent = `${t("wheel.dinnerAt", dinnerTime())} ${t("wheel.cardBody")}`;
     wheelView.refresh();
     listView.refresh();
     paintCounts();

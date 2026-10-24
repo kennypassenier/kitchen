@@ -11,8 +11,8 @@
 import { setChecklistItems } from "/static/kp/js/checklist.js";
 import { preparePrint } from "/static/kp/js/print.js";
 import { amountOf } from "./amounts.js";
-import { ingredientName, kitchenNow } from "../api.js";
-import { langOf } from "./words.js";
+import { ingredientName } from "../api.js";
+import { lang as appLang } from "../i18n/index.js";
 
 /** The package stylesheet with its print rules made unconditional, read once. @type {Promise<string> | null} */
 let paperCss = null;
@@ -101,7 +101,7 @@ export async function createSheet(frame) {
           const amount = [text, unit].filter(Boolean).join(" ");
           return {
             id: ing.id,
-            label: ingredientName(ing.ingredient, langOf(kitchenNow()?.settings.lang)),
+            label: ingredientName(ing.ingredient, appLang()),
             detail: [amount, ing.note].filter(Boolean).join(". "),
             group: ing.group || fallbackGroup,
           };

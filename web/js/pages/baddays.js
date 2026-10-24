@@ -34,6 +34,7 @@ import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
 import { h, $ } from "../dom.js";
 import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
+import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("../api.js").Item} Item */
@@ -44,35 +45,32 @@ const OLD_AFTER_DAYS = 60;
 /** How long Undo is offered after Take one portion (approved: 10 s, ring). */
 const UNDO_MS = 10_000;
 
-const SECTIONS = `
+/** The page, whole; a function so the words are read when the page is mounted. */
+const sections = () => `
   <header class="bd-intro">
-    <h1>Bad days: food that works when nothing else does</h1>
+    <h1>${t("bad.title")}</h1>
     <p>
-      The screen for a day with no energy. Five parts, each answering one question without asking for effort: which
-      dishes always work, what is in the freezer, what can be eaten without cooking, how a recipe shrinks to its
-      smallest version, and when things went in. Nothing here counts calories or weight, nothing turns red, and every
-      action can be taken back.
+      ${t("bad.intro")}
     </p>
   </header>
 
   <section class="bd-sec" id="safe-dishes" aria-labelledby="h-safe-dishes">
     <div class="bd-sec__head">
-      <h2 id="h-safe-dishes">Safe dishes: always possible</h2>
+      <h2 id="h-safe-dishes">${t("bad.secSafe")}</h2>
       <p>
-        A short, fixed row of dishes that work on any day, as large tiles with one sentence each. They never reorder, so
-        the thumb learns where they are.
+        ${t("bad.secSafeText")}
       </p>
     </div>
     <section class="kp-card bd-card" id="bd-safe-card" data-kp-state="loading" aria-labelledby="bd-safe-t"
-      data-kp-loading-words="Opening your safe dishes…">
+      data-kp-loading-words="${t("bad.loadingSafe")}">
       <div class="kp-card__header">
-        <h3 class="kp-card__title" id="bd-safe-t">Your safe dishes</h3>
-        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span><button type="button" class="kp-button kp-button--primary" data-bd-safe-add>Add a safe dish</button></div>
+        <h3 class="kp-card__title" id="bd-safe-t">${t("bad.safeTitle")}</h3>
+        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span><button type="button" class="kp-button kp-button--primary" data-bd-safe-add>${t("bad.addSafe")}</button></div>
       </div>
-      <p class="kp-card__body">Pick one and that is dinner decided. Each one is a recipe you marked as a safe favourite.</p>
+      <p class="kp-card__body">${t("bad.safeBody")}</p>
       <div class="kp-card__stage">
         <div class="kp-card__data">
-          <ul class="kp-actions bd-safe" data-kp-action-size="large" aria-label="Safe dishes" data-bd-safe></ul>
+          <ul class="kp-actions bd-safe" data-kp-action-size="large" aria-label="${t("bad.safeLabel")}" data-bd-safe></ul>
         </div>
       </div>
     </section>
@@ -80,98 +78,96 @@ const SECTIONS = `
 
   <section class="bd-sec" id="freezer" aria-labelledby="h-freezer">
     <div class="bd-sec__head">
-      <h2 id="h-freezer">The freezer</h2>
+      <h2 id="h-freezer">${t("bad.secFreezer")}</h2>
       <p>
-        A table of what is frozen: the oldest on top, how long each has been in, and one button to take a portion.
-        Taking a portion can be undone; nothing asks &ldquo;are you sure&rdquo;.
+        ${t("bad.secFreezerText")}
       </p>
     </div>
     <div class="bd-freezer" data-bd-freezer>
       <div class="kp-datatable" id="bd-freezer" data-kp-datatable data-kp-cards data-kp-page-sizes="none"
         data-kp-key="freezer" data-kp-state="loading" data-kp-busy-overlay>
         <div class="kp-datatable__bar">
-          <input class="kp-datatable__search" data-kp-datatable-search type="search" aria-label="Find a dish in the freezer"
-            placeholder="Find a dish" />
+          <input class="kp-datatable__search" data-kp-datatable-search type="search" aria-label="${t("bad.findLabel")}"
+            placeholder="${t("bad.findPh")}" />
           <p class="kp-datatable__status" data-kp-datatable-status role="status" aria-live="polite"></p>
         </div>
         <div class="kp-table-wrap">
           <table class="kp-table">
-            <caption class="kp-sr-only">Freezer, the oldest dish first</caption>
+            <caption class="kp-sr-only">${t("bad.caption")}</caption>
             <thead>
               <tr>
-                <th scope="col" data-kp-sort="text">Dish</th>
-                <th scope="col" data-kp-sort="number">Portions</th>
-                <th scope="col" data-kp-sort="number">Frozen on</th>
-                <th scope="col">How long</th>
-                <th scope="col">Hint</th>
-                <th scope="col"><span class="kp-sr-only">Action</span></th>
+                <th scope="col" data-kp-sort="text">${t("bad.colDish")}</th>
+                <th scope="col" data-kp-sort="number">${t("bad.colPortions")}</th>
+                <th scope="col" data-kp-sort="number">${t("bad.colFrozen")}</th>
+                <th scope="col">${t("bad.colHow")}</th>
+                <th scope="col">${t("bad.colHint")}</th>
+                <th scope="col"><span class="kp-sr-only">${t("bad.colAction")}</span></th>
               </tr>
             </thead>
             <tbody data-bd-rows></tbody>
           </table>
         </div>
         <div class="kp-empty" data-kp-art="none" data-kp-art-size="lg" data-kp-datatable-empty hidden>
-          <p class="kp-empty__title" data-kp-datatable-empty-none>The freezer is empty, and that is fine</p>
+          <p class="kp-empty__title" data-kp-datatable-empty-none>${t("bad.freezerEmptyTitle")}</p>
           <p class="kp-empty__body" data-kp-datatable-empty-none>
-            Nothing to defrost today. The safe dishes and the zero-prep shelf work without it. Whenever you cook too
-            much, put the extra here and it waits for you.
+            ${t("bad.freezerEmptyText")}
           </p>
           <button type="button" class="kp-button kp-button--primary" data-kp-datatable-empty-none data-bd-add>
-            Add a portion I froze today
+            ${t("bad.addToday")}
           </button>
-          <p class="kp-empty__title" data-kp-datatable-empty-nomatch>No dish in the freezer matches that</p>
-          <p class="kp-empty__body" data-kp-datatable-empty-nomatch>Try fewer letters, or clear the search to see everything.</p>
-          <button type="button" class="kp-button" data-kp-datatable-empty-nomatch data-kp-datatable-clear>Clear the search</button>
+          <p class="kp-empty__title" data-kp-datatable-empty-nomatch>${t("bad.noMatchTitle")}</p>
+          <p class="kp-empty__body" data-kp-datatable-empty-nomatch>${t("bad.noMatchText")}</p>
+          <button type="button" class="kp-button" data-kp-datatable-empty-nomatch data-kp-datatable-clear>${t("bad.clearSearch")}</button>
         </div>
         <div class="kp-alert kp-alert--destructive" data-kp-datatable-failed role="alert" hidden>
-          <p data-kp-datatable-failed-reason>The freezer list could not be read.</p>
-          <button type="button" class="kp-button" data-kp-datatable-retry>Try again</button>
+          <p data-kp-datatable-failed-reason>${t("bad.freezerFailed")}</p>
+          <button type="button" class="kp-button" data-kp-datatable-retry>${t("common.tryAgain")}</button>
         </div>
       </div>
     </div>
     <div class="bd-add">
       <div class="bd-sec__head">
-        <h3 id="h-freezer-add">Add something you froze</h3>
-        <p>Put a dish in the list when you freeze it, so it is here on the day you need it.</p>
+        <h3 id="h-freezer-add">${t("bad.addTitle")}</h3>
+        <p>${t("bad.addText")}</p>
       </div>
       <form class="bd-add__form" data-kp-form data-bd-add-form novalidate aria-labelledby="h-freezer-add">
         <div class="kp-form__summary" data-kp-form-summary tabindex="-1" hidden></div>
         <div class="kp-formgrid" data-kp-formgrid-lines="lines">
         <div class="kp-formgrid__row" data-bd-dish-row>
-          <label class="kp-formgrid__label" for="bd-add-dish">Dish</label>
+          <label class="kp-formgrid__label" for="bd-add-dish">${t("bad.colDish")}</label>
           <div class="kp-formgrid__control">
             <input class="kp-field__input" id="bd-add-dish" name="dish" type="text" autocomplete="off"
               aria-describedby="bd-add-dish-note" />
           </div>
-          <p class="kp-formgrid__value" id="bd-add-dish-note" role="status" aria-live="polite" data-bd-dish-note>What it is, as you would say it.</p>
+          <p class="kp-formgrid__value" id="bd-add-dish-note" role="status" aria-live="polite" data-bd-dish-note>${t("bad.dishHint")}</p>
         </div>
         <div class="kp-formgrid__row">
-          <label class="kp-formgrid__label" for="bd-add-portions">Portions</label>
+          <label class="kp-formgrid__label" for="bd-add-portions">${t("bad.colPortions")}</label>
           <div class="kp-formgrid__control">
             <div class="kp-quantity kp-formgrid__short" data-kp-quantity data-kp-quantity-min="1" data-kp-quantity-max="24"
-              data-kp-quantity-unit="portions" data-kp-quantity-unit-one="portion" data-kp-quantity-label="Portions" data-bd-portions>
+              data-kp-quantity-unit="${t("bad.unitMany")}" data-kp-quantity-unit-one="${t("bad.unitOne")}" data-kp-quantity-label="${t("bad.colPortions")}" data-bd-portions>
               <input class="kp-quantity__input" id="bd-add-portions" value="2" />
             </div>
           </div>
-          <p class="kp-formgrid__value">How many go into the freezer.</p>
+          <p class="kp-formgrid__value">${t("bad.portionsHint")}</p>
         </div>
         <div class="kp-formgrid__row" data-bd-date-row>
-          <label class="kp-formgrid__label" for="bd-add-date">Frozen on</label>
+          <label class="kp-formgrid__label" for="bd-add-date">${t("bad.colFrozen")}</label>
           <div class="kp-formgrid__control">
-            <div class="kp-datepicker" data-kp-datepicker lang="en-GB" data-bd-date>
+            <div class="kp-datepicker" data-kp-datepicker lang="${lang() === "nl" ? "nl-BE" : "en-GB"}" data-bd-date>
               <input class="kp-field__input" id="bd-add-date" type="text" inputmode="numeric" data-kp-date-input
                 aria-describedby="bd-add-date-note" />
-              <button type="button" class="kp-button" data-kp-date-open aria-label="Open the calendar" title="Open the calendar">
+              <button type="button" class="kp-button" data-kp-date-open aria-label="${t("bad.openCalendar")}" title="${t("bad.openCalendar")}">
                 <span aria-hidden="true">&#9638;</span>
               </button>
               <div class="kp-datepicker__panel" data-kp-date-panel hidden></div>
             </div>
           </div>
-          <p class="kp-formgrid__value" id="bd-add-date-note" role="status" aria-live="polite" data-bd-date-note>Today, unless you froze it earlier.</p>
+          <p class="kp-formgrid__value" id="bd-add-date-note" role="status" aria-live="polite" data-bd-date-note>${t("bad.dateHint")}</p>
         </div>
         <div class="kp-formgrid__row kp-formgrid__row--buttons">
           <div class="kp-formgrid__control">
-            <button type="submit" class="kp-button kp-button--primary" data-kp-submit data-bd-add-submit>Add to the freezer</button>
+            <button type="submit" class="kp-button kp-button--primary" data-kp-submit data-bd-add-submit>${t("bad.addSubmit")}</button>
           </div>
         </div>
         </div>
@@ -181,88 +177,82 @@ const SECTIONS = `
 
   <section class="bd-sec" id="zero-prep" aria-labelledby="h-zero-prep">
     <div class="bd-sec__head">
-      <h2 id="h-zero-prep">The zero-prep shelf</h2>
+      <h2 id="h-zero-prep">${t("bad.secShelf")}</h2>
       <p>
-        Food that is eaten without cooking, sorted by how much you can manage today. Say how much that is, and the list
-        shrinks to what fits.
+        ${t("bad.secShelfText")}
       </p>
     </div>
     <section class="kp-card bd-card" id="bd-shelf-card" data-kp-state="loading" aria-labelledby="bd-shelf-t"
-      data-kp-loading-words="Opening the shelf…">
+      data-kp-loading-words="${t("bad.loadingShelf")}">
       <div class="kp-card__header">
-        <h3 class="kp-card__title" id="bd-shelf-t">What I can manage today</h3>
+        <h3 class="kp-card__title" id="bd-shelf-t">${t("bad.shelfTitle")}</h3>
         <div class="kp-card__actions">
-          <div class="kp-segmented" data-kp-segmented="single" role="radiogroup" aria-label="How much I can manage today" data-bd-level>
+          <div class="kp-segmented" data-kp-segmented="single" role="radiogroup" aria-label="${t("bad.levelLabel")}" data-bd-level>
             <button type="button" class="kp-segmented__item" role="radio" aria-checked="false" data-value="open">
-              <span class="kp-segmented__label">Just open it</span><span class="kp-segmented__count"></span>
+              <span class="kp-segmented__label">${t("rec.energyOpen")}</span><span class="kp-segmented__count"></span>
             </button>
             <button type="button" class="kp-segmented__item" role="radio" aria-checked="false" data-value="easy">
-              <span class="kp-segmented__label">One easy step</span><span class="kp-segmented__count"></span>
+              <span class="kp-segmented__label">${t("rec.energyEasy")}</span><span class="kp-segmented__count"></span>
             </button>
             <button type="button" class="kp-segmented__item" role="radio" aria-checked="true" data-value="any">
-              <span class="kp-segmented__label">Anything here</span><span class="kp-segmented__count"></span>
+              <span class="kp-segmented__label">${t("rec.energyAny")}</span><span class="kp-segmented__count"></span>
             </button>
           </div>
-          <button type="button" class="kp-button kp-button--primary" data-bd-shelf-add>Add a food</button>
+          <button type="button" class="kp-button kp-button--primary" data-bd-shelf-add>${t("bad.addFood")}</button>
         </div>
       </div>
-      <p class="kp-card__body">No stove, no oven, no pan. Choose what fits today, not what you think you should manage; I ate this writes it in the log.</p>
+      <p class="kp-card__body">${t("bad.shelfBody")}</p>
       <div class="kp-card__stage">
         <div class="kp-card__data">
-          <ul class="kp-action-list kp-action-list--lead bd-shelf" aria-label="Foods without cooking" data-bd-shelf></ul>
+          <ul class="kp-action-list kp-action-list--lead bd-shelf" aria-label="${t("bad.shelfLabel")}" data-bd-shelf></ul>
         </div>
       </div>
-      <div class="kp-card__footer"><p class="bd-readout" role="status" data-bd-shelf-readout>Nothing from the shelf logged yet.</p></div>
+      <div class="kp-card__footer"><p class="bd-readout" role="status" data-bd-shelf-readout>${t("bad.shelfReadout")}</p></div>
     </section>
   </section>
 
   <section class="bd-sec" id="mini-recipe" aria-labelledby="h-mini-recipe">
     <div class="bd-sec__head">
-      <h2 id="h-mini-recipe">A mini version of a recipe</h2>
+      <h2 id="h-mini-recipe">${t("bad.secMini")}</h2>
       <p>
-        One of your safe dishes in its smallest form: fewer steps, one pot, one portion. Switch between the mini and the
-        full recipe, then follow one step at a time.
+        ${t("bad.secMiniText")}
       </p>
     </div>
     <div class="bd-mini">
       <div class="bd-mini__head">
-        <h3 class="bd-mini__title" data-bd-mini-title>A safe dish, made small</h3>
-        <div class="kp-segmented" data-kp-segmented="single" role="radiogroup" aria-label="Which version" data-bd-version>
+        <h3 class="bd-mini__title" data-bd-mini-title>${t("bad.miniDefault")}</h3>
+        <div class="kp-segmented" data-kp-segmented="single" role="radiogroup" aria-label="${t("bad.versionLabel")}" data-bd-version>
           <button type="button" class="kp-segmented__item" role="radio" aria-checked="true" data-value="mini">
-            <span class="kp-segmented__label">Mini version</span>
+            <span class="kp-segmented__label">${t("bad.miniVersion")}</span>
           </button>
           <button type="button" class="kp-segmented__item" role="radio" aria-checked="false" data-value="full">
-            <span class="kp-segmented__label">Full recipe</span>
+            <span class="kp-segmented__label">${t("bad.fullRecipe")}</span>
           </button>
         </div>
-        <a class="kp-button kp-button--primary bd-mini__cook" aria-disabled="true" data-bd-cook>Cook this</a>
+        <a class="kp-button kp-button--primary bd-mini__cook" aria-disabled="true" data-bd-cook>${t("bad.cookThis")}</a>
       </div>
       <p class="kp-lede bd-mini__lede" data-bd-mini-lede></p>
-      <div class="kp-focus-steps bd-mini__steps" data-kp-focus-steps aria-label="Mini recipe" data-bd-steps
-        data-kp-focus-steps-empty="None of your safe dishes has written steps yet. Add the steps to one of them and its small version appears here."></div>
+      <div class="kp-focus-steps bd-mini__steps" data-kp-focus-steps aria-label="${t("bad.miniLabel")}" data-bd-steps
+        data-kp-focus-steps-empty="${t("bad.noSteps")}"></div>
     </div>
   </section>
 
   <section class="bd-sec" id="freezer-month" aria-labelledby="h-freezer-month">
     <div class="bd-sec__head">
-      <h2 id="h-freezer-month">When things went in</h2>
+      <h2 id="h-freezer-month">${t("bad.secMonth")}</h2>
       <p>
-        A month of days: the days you froze something are filled, every other day is quiet. It helps you remember
-        cooking days, and it can never show a day as missed.
+        ${t("bad.secMonthText")}
       </p>
     </div>
     <div class="bd-calwrap">
       <section class="kp-calendar kp-calendar--busy-whole" id="bd-cal" data-kp-calendar data-kp-tones="calm"
-        aria-label="Days something went into the freezer"></section>
+        aria-label="${t("bad.calLabel")}"></section>
     </div>
   </section>
 `;
 
 /** "YYYY-MM-DD" as dd/mm/yyyy. @param {string} iso */
 const dmy = (iso) => iso.slice(0, 10).split("-").reverse().join("/");
-
-/** @param {number} n @param {string} one @param {string} many */
-const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /** The first sentence of a text. @param {string} text */
 const firstSentence = (text) => (text.trim().match(/^.+?[.!?](?=\s|$)/) ?.[0] ?? text.trim());
@@ -315,9 +305,9 @@ const toFocusSteps = (steps) =>
  * @returns {() => void}
  */
 export function mount(root, { navigate }) {
-  document.title = "Bad days · Kitchen";
+  document.title = `${t("nav.baddays")} · Kitchen`;
   const page = h("div", { class: "bd-page" });
-  page.innerHTML = SECTIONS;
+  page.innerHTML = sections();
   root.replaceChildren(page);
 
   /** @type {(() => void)[]} */
@@ -368,11 +358,11 @@ export function mount(root, { navigate }) {
     for (const key of Object.keys(drawn)) drawn[key] = null;
     setCardState(safeCard, "loading");
     setCardState(shelfCard, "loading");
-    const t = table();
-    t?.busy({ text: "Looking in the freezer…", since: Date.now(), overlay: true });
-    t?.state("loading");
-    setFocusStepsState(miniSteps, "loading", "Opening the recipe…");
-    setCalendarState(cal, "loading", "Reading the month…");
+    const tb = table();
+    tb?.busy({ text: t("bad.loadingFreezer"), since: Date.now(), overlay: true });
+    tb?.state("loading");
+    setFocusStepsState(miniSteps, "loading", t("bad.loadingRecipe"));
+    setCalendarState(cal, "loading", t("bad.loadingMonth"));
     setCook(null);
     setSegmentedDisabled(miniVersion, true);
   }
@@ -381,11 +371,11 @@ export function mount(root, { navigate }) {
   function failed(e) {
     const why = reason(e);
     for (const key of Object.keys(drawn)) drawn[key] = null;
-    setCardState(safeCard, "error", { title: "Could not open your safe dishes", text: `${why} The dishes are still saved.` });
-    setCardState(shelfCard, "error", { title: "Could not open the shelf", text: `${why} Nothing was changed.` });
-    table()?.fail(`The freezer list could not be read. ${why} Your portions are still counted.`);
-    setFocusStepsState(miniSteps, "error", `The recipe could not be opened. ${why}`);
-    setCalendarState(cal, "error", "The month could not be read. Nothing was changed.");
+    setCardState(safeCard, "error", { title: t("bad.safeFailed"), text: `${why} ${t("bad.stillSaved")}` });
+    setCardState(shelfCard, "error", { title: t("bad.shelfFailed"), text: `${why} ${t("bad.nothingChanged")}` });
+    table()?.fail(`${t("bad.freezerFailed")} ${why} ${t("bad.stillCounted")}`);
+    setFocusStepsState(miniSteps, "error", `${t("bad.recipeFailed")} ${why}`);
+    setCalendarState(cal, "error", `${t("bad.monthFailed")} ${t("bad.nothingChanged")}`);
     setCook(null);
   }
 
@@ -404,13 +394,13 @@ export function mount(root, { navigate }) {
     const signature = JSON.stringify(dishes.map((r) => [r.id, r.name, r.summary, r.minutes, r.gear, lastMade(k, r.id)]));
     if (signature === drawn.safe) return;
     drawn.safe = signature;
-    safeCount.textContent = count(dishes.length, "dish", "dishes");
+    safeCount.textContent = t("bad.dishCount", dishes.length);
     if (!dishes.length) {
-      const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Add a safe dish");
+      const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.addSafe"));
       pick.addEventListener("click", () => openSafePicker());
       setCardState(safeCard, "empty", {
-        title: "No safe dishes yet",
-        text: "Pick a few of your recipes as safe favourites, or write a new one. They will wait here, in this exact place, and never move.",
+        title: t("bad.noSafe"),
+        text: t("bad.noSafeText"),
         action: pick,
       });
       return;
@@ -418,9 +408,9 @@ export function mount(root, { navigate }) {
     safeList.replaceChildren(
       ...dishes.map((r) => {
         const made = lastMade(k, r.id);
-        const text = r.summary ? firstSentence(String(r.summary)) : `Takes about ${r.minutes} minutes and uses ${r.gear}.`;
-        const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `Edit ${r.name}` }, "Edit");
-        const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `${r.name} is not safe any more` }, "Not safe any more");
+        const text = r.summary ? firstSentence(String(r.summary)) : t("bad.takesAbout", r.minutes, r.gear);
+        const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
+        const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("bad.notSafeName", r.name) }, t("bad.notSafe"));
         edit.addEventListener("click", () => openRecipeEditor(r));
         unsafe.addEventListener("click", () => unmarkSafe(r));
         return h(
@@ -436,7 +426,7 @@ export function mount(root, { navigate }) {
               "span",
               { class: "kp-action__meta" },
               h("span", null, `${r.minutes} min, ${r.gear}`),
-              h("span", null, made ? `last made ${dmy(made)}` : "not made yet"),
+              h("span", null, made ? t("bad.lastMade", dmy(made)) : t("bad.notMade")),
             ),
           ),
           h("div", { class: "kp-row-actions" }, edit, unsafe),
@@ -456,14 +446,14 @@ export function mount(root, { navigate }) {
       h("td", null, h("strong", null, itemLink("freezer", item))),
       h("td", { "data-kp-sort-value": String(item.portions) }, String(item.portions)),
       h("td", { "data-kp-sort-value": String(at) }, agoMoment(at).slice(0, 10)),
-      h("td", null, h("time", { class: "kp-ago", "data-kp-ago": "", "data-kp-ago-verb": "frozen", datetime: new Date(at).toISOString() }, "")),
+      h("td", null, h("time", { class: "kp-ago", "data-kp-ago": "", "data-kp-ago-verb": t("bad.frozenVerb"), datetime: new Date(at).toISOString() }, "")),
       h(
         "td",
         null,
         h(
           "span",
           old ? { class: "kp-badge bd-hint" } : { class: "kp-badge bd-hint bd-hint--none", "aria-hidden": "true" },
-          old ? "Use these next" : "Fine",
+          old ? t("bad.useNext") : t("bad.fine"),
         ),
       ),
       h(
@@ -474,11 +464,11 @@ export function mount(root, { navigate }) {
           { class: "kp-row-actions" },
           h(
             "button",
-            { type: "button", class: "kp-button kp-button--sm", "data-bd-take": item.id, "aria-label": `Take one portion of ${item.dish}` },
-            "Take one portion",
+            { type: "button", class: "kp-button kp-button--sm", "data-bd-take": item.id, "aria-label": t("bad.takeName", item.dish) },
+            t("bad.takeOne"),
           ),
-          h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-edit": item.id, "aria-label": `Edit ${item.dish}` }, "Edit"),
-          h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-delete": item.id, "aria-label": `Delete ${item.dish}` }, "Delete"),
+          h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-edit": item.id, "aria-label": t("rec.editName", item.dish) }, t("common.edit")),
+          h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-delete": item.id, "aria-label": t("rec.deleteName", item.dish) }, t("common.delete")),
         ),
       ),
     );
@@ -492,13 +482,13 @@ export function mount(root, { navigate }) {
     if (signature === drawn.freezer) return;
     const first = drawn.freezer === null;
     drawn.freezer = signature;
-    const t = table();
+    const tb = table();
     // The table reconciles its own rows on refresh (kp-themes 6f9301bc): write the fresh rows, ask it to re-read them.
     rows.replaceChildren(...items.map(freezerRow));
-    t?.refresh({ keepPage: true });
+    tb?.refresh({ keepPage: true });
     if (first) {
-      t?.state("ready");
-      t?.sort({ column: 2, direction: "ascending" });
+      tb?.state("ready");
+      tb?.sort({ column: 2, direction: "ascending" });
     }
   }
 
@@ -516,12 +506,12 @@ export function mount(root, { navigate }) {
     const button = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-take]")) : null;
     if (!button || button.getAttribute("aria-disabled") === "true") return;
     const id = button.getAttribute("data-bd-take") ?? "";
-    const dish = kitchenNow()?.freezer.find((f) => f.id === id)?.dish ?? "the dish";
+    const dish = kitchenNow()?.freezer.find((f) => f.id === id)?.dish ?? t("bad.theDish");
     button.setAttribute("aria-disabled", "true");
     try {
       const after = await takePortions(id, 1);
       undoToast(
-        after.portions < 1 ? `Took the last portion of ${dish}. It leaves the list.` : `Took 1 portion of ${dish}. ${after.portions} left.`,
+        after.portions < 1 ? t("bad.tookLast", dish) : t("bad.took", after.portions, dish),
         {
           mode: "revert",
           ms: UNDO_MS,
@@ -531,13 +521,13 @@ export function mount(root, { navigate }) {
             try {
               await takePortions(id, -1);
             } catch (e) {
-              toast(`Could not put it back. ${reason(e)}`, { live: "assertive", sticky: true });
+              toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
             }
           },
         },
       );
     } catch (e) {
-      toast(`Could not take a portion of ${dish}. ${reason(e)}`, { live: "assertive", sticky: true });
+      toast(t("bad.takeFailed", dish, reason(e)), { live: "assertive", sticky: true });
     } finally {
       button.removeAttribute("aria-disabled");
     }
@@ -576,16 +566,16 @@ export function mount(root, { navigate }) {
   };
   dishField.addEventListener("input", () => {
     dishField.removeAttribute("aria-invalid");
-    mark(dishRow, dishNote, null, "What it is, as you would say it.");
+    mark(dishRow, dishNote, null, t("bad.dishHint"));
   });
   dateInput.addEventListener("input", () => {
     dateInput.removeAttribute("aria-invalid");
-    mark(dateRow, dateNote, null, "Today, unless you froze it earlier.");
+    mark(dateRow, dateNote, null, t("bad.dateHint"));
   });
   // The package form owns the submit: it checks validity, lists what is wrong in its summary, makes the button busy and
   // fires VALID_EVENT. This listener runs first and turns the page's own rules into the browser's validity.
-  const DISH_WRONG = "Say what you froze, so you can find it again.";
-  const DATE_WRONG = "Use a date up to today, as dd/mm/yyyy.";
+  const DISH_WRONG = t("bad.dishWrong");
+  const DATE_WRONG = t("bad.dateWrong");
   form.addEventListener("submit", (event) => {
     // The package's form fires its valid event and leaves the browser's own submit running, which reloaded the page
     // (a GET to /bad-days?dish=…) before the save went out: since 1.0.0 nothing was ever added (found 24/10/2026).
@@ -594,8 +584,8 @@ export function mount(root, { navigate }) {
     const picked = datePicker(picker)?.get() ?? null;
     dishField.setCustomValidity(dish ? "" : DISH_WRONG);
     dateInput.setCustomValidity(picked && picked.getTime() <= Date.now() + DAY ? "" : DATE_WRONG);
-    mark(dishRow, dishNote, dish ? null : DISH_WRONG, "What it is, as you would say it.");
-    mark(dateRow, dateNote, dateInput.validationMessage || null, "Today, unless you froze it earlier.");
+    mark(dishRow, dishNote, dish ? null : DISH_WRONG, t("bad.dishHint"));
+    mark(dateRow, dateNote, dateInput.validationMessage || null, t("bad.dateHint"));
   });
   dishField.addEventListener("input", () => dishField.setCustomValidity(""));
   dateInput.addEventListener("input", () => dateInput.setCustomValidity(""));
@@ -615,12 +605,12 @@ export function mount(root, { navigate }) {
         portions: Math.max(1, Number.isFinite(portions) ? portions : 1),
         frozen_on: when.toISOString(),
       });
-      toast(`Added ${dish} to the freezer.`, { ms: 4000 });
+      toast(t("bad.added", dish), { ms: 4000 });
       dishField.value = "";
       setToday();
       dishField.focus();
     } catch (e) {
-      toast(`Could not add ${dish}. ${reason(e)}`, { live: "assertive", sticky: true });
+      toast(t("bad.addFailed", dish, reason(e)), { live: "assertive", sticky: true });
     } finally {
       done();
     }
@@ -636,21 +626,21 @@ export function mount(root, { navigate }) {
   function drawShelf() {
     const shown = shelfItems.filter((s) => LEVELS[level].includes(s.energy));
     if (!shelfItems.length) {
-      const go = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Add a food");
+      const go = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.addFood"));
       go.addEventListener("click", () => openRecordEditor("shelf", null));
       setCardState(shelfCard, "empty", {
-        title: "The shelf is empty",
-        text: "Foods that need no cooking, like yoghurt or crackers, wait here on the days you need them. Until then the safe dishes work on any day.",
+        title: t("bad.shelfEmpty"),
+        text: t("bad.shelfEmptyText"),
         action: go,
       });
       return;
     }
     if (!shown.length) {
-      const all = h("button", { type: "button", class: "kp-button kp-button--primary" }, "Show everything on the shelf");
+      const all = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.showAll"));
       all.addEventListener("click", () => setSegmentedValues(shelfLevel, ["any"]));
       setCardState(shelfCard, "empty", {
-        title: "Nothing here needs that little effort yet",
-        text: "Nothing on the shelf can be eaten straight from its pack. The other two choices show what the shelf holds.",
+        title: t("bad.littleTitle"),
+        text: t("bad.littleText"),
         action: all,
       });
       return;
@@ -671,9 +661,9 @@ export function mount(root, { navigate }) {
           h(
             "div",
             { class: "kp-row-actions" },
-            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary", "data-bd-pick": s.id, "aria-label": `I ate this: ${s.title}` }, "I ate this"),
-            h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-shelf-edit": s.id, "aria-label": `Edit ${s.title}` }, "Edit"),
-            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-shelf-delete": s.id, "aria-label": `Delete ${s.title}` }, "Delete"),
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary", "data-bd-pick": s.id, "aria-label": t("bad.ateName", s.title) }, t("bad.ate")),
+            h("button", { type: "button", class: "kp-button kp-button--sm", "data-bd-shelf-edit": s.id, "aria-label": t("rec.editName", s.title) }, t("common.edit")),
+            h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "data-bd-shelf-delete": s.id, "aria-label": t("rec.deleteName", s.title) }, t("common.delete")),
           ),
         ),
       ),
@@ -712,7 +702,7 @@ export function mount(root, { navigate }) {
     try {
       shelfReadout.textContent = await ateShelf(item);
     } catch (e) {
-      toast(`Not logged: ${reason(e)}`, { live: "assertive", sticky: true });
+      toast(t("bad.notLogged", reason(e)), { live: "assertive", sticky: true });
     } finally {
       el.removeAttribute("aria-disabled");
     }
@@ -739,11 +729,11 @@ export function mount(root, { navigate }) {
     if (!recipe) {
       cook.removeAttribute("href");
       cook.setAttribute("aria-disabled", "true");
-      cook.textContent = "Cook this";
+      cook.textContent = t("bad.cookThis");
       return;
     }
     cook.removeAttribute("aria-disabled");
-    cook.textContent = "Cook this";
+    cook.textContent = t("bad.cookThis");
     cook.href = `/cook?id=${encodeURIComponent(recipe.id)}${version === "mini" ? "&mini=1" : ""}`;
   }
 
@@ -757,11 +747,9 @@ export function mount(root, { navigate }) {
     const minutes = shown.reduce((sum, s) => sum + (Number(s.mins) || 0), 0);
     miniLede.textContent =
       version === "mini"
-        ? `Mini version: ${count(small.length, "step", "steps")}, about ${minutes} minutes, ${mini.gear}. ${
-            mini.mini_note || `Left out of the full recipe: ${count(steps.length - small.length, "step", "steps")}.`
-          }`
-        : `Full recipe: ${count(steps.length, "step", "steps")}, about ${mini.minutes} minutes, ${count(mini.portions, "portion", "portions")}, ${mini.gear}.`;
-    miniSteps.setAttribute("aria-label", `${mini.name}, ${version === "mini" ? "mini version" : "full recipe"}`);
+        ? t("bad.miniLede", small.length, minutes, mini.gear, mini.mini_note || t("bad.leftOut", steps.length - small.length))
+        : t("bad.fullLede", steps.length, mini.minutes, mini.portions, mini.gear);
+    miniSteps.setAttribute("aria-label", `${mini.name}, ${version === "mini" ? t("bad.miniVersion").toLowerCase() : t("bad.fullRecipe").toLowerCase()}`);
     setFocusStepsState(miniSteps, "ready");
     setFocusSteps(miniSteps, toFocusSteps(shown));
     setSegmentedValues(miniVersion, [version]);
@@ -780,13 +768,13 @@ export function mount(root, { navigate }) {
     mini = recipe;
     version = "mini";
     if (!recipe) {
-      miniTitle.textContent = "A safe dish, made small";
+      miniTitle.textContent = t("bad.miniDefault");
       miniLede.textContent = "";
       setFocusStepsState(miniSteps, "ready");
       setFocusSteps(miniSteps, []);
       setSegmentedDisabled(miniVersion, true);
       cook.removeAttribute("aria-disabled");
-      cook.textContent = "Open my recipes";
+      cook.textContent = t("bad.openMine");
       cook.href = "/recipes";
       return;
     }
@@ -809,9 +797,9 @@ export function mount(root, { navigate }) {
   /** @type {Kitchen | null} */
   let latest = null;
   const legend = [
-    { tone: "logged", label: "Something went in" },
-    { tone: "quiet", label: "Nothing went in, and that is fine" },
-    { tone: "paused", label: "Away" },
+    { tone: "logged", label: t("bad.legendLogged") },
+    { tone: "quiet", label: t("bad.legendQuiet") },
+    { tone: "paused", label: t("bad.legendAway") },
   ];
 
   /** @param {Kitchen} k */
@@ -828,7 +816,7 @@ export function mount(root, { navigate }) {
       out[key] = {
         tone: "logged",
         count: String(dishes.length),
-        label: `${count(dishes.length, "dish", "dishes")} went into the freezer: ${dishes.join(", ")}`,
+        label: t("bad.wentIn", dishes.length, dishes.join(", ")),
       };
     }
     return out;
@@ -844,7 +832,7 @@ export function mount(root, { navigate }) {
     const any = Object.keys(days).some((d) => d.startsWith(shown));
     setCalendarDays(cal, days);
     if (any) setCalendarState(cal, "ready");
-    else setCalendarState(cal, "empty", "Nothing was frozen this month. That is fine.");
+    else setCalendarState(cal, "empty", t("bad.monthEmpty"));
   }
 
   /** @param {Kitchen} k */

@@ -17,11 +17,12 @@ import { attachHoverCards } from "/static/kp/js/hovercard.js";
 import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { setQr } from "/static/kp/js/qr.js";
 import { attachSegmented } from "/static/kp/js/segmented.js";
-import { WORDS, wordsFor, langOf } from "../recipe/words.js";
+import { WORDS, wordsFor } from "../recipe/words.js";
 import { amountOf, minutesText } from "../recipe/amounts.js";
 import { createSheet } from "../recipe/sheet.js";
 import { createLog, dmy } from "../recipe/log.js";
 import { showPhotos } from "../recipe/photos.js";
+import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("../recipe/words.js").Words} Words */
@@ -55,7 +56,7 @@ function section(id, cls, attrs, ...body) {
  */
 export function mount(root, { params, navigate }) {
   const id = params.get("id") ?? "";
-  let words = wordsFor(kitchenNow()?.settings.lang);
+  let words = wordsFor(lang());
   /** @type {Record<string, any> | null} */
   let recipe = null;
   let recipeJson = "";
@@ -65,7 +66,7 @@ export function mount(root, { params, navigate }) {
   const cleanups = [];
 
   // ---- the four sections, in their loading state from the first frame --------------------------------------------
-  const card = h("section", { class: "kp-card rp-card", "data-kp-state": "loading", "aria-label": "Recipe" }, stage());
+  const card = h("section", { class: "kp-card rp-card", "data-kp-state": "loading", "aria-label": t("recipe.cardLabel") }, stage());
 
   const share = section("rp-share", "rp-sec");
   const code = h("div", { class: "kp-qr", "data-kp-qr": true, "data-kp-qr-retry": true });
@@ -201,7 +202,7 @@ export function mount(root, { params, navigate }) {
       if (groups.length > 1) ingList.append(h("li", { class: "rp-ings__group" }, h("h4", { class: "kp-fw-semibold" }, group)));
       for (const ing of ingredients.filter((i) => (i.group || "") === group)) {
         // The name links to the ingredient's own page (Kenny, 24/10/2026 05:15).
-        const word = h("a", { class: "rp-ing__word", href: `/ingredients/${encodeURIComponent(ing.ingredient ?? "")}` }, ingredientName(ing.ingredient, langOf(kitchenNow()?.settings.lang)));
+        const word = h("a", { class: "rp-ing__word", href: `/ingredients/${encodeURIComponent(ing.ingredient ?? "")}` }, ingredientName(ing.ingredient, lang()));
         const name = h("span", { class: "rp-ing__name" }, word);
         if (ing.note) {
           word.setAttribute("data-kp-hovercard", ing.note);
@@ -242,7 +243,7 @@ export function mount(root, { params, navigate }) {
         { class: "rp-recipe" },
         // The title row spans both columns, so the two columns under it start on one line.
         h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("span", { class: "kp-badge" }, words.effortBadge(effort))),
-        r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[langOf(k.settings.lang)].photo)) : null,
+        r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[lang()].photo)) : null,
         h(
           "div",
           { class: "rp-recipe__main" },
@@ -288,7 +289,7 @@ export function mount(root, { params, navigate }) {
 
   /** The steps, each with the photos it carries. @param {Record<string, any>} r */
   function paintSteps(r) {
-    const text = STEP_WORDS[langOf(kitchenNow()?.settings.lang)];
+    const text = STEP_WORDS[lang()];
     const list = /** @type {Record<string, any>[]} */ (r.steps ?? []);
     stepCard.el.hidden = !list.some((s) => (s.photos ?? []).length > 0);
     stepCard.title.textContent = text.title;
@@ -325,9 +326,9 @@ export function mount(root, { params, navigate }) {
   /** @param {Kitchen} k */
   function show(k) {
     const found = k.recipes.find((r) => r.id === id) ?? null;
-    const lang = wordsFor(k.settings.lang);
-    const switched = lang !== words;
-    words = lang;
+    const next = wordsFor(lang());
+    const switched = next !== words;
+    words = next;
     if (!found) {
       recipe = null;
       recipeJson = "";

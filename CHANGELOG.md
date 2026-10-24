@@ -19,6 +19,8 @@ carries a **Migration** section saying what an operator must do.
 - Every item has its own page (`/dishes/<id>`, `/freezer/<id>`, …) with
   Edit and Delete; "What I ate" (`/log`) lists the log.
 - Cook mode shows the recipe's timeline, as the timing page does.
+- A NL/EN toggle in the top bar: every screen in Dutch or English, kept in
+  the kitchen's settings; the names follow it.
 - Photos on recipes: one or more per step and one for the recipe, added in
   the recipe editor (a phone offers its camera), shown under the step and
   large in cook mode; stored as files next to `kitchen.json`.

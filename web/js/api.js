@@ -129,6 +129,8 @@ export async function remove(list, id) {
 
 /** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */
 export const readWheelEnglish = () => call("GET", "/data/wheel/en");
+/** The same list in Dutch, behind the login: Kitchen's /parents in Dutch, also away from home. */
+export const readWheelDutch = () => call("GET", "/data/wheel/nl");
 
 /** Take portions out of the freezer (negative puts them back). @param {string} id @param {number} [portions] */
 export async function takePortions(id, portions = 1) {

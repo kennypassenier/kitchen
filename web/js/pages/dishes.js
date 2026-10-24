@@ -9,13 +9,14 @@ import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { names, label, languages, ordered } from "../dishes/editor.js";
 import { tableCard, rowActions, itemLink, openRecordEditor, sideName } from "../records.js";
+import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
 
 /** @param {HTMLElement} root */
 export function mount(root) {
-  document.title = "Dishes · Kitchen";
+  document.title = `${t("nav.dishes")} · Kitchen`;
   let alive = true;
 
   const head = h(
@@ -27,34 +28,34 @@ export function mount(root) {
       h(
         "div",
         null,
-        h("h1", { class: "kp-page-header__title" }, "Dishes"),
-        h("p", { class: "kp-page-header__description" }, "What lands on a plate, with its Dutch and English name and the sides that come with it. The parents' wheel picks from the dishes marked for it."),
+        h("h1", { class: "kp-page-header__title" }, t("nav.dishes")),
+        h("p", { class: "kp-page-header__description" }, t("dl.lede")),
       ),
-      h("div", { class: "kp-page-header__actions" }, h("a", { class: "kp-button", href: "/parents", title: "The wheel as Kenny's parents see it, in English" }, "Open the parents' wheel")),
+      h("div", { class: "kp-page-header__actions" }, h("a", { class: "kp-button", href: "/parents", title: t("dl.parentsTitle") }, t("dl.openParents"))),
     ),
   );
 
   const dishes = tableCard({
     id: "dl-dishes",
-    title: "All dishes",
-    lede: "A dish shows on the Dutch wheel with a Dutch name and on the English wheel with an English name; the Wheel column says which.",
-    noun: "dish",
-    plural: "dishes",
-    columns: [["Dutch name", "text"], ["English name", "text"], ["Category", "text"], ["Wheel", "text"], ["Sides"], ["Actions"]],
-    add: "Add a dish",
-    emptyTitle: "No dishes yet",
-    emptyText: "The parents' wheel has nothing to pick from until you add one.",
+    title: t("dl.allTitle"),
+    lede: t("dl.allLede"),
+    noun: t("list.dishes"),
+    plural: t("dl.plural"),
+    columns: [[t("rec.dutchName"), "text"], [t("rec.englishName"), "text"], [t("rec.category"), "text"], [t("dl.wheel"), "text"], [t("it.sides")], [t("lg.actions")]],
+    add: t("list.dishes.add"),
+    emptyTitle: t("dl.empty"),
+    emptyText: t("dl.emptyText"),
   });
   const cats = tableCard({
     id: "dl-cats",
-    title: "Categories",
-    lede: "Kinds of food, such as everyday or special; the parents' page can narrow its wheel to one.",
-    noun: "category",
-    plural: "categories",
-    columns: [["Position", "number"], ["Dutch name", "text"], ["English name", "text"], ["Used by", "number"], ["Actions"]],
-    add: "Add a category",
-    emptyTitle: "No categories yet",
-    emptyText: "Without them the parents' page shows all its dishes on one wheel.",
+    title: t("dl.catTitle"),
+    lede: t("dl.catLede"),
+    noun: t("list.dish_categories"),
+    plural: t("dl.catPlural"),
+    columns: [[t("it.position"), "number"], [t("rec.dutchName"), "text"], [t("rec.englishName"), "text"], [t("ig.usedBy"), "number"], [t("lg.actions")]],
+    add: t("list.dish_categories.add"),
+    emptyTitle: t("dl.catEmpty"),
+    emptyText: t("dl.catEmptyText"),
   });
 
   const page = h("div", { class: "dl-page" }, head, dishes.card, cats.card);
@@ -64,7 +65,7 @@ export function mount(root) {
 
   const busy = () => {
     for (const handle of handles) {
-      handle?.busy({ text: "Reading the dishes", overlay: true });
+      handle?.busy({ text: t("it.readingDishes"), overlay: true });
       handle?.state("loading");
     }
   };
@@ -85,23 +86,23 @@ export function mount(root) {
         // "Choice of fries and mayonnaise or croquettes; with salad": the small wheel's sides first, then what always
         // comes along.
         const pick = /** @type {Item[]} */ (d.sides ?? []).map((x) => sideName(x));
-        const always = /** @type {string[]} */ (d.ingredients ?? []).map((id) => ingredientName(id));
-        const said = [pick.length > 1 ? `Choice of ${pick.join(" or ")}` : pick.length ? `With ${pick[0]}` : "", always.length ? `${pick.length ? "with" : "With"} ${always.join(", ")}` : ""].filter(Boolean).join("; ");
+        const always = /** @type {string[]} */ (d.ingredients ?? []).map((id) => ingredientName(id, lang()));
+        const said = [pick.length > 1 ? t("dl.choiceOf", pick) : pick.length ? t("dl.with", pick[0]) : "", always.length ? t(pick.length ? "dl.andWith" : "dl.with", always.join(", ")) : ""].filter(Boolean).join("; ");
         const wheel =
           d.parents !== true
-            ? h("span", { class: "kp-badge" }, "Not on the wheel")
+            ? h("span", { class: "kp-badge" }, t("it.wheelOff"))
             : only === "both"
-              ? h("span", { class: "kp-badge kp-badge--success" }, "Both wheels")
-              : h("span", { class: "kp-badge kp-badge--warning" }, only === "nl" ? "Dutch wheel only" : "English wheel only");
+              ? h("span", { class: "kp-badge kp-badge--success" }, t("dl.bothWheels"))
+              : h("span", { class: "kp-badge kp-badge--warning" }, t(only === "nl" ? "dl.nlOnly" : "dl.enOnly"));
         return h(
           "tr",
           { "data-kp-row-key": d.id },
-          h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl ? itemLink("dishes", d, n.nl) : "–"),
-          h("td", { "data-label": "English name" }, n.en ? itemLink("dishes", d, n.en) : "–"),
-          h("td", { "data-label": "Category" }, cat ? itemLink("dish_categories", cat) : "–"),
-          h("td", { "data-label": "Wheel" }, wheel),
-          h("td", { "data-label": "Sides" }, said || "No sides"),
-          h("td", { "data-label": "Actions" }, rowActions("dishes", d)),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dishes", d, n.nl) : "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dishes", d, n.en) : "–"),
+          h("td", { "data-label": t("rec.category") }, cat ? itemLink("dish_categories", cat) : "–"),
+          h("td", { "data-label": t("dl.wheel") }, wheel),
+          h("td", { "data-label": t("it.sides") }, said || t("it.noSides")),
+          h("td", { "data-label": t("lg.actions") }, rowActions("dishes", d)),
         );
       }),
     );
@@ -112,11 +113,11 @@ export function mount(root) {
         return h(
           "tr",
           { "data-kp-row-key": c.id },
-          h("td", { "data-label": "Position", class: "kp-numeric" }, String(i + 1)),
-          h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl ? itemLink("dish_categories", c, n.nl) : "–"),
-          h("td", { "data-label": "English name" }, n.en ? itemLink("dish_categories", c, n.en) : "–"),
-          h("td", { "data-label": "Used by", class: "kp-numeric", "data-kp-sort-value": String(used) }, `${used} ${used === 1 ? "dish" : "dishes"}`),
-          h("td", { "data-label": "Actions" }, rowActions("dish_categories", c)),
+          h("td", { "data-label": t("it.position"), class: "kp-numeric" }, String(i + 1)),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dish_categories", c, n.nl) : "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dish_categories", c, n.en) : "–"),
+          h("td", { "data-label": t("ig.usedBy"), class: "kp-numeric", "data-kp-sort-value": String(used) }, t("dl.used", used)),
+          h("td", { "data-label": t("lg.actions") }, rowActions("dish_categories", c)),
         );
       }),
     );

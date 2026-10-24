@@ -21,14 +21,19 @@ import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
 import { ingredientPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
+import { wordsFor } from "./words.js";
+import { t, lang } from "../i18n/index.js";
 
 /** Meals and preparation, as the data names them. */
-const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
-const PREP = [["none", "None"], ["light", "Light"], ["full", "Full"]];
+const mealItems = () => [["breakfast", t("wheel.mealBreakfast")], ["lunch", t("wheel.mealLunch")], ["dinner", t("wheel.mealDinner")]];
+const prepItems = () => [["none", t("edit.prepNone")], ["light", t("edit.prepLight")], ["full", t("edit.prepFull")]];
 /** Main ingredients the wheel knows; any other already in the kitchen is added to the list. */
 const MAIN = ["chicken", "beef", "pork", "fish", "egg", "cheese", "tomato", "potato", "vegetables", "pasta", "rice"];
 const UNITS = ["g", "ml", "pc", "tbsp", "tsp", "pinch", "clove", "slice", "handful"];
-const GROUPS = ["Ingredients", "From the cupboard"];
+/** The two lists a recipe line may be on, named in the language of the screen (an older recipe's own list names stay as written). */
+const groups = () => [t("edit.groupMain"), t("edit.groupCupboard")];
+/** A unit written out in the language of the screen. @param {string} unit */
+const unitName = (unit) => wordsFor(lang()).units[/** @type {"g"} */ (unit)]?.[0] ?? unit;
 
 let serial = 0;
 /** @param {string} p */
@@ -112,22 +117,22 @@ export function select(options, value, label) {
  */
 export function rows({ columns, items, add, noun, blank }) {
   const grid = h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` });
-  const head = h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, "Remove"));
+  const head = h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, t("photo.remove")));
   const body = h("div", { class: "rl-rows__body" });
   /** @type {{ line: HTMLElement, cells: { get: () => any }[] }[]} */
   let lines = [];
   const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, add);
-  const empty = h("p", { class: "rl-rows__empty" }, `No ${noun}s yet.`);
+  const empty = h("p", { class: "rl-rows__empty" }, t(`edit.none.${noun}`));
 
   const sync = () => {
     head.hidden = lines.length === 0;
     empty.hidden = lines.length > 0;
-    lines.forEach(({ line }, i) => line.querySelector(".rl-row__remove")?.setAttribute("aria-label", `Remove ${noun} ${i + 1}`));
+    lines.forEach(({ line }, i) => line.querySelector(".rl-row__remove")?.setAttribute("aria-label", t(`edit.removeNoun.${noun}`, i + 1)));
   };
   /** @param {any} item */
   const push = (item) => {
     const cells = columns.map((c) => c.make(item));
-    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost rl-row__remove" }, "Remove");
+    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost rl-row__remove" }, t("photo.remove"));
     const line = h("div", { class: "rl-row" }, ...cells.map((c) => c.el), remove);
     const entry = { line, cells };
     remove.addEventListener("click", () => {
@@ -172,134 +177,134 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const editing = Boolean(recipe);
   // Photos (Kenny, 24/10/2026 05:23): what this session uploads and what the recipe had, so Save and Cancel leave no stray file.
   const tracker = photoTracker(photosOf(r));
-  const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: "Recipe photo", tracker });
-  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? `Edit ${r.name}` : "Add a recipe");
+  const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: t("edit.recipePhoto"), tracker });
+  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : t("list.recipes.add"));
 
   // ---- the dish -----------------------------------------------------------------------------------------------
   const name = input(r.name, "text", { required: "", autocomplete: "off" });
   const short = input(r.short ?? "", "text", { autocomplete: "off" });
   const summary = area(r.summary ?? "", 3);
-  const meals = segmented(MEALS, r.meals ?? [], "multi", "Meals");
+  const meals = segmented(mealItems(), r.meals ?? [], "multi", t("edit.meals"));
   const mainSet = [...new Set([...MAIN, ...mainOptions, ...(r.ing ?? [])])].sort();
   const mainBox = h(
     "div",
     { class: "kp-combobox", "data-kp-combobox": true, "data-kp-tags": true, "data-kp-creatable": true },
-    h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }, ...(r.ing ?? []).map((/** @type {string} */ t) => h("li", { class: "kp-tag", "data-value": t }, t, h("button", { type: "button", class: "kp-tag__remove", "data-kp-tag-remove": true, "aria-label": `Remove ${t}` }, "×")))),
-    h("input", { class: "kp-combobox__input", id: "rl-main", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": "rl-main-list", "aria-label": "Main ingredients" }),
-    h("ul", { class: "kp-combobox__list", id: "rl-main-list", role: "listbox", hidden: true }, ...mainSet.map((t) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": t }, cap(t)))),
+    h("ul", { class: "kp-tag-list", "data-kp-tag-list": true }, ...(r.ing ?? []).map((/** @type {string} */ tag) => h("li", { class: "kp-tag", "data-value": tag }, tag, h("button", { type: "button", class: "kp-tag__remove", "data-kp-tag-remove": true, "aria-label": t("edit.removeTag", tag) }, "×")))),
+    h("input", { class: "kp-combobox__input", id: "rl-main", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": "rl-main-list", "aria-label": t("edit.mainIng") }),
+    h("ul", { class: "kp-combobox__list", id: "rl-main-list", role: "listbox", hidden: true }, ...mainSet.map((tag) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": tag }, cap(tag)))),
     h("p", { class: "kp-combobox__status", "data-kp-combobox-status": true, role: "status", "aria-live": "polite" }),
   );
   const dish = h(
     "div",
     { class: "kp-formgrid" },
-    row("Name", name, "The full name, as the recipe page shows it."),
-    row("Short name", short, "The label on the wheel's slice."),
-    row("Summary", summary, "A few sentences under the title."),
-    row("Meals", meals, "Where the wheel may pick it."),
-    row("Main ingredients", mainBox, "What the wheel filters on."),
-    row("Photo", recipePhoto.el, "One picture of the dish, at the top of the recipe page."),
+    row(t("recs.colName"), name, t("edit.nameHint")),
+    row(t("edit.short"), short, t("edit.shortHint")),
+    row(t("edit.summary"), summary, t("edit.summaryHint")),
+    row(t("edit.meals"), meals, t("edit.mealsHint")),
+    row(t("edit.mainIng"), mainBox, t("edit.mainHint")),
+    row(t("edit.photo"), recipePhoto.el, t("edit.photoHint")),
   );
 
   // ---- time, portions, how much preparing ---------------------------------------------------------------------
-  const minutes = stepper(r.minutes ?? 0, { max: 1440, unit: "min", label: "Total minutes" });
-  const hands = stepper(r.hands_on ?? 0, { max: 1440, unit: "min", label: "Hands-on minutes" });
-  const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: "portions", one: "portion", label: "Portions" });
-  const prep = segmented(PREP, [r.prep ?? "light"], "single", "Preparing");
-  const safe = toggle("A safe favourite for bad days", Boolean(r.safe));
-  const gear = input(r.gear ?? "", "text", { placeholder: "1 pot, the oven" });
+  const minutes = stepper(r.minutes ?? 0, { max: 1440, unit: "min", label: t("edit.totalMinutes") });
+  const hands = stepper(r.hands_on ?? 0, { max: 1440, unit: "min", label: t("edit.handsMinutes") });
+  const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: t("bad.unitMany"), one: t("bad.unitOne"), label: t("bad.colPortions") });
+  const prep = segmented(prepItems(), [r.prep ?? "light"], "single", t("edit.preparing"));
+  const safe = toggle(t("edit.safeSwitch"), Boolean(r.safe));
+  const gear = input(r.gear ?? "", "text", { placeholder: t("edit.gearPh") });
   const facts = h(
     "div",
     { class: "kp-formgrid" },
-    row("Total time", minutes, "Start to plate."),
-    row("Hands-on time", hands, "Minutes of real work."),
-    row("Portions", portions, "The amounts below make this many."),
-    row("Preparing", prep, "None is a bad-day dish."),
-    row("Safe favourite", safe, "The bad-days page offers it."),
-    row("Gear", gear, "What it dirties."),
+    row(t("edit.totalTime"), minutes, t("edit.totalHint")),
+    row(t("edit.handsTime"), hands, t("edit.handsHint")),
+    row(t("bad.colPortions"), portions, t("edit.portionsHint")),
+    row(t("edit.preparing"), prep, t("edit.prepHint")),
+    row(t("edit.safeFav"), safe, t("edit.safeHint")),
+    row(t("edit.gear"), gear, t("edit.gearHint")),
   );
 
   // ---- notes ---------------------------------------------------------------------------------------------------
   const lastNote = area(r.last_note ?? "", 2);
   const miniNote = area(r.mini_note ?? "", 2);
-  const notes = h("div", { class: "kp-formgrid" }, row("Last time", lastNote, "Shown on the recipe page."), row("Mini version", miniNote, "What the bad-day version leaves out."));
+  const notes = h("div", { class: "kp-formgrid" }, row(t("edit.lastTime"), lastNote, t("edit.lastHint")), row(t("bad.miniVersion"), miniNote, t("edit.miniHint")));
 
   // ---- tracks, ingredients, tools ------------------------------------------------------------------------------
   const tracks = rows({
-    columns: [{ label: "Track name", width: "minmax(0, 1fr)", make: (t) => { const c = textCell("Track name", t.name ?? "", "Pasta"); return { el: c.el, get: () => ({ id: t.id ?? (t.id = newId()), name: c.get() }) }; } }],
-    items: r.tracks ?? [], add: "Add a track", noun: "track", blank: () => ({ name: "" }),
+    columns: [{ label: t("edit.trackName"), width: "minmax(0, 1fr)", make: (tk) => { const c = textCell(t("edit.trackName"), tk.name ?? "", t("edit.trackPh")); return { el: c.el, get: () => ({ id: tk.id ?? (tk.id = newId()), name: c.get() }) }; } }],
+    items: r.tracks ?? [], add: t("edit.addTrack"), noun: "track", blank: () => ({ name: "" }),
   });
   const ingredients = rows({
     columns: [
-      { label: "Ingredient", width: "minmax(0, 1fr)", make: (i) => { const c = ingredientPicker(i.ingredient ?? null, { label: "Ingredient" }); return { el: c.el, get: () => ({ ...i, id: i.id ?? (i.id = newId()), ingredient: c.get() }) }; } },
-      { label: "Amount", width: "6rem", make: (i) => { const el = input(i.amount ?? "", "number", { "aria-label": "Amount", step: "any", min: "0", inputmode: "decimal" }); return { el, get: () => (/** @type {HTMLInputElement} */ (el).value === "" ? null : Number(/** @type {HTMLInputElement} */ (el).value)) }; } },
-      { label: "Unit", width: "8rem", make: (i) => { const el = select([...new Set([...UNITS, i.unit].filter(Boolean))].map((u) => [u, u]), i.unit ?? "g", "Unit"); return { el, get: () => el.value }; } },
-      { label: "List", width: "14rem", make: (i) => { const el = select([...new Set([...GROUPS, ...(r.ingredients ?? []).map((/** @type {any} */ x) => x.group), i.group].filter(Boolean))].map((g) => [g, g]), i.group ?? GROUPS[0], "Which list it is on"); return { el, get: () => el.value }; } },
+      { label: t("edit.ingredient"), width: "minmax(0, 1fr)", make: (i) => { const c = ingredientPicker(i.ingredient ?? null, { label: t("edit.ingredient") }); return { el: c.el, get: () => ({ ...i, id: i.id ?? (i.id = newId()), ingredient: c.get() }) }; } },
+      { label: t("edit.amount"), width: "6rem", make: (i) => { const el = input(i.amount ?? "", "number", { "aria-label": t("edit.amount"), step: "any", min: "0", inputmode: "decimal" }); return { el, get: () => (/** @type {HTMLInputElement} */ (el).value === "" ? null : Number(/** @type {HTMLInputElement} */ (el).value)) }; } },
+      { label: t("edit.unit"), width: "8rem", make: (i) => { const el = select([...new Set([...UNITS, i.unit].filter(Boolean))].map((u) => [u, unitName(u)]), i.unit ?? "g", t("edit.unit")); return { el, get: () => el.value }; } },
+      { label: t("edit.list"), width: "14rem", make: (i) => { const el = select([...new Set([...groups(), ...(r.ingredients ?? []).map((/** @type {any} */ x) => x.group), i.group].filter(Boolean))].map((g) => [g, g]), i.group ?? groups()[0], t("edit.whichList")); return { el, get: () => el.value }; } },
     ],
-    items: r.ingredients ?? [], add: "Add an ingredient", noun: "ingredient", blank: () => ({ ingredient: null, amount: null, unit: "g", group: GROUPS[0] }),
+    items: r.ingredients ?? [], add: t("list.ingredients.add"), noun: "ingredient", blank: () => ({ ingredient: null, amount: null, unit: "g", group: groups()[0] }),
   });
   const tools = rows({
-    columns: [{ label: "Tool", width: "minmax(0, 1fr)", make: (t) => { const c = textCell("Tool name", t.name ?? "", "big pot"); return { el: c.el, get: () => ({ id: t.id ?? (t.id = newId()), name: c.get() }) }; } }],
-    items: r.tools ?? [], add: "Add a tool", noun: "tool", blank: () => ({ name: "" }),
+    columns: [{ label: t("edit.tool"), width: "minmax(0, 1fr)", make: (tk) => { const c = textCell(t("edit.toolName"), tk.name ?? "", t("edit.toolPh")); return { el: c.el, get: () => ({ id: tk.id ?? (tk.id = newId()), name: c.get() }) }; } }],
+    items: r.tools ?? [], add: t("edit.addTool"), noun: "tool", blank: () => ({ name: "" }),
   });
   /** A repeatable list under its own small heading and sentence. @param {string} title @param {string} text @param {HTMLElement} el */
   const listBlock = (title, text, el) => h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), el);
   const lists = h(
     "div",
     { class: "rl-lists" },
-    listBlock("Tracks", "Parallel parts of a dish; leave empty for one track.", tracks.el),
-    listBlock("Ingredients", "Amounts scale with the portions.", ingredients.el),
-    listBlock("Tools", "Gathered before cooking.", tools.el),
+    listBlock(t("edit.tracks"), t("edit.tracksHint"), tracks.el),
+    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), ingredients.el),
+    listBlock(t("edit.tools"), t("edit.toolsHint"), tools.el),
   );
 
   // ---- steps ---------------------------------------------------------------------------------------------------
-  const trackOptions = () => /** @type {[string, string][]} */ ([["", "Where the tracks meet"], ...tracks.get().map(([t]) => /** @type {[string, string]} */ ([t.id, t.name || "Unnamed track"]))]);
+  const trackOptions = () => /** @type {[string, string][]} */ ([["", t("edit.tracksMeet")], ...tracks.get().map(([tk]) => /** @type {[string, string]} */ ([tk.id, tk.name || t("edit.unnamedTrack")]))]);
   /** @type {{ el: HTMLElement, get: () => any, track: HTMLSelectElement }[]} */
   let stepList = [];
   const stepsBox = h("div", { class: "rl-steps" });
-  const stepsEmpty = h("p", { class: "rl-rows__empty" }, "No steps yet.");
+  const stepsEmpty = h("p", { class: "rl-rows__empty" }, t("edit.noSteps"));
 
   /** @param {Record<string, any>} s */
   function stepEditor(s) {
     const text = area(s.text ?? "", 2);
-    const say = input(s.say ?? "", "text", { placeholder: "put the pasta water on" });
-    const track = select(trackOptions(), s.track ?? "", "Track");
-    const mins = stepper(s.mins ?? 0, { max: 1440, unit: "min", label: "Minutes" });
-    const active = toggle("Stretched by a slow-day pace", s.active !== false);
-    const mini = toggle("Kept in the mini version", s.mini !== false);
-    const hasTimer = toggle("Starts a timer", Boolean(s.timer));
-    const timerName = input(s.timer?.name ?? "", "text", { "aria-label": "Timer name", placeholder: "Water" });
-    const timerSecs = input(s.timer?.seconds ?? "", "number", { "aria-label": "Timer seconds", min: "1", step: "1", placeholder: "600" });
-    const note = input(s.note ?? "", "text", { placeholder: "A line under the step" });
-    const warn = toggle("Show the note as a warning", s.note_tone === "warning");
+    const say = input(s.say ?? "", "text", { placeholder: t("edit.sayPh") });
+    const track = select(trackOptions(), s.track ?? "", t("edit.track"));
+    const mins = stepper(s.mins ?? 0, { max: 1440, unit: "min", label: t("recs.colMinutes") });
+    const active = toggle(t("edit.activeSwitch"), s.active !== false);
+    const mini = toggle(t("edit.miniSwitch"), s.mini !== false);
+    const hasTimer = toggle(t("edit.timerSwitch"), Boolean(s.timer));
+    const timerName = input(s.timer?.name ?? "", "text", { "aria-label": t("edit.timerName"), placeholder: t("edit.timerNamePh") });
+    const timerSecs = input(s.timer?.seconds ?? "", "number", { "aria-label": t("edit.timerSeconds"), min: "1", step: "1", placeholder: "600" });
+    const note = input(s.note ?? "", "text", { placeholder: t("edit.notePh") });
+    const warn = toggle(t("edit.warnSwitch"), s.note_tone === "warning");
     const uses = rows({
       columns: [
-        { label: "Amount", width: "7rem", make: (u) => { const c = textCell("Amount as written", u.amount ?? "", "400 g"); return c; } },
-        { label: "What", width: "minmax(0, 1fr)", make: (u) => textCell("What it is", u.name ?? "", "water") },
+        { label: t("edit.amount"), width: "7rem", make: (u) => { const c = textCell(t("edit.amountWritten"), u.amount ?? "", t("edit.amountPh")); return c; } },
+        { label: t("edit.what"), width: "minmax(0, 1fr)", make: (u) => textCell(t("edit.whatItIs"), u.name ?? "", t("edit.whatPh")) },
       ],
-      items: s.uses ?? [], add: "Add something this step needs", noun: "item", blank: () => ({ amount: "", name: "" }),
+      items: s.uses ?? [], add: t("edit.addUse"), noun: "item", blank: () => ({ amount: "", name: "" }),
     });
     const timerRow = h("div", { class: "rl-pair" }, timerName, timerSecs);
-    const photos = photoField({ ids: s.photos ?? [], max: 8, label: "Step photo", tracker });
+    const photos = photoField({ ids: s.photos ?? [], max: 8, label: t("edit.stepPhoto"), tracker });
     const fields = h(
       "div",
       { class: "kp-formgrid" },
-      row("Instruction", text, "One action."),
-      row("Say it as", say, "Lower case, for the timing sentences."),
-      row("Track", track, "Which part of the dish it belongs to."),
-      row("Minutes", mins, "How long the step takes."),
-      row("Hands-on", active, "A walk-away step is never stretched."),
-      row("Timer", hasTimer, "Name and seconds below."),
-      row("Timer name and seconds", timerRow, ""),
-      row("Note", note, ""),
-      row("Warning", warn, ""),
-      row("Mini", mini, ""),
-      row("Photos", photos.el, "Pictures that make the step clearer; a phone can take one now."),
+      row(t("edit.instruction"), text, t("edit.instructionHint")),
+      row(t("edit.sayAs"), say, t("edit.sayHint")),
+      row(t("edit.track"), track, t("edit.trackHint")),
+      row(t("recs.colMinutes"), mins, t("edit.minsHint")),
+      row(t("edit.handsOn"), active, t("edit.handsOnHint")),
+      row(t("edit.timer"), hasTimer, t("edit.timerHint")),
+      row(t("edit.timerPair"), timerRow, ""),
+      row(t("edit.note"), note, ""),
+      row(t("edit.warning"), warn, ""),
+      row(t("edit.mini"), mini, ""),
+      row(t("edit.photos"), photos.el, t("edit.photosHint")),
     );
-    const form = h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, "What this step needs"), uses.el));
+    const form = h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, t("edit.stepNeeds")), uses.el));
     const head = h("h3", { class: "kp-fw-semibold" });
-    const up = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Move up");
-    const down = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Move down");
-    const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, "Remove step");
+    const up = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveUp"));
+    const down = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveDown"));
+    const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("edit.removeStep"));
     const el = h("fieldset", { class: "rl-step" }, h("div", { class: "rl-step__head" }, head, h("div", { class: "rl-step__buttons" }, up, down, del)), form);
     const entry = {
       el,
@@ -317,7 +322,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
           say: /** @type {HTMLInputElement} */ (say).value.trim(),
           mins: getQuantity(mins),
           active: on(active),
-          timer: on(hasTimer) && secs > 0 ? { seconds: secs, name: tn || "Timer" } : null,
+          timer: on(hasTimer) && secs > 0 ? { seconds: secs, name: tn || t("edit.timerDefault") } : null,
           uses: uses.get().map(([amount, what]) => ({ amount, name: what })).filter((u) => u.amount || u.name),
           note: /** @type {HTMLInputElement} */ (note).value.trim(),
           note_tone: on(warn) ? "warning" : "",
@@ -331,7 +336,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const renumber = () => {
     stepsEmpty.hidden = stepList.length > 0;
     stepList.forEach((e, i) => {
-      /** @type {any} */ (e).head.textContent = `Step ${i + 1}`;
+      /** @type {any} */ (e).head.textContent = t("edit.stepN", i + 1);
       /** @type {any} */ (e).up.disabled = i === 0;
       /** @type {any} */ (e).down.disabled = i === stepList.length - 1;
     });
@@ -359,7 +364,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     renumber();
     (by < 0 ? e.up : e.down).focus();
   };
-  const addStepButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Add a step");
+  const addStepButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.addStep"));
   for (const s of r.steps ?? []) addStep(s);
   addStepButton.addEventListener("click", () => {
     const e = addStep({});
@@ -373,7 +378,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     for (const e of stepList) {
       const sel = e.track;
       const keep = sel.value;
-      sel.replaceChildren(...opts.map(([v, t]) => h("option", { value: v }, t)));
+      sel.replaceChildren(...opts.map(([v, text]) => h("option", { value: v }, text)));
       sel.value = opts.some(([v]) => v === keep) ? keep : "";
     }
   });
@@ -381,16 +386,16 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
 
   // ---- the drawer ---------------------------------------------------------------------------------------------
   const sec = (title, text, ...body) => h("section", { class: "rl-formsec" }, h("h3", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...body);
-  const save = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-flash-button": true, "data-kp-flash-words": "Saved", form: "rl-editor-form" }, editing ? "Save the recipe" : "Add the recipe");
-  const cancel = h("button", { type: "button", class: "kp-button" }, "Cancel");
+  const save = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-flash-button": true, "data-kp-flash-words": t("set.saved"), form: "rl-editor-form" }, editing ? t("edit.saveRecipe") : t("list.recipes.addSave"));
+  const cancel = h("button", { type: "button", class: "kp-button" }, t("common.cancel"));
   const form = h(
     "form",
     { class: "kp-drawer__body rl-form", id: "rl-editor-form", novalidate: true },
-    sec("The dish", "What it is called and where the wheel may pick it.", dish),
-    sec("Time and portions", "How long it takes, how much it makes and how much preparing it needs.", facts),
-    sec("Notes", "What you want to remember about it.", notes),
-    sec("Tracks, ingredients and tools", "The lists the recipe page and cook mode read.", lists),
-    sec("Steps", "In cooking order; each step can start a timer.", stepsSection),
+    sec(t("edit.secDish"), t("edit.secDishText"), dish),
+    sec(t("edit.secTime"), t("edit.secTimeText"), facts),
+    sec(t("edit.secNotes"), t("edit.secNotesText"), notes),
+    sec(t("edit.secLists"), t("edit.secListsText"), lists),
+    sec(t("edit.secSteps"), t("edit.secStepsText"), stepsSection),
   );
   const line = h("p", { class: "rl-editor__line", role: "status" });
   dialog.replaceChildren(
@@ -398,8 +403,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       "header",
       { class: "kp-drawer__head" },
       heading,
-      h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": "Close without saving", "data-close": true }, "✕"),
-      h("p", { class: "kp-drawer__desc" }, editing ? "Change any field; nothing is saved until you press Save." : "Fill in what you know; every field can be changed later."),
+      h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("edit.close"), "data-close": true }, "✕"),
+      h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : t("rec.addText")),
     ),
     form,
     h("footer", { class: "kp-drawer__foot" }, line, cancel, save),
@@ -448,9 +453,9 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       gear: /** @type {HTMLInputElement} */ (gear).value.trim(),
       last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
       mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),
-      tracks: tracks.get().map(([t]) => t).filter((t) => t.name),
+      tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name),
       ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient),
-      tools: tools.get().map(([t]) => t).filter((t) => t.name),
+      tools: tools.get().map(([tk]) => tk).filter((tk) => tk.name),
       steps: stepList.map((e) => e.get()).filter((s) => s.text),
       photo: recipePhoto.get()[0] ?? null,
     };
@@ -462,18 +467,18 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       const body = collect();
       if (!body.name) {
         /** @type {HTMLInputElement} */ (name).focus();
-        return { error: "A recipe needs a name.", remedy: "Type one in the first field.", word: "Not saved" };
+        return { error: t("edit.needsName"), remedy: t("edit.needsNameFix"), word: t("rec.notSaved") };
       }
       try {
         if (recipe) await replace("recipes", body);
         else await create("recipes", body);
       } catch (e) {
-        return { error: e instanceof ApiError ? e.message : String(e), word: "Not saved" };
+        return { error: e instanceof ApiError ? e.message : String(e), word: t("rec.notSaved") };
       }
       await tracker.settle(photosOf(body));
-      toast(editing ? `Saved ${body.name}` : `Added ${body.name}`);
+      toast(editing ? t("rec.savedName", body.name) : t("rec.addedName", body.name));
       close();
-      return "Saved";
+      return t("set.saved");
     });
   });
 

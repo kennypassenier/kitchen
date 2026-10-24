@@ -15,8 +15,9 @@ import { toast } from "/static/kp/js/overlays.js";
 import { undoToast } from "/static/kp/js/undo-toast.js";
 import { h } from "./dom.js";
 import { create, replace, remove, kitchenNow, ingredientName, ApiError } from "./api.js";
+import { t, lang, nameOf } from "./i18n/index.js";
 import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
-import { openDrawer, sec, openDishEditor, openNameEditor, label as nameLabel, ordered } from "./dishes/editor.js";
+import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting"} List */
@@ -29,9 +30,9 @@ export const dmy = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso
 export const brusselsDay = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
 
 /** What a shelf item asks of a person. */
-export const ENERGY = /** @type {Record<string, string>} */ ({ open: "Just open it", easy: "One easy step", any: "Anything here" });
+export const energies = () => /** @type {Record<string, string>} */ ({ open: t("rec.energyOpen"), easy: t("rec.energyEasy"), any: t("rec.energyAny") });
 /** A log line's feeling, as the recipe page names it. */
-export const FEELING = /** @type {Record<string, string>} */ ({ easy: "Easy", fine: "Fine", heavy: "Heavy" });
+export const feelings = () => /** @type {Record<string, string>} */ ({ easy: t("rec.feelEasy"), fine: t("rec.feelFine"), heavy: t("rec.feelHeavy") });
 
 /** @param {unknown} e */
 const why = (e) => (e instanceof ApiError ? e.message : String(e));
@@ -41,20 +42,50 @@ const recipe = (id) => kitchenNow()?.recipes.find((r) => r.id === id) ?? null;
 const shelfItem = (id) => kitchenNow()?.shelf.find((s) => s.id === id) ?? null;
 
 /**
- * Per list: the singular noun, the page the list lives on, and the item's own name.
- * @type {Record<List, { noun: string, home: [string, string], name: (item: Item) => string }>}
+ * Per list: the page the list lives on (its path and the bar's page id) and the item's own name. The nouns and the
+ * sentences that name a list are words (`list.<list>.*` in js/i18n).
+ * @type {Record<List, { home: [string, string], name: (item: Item) => string }>}
  */
-export const LISTS = {
-  recipes: { noun: "recipe", home: ["/recipes", "Recipes"], name: (r) => String(r.name || "A recipe") },
-  dishes: { noun: "dish", home: ["/dishes", "Dishes"], name: nameLabel },
-  dish_categories: { noun: "category", home: ["/dishes", "Dishes"], name: nameLabel },
-  ingredients: { noun: "ingredient", home: ["/ingredients", "Ingredients"], name: (i) => ingredientName(i.id) },
-  ingredient_categories: { noun: "ingredient category", home: ["/ingredients", "Ingredients"], name: nameLabel },
-  freezer: { noun: "freezer item", home: ["/bad-days#freezer", "Bad days"], name: (f) => String(f.dish || "A dish") },
-  shelf: { noun: "shelf food", home: ["/bad-days#zero-prep", "Bad days"], name: (s) => String(s.title || "A food") },
-  log: { noun: "log line", home: ["/log", "What I ate"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
-  resting: { noun: "resting dish", home: ["/", "What do we eat?"], name: (r) => `${recipe(r.recipe_id)?.name ?? "A dish"} resting` },
+const PLACES = {
+  recipes: { home: ["/recipes", "recipes"], name: (r) => String(r.name || t("rec.aRecipe")) },
+  dishes: { home: ["/dishes", "dishes"], name: (d) => nameOf(d).text },
+  dish_categories: { home: ["/dishes", "dishes"], name: (c) => nameOf(c).text },
+  ingredients: { home: ["/ingredients", "ingredients"], name: (i) => ingredientName(i.id, lang()) },
+  ingredient_categories: { home: ["/ingredients", "ingredients"], name: (c) => nameOf(c).text },
+  freezer: { home: ["/bad-days#freezer", "baddays"], name: (f) => String(f.dish || t("rec.aDish")) },
+  shelf: { home: ["/bad-days#zero-prep", "baddays"], name: (s) => String(s.title || t("rec.aFood")) },
+  log: { home: ["/log", "log"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
+  resting: { home: ["/", "wheel"], name: (r) => t("rec.resting", recipe(r.recipe_id)?.name ?? t("rec.aDish")) },
 };
+
+/**
+ * Per list: its noun in the current language, the page it lives on ([path, the bar's word]) and an item's name.
+ * @type {Record<List, { readonly noun: string, readonly the: string, readonly this: string, readonly home: [string, string], name: (item: Item) => string }>}
+ */
+export const LISTS = /** @type {any} */ (
+  Object.fromEntries(
+    Object.entries(PLACES).map(([list, p]) => [
+      list,
+      {
+        get noun() {
+          return t(`list.${list}`);
+        },
+        /** "the dish" / "het gerecht" */
+        get the() {
+          return t(`list.${list}.the`);
+        },
+        /** "this dish" / "dit gerecht", "deze categorie" */
+        get this() {
+          return t(`list.${list}.this`);
+        },
+        get home() {
+          return [p.home[0], t(`nav.${p.home[1]}`)];
+        },
+        name: p.name,
+      },
+    ]),
+  )
+);
 
 /** Where an item's own page is. @param {List} list @param {string} id */
 export function detailHref(list, id) {
@@ -75,19 +106,20 @@ export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} 
 
 /** What a log line is about: the recipe or the shelf food, by name. @param {Item} e */
 export function logWhat(e) {
-  if (e.shelf_id) return shelfItem(e.shelf_id)?.title ?? "A shelf food that was deleted";
-  return recipe(e.recipe_id)?.name ?? "A recipe that was deleted";
+  if (e.shelf_id) return shelfItem(e.shelf_id)?.title ?? t("rec.goneShelf");
+  return recipe(e.recipe_id)?.name ?? t("rec.goneRecipe");
 }
 
-/** "Fries and mayonnaise", or the side's own label: one entry of the small wheel, in English. @param {Item} side */
+/** "Fries and mayonnaise", or the side's own label: one entry of the small wheel, in the current language. @param {Item} side */
 export function sideName(side) {
-  const label = String(side.label?.en || side.label?.nl || "").trim();
+  const other = lang() === "nl" ? "en" : "nl";
+  const label = String(side.label?.[lang()] || side.label?.[other] || "").trim();
   if (label) return label;
   const parts = /** @type {string[]} */ (side.ingredients ?? []).map((id, i) => {
-    const n = ingredientName(id);
+    const n = ingredientName(id, lang());
     return i ? n.charAt(0).toLowerCase() + n.slice(1) : n;
   });
-  return parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+  return parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} ${t("common.and")} ${parts.at(-1)}`;
 }
 
 /** Does a dish have the ingredient, fixed or in one of its sides? @param {Item} d @param {string} id */
@@ -115,7 +147,7 @@ function dateField(iso, { max, label }) {
     "div",
     { class: "kp-datepicker kp-formgrid__fill", "data-kp-datepicker": true, lang: "en-GB", ...(max ? { "data-kp-max": max } : {}) },
     h("input", { class: "kp-field__input", id, type: "text", inputmode: "numeric", "data-kp-date-input": true, "aria-label": label, value: iso ? dmy(iso) : "" }),
-    h("button", { type: "button", class: "kp-button", "data-kp-date-open": true, "aria-label": "Open the calendar", title: "Open the calendar" }, h("span", { "aria-hidden": "true" }, "▦")),
+    h("button", { type: "button", class: "kp-button", "data-kp-date-open": true, "aria-label": t("rec.openCalendar"), title: t("rec.openCalendar") }, h("span", { "aria-hidden": "true" }, "▦")),
     h("div", { class: "kp-datepicker__panel", "data-kp-date-panel": true, hidden: true }),
   );
   return {
@@ -156,22 +188,21 @@ function openForm({ list, item, title, text, rows, body, after, saved }) {
   const form = /** @type {HTMLFormElement} */ (
     h("form", { class: "kp-drawer__body rl-form", id: "rc-form", novalidate: true }, sec(title, text, h("div", { class: "kp-formgrid kitchen-formgrid" }, ...rows)))
   );
-  const noun = LISTS[list].noun;
   openDrawer(drawer(), {
-    title: item ? `Edit ${LISTS[list].name(item)}` : `Add a ${noun}`,
-    text: item ? "Change any field; nothing is saved until you press Save." : "Fill in what you know; every field can be changed later.",
+    title: item ? t("rec.editTitle", LISTS[list].name(item)) : t(`list.${list}.add`),
+    text: item ? t("rec.editText") : t("rec.addText"),
     form,
-    saveLabel: item ? "Save" : `Add the ${noun}`,
+    saveLabel: item ? t("common.save") : t(`list.${list}.addSave`),
     onSave: async () => {
       const b = body();
-      if ("error" in b && typeof b.error === "string") return { error: b.error, remedy: b.remedy, word: "Not saved" };
+      if ("error" in b && typeof b.error === "string") return { error: b.error, remedy: b.remedy, word: t("rec.notSaved") };
       try {
         const out = item ? await replace(list, { ...item, ...b }) : await create(list, b);
         toast(saved(out));
       } catch (e) {
-        return { error: why(e), word: "Not saved" };
+        return { error: why(e), word: t("rec.notSaved") };
       }
-      return "Saved";
+      return t("rec.saved");
     },
   });
   after?.();
@@ -194,83 +225,83 @@ export function openRecordEditor(list, item, preset = {}) {
   }
   if (list === "ingredients") {
     const v = { ...preset, ...(item ?? {}) };
-    const nl = input(String(v.name?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: "Frieten" });
-    const en = input(String(v.name?.en ?? ""), "text", { autocomplete: "off", placeholder: "Fries" });
+    const nl = input(String(v.name?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("rec.phIngNl") });
+    const en = input(String(v.name?.en ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phIngEn") });
     const cats = ordered(k?.ingredient_categories ?? []);
-    const cat = select(cats.map((c) => /** @type {[string, string]} */ ([c.id, nameLabel(c)])), v.category ?? cats.find((c) => c.name?.en === "Other")?.id ?? cats[0]?.id ?? "", "Category");
+    const cat = select(cats.map((c) => /** @type {[string, string]} */ ([c.id, nameOf(c).text])), v.category ?? cats.find((c) => c.name?.en === "Other")?.id ?? cats[0]?.id ?? "", t("rec.category"));
     openForm({
       list,
       item,
-      title: "The ingredient",
-      text: "One ingredient for the whole kitchen: dishes take it as a side, recipes as a line. It shows in each language it has a name in.",
+      title: t("rec.ingTitle"),
+      text: t("rec.ingText"),
       rows: [
-        row("Dutch name", nl, "What the parents' wheel says."),
-        row("English name", en, "What Kitchen says."),
-        row("Category", cat, "Meat, potatoes, vegetables, …"),
+        row(t("rec.dutchName"), nl, t("rec.dutchHint")),
+        row(t("rec.englishName"), en, t("rec.englishHint")),
+        row(t("rec.category"), cat, t("rec.ingCatHint")),
       ],
       body: () => {
         const name = { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() };
-        if (!name.nl && !name.en) return { error: "An ingredient needs a name.", remedy: "Type its Dutch name, its English name or both." };
+        if (!name.nl && !name.en) return { error: t("rec.errIng"), remedy: t("rec.fixName") };
         return { name, category: cat.value || null };
       },
-      saved: (b) => `${item ? "Saved" : "Added"} ${b.name.en || b.name.nl}`,
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", nameOf(b).text),
     });
     return;
   }
   const v = { ...preset, ...(item ?? {}) };
   if (list === "freezer") {
-    const dish = input(String(v.dish ?? ""), "text", { autocomplete: "off", placeholder: "Bolognese sauce" });
-    const from = select([["", "No recipe"], ...recipeOptions()], v.recipe_id ?? "", "Recipe");
-    const portions = stepper(Number(v.portions ?? 2), { min: 0, max: 99, unit: "portions", one: "portion", label: "Portions" });
+    const dish = input(String(v.dish ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phDish") });
+    const from = select([["", t("rec.noRecipe")], ...recipeOptions()], v.recipe_id ?? "", t("rec.recipe"));
+    const portions = stepper(Number(v.portions ?? 2), { min: 0, max: 99, unit: "portions", one: "portion", label: t("rec.portions") });
     portions.classList.add("kp-formgrid__fill");
-    const frozen = dateField(v.frozen_on ? brusselsDay(v.frozen_on) : today(), { max: today(), label: "Frozen on" });
+    const frozen = dateField(v.frozen_on ? brusselsDay(v.frozen_on) : today(), { max: today(), label: t("rec.frozenOn") });
     openForm({
       list,
       item,
-      title: "In the freezer",
-      text: "A dish you froze, how many portions are left and the day it went in.",
+      title: t("rec.inFreezer"),
+      text: t("rec.inFreezerText"),
       rows: [
-        row("Dish", dish, "What it is, as you would say it."),
-        row("Recipe", from, "The recipe it was made from, if there is one."),
-        row("Portions", portions, "How many are left; at zero it leaves the bad-days list."),
-        row("Frozen on", frozen.el, "The day it went in."),
+        row(t("rec.dish"), dish, t("rec.dishHint")),
+        row(t("rec.recipe"), from, t("rec.recipeHint")),
+        row(t("rec.portions"), portions, t("rec.portionsHint")),
+        row(t("rec.frozenOn"), frozen.el, t("rec.frozenHint")),
       ],
       after: frozen.start,
       body: () => {
         const name = /** @type {HTMLInputElement} */ (dish).value.trim();
         const day = frozen.get();
-        if (!name) return { error: "Say what you froze.", remedy: "Type the dish's name." };
-        if (!day || day > today()) return { error: "The day it went in is missing or still to come.", remedy: "Pick a day up to today." };
+        if (!name) return { error: t("rec.errDish"), remedy: t("rec.fixDish") };
+        if (!day || day > today()) return { error: t("rec.errDay"), remedy: t("rec.fixDay") };
         // A day other than today is kept at noon, so it never slips to the day before in another time zone.
         const at = day === today() && item === null ? new Date().toISOString() : new Date(`${day}T12:00:00`).toISOString();
         return { dish: name, recipe_id: from.value || null, portions: getQuantity(portions), frozen_on: at };
       },
-      saved: (b) => `${item ? "Saved" : "Added"} ${b.dish}`,
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.dish),
     });
     return;
   }
   if (list === "shelf") {
-    const title = input(String(v.title ?? ""), "text", { autocomplete: "off", placeholder: "Yoghurt with granola" });
+    const title = input(String(v.title ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phFood") });
     const text = area(String(v.text ?? ""), 2);
-    const minutes = stepper(Number(v.minutes ?? 2), { min: 0, max: 60, unit: "min", label: "Minutes" });
+    const minutes = stepper(Number(v.minutes ?? 2), { min: 0, max: 60, unit: "min", label: t("rec.minutes") });
     minutes.classList.add("kp-formgrid__fill");
     const gear = input(String(v.gear ?? ""), "text", { autocomplete: "off", placeholder: "a bowl and a spoon" });
-    const energy = choiceOf(ENERGY, String(v.energy ?? "open"), "How much it asks");
+    const energy = choiceOf(energies(), String(v.energy ?? "open"), t("rec.energy"));
     openForm({
       list,
       item,
-      title: "On the zero-prep shelf",
-      text: "Food that is eaten without cooking, for the days nothing else works.",
+      title: t("rec.onShelf"),
+      text: t("rec.onShelfText"),
       rows: [
-        row("Name", title, "As it shows on the shelf."),
-        row("What to do", text, "One or two sentences."),
-        row("Minutes", minutes, "From the cupboard to the plate."),
-        row("What it uses", gear, "A plate, a bowl, a knife, …"),
-        row("How much it asks", energy, "Which of the shelf's three choices shows it."),
+        row(t("rec.name"), title, t("rec.nameHint")),
+        row(t("rec.whatToDo"), text, t("rec.whatToDoHint")),
+        row(t("rec.minutes"), minutes, t("rec.minutesHint")),
+        row(t("rec.gear"), gear, t("rec.gearHint")),
+        row(t("rec.energy"), energy, t("rec.energyHint")),
       ],
       body: () => {
         const name = /** @type {HTMLInputElement} */ (title).value.trim();
-        if (!name) return { error: "A shelf food needs a name.", remedy: "Type what it is." };
+        if (!name) return { error: t("rec.errFood"), remedy: t("rec.fixFood") };
         return {
           title: name,
           text: /** @type {HTMLTextAreaElement} */ (text).value.trim(),
@@ -279,57 +310,57 @@ export function openRecordEditor(list, item, preset = {}) {
           energy: getSegmentedValues(energy)[0] ?? "open",
         };
       },
-      saved: (b) => `${item ? "Saved" : "Added"} ${b.title}`,
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.title),
     });
     return;
   }
   if (list === "resting") {
-    const what = select(recipeOptions(), v.recipe_id ?? "", "Recipe");
-    const until = dateField(String(v.until ?? today()), { label: "Resting until" });
+    const what = select(recipeOptions(), v.recipe_id ?? "", t("rec.recipe"));
+    const until = dateField(String(v.until ?? today()), { label: t("rec.restingUntil") });
     openForm({
       list,
       item,
-      title: "Resting",
-      text: "A dish set aside stays off the wheel until the day after this date.",
-      rows: [row("Recipe", what, "The dish that rests."), row("Until", until.el, "The last day it stays off the wheel.")],
+      title: t("rec.restingTitle"),
+      text: t("rec.restingText"),
+      rows: [row(t("rec.recipe"), what, t("rec.restingHint")), row(t("rec.until"), until.el, t("rec.untilHint"))],
       after: until.start,
       body: () => {
         const day = until.get();
-        if (!what.value) return { error: "Pick the dish that rests.", remedy: "Add a recipe first if the list is empty." };
-        if (!day) return { error: "The last day is missing.", remedy: "Pick a day." };
+        if (!what.value) return { error: t("rec.errRest"), remedy: t("rec.fixRest") };
+        if (!day) return { error: t("rec.errUntil"), remedy: t("rec.fixUntil") };
         return { recipe_id: what.value, until: day };
       },
-      saved: (b) => `${recipe(b.recipe_id)?.name ?? "The dish"} rests until ${dmy(b.until)}`,
+      saved: (b) => t("rec.restsUntil", recipe(b.recipe_id)?.name ?? t("rec.theDish"), dmy(b.until)),
     });
     return;
   }
   if (list === "log") {
     const shelf = [...(k?.shelf ?? [])].sort((a, b) => String(a.title).localeCompare(String(b.title)));
     const what = select(
-      [...recipeOptions().map(([id, n]) => /** @type {[string, string]} */ ([`r:${id}`, `Recipe: ${n}`])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, `Shelf: ${s.title}`]))],
+      [...recipeOptions().map(([id, n]) => /** @type {[string, string]} */ ([`r:${id}`, t("rec.optRecipe", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", s.title)]))],
       v.shelf_id ? `s:${v.shelf_id}` : v.recipe_id ? `r:${v.recipe_id}` : "",
-      "What was eaten",
+      t("rec.whatEaten"),
     );
-    const day = dateField(String(v.date ?? today()), { max: today(), label: "Day" });
-    const felt = choiceOf({ none: "No answer", ...FEELING }, String(v.feeling ?? "none"), "How did it feel?");
-    const note = input(String(v.note ?? ""), "text", { autocomplete: "off", placeholder: "Too salty; half the stock next time" });
+    const day = dateField(String(v.date ?? today()), { max: today(), label: t("rec.day") });
+    const felt = choiceOf({ none: t("rec.noAnswer"), ...feelings() }, String(v.feeling ?? "none"), t("rec.howFelt"));
+    const note = input(String(v.note ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phNote") });
     openForm({
       list,
       item,
-      title: "What was eaten",
-      text: "A recipe that was cooked or a shelf food that was eaten, on one day.",
+      title: t("rec.whatEaten"),
+      text: t("rec.whatEatenText"),
       rows: [
-        row("What", what, "A recipe or a food from the zero-prep shelf."),
-        row("Day", day.el, "The day it was eaten."),
-        row("How did it feel?", felt, "Only if you want to say."),
-        row("Note", note, "Anything to remember next time."),
+        row(t("rec.what"), what, t("rec.whatHint")),
+        row(t("rec.day"), day.el, t("rec.dayHint")),
+        row(t("rec.howFelt"), felt, t("rec.feltHint")),
+        row(t("rec.note"), note, t("rec.noteHint")),
       ],
       after: day.start,
       body: () => {
         const [kind, id] = [what.value.slice(0, 1), what.value.slice(2)];
         const d = day.get();
-        if (!id) return { error: "Pick what was eaten.", remedy: "Add a recipe or a shelf food first if the list is empty." };
-        if (!d || d > today()) return { error: "The day is missing or still to come.", remedy: "Pick a day up to today." };
+        if (!id) return { error: t("rec.errWhat"), remedy: t("rec.fixWhat") };
+        if (!d || d > today()) return { error: t("rec.errDay2"), remedy: t("rec.fixDay") };
         const feeling = getSegmentedValues(felt)[0] ?? "none";
         return {
           recipe_id: kind === "r" ? id : null,
@@ -339,7 +370,7 @@ export function openRecordEditor(list, item, preset = {}) {
           note: /** @type {HTMLInputElement} */ (note).value.trim(),
         };
       },
-      saved: (b) => `${item ? "Saved" : "Logged"} ${logWhat(b)} on ${dmy(b.date)}`,
+      saved: (b) => t(item ? "rec.savedLine" : "rec.loggedLine", logWhat(b), dmy(b.date)),
     });
   }
 }
@@ -355,40 +386,40 @@ export function openRecipeEditor(r, preset = {}) {
 /** Mark one of the recipes as a safe dish, or write a new one. */
 export function openSafePicker() {
   const free = (kitchenNow()?.recipes ?? []).filter((r) => r.safe !== true).sort((a, b) => String(a.name).localeCompare(String(b.name)));
-  const pick = select(free.map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)])), free[0]?.id ?? "", "Recipe");
-  const fresh = h("button", { type: "button", class: "kp-button" }, "Write a new recipe instead");
+  const pick = select(free.map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)])), free[0]?.id ?? "", t("rec.recipe"));
+  const fresh = h("button", { type: "button", class: "kp-button" }, t("rec.writeNew"));
   fresh.addEventListener("click", () => openRecipeEditor(null, { safe: true }));
   const form = /** @type {HTMLFormElement} */ (
     h(
       "form",
       { class: "kp-drawer__body rl-form", id: "rc-form", novalidate: true },
       sec(
-        "A safe dish",
-        "A safe dish is one of your recipes that works on any day; it waits on the bad-days screen in a fixed place.",
+        t("rec.safeTitle"),
+        t("rec.safeText"),
         h(
           "div",
           { class: "kp-formgrid kitchen-formgrid" },
-          free.length ? row("Recipe", pick, "Only recipes that are not safe yet are listed.") : row("Recipe", h("p", { class: "kp-kv__none" }, "Every recipe is a safe dish already."), ""),
+          free.length ? row(t("rec.recipe"), pick, t("rec.safeOnlyFree")) : row(t("rec.recipe"), h("p", { class: "kp-kv__none" }, t("rec.allSafe")), ""),
           h("div", { class: "kp-formgrid__row kp-formgrid__row--buttons" }, h("div", { class: "kp-formgrid__control" }, fresh)),
         ),
       ),
     )
   );
   openDrawer(drawer(), {
-    title: "Add a safe dish",
-    text: "Pick one of your recipes, or write a new one that starts as safe.",
+    title: t("rec.safeAdd"),
+    text: t("rec.safeAddText"),
     form,
-    saveLabel: "Make it safe",
+    saveLabel: t("rec.makeSafe"),
     onSave: async () => {
       const r = free.find((x) => x.id === pick.value);
-      if (!r) return { error: "There is no recipe to pick.", remedy: "Write a new recipe instead.", word: "Not saved" };
+      if (!r) return { error: t("rec.errNoRecipe"), remedy: t("rec.fixNoRecipe"), word: t("rec.notSaved") };
       try {
         await replace("recipes", { ...r, safe: true });
       } catch (e) {
-        return { error: why(e), word: "Not saved" };
+        return { error: why(e), word: t("rec.notSaved") };
       }
-      toast(`${r.name} is a safe dish`);
-      return "Saved";
+      toast(t("rec.isSafe", r.name));
+      return t("rec.saved");
     },
   });
 }
@@ -397,16 +428,16 @@ export function openSafePicker() {
 export function unmarkSafe(r) {
   void replace("recipes", { ...r, safe: false }).then(
     () =>
-      undoToast(`${r.name} is not a safe dish any more. The recipe stays.`, {
+      undoToast(t("rec.notSafe", r.name), {
         mode: "revert",
         ms: 10_000,
         clock: "ring",
         undo: async () => {
           const now = kitchenNow()?.recipes.find((x) => x.id === r.id);
-          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => toast(`Could not put it back. ${why(e)}`, { live: "assertive", sticky: true }));
+          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => toast(t("rec.notBack", why(e)), { live: "assertive", sticky: true }));
         },
       }),
-    (e) => toast(`Not changed: ${why(e)}`, { live: "assertive", sticky: true }),
+    (e) => toast(t("rec.notChanged", why(e)), { live: "assertive", sticky: true }),
   );
 }
 
@@ -415,7 +446,7 @@ export function unmarkSafe(r) {
 /** Log a shelf food as eaten today (Kenny, 24/10/2026 05:07), with Undo. Resolves to the sentence that says so. @param {Item} s */
 export async function ateShelf(s) {
   const line = await create("log", { recipe_id: null, shelf_id: s.id, date: today(), feeling: null, note: "" });
-  undoToast(`Logged ${s.title} for today.`, {
+  undoToast(t("rec.loggedToday", s.title), {
     mode: "revert",
     ms: 10_000,
     clock: "ring",
@@ -423,11 +454,11 @@ export async function ateShelf(s) {
       try {
         await remove("log", line.id);
       } catch (e) {
-        toast(`Could not take it back. ${why(e)}`, { live: "assertive", sticky: true });
+        toast(t("rec.notTakenBack", why(e)), { live: "assertive", sticky: true });
       }
     },
   });
-  return `Logged: ${s.title}, today ${dmy(today())}. A plate and you are done.`;
+  return t("rec.loggedReadout", s.title, dmy(today()));
 }
 
 // ---- delete --------------------------------------------------------------------------------------------------------
@@ -436,34 +467,24 @@ export async function ateShelf(s) {
 function loses(list, item) {
   const k = kitchenNow();
   switch (list) {
-    case "dishes":
-      return ["The dish and its sides. A recipe it points at stays."];
-    case "dish_categories":
-      return ["The category; no dish uses it."];
-    case "ingredient_categories":
-      return ["The ingredient category; no ingredient is in it."];
-    case "ingredients":
-      return ["The ingredient; no dish or recipe uses it."];
     case "freezer":
-      return [`${item.dish}: ${item.portions} ${item.portions === 1 ? "portion" : "portions"} in the list. The food in the freezer is not touched.`];
-    case "shelf": {
-      const eaten = (k?.log ?? []).filter((e) => e.shelf_id === item.id).length;
-      return [`The shelf food${eaten ? `; its ${eaten} log ${eaten === 1 ? "line stays and says" : "lines stay and say"} "A shelf food that was deleted"` : ""}.`];
-    }
+      return [t("rec.losesFreezer", item.dish, item.portions)];
+    case "shelf":
+      return [t("rec.losesShelf", (k?.log ?? []).filter((e) => e.shelf_id === item.id).length)];
     default:
-      return [`The ${LISTS[list].noun}.`];
+      return [t(`list.${list}.loses`)];
   }
 }
 
 /** What still points at an item, by name: a category's dishes, an ingredient's dishes and recipes, an ingredient category's ingredients. @param {List} list @param {Item} item */
 export function usersOf(list, item) {
   const k = kitchenNow();
-  if (list === "dish_categories") return (k?.dishes ?? []).filter((d) => d.category === item.id).map(nameLabel);
+  if (list === "dish_categories") return (k?.dishes ?? []).filter((d) => d.category === item.id).map((d) => nameOf(d).text);
   if (list === "ingredient_categories") return (k?.ingredients ?? []).filter((i) => i.category === item.id).map((i) => ingredientName(i.id));
   if (list === "ingredients")
     return [
-      ...(k?.dishes ?? []).filter((d) => dishHas(d, item.id)).map((d) => `${nameLabel(d)} (dish)`),
-      ...(k?.recipes ?? []).filter((r) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === item.id)).map((r) => `${r.name} (recipe)`),
+      ...(k?.dishes ?? []).filter((d) => dishHas(d, item.id)).map((d) => t("rec.userDish", nameOf(d).text)),
+      ...(k?.recipes ?? []).filter((r) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === item.id)).map((r) => t("rec.userRecipe", r.name)),
     ];
   return [];
 }
@@ -472,8 +493,7 @@ export function usersOf(list, item) {
 function inUse(list, item) {
   const users = usersOf(list, item);
   if (!users.length) return null;
-  const what = list === "ingredient_categories" ? (users.length === 1 ? "ingredient" : "ingredients") : list === "ingredients" ? (users.length === 1 ? "dish or recipe" : "dishes and recipes") : users.length === 1 ? "dish" : "dishes";
-  return `${LISTS[list].name(item)} is used by ${users.length} ${what}: ${users.join(", ")}. Take it out of ${users.length === 1 ? "that one" : "them"} first.`;
+  return t(`list.${list}.inUse`, LISTS[list].name(item), users.length, users.join(", "));
 }
 
 /**
@@ -493,7 +513,7 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
       () => {
         after?.();
         const { id, created, updated, ...rest } = item;
-        undoToast(`Deleted ${name}.`, {
+        undoToast(t("rec.deletedDot", name), {
           mode: "revert",
           ms: 10_000,
           clock: "ring",
@@ -501,19 +521,19 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
             try {
               await create(list, rest);
             } catch (e) {
-              toast(`Could not put it back. ${why(e)}`, { live: "assertive", sticky: true });
+              toast(t("rec.notBack", why(e)), { live: "assertive", sticky: true });
             }
           },
         });
       },
-      (e) => toast(`Not deleted: ${why(e)}`, { live: "assertive", sticky: true }),
+      (e) => toast(t("rec.notDeleted", why(e)), { live: "assertive", sticky: true }),
     );
     return;
   }
   openConfirmation(anchor, {
-    phrase: `Delete ${name}?`,
+    phrase: t("rec.deleteAsk", name),
     typeName: name,
-    acceptLabel: `Delete ${LISTS[list].noun}`,
+    acceptLabel: t(`list.${list}.delete`),
     loses: loses(list, item),
     onAccept: () =>
       void remove(list, item.id)
@@ -526,10 +546,10 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
         })
         .then(
           () => {
-            toast(`Deleted ${name}`);
+            toast(t("rec.deleted", name));
             after?.();
           },
-          (e) => toast(`Not deleted: ${why(e)}`, { live: "assertive", sticky: true }),
+          (e) => toast(t("rec.notDeleted", why(e)), { live: "assertive", sticky: true }),
         ),
   });
 }
@@ -537,8 +557,8 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
 /** Edit and Delete for one row of a list. @param {List} list @param {Item} item */
 export function rowActions(list, item) {
   const name = LISTS[list].name(item);
-  const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `Edit ${name}` }, "Edit");
-  const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": `Delete ${name}` }, "Delete");
+  const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", name) }, t("common.edit"));
+  const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", name) }, t("common.delete"));
   edit.addEventListener("click", () => openRecordEditor(list, item));
   del.addEventListener("click", () => deleteRecord(del, list, item));
   const blocked = inUse(list, item);
@@ -560,12 +580,12 @@ export function tableCard({ id, title, lede, noun, plural, columns, add, emptyTi
     h("p", { class: "kp-empty__title", "data-kp-datatable-empty-none": true }, emptyTitle),
     h("p", { class: "kp-empty__body", "data-kp-datatable-empty-none": true }, emptyText),
     h("button", { type: "button", class: "kp-button kp-button--primary", "data-kp-datatable-empty-none": true, "data-dl-add": true }, add),
-    h("p", { class: "kp-empty__title", "data-kp-datatable-empty-nomatch": true }, `No ${noun} matches`),
-    h("p", { class: "kp-empty__body", "data-kp-datatable-empty-nomatch": true }, "Nothing has that in its names."),
-    h("button", { type: "button", class: "kp-button", "data-kp-datatable-empty-nomatch": true, "data-kp-datatable-clear": true }, "Clear the search"),
+    h("p", { class: "kp-empty__title", "data-kp-datatable-empty-nomatch": true }, t("rec.noMatch", noun)),
+    h("p", { class: "kp-empty__body", "data-kp-datatable-empty-nomatch": true }, t("rec.noMatchText")),
+    h("button", { type: "button", class: "kp-button", "data-kp-datatable-empty-nomatch": true, "data-kp-datatable-clear": true }, t("rec.clearSearch")),
   );
   const body = h("tbody");
-  const search = h("input", { class: "kp-field__input kp-datatable__search", type: "search", "data-kp-datatable-search": true, "aria-label": `Search the ${plural}`, placeholder: `Search the ${plural}` });
+  const search = h("input", { class: "kp-field__input kp-datatable__search", type: "search", "data-kp-datatable-search": true, "aria-label": t("rec.search", plural), placeholder: t("rec.search", plural) });
   const table = h(
     "div",
     { class: "kp-datatable", "data-kp-datatable": true, "data-kp-cards": true, "data-kp-state": "loading", "data-kp-page-size": "25" },
@@ -582,7 +602,7 @@ export function tableCard({ id, title, lede, noun, plural, columns, add, emptyTi
       ),
     ),
     empty,
-    h("div", { class: "kp-alert kp-alert--destructive", "data-kp-datatable-failed": true, role: "alert", hidden: true }, h("p", { "data-kp-datatable-failed-reason": true }, `The ${plural} could not be read.`), h("button", { type: "button", class: "kp-button", "data-kp-datatable-retry": true }, "Try again")),
+    h("div", { class: "kp-alert kp-alert--destructive", "data-kp-datatable-failed": true, role: "alert", hidden: true }, h("p", { "data-kp-datatable-failed-reason": true }, t("rec.notRead", plural)), h("button", { type: "button", class: "kp-button", "data-kp-datatable-retry": true }, t("common.tryAgain"))),
     h("div", { class: "kp-datatable__bar" }, h("p", { class: "kp-datatable__status", "data-kp-datatable-status": true, role: "status", "aria-live": "polite" }), h("div", { class: "kp-datatable__pager", "data-kp-datatable-pager": true })),
   );
   const card = h(

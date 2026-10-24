@@ -208,6 +208,8 @@ export function createLog(card, { recipeId, retry }) {
     loading(w) {
       words = w;
       setCardState(card, "loading", { words: w.logLoading });
+      // The grid itself loads with the package's busy card over its weeks, not as a blank (kp measure-states, 24/10/2026).
+      setHeat(grid, { state: "loading", message: w.logLoading, skeleton: { rows: WEEKS, columns: 7 } });
     },
     /** @param {import("./words.js").Words} w @param {string} why */
     failed(w, why) {

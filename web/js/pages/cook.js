@@ -31,6 +31,8 @@ import { statePlate } from "/static/kp/js/state-plate.js";
 import { memoryFor } from "/static/kp/js/remember.js";
 import { showPhotos } from "../recipe/photos.js";
 import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
+import { wordsFor } from "../recipe/words.js";
+import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Item} Item */
 
@@ -38,16 +40,13 @@ import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timelin
 const DIAL_MINUTES = 60;
 const MIN = 60000;
 const TIMELINE_EVERY_MS = 10000;
-const LOAD_FAILED = "The recipe could not be loaded. Check the connection and try again.";
-
-/** Plural forms for the units that have one. */
-const PLURAL = /** @type {Record<string, string>} */ ({ clove: "cloves", pinch: "pinches", handful: "handfuls", slice: "slices" });
 
 /** "2 cloves", "400 g", "1" (a piece) or "" (no amount). @param {Item} ing */
 function amountOf(ing) {
   if (ing.amount === null || ing.amount === undefined) return "";
   const n = Math.round(ing.amount * 100) / 100;
-  const unit = ing.unit === "pc" ? "" : ((n !== 1 && PLURAL[ing.unit]) || ing.unit || "");
+  const forms = /** @type {Record<string, string[]>} */ (wordsFor(lang()).units)[ing.unit];
+  const unit = ing.unit === "pc" ? "" : forms ? forms[n === 1 ? 0 : 1] : ing.unit || "";
   return `${n} ${unit}`.trim();
 }
 
@@ -92,7 +91,7 @@ export function mount(root, { params, navigate }) {
   const recipeId = params.get("id") ?? "";
   const mini = params.get("mini") === "1";
   const storeKey = `kitchen:cook:${recipeId}:${mini ? "mini" : "full"}`;
-  document.title = "Cook · Kitchen";
+  document.title = `${t("cook.title")} · Kitchen`;
 
   /** @type {(() => void)[]} */
   const undo = [];
@@ -122,20 +121,20 @@ export function mount(root, { params, navigate }) {
       h(
         "section",
         { class: "kp-card ck-plate", "aria-labelledby": "ck-plate-h" },
-        h("h1", { class: "kp-sr-only", id: "ck-plate-h" }, "Cook mode"),
+        h("h1", { class: "kp-sr-only", id: "ck-plate-h" }, t("cook.mode")),
         statePlate(document, { kind: "empty", title, text, actionLabel: label, onAction: () => navigate(href) }),
       ),
     );
   }
 
   if (!recipeId) {
-    plateScreen("This recipe is not here", "The address has no recipe in it. The wheel picks one.", "Open the wheel", "/");
+    plateScreen(t("cook.notHere"), t("cook.noId"), t("shell.openWheel"), "/");
     return () => {};
   }
 
   // ------------------------------------------------------------------ the shell, drawn loading from the first frame
-  const title = h("h1", { class: "kp-page-header__title" }, "Cook");
-  const lead = h("p", { class: "kp-page-header__description" }, "One step at a time, with every timer in view.");
+  const title = h("h1", { class: "kp-page-header__title" }, t("cook.title"));
+  const lead = h("p", { class: "kp-page-header__description" }, t("cook.lead"));
   const actions = h("div", { class: "kp-page-header__actions" });
   const header = h(
     "header",
@@ -144,17 +143,17 @@ export function mount(root, { params, navigate }) {
   );
 
   // Begin
-  const beginTitle = h("h3", { class: "kp-card__title" }, "Your recipe");
+  const beginTitle = h("h3", { class: "kp-card__title" }, t("cook.yourRecipe"));
   // Placeholder rows while loading, so the card holds its filled height.
   const facts = h(
     "dl",
     { class: "kp-kv" },
-    ...["Serves", "Time", "Dirties"].map((k) => h("div", { class: "kp-kv__row" }, h("dt", null, k), h("dd", null, "\u2014"))),
+    ...[t("cook.serves"), t("cook.time"), t("cook.dirties")].map((k) => h("div", { class: "kp-kv__row" }, h("dt", null, k), h("dd", null, "\u2014"))),
   );
-  const beginBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg" }, "Begin");
+  const beginBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg" }, t("cook.begin"));
   const beginCard = h(
     "article",
-    { class: "kp-card ck-begin__card", "data-kp-state": "loading", "aria-labelledby": "ck-begin-t", "data-kp-loading-words": "Reading the recipe" },
+    { class: "kp-card ck-begin__card", "data-kp-state": "loading", "aria-labelledby": "ck-begin-t", "data-kp-loading-words": t("cook.loading") },
     h("div", { class: "kp-card__header" }, beginTitle),
     h(
       "div",
@@ -166,7 +165,7 @@ export function mount(root, { params, navigate }) {
           "div",
           { class: "kp-formgrid" },
           facts,
-          actionRow("Start here", [beginBtn], "Opens the list of what to take out first. Nothing is cooked yet."),
+          actionRow(t("cook.startHere"), [beginBtn], t("cook.startHereSays")),
         ),
       ),
     ),
@@ -178,14 +177,14 @@ export function mount(root, { params, navigate }) {
     class: "kp-checklist",
     id: "ck-mise",
     "data-kp-checklist": "",
-    "aria-label": "Mise en place: what to take out",
+    "aria-label": t("cook.miseLabel"),
     "data-kp-state": "loading",
-    "data-kp-checklist-empty": "Nothing to take out for this recipe.",
+    "data-kp-checklist-empty": t("cook.miseEmpty"),
     style: "--kp-checklist-min-rows: 10",
   });
-  const startBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg", "aria-disabled": "true" }, "Start cooking");
-  const skipBtn = h("button", { type: "button", class: "kp-button kp-button--lg" }, "Skip, start anyway");
-  const readout = h("p", { class: "kp-formgrid__value", role: "status" }, "Take things out and tick them.");
+  const startBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg", "aria-disabled": "true" }, t("cook.startCooking"));
+  const skipBtn = h("button", { type: "button", class: "kp-button kp-button--lg" }, t("cook.skip"));
+  const readout = h("p", { class: "kp-formgrid__value", role: "status" }, t("cook.takeOut"));
   const miseOpen = h(
     "div",
     { class: "ck-mise", hidden: true },
@@ -193,13 +192,13 @@ export function mount(root, { params, navigate }) {
     h(
       "div",
       { class: "kp-formgrid" },
-      actionRow("Everything is out", [startBtn], readout),
-      actionRow("Something is missing", [skipBtn], "Opens cook mode now. A missing onion never blocks dinner."),
+      actionRow(t("cook.allOut"), [startBtn], readout),
+      actionRow(t("cook.missing"), [skipBtn], t("cook.missingSays")),
     ),
   );
 
   // Cook mode
-  const band = h("div", { class: "kp-attention", "aria-label": "Needs you now" });
+  const band = h("div", { class: "kp-attention", "aria-label": t("cook.needsYou") });
   const steps = h("div", {
     class: "kp-focus-steps",
     id: "ck-steps",
@@ -208,10 +207,10 @@ export function mount(root, { params, navigate }) {
     "data-kp-focus-steps-wake": "true",
     "data-kp-track-attention": "off",
     "data-kp-state": "loading",
-    "data-kp-focus-steps-empty": "This recipe has no steps yet.",
-    "data-kp-focus-steps-empty-action": "Open the recipe",
+    "data-kp-focus-steps-empty": t("cook.noSteps"),
+    "data-kp-focus-steps-empty-action": t("timing.openRecipe"),
     "data-kp-remember": storeKey,
-    "aria-label": "Steps",
+    "aria-label": t("cook.steps"),
   });
   // The photos of the step in hand, large (Kenny, 24/10/2026 05:23); empty and hidden for a step without any.
   const stepPhotos = h("div", { class: "ck-photos", hidden: true });
@@ -221,22 +220,22 @@ export function mount(root, { params, navigate }) {
     "data-kp-timers": "",
     "data-kp-timers-ring": "60",
     "data-kp-timers-sound": "chime",
-    "data-kp-timers-empty": "No timer running. Start one from a step.",
-    "aria-label": "Kitchen timers",
+    "data-kp-timers-empty": t("cook.noTimer"),
+    "aria-label": t("cook.kitchenTimers"),
   });
   const cook = section(
     "ck-cook",
-    "Cook mode: one step at a time",
-    "One step large on the counter, with what it needs and a timer button; started timers keep running beside it whichever step you are on.",
+    t("cook.secCook"),
+    t("cook.secCookText"),
     h(
       "div",
       { class: "ck-cook" },
-      h("div", { class: "ck-cook__main" }, h("h3", { class: "ck-part" }, "Steps"), band, steps, stepPhotos),
+      h("div", { class: "ck-cook__main" }, h("h3", { class: "ck-part" }, t("cook.steps")), band, steps, stepPhotos),
       h(
         "div",
         { class: "ck-cook__side" },
-        h("h3", { class: "ck-part" }, "Timers running"),
-        h("p", { class: "ck-part-note" }, "Every timer you start stays here, and its disc below follows it."),
+        h("h3", { class: "ck-part" }, t("cook.timersRunning")),
+        h("p", { class: "ck-part-note" }, t("cook.timersNote")),
         timers,
       ),
     ),
@@ -246,13 +245,13 @@ export function mount(root, { params, navigate }) {
   const timelineSlot = h("div", { class: "ck-timeline__slot", id: "ck-timeline-slot" });
   const timelineCard = h(
     "article",
-    { class: "kp-card ck-timelinecard", "data-kp-state": "ready", "aria-label": "The timeline" },
+    { class: "kp-card ck-timelinecard", "data-kp-state": "ready", "aria-label": t("cook.timeline") },
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, timelineSlot)),
   );
   const timelineSection = section(
     "ck-timeline",
-    "The timeline",
-    "Every track is a row; solid bars are done, the striped one is now, the outlined ones are still to come.",
+    t("cook.timeline"),
+    t("cook.timelineText"),
     timelineCard,
   );
 
@@ -260,13 +259,13 @@ export function mount(root, { params, navigate }) {
   const discs = h("div", { class: "ck-discs" });
   const discCard = h(
     "article",
-    { class: "kp-card ck-disccard", "data-kp-state": "loading", "aria-label": "Timer discs", "data-kp-loading-words": "Reading the timers" },
+    { class: "kp-card ck-disccard", "data-kp-state": "loading", "aria-label": t("cook.discsLabel"), "data-kp-loading-words": t("cook.loadingTimers") },
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, discs)),
   );
   const discSection = section(
     "ck-discs",
-    "Time at a glance: the shrinking disc",
-    `Each running timer as a coloured disc on a ${DIAL_MINUTES}-minute dial that grows smaller as time goes, so the time left is seen without reading a number.`,
+    t("cook.secDiscs"),
+    t("cook.secDiscsText", DIAL_MINUTES),
     discCard,
   );
 
@@ -275,52 +274,52 @@ export function mount(root, { params, navigate }) {
   const calmLine = h("p", { class: "kp-formgrid__value", role: "status" });
   const calmSection = section(
     "ck-calm",
-    "Calm mode",
-    "Turns movement and effects off for a day with no energy; the timers still count and still ring.",
+    t("set.calmTitle"),
+    t("cook.calmText"),
     h(
       "div",
       { class: "kp-formgrid ck-calm" },
       h(
         "div",
         { class: "kp-formgrid__row" },
-        h("label", { class: "kp-formgrid__label", for: "ck-calm" }, "Calm mode"),
-        h("div", { class: "kp-formgrid__control" }, h("label", { class: "kp-switch" }, calmSwitch, h("span", null, "Hold movement and effects still"))),
+        h("label", { class: "kp-formgrid__label", for: "ck-calm" }, t("set.calmTitle")),
+        h("div", { class: "kp-formgrid__control" }, h("label", { class: "kp-switch" }, calmSwitch, h("span", null, t("cook.calmSwitch")))),
         calmLine,
       ),
     ),
   );
   const paintCalm = () => {
     const scope = calmScope(document);
-    const words = scope === "motion" ? "transitions only" : scope === "all" ? "everything" : "transitions and effects";
-    const loading = document.documentElement.getAttribute("data-kp-calm-loading") === "still" ? "holds still" : "breathes slowly";
+    const words = scope === "motion" ? t("cook.scopeMotion") : scope === "all" ? t("cook.scopeAll") : t("cook.scopeEffects");
+    const loading = document.documentElement.getAttribute("data-kp-calm-loading") === "still" ? t("cook.loadStill") : t("cook.loadBreathes");
     calmLine.textContent = isCalm(document)
-      ? `Calm is on. Holds still: ${words}. Loading: ${loading}.`
-      : "Calm is off. Turn it on when movement is too much.";
+      ? t("cook.calmOn", words, loading)
+      : t("cook.calmOff");
   };
   document.addEventListener("kp-calm-change", paintCalm);
   undo.push(() => document.removeEventListener("kp-calm-change", paintCalm));
 
   // Done
-  const doneBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg" }, "Log tonight's dinner");
-  const doneSays = h("p", { class: "kp-formgrid__value" }, "Adds this dish to what you cooked, dated today. The wheel and the recipe's log read it.");
+  const doneBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg" }, t("cook.logDinner"));
+  const doneSays = h("p", { class: "kp-formgrid__value" }, t("cook.logSays"));
   const doneFail = h("div", { class: "kp-alert kp-alert--destructive", role: "alert", hidden: true });
   const doneCard = h(
     "article",
     { class: "kp-card ck-donecard" },
-    h("div", { class: "kp-card__body" }, doneFail, h("div", { class: "kp-formgrid" }, actionRow("Dinner is out", [doneBtn], doneSays))),
+    h("div", { class: "kp-card__body" }, doneFail, h("div", { class: "kp-formgrid" }, actionRow(t("cook.dinnerOut"), [doneBtn], doneSays))),
   );
   const doneSection = section(
     "ck-done",
-    "Dinner is ready",
-    "Log it so the wheel knows when you last cooked this dish.",
+    t("cook.secDone"),
+    t("cook.secDoneText"),
     doneCard,
   );
   doneSection.hidden = true;
 
   const beginSection = section(
     "ck-begin",
-    "Begin: gather everything first",
-    "Begin does not start step 1; it opens a short list of what to take out, and ticked items sink so only what is left stays on top.",
+    t("cook.secBegin"),
+    t("cook.secBeginText"),
     h("div", { class: "ck-begin" }, beginCard, miseOpen),
   );
 
@@ -334,9 +333,9 @@ export function mount(root, { params, navigate }) {
   undo.push(attachAttention(root));
   undo.push(attachCalm(root));
   const line = mountTimeline(timelineSlot, {
-    label: "Cooking timeline, one row per track",
-    loading: "Reading the steps",
-    strings: { ganttOk: "done", ganttRunning: "now", ganttPlanned: "still to do" },
+    label: t("cook.ganttLabel"),
+    loading: t("cook.loadingSteps"),
+    strings: { ganttOk: t("cook.ganttOk"), ganttRunning: t("cook.ganttNow"), ganttPlanned: t("cook.ganttPlanned") },
     redraw: () => paintTimeline(),
   });
   undo.push(line.detach);
@@ -364,10 +363,10 @@ export function mount(root, { params, navigate }) {
     const all = items.length > 0 && left === 0;
     startBtn.setAttribute("aria-disabled", String(!all));
     readout.textContent = !items.length
-      ? "Nothing to take out."
+      ? t("cook.nothingOut")
       : all
-        ? "Everything is out. Start whenever you like."
-        : `${left} of ${items.length} still to take out. Start cooking opens once all are ticked.`;
+        ? t("cook.everythingOut")
+        : t("cook.stillOut", left, items.length);
   };
   beginBtn.addEventListener("click", openMise);
   for (const type of ["kp-checklist-change", "kp-checklist-undo", "kp-checklist-clear", "kp-checklist-render"]) mise.addEventListener(type, paintStart);
@@ -425,21 +424,21 @@ export function mount(root, { params, navigate }) {
   }
 
   const refreshBand = () => {
-    const done = getTimers(timers).filter((t) => t.state === "done");
+    const done = getTimers(timers).filter((tm) => tm.state === "done");
     setAttention(
       band,
-      done.map((t) => {
-        const next = nextAfter(t);
+      done.map((tm) => {
+        const next = nextAfter(tm);
         const action = h(
           "button",
-          { type: "button", class: "kp-button kp-button--sm", ...(next ? { "data-ck-from": shown.findIndex((x) => x.id === t.id) } : { "data-ck-stop": t.id }) },
-          next ? `Go to step ${next.number}` : `Stop ${t.name}`,
+          { type: "button", class: "kp-button kp-button--sm", ...(next ? { "data-ck-from": shown.findIndex((x) => x.id === tm.id) } : { "data-ck-stop": tm.id }) },
+          next ? t("cook.goToStep", next.number) : t("cook.stopTimer", tm.name),
         );
         return {
-          key: t.id,
+          key: tm.id,
           severity: /** @type {const} */ ("warning"),
-          title: `${t.name} is done`,
-          text: next ? `Next is step ${next.number}: ${next.text}` : "Nothing is left after this one. It rings until you stop it.",
+          title: t("cook.timerDone", tm.name),
+          text: next ? t("cook.nextIs", next.number, next.text) : t("cook.nothingLeft"),
           action,
         };
       }),
@@ -464,25 +463,25 @@ export function mount(root, { params, navigate }) {
     if (discOf.size) setCardState(discCard, "ready");
     else
       setCardState(discCard, "empty", {
-        title: "No timer running",
-        text: "A disc appears here for every timer you start from a step.",
-        action: h("button", { type: "button", class: "kp-button", onclick: () => steps.focus() }, "Go to the steps"),
+        title: t("cook.noTimerTitle"),
+        text: t("cook.noTimerText"),
+        action: h("button", { type: "button", class: "kp-button", onclick: () => steps.focus() }, t("cook.goSteps")),
       });
   };
 
-  /** @param {{ id: string, name: string, seconds: number, remaining: number, state: string }} t */
-  function addDisc(t) {
-    if (discOf.has(t.id) || t.state === "done") return;
+  /** @param {{ id: string, name: string, seconds: number, remaining: number, state: string }} tm */
+  function addDisc(tm) {
+    if (discOf.has(tm.id) || tm.state === "done") return;
     const el = h("div", {
       class: "kp-timer-disc",
-      "data-kp-timer-disc": `${Math.max(1, t.remaining)}s`,
-      "data-kp-timer-disc-name": t.name,
+      "data-kp-timer-disc": `${Math.max(1, tm.remaining)}s`,
+      "data-kp-timer-disc-name": tm.name,
       "data-kp-timer-disc-scale": DIAL_MINUTES,
     });
     discs.append(el);
     const detach = attachTimerDiscs(el);
-    discOf.set(t.id, { el, detach });
-    if (t.state === "running") timerDiscOf(el)?.start();
+    discOf.set(tm.id, { el, detach });
+    if (tm.state === "running") timerDiscOf(el)?.start();
     paintDiscCard();
   }
   /** @param {string} id */
@@ -550,7 +549,7 @@ export function mount(root, { params, navigate }) {
   function paintTimeline() {
     if (!recipe) return;
     if (!shown.length) {
-      setTimelineState(line.el, "empty", "This recipe has no steps yet", { text: "Add steps to the recipe and its timeline appears here." });
+      setTimelineState(line.el, "empty", t("cook.noSteps"), { text: t("cook.noStepsText") });
       return;
     }
     const now = Date.now();
@@ -581,25 +580,25 @@ export function mount(root, { params, navigate }) {
       const m = marks[s.id];
       const ahead = Math.max(...rows.map((r) => cursor.get(r) ?? first));
       const say = sentence(s.say || String(s.text));
-      const how = `${mins} min, ${s.active ? "hands on" : "you can walk away"}`;
+      const how = t("cook.how", mins, s.active);
       /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string }[]} */
       const parts = [];
       let next;
       if (done.has(i)) {
         const start = Math.min(m?.start ?? ahead, now - 1000);
         const end = Math.max(start + 30000, Math.min(now, m?.end ?? start + mins * MIN));
-        parts.push({ start, end, state: "ok", words: `${how}, done` });
+        parts.push({ start, end, state: "ok", words: t("cook.howDone", how) });
         next = end;
       } else if (i === active) {
         const start = m?.start ?? now;
         const planned = start + mins * MIN;
-        parts.push({ start, end: now, state: "running", words: `${how}, you are on it` });
+        parts.push({ start, end: now, state: "running", words: t("cook.howOnIt", how) });
         // What is left of its time is a thin band in the row (the package's lane stretch); past its time the rest of the plan begins from this moment.
-        if (planned > now) for (const row of rows) left.push({ id: `${row}:${s.id}`, lane: row, from: now, to: planned, label: `${say}, until ${clock(planned)}`, tone: "info" });
+        if (planned > now) for (const row of rows) left.push({ id: `${row}:${s.id}`, lane: row, from: now, to: planned, label: t("cook.until", say, clock(planned)), tone: "info" });
         next = Math.max(now, planned);
       } else {
         const start = Math.max(now, ahead);
-        parts.push({ start, end: start + mins * MIN, state: "planned", words: `${how}, still to do` });
+        parts.push({ start, end: start + mins * MIN, state: "planned", words: t("cook.howToDo", how) });
         next = start + mins * MIN;
       }
       for (const row of rows) cursor.set(row, next);
@@ -620,7 +619,7 @@ export function mount(root, { params, navigate }) {
       }
     });
     drawTimeline(line.el, {
-      lanes: lanes.map((l) => ({ ...l, sub: `${shown.filter((s, i) => rowsOf(s).includes(l.id) && done.has(i)).length} of ${shown.filter((s) => rowsOf(s).includes(l.id)).length} done` })),
+      lanes: lanes.map((l) => ({ ...l, sub: t("cook.nOfMDone", shown.filter((s, i) => rowsOf(s).includes(l.id) && done.has(i)).length, shown.filter((s) => rowsOf(s).includes(l.id)).length) })),
       runs,
       zones: left,
       from: first - MIN,
@@ -658,19 +657,19 @@ export function mount(root, { params, navigate }) {
       doneCard.replaceChildren(
         statePlate(document, {
           kind: "empty",
-          title: "Logged. Enjoy your dinner.",
-          text: "It is in your log from today.",
-          actionLabel: "Open the wheel",
+          title: t("cook.logged"),
+          text: t("cook.loggedText"),
+          actionLabel: t("shell.openWheel"),
           onAction: () => navigate("/"),
         }),
       );
     } catch (e) {
       doneFail.replaceChildren(
-        h("strong", null, "Tonight's dinner could not be logged"),
+        h("strong", null, t("cook.logFailed")),
         h("p", null, e instanceof Error ? e.message : String(e)),
       );
       doneFail.hidden = false;
-      doneBtn.textContent = "Try again";
+      doneBtn.textContent = t("common.tryAgain");
     } finally {
       logging = false;
       doneBtn.removeAttribute("aria-disabled");
@@ -688,12 +687,12 @@ export function mount(root, { params, navigate }) {
   };
   /** @param {string} message */
   const showError = (message) => {
-    setCardState(beginCard, "error", { title: "The recipe could not be loaded", text: message });
+    setCardState(beginCard, "error", { title: t("cook.recipeFailed"), text: message });
     setChecklistState(mise, "error", message);
     setFocusStepsState(steps, "error", message);
     setTimersState(timers, "error");
-    setCardState(discCard, "error", { title: "The timers could not be shown", text: message });
-    setTimelineState(line.el, "error", "The timeline could not be shown", { text: message });
+    setCardState(discCard, "error", { title: t("cook.timersFailed"), text: message });
+    setTimelineState(line.el, "error", t("cook.timelineFailed"), { text: message });
   };
 
   /** The photos of the step the cook is on. */
@@ -706,43 +705,45 @@ export function mount(root, { params, navigate }) {
     if (stepPhotos.dataset.key === key) return;
     stepPhotos.dataset.key = key;
     const gallery = stepPhotos.firstElementChild;
-    if (gallery instanceof HTMLElement) showPhotos(gallery, ids, "Step photo");
-    else stepPhotos.append(showPhotos(null, ids, "Step photo"));
+    if (gallery instanceof HTMLElement) showPhotos(gallery, ids, t("edit.stepPhoto"));
+    else stepPhotos.append(showPhotos(null, ids, t("edit.stepPhoto")));
   }
 
   /** @param {Item} r */
   function fill(r) {
     recipe = r;
     shown = stepsOf(r);
-    document.title = `Cook ${r.name} · Kitchen`;
-    title.textContent = `Cook: ${r.name}`;
+    document.title = `${t("cook.cookName", r.name)} · Kitchen`;
+    title.textContent = t("cook.cookColon", r.name);
     lead.textContent = mini
-      ? "The mini version for a day with little energy: only the steps that matter."
-      : "One step at a time, with every timer in view.";
+      ? t("cook.leadMini")
+      : t("cook.lead");
     const base = `/cook?id=${encodeURIComponent(r.id)}`;
     actions.replaceChildren(
-      link(`/recipe?id=${encodeURIComponent(r.id)}`, "Back to the recipe"),
-      mini ? link(base, "Cook the full version") : link(`${base}&mini=1`, "Cook the mini version"),
+      link(`/recipe?id=${encodeURIComponent(r.id)}`, t("cook.backToRecipe")),
+      mini ? link(base, t("cook.fullVersion")) : link(`${base}&mini=1`, t("cook.miniVersion")),
     );
 
     beginTitle.textContent = r.name;
     const fact = (/** @type {string} */ k, /** @type {string} */ v) => h("div", { class: "kp-kv__row" }, h("dt", null, k), h("dd", null, v));
     facts.replaceChildren(
-      fact("Serves", `${r.portions} ${r.portions === 1 ? "portion" : "portions"}`),
-      fact("Time", `${r.minutes} minutes, ${r.hands_on} of them hands-on`),
-      ...(r.gear ? [fact("Dirties", r.gear)] : []),
-      ...(mini ? [fact("Mini version", r.mini_note || "Only the steps that matter.")] : []),
+      fact(t("cook.serves"), t("cook.portionCount", r.portions)),
+      fact(t("cook.time"), t("cook.timeText", r.minutes, r.hands_on)),
+      ...(r.gear ? [fact(t("cook.dirties"), r.gear)] : []),
+      ...(mini ? [fact(t("bad.miniVersion"), r.mini_note || t("cook.onlyMatter"))] : []),
     );
     setCardState(beginCard, "ready");
 
     // The mise en place: ingredients by group, the tools after the first group.
     /** @type {Item[]} */
     const items = [];
-    const groups = [...new Set(r.ingredients.map((/** @type {Item} */ i) => i.group || "Ingredients"))];
-    const order = r.tools.length ? [groups[0], "Tools", ...groups.slice(1)] : groups;
+    const MAIN = t("edit.groupMain");
+    const TOOLS = t("edit.tools");
+    const groups = [...new Set(r.ingredients.map((/** @type {Item} */ i) => i.group || MAIN))];
+    const order = r.tools.length ? [groups[0], TOOLS, ...groups.slice(1)] : groups;
     for (const g of order) {
-      if (g === "Tools" && r.tools.length) for (const t of r.tools) items.push({ id: `tool-${t.id}`, label: t.name, detail: "", group: "Tools" });
-      else for (const i of r.ingredients) if ((i.group || "Ingredients") === g) items.push({ id: i.id, label: ingredientName(i.ingredient), detail: amountOf(i), group: g });
+      if (g === TOOLS && r.tools.length) for (const tool of r.tools) items.push({ id: `tool-${tool.id}`, label: tool.name, detail: "", group: TOOLS });
+      else for (const i of r.ingredients) if ((i.group || MAIN) === g) items.push({ id: i.id, label: ingredientName(i.ingredient, lang()), detail: amountOf(i), group: g });
     }
     setChecklistState(mise, "ready");
     setChecklistItems(mise, items);
@@ -757,7 +758,7 @@ export function mount(root, { params, navigate }) {
     setTimersState(timers, "ready");
     if (Array.isArray(memo.timers) && memo.timers.length && !getTimers(timers).length) {
       restoreTimers(timers, memo.timers);
-      for (const t of getTimers(timers)) addDisc(t);
+      for (const tm of getTimers(timers)) addDisc(tm);
     }
     paintDiscCard();
     refreshBand();
@@ -784,13 +785,13 @@ export function mount(root, { params, navigate }) {
       applySettings(k.settings ?? {});
       const r = recipeById(recipeId);
       if (!r) {
-        plateScreen("This recipe is not here", "It may have been removed. The wheel picks another.", "Open the wheel", "/");
+        plateScreen(t("cook.notHere"), t("cook.removed"), t("shell.openWheel"), "/");
         return;
       }
       fill(r);
     } catch (e) {
       if (dead || mine !== seq) return;
-      showError(e instanceof Error ? e.message : LOAD_FAILED);
+      showError(e instanceof Error ? e.message : t("cook.loadFailed"));
     }
   }
   const retry = () => {

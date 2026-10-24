@@ -16,6 +16,7 @@ import { attachCountdowns } from "/static/kp/js/countdown.js";
 import { setAttention, attachAttention } from "/static/kp/js/attention.js";
 import { attachSnoozes, setSnoozedUntil } from "/static/kp/js/snooze.js";
 import { attachSwitches } from "/static/kp/js/forms.js";
+import { t } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -52,7 +53,7 @@ function hm(ms) {
   return `${pad(w.hour)}:${pad(w.minute)}`;
 }
 /** @param {number} minutes @returns {string} "50 minutes" or "1 h 18 min" */
-const words = (minutes) => (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+const words = (minutes) => (minutes >= 60 ? t("timing.hm", Math.floor(minutes / 60), minutes % 60) : t("timing.minutes", minutes));
 /** @param {string} text */
 const sentenceCase = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
 
@@ -103,9 +104,9 @@ function planFor(recipe, { serve, spare, pace, dropped }) {
 /** "Chop the onion at 17:40, switch the oven on at 18:00 and …", in one sentence. @param {Plan} p */
 function startsInWords(p) {
   const sorted = [...p.lanes].sort((a, b) => a.start - b.start);
-  const parts = sorted.map((l) => `${l.steps[0].say} at ${hm(l.start)}`);
+  const parts = sorted.map((l) => t("timing.sayAt", l.steps[0].say, hm(l.start)));
   if (parts.length === 1) return `${sentenceCase(parts[0])}.`;
-  return `${sentenceCase(parts[0])}, ${parts.slice(1).join(" and ")}.`;
+  return `${sentenceCase(parts[0])}, ${parts.slice(1).join(` ${t("timing.and")} `)}.`;
 }
 
 /** A package button. @param {string} text @param {string} [extra] @param {(e: Event) => void} [onclick] */
@@ -132,7 +133,7 @@ function section(id, title, text, body) {
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
 export function mount(root, { params, navigate }) {
   const recipeId = params.get("id");
-  document.title = "When do I start? · Kitchen";
+  document.title = `${t("timing.title")} · Kitchen`;
   /** @type {(() => void)[]} */
   const cleanups = [];
   /** @type {Item | null} */
@@ -145,35 +146,35 @@ export function mount(root, { params, navigate }) {
   // ---- the frame, in its loading state from the first frame ---------------------------------------------------
   const pickCard = card({
     id: "tm-pick-card",
-    title: "Your recipes with step times",
-    text: "Only recipes whose steps say how long they take can be counted back.",
-    loading: "Reading the recipes",
+    title: t("timing.pickTitle"),
+    text: t("timing.pickText"),
+    loading: t("timing.loadingRecipes"),
     mod: "pick",
   });
-  const sentenceCard = card({ id: "tm-sentence-card", title: "The sentence", text: "", loading: "Reading the step times", mod: "sentence" });
-  const planCard = card({ id: "tm-plan-card", title: "Tonight’s plan", text: "", loading: "Counting back from the step times", mod: "plan" });
-  const timerCard = card({ id: "tm-timer-card", title: "Until you start", text: "", loading: "Working out the start", mod: "timer" });
-  const nudgeCard = card({ id: "tm-nudge-card", title: "The nudge", text: "", loading: "Looking up the start", mod: "nudge" });
-  const nonePlate = card({ id: "tm-none-card", title: "Pick a recipe", text: "The sections below fill in once there is a recipe to count back through.", loading: "Reading the recipes", mod: "none" });
+  const sentenceCard = card({ id: "tm-sentence-card", title: t("timing.sentenceTitle"), text: "", loading: t("timing.loadingSteps"), mod: "sentence" });
+  const planCard = card({ id: "tm-plan-card", title: t("timing.planTitle"), text: "", loading: t("timing.loadingPlan"), mod: "plan" });
+  const timerCard = card({ id: "tm-timer-card", title: t("timing.timerTitle"), text: "", loading: t("timing.loadingTimer"), mod: "timer" });
+  const nudgeCard = card({ id: "tm-nudge-card", title: t("timing.nudgeTitle"), text: "", loading: t("timing.loadingNudge"), mod: "nudge" });
+  const nonePlate = card({ id: "tm-none-card", title: t("timing.pickRecipe"), text: t("timing.noneText"), loading: t("timing.loadingRecipes"), mod: "none" });
 
   const sections = [
     h(
       "header",
       { class: "tm-intro" },
-      h("h1", null, "When do I start?"),
-      h("p", null, "Say when you eat and the screen counts back through the recipe’s step times to the moment each part of the meal starts."),
+      h("h1", null, t("timing.title")),
+      h("p", null, t("timing.intro")),
     ),
-    section("tm-pick", "Which recipe?", "Choose the recipe to count back from; only recipes with step times are listed.", pickCard),
+    section("tm-pick", t("timing.secPick"), t("timing.secPickText"), pickCard),
   ];
   if (recipeId) {
     sections.push(
-      section("tm-sentence", "We eat at: the sentence that counts back", "A sentence you fill in. Say when dinner is and it counts back through the recipe’s step times to the moment you start; change the start instead and dinner moves.", sentenceCard),
-      section("tm-plan", "Tonight’s plan: one lane per track", "Every part of the meal on its own lane, counted back from dinner, so you see when each one starts and what runs at the same time.", planCard),
-      section("tm-timer", "Time until you start: a disc, not ticking numbers", "The wait until the start moment as a coloured disc that shrinks to nothing, so the time left is seen at a glance and no numbers change.", timerCard),
-      section("tm-nudge", "A gentle nudge before the start", "Shortly before the start the screen says so once, in plain words, and offers Not yet. Past the start it offers a new dinner time, never a reproach.", nudgeCard),
+      section("tm-sentence", t("timing.secSentence"), t("timing.secSentenceText"), sentenceCard),
+      section("tm-plan", t("timing.secPlan"), t("timing.secPlanText"), planCard),
+      section("tm-timer", t("timing.secTimer"), t("timing.secTimerText"), timerCard),
+      section("tm-nudge", t("timing.secNudge"), t("timing.secNudgeText"), nudgeCard),
     );
   } else {
-    sections.push(section("tm-none", "Counting back", "Once a recipe is chosen the sentence, the plan, the disc and the nudge appear here.", nonePlate));
+    sections.push(section("tm-none", t("timing.secNone"), t("timing.secNoneText"), nonePlate));
   }
   root.replaceChildren(...sections);
   for (const c of root.querySelectorAll(".kp-card")) setCardState(/** @type {HTMLElement} */ (c), "loading");
@@ -188,19 +189,19 @@ export function mount(root, { params, navigate }) {
       h(
         "div",
         { class: "kp-formgrid__row" },
-        h("label", { class: "kp-formgrid__label", for: "tm-recipe" }, "Recipe"),
+        h("label", { class: "kp-formgrid__label", for: "tm-recipe" }, t("timing.recipe")),
         h(
           "div",
           { class: "kp-formgrid__control" },
           h(
             "div",
             { class: "kp-combobox", "data-kp-combobox": "", "data-kp-match": "substring" },
-            h("input", { class: "kp-combobox__input", type: "text", role: "combobox", id: "tm-recipe", "aria-expanded": "false", "aria-controls": "tm-recipe-list", placeholder: "Search your recipes" }),
+            h("input", { class: "kp-combobox__input", type: "text", role: "combobox", id: "tm-recipe", "aria-expanded": "false", "aria-controls": "tm-recipe-list", placeholder: t("timing.searchRecipes") }),
             h("ul", { class: "kp-combobox__list", id: "tm-recipe-list", role: "listbox", hidden: true }),
             h("p", { class: "kp-combobox__status", "data-kp-combobox-status": "", role: "status", "aria-live": "polite" }),
           ),
         ),
-        h("p", { class: "kp-formgrid__value", id: "tm-pick-said", role: "status" }, "Reading the recipes."),
+        h("p", { class: "kp-formgrid__value", id: "tm-pick-said", role: "status" }, t("timing.loadingRecipesDot")),
         h("div", { class: "kp-formgrid__actions", id: "tm-pick-actions" }),
       ),
     ),
@@ -226,43 +227,44 @@ export function mount(root, { params, navigate }) {
     const data = /** @type {HTMLElement} */ ($("#tm-sentence-card-data", root));
     const field = (/** @type {string} */ inner) => `<span class="kp-sentence__field">${inner}</span>`;
     data.innerHTML =
-      `<form class="kp-sentence" data-kp-sentence id="tm-sentence" data-kp-look="underline" data-kp-sentence-size="lg" aria-label="When do I start" onsubmit="return false">` +
-      `<p class="kp-sentence__text">We eat at ` +
-      field(`<span class="kp-time" id="tm-eat" data-kp-time data-kp-time-look="inline" data-kp-label="We eat at" data-kp-name="eat" data-kp-value="18:30" data-kp-time-step="5" data-kp-time-min="16:00" data-kp-time-max="22:00" data-kp-time-presets="Early=18:00,Usual=18:30,Late=19:30"></span>`) +
-      `, so I start at ` +
-      field(`<span class="kp-time" id="tm-start" data-kp-time data-kp-time-look="inline" data-kp-label="I start at" data-kp-name="start" data-kp-value="17:40" data-kp-time-step="5"></span>`) +
-      `. I cook at a ` +
-      field(`<select name="pace" aria-label="Cooking pace" id="tm-pace"><option value="normal">normal</option><option value="slow">slow</option></select>`) +
-      ` pace and want ` +
-      field(`<select name="spare" aria-label="Time to spare" id="tm-spare">${SPARES.map((n) => `<option value="${n}">${n === 0 ? "no time" : `${n} minutes`}</option>`).join("")}</select>`) +
-      ` to spare.</p></form>`;
+      `<form class="kp-sentence" data-kp-sentence id="tm-sentence" data-kp-look="underline" data-kp-sentence-size="lg" aria-label="${t("timing.title")}">` +
+      `<p class="kp-sentence__text">${t("timing.sWeEat")} ` +
+      field(`<span class="kp-time" id="tm-eat" data-kp-time data-kp-time-look="inline" data-kp-label="${t("timing.sWeEatLabel")}" data-kp-name="eat" data-kp-value="18:30" data-kp-time-step="5" data-kp-time-min="16:00" data-kp-time-max="22:00" data-kp-time-presets="${t("timing.early")}=18:00,${t("timing.usual")}=18:30,${t("timing.late")}=19:30"></span>`) +
+      `${t("timing.sSoStart")} ` +
+      field(`<span class="kp-time" id="tm-start" data-kp-time data-kp-time-look="inline" data-kp-label="${t("timing.sStartLabel")}" data-kp-name="start" data-kp-value="17:40" data-kp-time-step="5"></span>`) +
+      `. ${t("timing.sCook")} ` +
+      field(`<select name="pace" aria-label="${t("timing.paceLabel")}" id="tm-pace"><option value="normal">${t("timing.paceNormal")}</option><option value="slow">${t("timing.paceSlow")}</option></select>`) +
+      ` ${t("timing.sPaceAnd")} ` +
+      field(`<select name="spare" aria-label="${t("timing.spareLabel")}" id="tm-spare">${SPARES.map((n) => `<option value="${n}">${n === 0 ? t("timing.noTime") : t("timing.minutes", n)}</option>`).join("")}</select>`) +
+      ` ${t("timing.sSpare")}</p></form>`;
     data.append(readout, late);
     form = /** @type {HTMLElement} */ ($("#tm-sentence", data));
     eatEl = /** @type {HTMLElement} */ ($("#tm-eat", data));
     startEl = /** @type {HTMLElement} */ ($("#tm-start", data));
     paceEl = /** @type {HTMLSelectElement} */ ($("#tm-pace", data));
     spareEl = /** @type {HTMLSelectElement} */ ($("#tm-spare", data));
+    form.addEventListener("submit", (event) => event.preventDefault());
     cleanups.push(attachTimes(form), attachSelects(form), attachSentences(form));
   }
 
   // ---- the plan's frame -----------------------------------------------------------------------------------------
   /** @type {HTMLElement | null} */
   let gantt = null;
-  const planReadout = h("p", { class: "tm-readout", id: "tm-plan-readout", role: "status" }, "Press a bar or a diamond to read it.");
+  const planReadout = h("p", { class: "tm-readout", id: "tm-plan-readout", role: "status" }, t("timing.pressBar"));
   if (recipeId) {
     const data = /** @type {HTMLElement} */ ($("#tm-plan-card-data", root));
     const slot = h("div", { id: "tm-gantt-slot" });
     data.append(slot, planReadout);
     // The timeline setup is the one shared with cook mode (recipe/timeline.js).
-    const line = mountTimeline(slot, { label: "Tonight's cooking plan, one lane per track", loading: "Counting back from the step times", redraw: () => recipe && drawPlan() });
+    const line = mountTimeline(slot, { label: t("timing.ganttLabel"), loading: t("timing.loadingPlan"), redraw: () => recipe && drawPlan() });
     gantt = line.el;
     cleanups.push(line.detach);
     // A data area loads under the busy card, with the lane names and the axis beside it.
     setCardState(planCard, "ready");
     gantt.addEventListener("kp-gantt-open", (event) => {
       const { run, point } = /** @type {CustomEvent} */ (event).detail;
-      if (run) planReadout.textContent = `${sentenceCase(run.detail)}, ${hm(new Date(run.start).getTime())} to ${hm(new Date(run.end).getTime())}.`;
-      else if (point) planReadout.textContent = `${point.label} at ${hm(new Date(point.at).getTime())}.`;
+      if (run) planReadout.textContent = t("timing.runRead", sentenceCase(run.detail), hm(new Date(run.start).getTime()), hm(new Date(run.end).getTime()));
+      else if (point) planReadout.textContent = t("timing.pointRead", point.label, hm(new Date(point.at).getTime()));
     });
   }
 
@@ -294,13 +296,13 @@ export function mount(root, { params, navigate }) {
         h(
           "div",
           { class: "kp-formgrid__row" },
-          h("label", { class: "kp-formgrid__label", for: "tm-digits-switch" }, h("span", null, "Minutes as digits")),
+          h("label", { class: "kp-formgrid__label", for: "tm-digits-switch" }, h("span", null, t("timing.digits"))),
           h(
             "div",
             { class: "kp-formgrid__control" },
-            h("label", { class: "kp-switch" }, digitsSwitch, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, "Show digits beside the disc")),
+            h("label", { class: "kp-switch" }, digitsSwitch, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, t("timing.digitsShow"))),
           ),
-          h("p", { class: "kp-formgrid__value", id: "tm-digits-said" }, "The disc alone is the calm default; the digits are for days they help."),
+          h("p", { class: "kp-formgrid__value", id: "tm-digits-said" }, t("timing.digitsSaid")),
         ),
       ),
     );
@@ -308,10 +310,10 @@ export function mount(root, { params, navigate }) {
   }
 
   // ---- the nudge's frame ----------------------------------------------------------------------------------------
-  const band = h("div", { class: "kp-attention", id: "tm-band", "aria-label": "What needs you now" });
+  const band = h("div", { class: "kp-attention", id: "tm-band", "aria-label": t("timing.needsYou") });
   const quiet = h("p", { class: "tm-readout", id: "tm-nudge-quiet", role: "status" });
   const snoozeSlot = h("div", { id: "tm-snooze-slot" });
-  const snoozeBox = h("div", { class: "tm-nudge-snooze" }, h("p", { class: "tm-label", id: "tm-snooze-label" }, "Not yet? Remind me in:"), snoozeSlot);
+  const snoozeBox = h("div", { class: "tm-nudge-snooze" }, h("p", { class: "tm-label", id: "tm-snooze-label" }, t("timing.remindIn")), snoozeSlot);
   if (recipeId) {
     /** @type {HTMLElement} */ ($("#tm-nudge-card-data", root)).append(band, quiet, snoozeBox);
     cleanups.push(attachAttention(root));
@@ -341,7 +343,7 @@ export function mount(root, { params, navigate }) {
         await patchSettings(patch);
         if (form) setSentenceWhy(form, null);
       } catch (e) {
-        if (form) setSentenceWhy(form, `Not saved: ${e instanceof Error ? e.message : String(e)} Tonight’s plan still counts with what you chose.`);
+        if (form) setSentenceWhy(form, t("timing.notSaved", e instanceof Error ? e.message : String(e)));
       }
     });
   }
@@ -361,15 +363,15 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p || !startEl || !spareEl || !paceEl) return;
     setTime(startEl, hm(p.start));
-    const lanes = p.lanes.length === 1 ? "one track" : `${p.lanes.length} tracks`;
-    readout.textContent = `${words(Math.round(p.total / MIN))} of cooking in ${lanes}. ${startsInWords(p)}`;
+    const lanes = t("timing.trackCount", p.lanes.length);
+    readout.textContent = `${t("timing.ofCooking", words(Math.round(p.total / MIN)), lanes)} ${startsInWords(p)}`;
     const passed = Date.now() >= p.start;
     late.hidden = !passed;
     if (passed) {
       const newServe = Date.now() + p.total + state.spare * MIN;
-      lateTitle.textContent = `${hm(p.start)} has passed. Nothing is lost.`;
-      lateText.textContent = `Start now and dinner is at ${hm(newServe)} instead of ${state.eat}.`;
-      lateGo.textContent = `Eat at ${hm(newServe)} instead`;
+      lateTitle.textContent = t("timing.passed", hm(p.start));
+      lateText.textContent = t("timing.startNow", hm(newServe), state.eat);
+      lateGo.textContent = t("timing.eatAtInstead", hm(newServe));
       lateGo.dataset.serve = String(newServe);
     }
     if (form) sentence(form)?.refresh();
@@ -378,9 +380,8 @@ export function mount(root, { params, navigate }) {
   function drawPlan() {
     const p = current();
     if (!p || !gantt || !recipe) return;
-    const lanes = p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}` }));
-    drawTimeline(gantt, {
-      lanes: p.lanes.map((l) => ({ id: l.id, label: l.label, sub: `Start at ${hm(l.start)}`, series: l.series })),
+        drawTimeline(gantt, {
+      lanes: p.lanes.map((l) => ({ id: l.id, label: l.label, sub: t("timing.startAt", hm(l.start)), series: l.series })),
       runs: p.lanes.flatMap((l) =>
         l.steps.map((s) => ({
           id: s.id,
@@ -390,19 +391,19 @@ export function mount(root, { params, navigate }) {
           end: s.end,
           state: /** @type {const} */ ("planned"),
           series: l.series,
-          detail: `${s.say}, ${s.mins} min, ${s.active ? "hands on" : "you can walk away"}`,
+          detail: t("timing.stepDetail", s.say, s.mins, s.active),
         })),
       ),
-      points: p.lanes.map((l) => ({ id: `${l.id}-start`, lane: l.id, at: l.start, kind: "start", label: `Start: ${l.steps[0].say}`, planned: true })),
-      kinds: [{ kind: "start", label: "Where a track starts", shape: "diamond", tone: "info" }],
+      points: p.lanes.map((l) => ({ id: `${l.id}-start`, lane: l.id, at: l.start, kind: "start", label: t("timing.startColon", l.steps[0].say), planned: true })),
+      kinds: [{ kind: "start", label: t("timing.whereStarts"), shape: "diamond", tone: "info" }],
       // The window holds the plan, not the whole day up to the real now: ten minutes before the first start to a quarter hour after dinner.
       from: p.start - 10 * MIN,
       to: p.serve + 15 * MIN,
-      zones: [{ id: "eat", from: p.serve, to: p.serve + 12 * MIN, label: `We eat at ${hm(p.serve)}`, tone: "info" }],
+      zones: [{ id: "eat", from: p.serve, to: p.serve + 12 * MIN, label: t("timing.weEatAt", hm(p.serve)), tone: "info" }],
     });
-    const dropped = state.dropped.size > 0 ? ` Left out tonight: ${[...state.dropped].map((id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((t) => t.id === id)?.name ?? id).join(", ")}.` : "";
+    const dropped = state.dropped.size > 0 ? ` ${t("timing.leftOutShort", [...state.dropped].map((id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((tr) => tr.id === id)?.name ?? id).join(", "))}` : "";
     /** @type {HTMLElement} */ ($("#tm-plan-card-body", root)).textContent =
-      `Counted back from dinner at ${hm(p.serve)}: ${words(Math.round(p.total / MIN))} from the first step to the table. ${p.lanes.map((l) => `${l.label} at ${hm(l.start)}`).join(", ")}.${dropped}`;
+      `${t("timing.countedBack", hm(p.serve), words(Math.round(p.total / MIN)))} ${p.lanes.map((l) => t("timing.sayAt", l.label, hm(l.start))).join(", ")}.${dropped}`;
   }
 
   function buildDisc() {
@@ -412,8 +413,8 @@ export function mount(root, { params, navigate }) {
     discDetach = [];
     discStart = p.start;
     // A full dial is 60 minutes (Kenny's changed default): a longer wait leaves the disc full until the last hour.
-    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc-until="${p.start}" data-kp-timer-disc-timezone="${ZONE}" data-kp-timer-disc-name="Start cooking" data-kp-timer-disc-scale="60"></div>`;
-    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown-until="${p.start}" data-kp-countdown-timezone="${ZONE}" data-kp-countdown-name="Minutes to the start"></div>`;
+    discSlot.innerHTML = `<div class="kp-timer-disc" data-kp-timer-disc-until="${p.start}" data-kp-timer-disc-timezone="${ZONE}" data-kp-timer-disc-name="${t("timing.discName")}" data-kp-timer-disc-scale="60"></div>`;
+    digitsSlot.innerHTML = `<div class="kp-countdown tm-digits" data-kp-countdown-until="${p.start}" data-kp-countdown-timezone="${ZONE}" data-kp-countdown-name="${t("timing.countdownName")}"></div>`;
     disc = /** @type {HTMLElement} */ (discSlot.firstElementChild);
     discDetach.push(attachTimerDiscs(discSlot), attachCountdowns(digitsSlot));
     digitsSlot.hidden = !numbers;
@@ -422,8 +423,8 @@ export function mount(root, { params, navigate }) {
     disc.addEventListener("kp-countdown-change", drawTimerLine);
     disc.addEventListener("kp-countdown-end", () => {
       const q = current();
-      upTitle.textContent = `It is ${hm(Date.now())}.`;
-      upText.textContent = q ? `First: ${q.first}. ${startsInWords(q)}` : "";
+      upTitle.textContent = t("timing.itIs", hm(Date.now()));
+      upText.textContent = q ? t("timing.firstThen", q.first, startsInWords(q)) : "";
       upNote.hidden = false;
       drawTimerLine();
       drawNudge();
@@ -434,7 +435,7 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p) return;
     /** @type {HTMLElement} */ ($("#tm-timer-card-body", root)).textContent =
-      `Dinner at ${state.eat}, so the start is ${hm(p.start)}. ${p.start > Date.now() ? `From now that is ${words(Math.max(1, Math.round((p.start - Date.now()) / MIN)))}.` : "That moment has come."}`;
+      `${t("timing.dinnerSoStart", state.eat, hm(p.start))} ${p.start > Date.now() ? t("timing.fromNow", words(Math.max(1, Math.round((p.start - Date.now()) / MIN)))) : t("timing.momentCome")}`;
     // The disc is one wait to one moment: it is built again only when that moment moves.
     if (!disc || p.start !== discStart) buildDisc();
     drawTimerLine();
@@ -444,7 +445,7 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p) return;
     const left = Math.round((p.start - Date.now()) / MIN);
-    timerReadout.textContent = left > 0 ? `You start at ${hm(p.start)}, in ${words(left)}.` : `It is ${hm(p.start)} or later: the start has come.`;
+    timerReadout.textContent = left > 0 ? t("timing.youStartIn", hm(p.start), words(left)) : t("timing.startCome", hm(p.start));
   }
 
   /** @returns {import("/static/kp/js/attention.js").AttentionItem[]} */
@@ -456,21 +457,21 @@ export function mount(root, { params, navigate }) {
     /** @type {import("/static/kp/js/attention.js").AttentionItem[]} */
     const items = [];
     const cook = () => navigate(`/cook?id=${encodeURIComponent(String(recipe?.id))}`);
-    const names = (/** @type {string} */ id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((t) => t.id === id)?.name ?? id;
+    const names = (/** @type {string} */ id) => /** @type {Item[]} */ (recipe?.tracks ?? []).find((tr) => tr.id === id)?.name ?? id;
     if (state.dropped.size > 0) {
       items.push({
         key: "dropped",
         severity: "info",
-        title: `Left out tonight: ${[...state.dropped].map(names).join(", ")}`,
-        text: `The plan counts without it. Dinner stays at ${state.eat}.`,
-        action: button("Put it back", "kp-button--sm", () => {
+        title: t("timing.leftOut", [...state.dropped].map(names).join(", ")),
+        text: t("timing.countsWithout", state.eat),
+        action: button(t("timing.putBack"), "kp-button--sm", () => {
           state.dropped.clear();
           draw();
         }),
       });
     }
     if (snoozedUntil !== null) {
-      items.push({ key: "snoozed", severity: "info", title: `I will remind you at ${hm(snoozedUntil)}`, text: `Until then nothing else asks for you. The start is ${hm(p.start)}.` });
+      items.push({ key: "snoozed", severity: "info", title: t("timing.remindAt", hm(snoozedUntil)), text: t("timing.untilThen", hm(p.start)) });
       return items;
     }
     if (toStart > 10 * MIN) return items;
@@ -478,9 +479,9 @@ export function mount(root, { params, navigate }) {
       items.push({
         key: "soon",
         severity: "info",
-        title: `Start in ${words(Math.max(1, Math.ceil(toStart / MIN)))}`,
-        text: `First: ${p.first}. Put the board and a knife out now and the first step is already half done.`,
-        action: button("I am starting", "kp-button--primary kp-button--sm", cook),
+        title: t("timing.startIn", words(Math.max(1, Math.ceil(toStart / MIN)))),
+        text: t("timing.soonText", p.first),
+        action: button(t("timing.iAmStarting"), "kp-button--primary kp-button--sm", cook),
       });
       return items;
     }
@@ -488,15 +489,15 @@ export function mount(root, { params, navigate }) {
       items.push({
         key: "now",
         severity: "warning",
-        title: `It is ${hm(p.start)}: time to start`,
+        title: t("timing.timeToStart", hm(p.start)),
         text: startsInWords(p),
-        action: button("Start now", "kp-button--primary kp-button--sm", cook),
+        action: button(t("timing.startNowBtn"), "kp-button--primary kp-button--sm", cook),
       });
       return items;
     }
     // Past the start: never a reproach, a new dinner time, or one track left out when that is enough.
     const newServe = now + p.total + state.spare * MIN;
-    const actions = h("span", { class: "tm-band-actions" }, button(`Eat at ${hm(newServe)}`, "kp-button--primary kp-button--sm", () => moveDinner(newServe)));
+    const actions = h("span", { class: "tm-band-actions" }, button(t("timing.eatAt", hm(newServe)), "kp-button--primary kp-button--sm", () => moveDinner(newServe)));
     /** @type {string[]} */
     const fixers = [];
     if (recipe && p.lanes.length > 1) {
@@ -507,7 +508,7 @@ export function mount(root, { params, navigate }) {
     }
     for (const id of fixers.slice(0, 2)) {
       actions.append(
-        button(`Keep ${state.eat} without ${names(id)}`, "kp-button--sm", () => {
+        button(t("timing.keepWithout", state.eat, names(id)), "kp-button--sm", () => {
           state.dropped.add(id);
           draw();
         }),
@@ -516,8 +517,8 @@ export function mount(root, { params, navigate }) {
     items.push({
       key: "late",
       severity: "warning",
-      title: `It is ${hm(now)}, ${words(Math.round(-toStart / MIN))} past the start. Nothing is lost.`,
-      text: `Start now and dinner is at ${hm(newServe)}.${fixers.length ? ` Or keep ${state.eat} and leave one track out.` : ""}`,
+      title: t("timing.pastStart", hm(now), words(Math.round(-toStart / MIN))),
+      text: `${t("timing.startNowAt", hm(newServe))}${fixers.length ? ` ${t("timing.orKeep", state.eat)}` : ""}`,
       action: actions,
     });
     return items;
@@ -527,12 +528,12 @@ export function mount(root, { params, navigate }) {
     const p = current();
     if (!p) return;
     if (snoozedUntil !== null && Date.now() >= snoozedUntil) snoozedUntil = null;
-    /** @type {HTMLElement} */ ($("#tm-nudge-card-t", root)).textContent = `${recipe?.name}, dinner at ${state.eat}`;
-    /** @type {HTMLElement} */ ($("#tm-nudge-card-body", root)).textContent = `The start is ${hm(p.start)}. It is ${hm(Date.now())} now.`;
+    /** @type {HTMLElement} */ ($("#tm-nudge-card-t", root)).textContent = t("timing.nudgeHead", recipe?.name, state.eat);
+    /** @type {HTMLElement} */ ($("#tm-nudge-card-body", root)).textContent = t("timing.startIsNow", hm(p.start), hm(Date.now()));
     const list = nudgeItems();
     setAttention(band, list);
     const early = p.start - Date.now() > 10 * MIN;
-    quiet.textContent = list.length === 0 ? `Nothing to do yet. The first nudge comes 10 minutes before ${hm(p.start)}.` : "";
+    quiet.textContent = list.length === 0 ? t("timing.nothingYet", hm(p.start)) : "";
     // Not yet is for a nudge that can wait: not past the start, and only while there is a nudge to put off.
     const waitable = !early && p.start - Date.now() > -2 * MIN && list.some((i) => i.key === "soon" || i.key === "now" || i.key === "snoozed");
     snoozeBox.hidden = !waitable;
@@ -620,17 +621,17 @@ export function mount(root, { params, navigate }) {
 
   /** @param {unknown} e */
   function failed(e) {
-    const text = e instanceof Error ? e.message : "The kitchen did not answer.";
-    const options = (/** @type {string} */ title) => ({ title, text: `${text} The recipe is still there; nothing was changed.` });
-    setCardState(pickCard, "error", options("The recipes could not be read"));
-    setCardState(nonePlate, "error", options("The recipes could not be read"));
-    for (const c of dataCards) setCardState(c, "error", options("The step times could not be read"));
+    const text = e instanceof Error ? e.message : t("timing.noAnswer");
+    const options = (/** @type {string} */ title) => ({ title, text: `${text} ${t("timing.stillThere")}` });
+    setCardState(pickCard, "error", options(t("timing.recipesFailed")));
+    setCardState(nonePlate, "error", options(t("timing.recipesFailed")));
+    for (const c of dataCards) setCardState(c, "error", options(t("timing.stepsFailed")));
     // The timeline shows its own failed plate (with Retry) inside the plan card, as the package's timeline does.
     if (gantt) {
-      const o = options("The step times could not be read");
+      const o = options(t("timing.stepsFailed"));
       setCardState(planCard, "ready");
       setTimelineState(gantt, "error", o.title, { text: o.text });
-    } else setCardState(planCard, "error", options("The step times could not be read"));
+    } else setCardState(planCard, "error", options(t("timing.stepsFailed")));
   }
 
   /** The plate of a recipe that cannot be counted back, with the one action that helps. @param {string} title @param {string} text @param {HTMLElement} action */
@@ -657,31 +658,31 @@ export function mount(root, { params, navigate }) {
     recipe = recipeId ? recipeById(recipeId) : null;
     actions.replaceChildren();
     if (list.length === 0) {
-      setCardState(pickCard, "empty", plate("No recipe has step times yet", "Counting back needs to know how long each step takes. Give a recipe’s steps their minutes and it appears here.", h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, "Open the recipes")));
-      setCardState(nonePlate, "empty", plate("No recipe has step times yet", "Counting back needs step times. Open the recipes and give a recipe’s steps their minutes.", h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, "Open the recipes")));
+      setCardState(pickCard, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
+      setCardState(nonePlate, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText2"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
       return;
     }
     setCardState(pickCard, "ready");
     if (recipe && hasTimes(recipe)) {
       handle?.set([String(recipe.id)]);
       const lanes = /** @type {Item[]} */ (recipe.tracks ?? []).length;
-      said.textContent = `${timedSteps(recipe).length} steps with times${lanes > 1 ? ` in ${lanes} tracks` : ""}, ${words(Number(recipe.minutes) || 0)} start to plate.`;
-      actions.append(h("a", { class: "kp-button kp-button--sm", href: `/recipe?id=${encodeURIComponent(String(recipe.id))}` }, "Open the recipe"));
+      said.textContent = t("timing.said", timedSteps(recipe).length, lanes, words(Number(recipe.minutes) || 0));
+      actions.append(h("a", { class: "kp-button kp-button--sm", href: `/recipe?id=${encodeURIComponent(String(recipe.id))}` }, t("timing.openRecipe")));
     } else {
-      said.textContent = recipeId ? "That recipe has no step times yet." : "Choose a recipe to count back from dinner.";
+      said.textContent = recipeId ? t("timing.thatNoTimes") : t("timing.chooseToCount");
     }
 
     if (!recipeId) {
-      setCardState(nonePlate, "empty", plate("Pick a recipe", "Choose one above and this page counts back from dinner to the moment you start.", h("button", { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, "Choose a recipe")));
+      setCardState(nonePlate, "empty", plate(t("timing.pickRecipe"), t("timing.chooseAbove"), h("button", { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, t("timing.chooseRecipe"))));
       return;
     }
     // The recipe of the link: missing, without step times, or ready.
     if (!recipe || !hasTimes(recipe)) {
-      const title = recipe ? "This recipe has no step times yet" : "That recipe is not in the kitchen";
+      const title = recipe ? t("timing.thisNoTimes") : t("timing.notInKitchen");
       const text = recipe
-        ? "Counting back needs to know how long each step takes. Give every step a time and the sentence, the plan, the disc and the nudge fill themselves in."
-        : "The link may be old. Choose one of your recipes to count back from dinner.";
-      const again = () => h(recipe ? "a" : "button", recipe ? { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(recipe?.id))}` } : { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, recipe ? "Open the recipe" : "Choose a recipe");
+        ? t("timing.giveEveryStep")
+        : t("timing.linkOld");
+      const again = () => h(recipe ? "a" : "button", recipe ? { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(recipe?.id))}` } : { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, recipe ? t("timing.openRecipe") : t("timing.chooseRecipe"));
       for (const c of dataCards) setCardState(c, "empty", plate(title, text, again()));
       if (gantt) setTimelineState(gantt, "ready");
       setCardState(planCard, "empty", plate(title, text, again()));
@@ -692,7 +693,7 @@ export function mount(root, { params, navigate }) {
     state.eat = typeof s.dinner_time === "string" && /^\d{1,2}:\d{2}$/.test(s.dinner_time) ? s.dinner_time : DEFAULTS.dinner_time;
     state.pace = s.pace === "slow" ? "slow" : "normal";
     state.spare = Number.isFinite(Number(s.spare)) ? Number(s.spare) : DEFAULTS.spare;
-    if (spareEl && !SPARES.includes(state.spare)) spareEl.append(h("option", { value: state.spare }, `${state.spare} minutes`));
+    if (spareEl && !SPARES.includes(state.spare)) spareEl.append(h("option", { value: state.spare }, t("timing.minutes", state.spare)));
     if (eatEl) {
       // A dinner time outside the usual window still shows: the window widens to hold it.
       const mins = Number(state.eat.slice(0, 2)) * 60 + Number(state.eat.slice(3));
@@ -706,7 +707,7 @@ export function mount(root, { params, navigate }) {
     /** @type {HTMLElement} */ ($("#tm-sentence-card-t", root)).textContent = String(recipe.name);
     const tracks = /** @type {Item[]} */ (recipe.tracks ?? []);
     /** @type {HTMLElement} */ ($("#tm-sentence-card-body", root)).textContent =
-      tracks.length > 1 ? `${tracks.length} things cook at once: ${tracks.map((t) => String(t.name).toLowerCase()).join(", ").replace(/, ([^,]*)$/, " and $1")}.` : "One track, one step after the other.";
+      tracks.length > 1 ? t("timing.cookAtOnce", tracks.length, tracks.map((tr) => String(tr.name).toLowerCase()).join(", ").replace(/, ([^,]*)$/, ` ${t("timing.and")} $1`)) : t("timing.oneTrack");
     setCardState(sentenceCard, "ready");
     if (gantt) setTimelineState(gantt, "ready");
     setCardState(planCard, "ready");

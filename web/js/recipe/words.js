@@ -104,7 +104,7 @@ export const WORDS = {
     loading: "Recept ophalen",
     notFoundTitle: "We vinden dit recept niet",
     notFoundText: "Het is misschien hernoemd of verwijderd. Niets van wat je bewaarde is weg.",
-    wheel: "Open het rad",
+    wheel: "Open het wiel",
     failedTitle: "Het recept kon niet geladen worden",
     effortLabel: "Inspanning",
     efforts: { none: "Laag", light: "Gemiddeld", full: "Hoog" },

@@ -86,13 +86,22 @@ pub fn router(store: Slot, files: Files) -> Router {
         .with_state(Public { store, files })
 }
 
-/// The English list for Kitchen's own page, behind the login.
+/// The list in either language for Kitchen's own page, behind the login
+/// (`/data/wheel/en`, `/data/wheel/nl`): Kitchen's /parents follows the
+/// NL/EN toggle (Kenny, 24/10/2026 05:12), also away from home, where
+/// `/eten/data` is refused.
 pub fn english(store: Arc<Store>) -> Router {
     Router::new()
         .route(
             "/data/wheel/en",
             get(|State(s): State<Arc<Store>>| async move {
                 axum::Json(wheel(&s.snapshot().await, Lang::En))
+            }),
+        )
+        .route(
+            "/data/wheel/nl",
+            get(|State(s): State<Arc<Store>>| async move {
+                axum::Json(wheel(&s.snapshot().await, Lang::Nl))
             }),
         )
         .with_state(store)

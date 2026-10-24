@@ -7,14 +7,15 @@
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
-import { names, ordered, label } from "../dishes/editor.js";
+import { names, ordered } from "../dishes/editor.js";
 import { tableCard, rowActions, itemLink, openRecordEditor, usersOf } from "../records.js";
+import { t } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 
 /** @param {HTMLElement} root */
 export function mount(root) {
-  document.title = "Ingredients · Kitchen";
+  document.title = `${t("nav.ingredients")} · Kitchen`;
   let alive = true;
 
   const head = h(
@@ -26,32 +27,32 @@ export function mount(root) {
       h(
         "div",
         null,
-        h("h1", { class: "kp-page-header__title" }, "Ingredients"),
-        h("p", { class: "kp-page-header__description" }, "One list for the whole kitchen: a dish takes its sides from it and a recipe its lines. Open an ingredient to see every dish and recipe with it, and a wheel that picks among them."),
+        h("h1", { class: "kp-page-header__title" }, t("nav.ingredients")),
+        h("p", { class: "kp-page-header__description" }, t("ig.lede")),
       ),
     ),
   );
   const ings = tableCard({
     id: "ig-ings",
-    title: "All ingredients",
-    lede: "An ingredient shows in each language it has a name in; the category keeps the list in order.",
-    noun: "ingredient",
-    plural: "ingredients",
-    columns: [["Dutch name", "text"], ["English name", "text"], ["Category", "text"], ["Used by", "number"], ["Actions"]],
-    add: "Add an ingredient",
-    emptyTitle: "No ingredients yet",
-    emptyText: "Add one here, or type a new one while you add a side to a dish or a line to a recipe.",
+    title: t("ig.allTitle"),
+    lede: t("ig.allLede"),
+    noun: t("list.ingredients"),
+    plural: t("ig.plural"),
+    columns: [[t("rec.dutchName"), "text"], [t("rec.englishName"), "text"], [t("rec.category"), "text"], [t("ig.usedBy"), "number"], [t("lg.actions")]],
+    add: t("list.ingredients.add"),
+    emptyTitle: t("ig.empty"),
+    emptyText: t("ig.emptyText"),
   });
   const cats = tableCard({
     id: "ig-cats",
-    title: "Ingredient categories",
-    lede: "Meat, potatoes, vegetables, …: the groups the ingredients sit in.",
-    noun: "category",
-    plural: "ingredient categories",
-    columns: [["Position", "number"], ["Dutch name", "text"], ["English name", "text"], ["Ingredients", "number"], ["Actions"]],
-    add: "Add a category",
-    emptyTitle: "No ingredient categories yet",
-    emptyText: "A new ingredient needs one; “Andere” / “Other” is the usual first.",
+    title: t("ig.catTitle"),
+    lede: t("ig.catLede"),
+    noun: t("list.ingredient_categories"),
+    plural: t("ig.catPlural"),
+    columns: [[t("it.position"), "number"], [t("rec.dutchName"), "text"], [t("rec.englishName"), "text"], [t("nav.ingredients"), "number"], [t("lg.actions")]],
+    add: t("list.ingredient_categories.add"),
+    emptyTitle: t("ig.catEmpty"),
+    emptyText: t("ig.catEmptyText"),
   });
   const page = h("div", { class: "dl-page" }, head, ings.card, cats.card);
   root.replaceChildren(page);
@@ -62,7 +63,7 @@ export function mount(root) {
 
   const busy = () => {
     for (const handle of handles) {
-      handle?.busy({ text: "Reading the ingredients", overlay: true });
+      handle?.busy({ text: t("ig.reading"), overlay: true });
       handle?.state("loading");
     }
   };
@@ -78,11 +79,11 @@ export function mount(root) {
         return h(
           "tr",
           { "data-kp-row-key": i.id },
-          h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl ? itemLink("ingredients", i, n.nl) : "–"),
-          h("td", { "data-label": "English name" }, n.en ? itemLink("ingredients", i, n.en) : "–"),
-          h("td", { "data-label": "Category" }, cat ? itemLink("ingredient_categories", cat) : "–"),
-          h("td", { "data-label": "Used by", class: "kp-numeric", "data-kp-sort-value": String(used) }, `${used} ${used === 1 ? "dish or recipe" : "dishes and recipes"}`),
-          h("td", { "data-label": "Actions" }, rowActions("ingredients", i)),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("ingredients", i, n.nl) : "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("ingredients", i, n.en) : "–"),
+          h("td", { "data-label": t("rec.category") }, cat ? itemLink("ingredient_categories", cat) : "–"),
+          h("td", { "data-label": t("ig.usedBy"), class: "kp-numeric", "data-kp-sort-value": String(used) }, t("ig.used", used)),
+          h("td", { "data-label": t("lg.actions") }, rowActions("ingredients", i)),
         );
       }),
     );
@@ -93,11 +94,11 @@ export function mount(root) {
         return h(
           "tr",
           { "data-kp-row-key": c.id },
-          h("td", { "data-label": "Position", class: "kp-numeric" }, String(at + 1)),
-          h("td", { "data-label": "Dutch name", lang: "nl" }, n.nl ? itemLink("ingredient_categories", c, n.nl) : "–"),
-          h("td", { "data-label": "English name" }, n.en ? itemLink("ingredient_categories", c, n.en) : label(c)),
-          h("td", { "data-label": "Ingredients", class: "kp-numeric", "data-kp-sort-value": String(count) }, String(count)),
-          h("td", { "data-label": "Actions" }, rowActions("ingredient_categories", c)),
+          h("td", { "data-label": t("it.position"), class: "kp-numeric" }, String(at + 1)),
+          h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("ingredient_categories", c, n.nl) : "–"),
+          h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("ingredient_categories", c, n.en) : "–"),
+          h("td", { "data-label": t("nav.ingredients"), class: "kp-numeric", "data-kp-sort-value": String(count) }, String(count)),
+          h("td", { "data-label": t("lg.actions") }, rowActions("ingredient_categories", c)),
         );
       }),
     );

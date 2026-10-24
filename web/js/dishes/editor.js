@@ -22,13 +22,14 @@ import { h } from "../dom.js";
 import { create, replace, ApiError } from "../api.js";
 import { ingredientsPicker } from "../ingredients/picker.js";
 import { row, input, toggle, on, select } from "../recipe/editor.js";
+import { t, nameOf } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
 
 /** Both names of an item, trimmed. @param {Item | null | undefined} item */
 export const names = (item) => ({ nl: String(item?.name?.nl ?? "").trim(), en: String(item?.name?.en ?? "").trim() });
-/** The name to show in Kitchen: English, else Dutch. @param {Item | null | undefined} item */
-export const label = (item) => names(item).en || names(item).nl || "(no name)";
+/** The name to show in Kitchen: in the language it is shown in, else the other half. @param {Item | null | undefined} item */
+export const label = (item) => nameOf(item).text;
 /** Which wheels a dish's names put it on: "both", "nl", "en" or "none". @param {Item} dish */
 export function languages(dish) {
   const n = names(dish);
@@ -46,15 +47,15 @@ export const sec = (title, text, ...body) => h("section", { class: "rl-formsec" 
  * @param {{ title: string, text: string, form: HTMLFormElement, saveLabel: string, onSave: () => Promise<string | { error: string, remedy?: string, word: string }> }} spec
  */
 export function openDrawer(dialog, { title, text, form, saveLabel, onSave }) {
-  const save = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-flash-button": true, "data-kp-flash-words": "Saved", form: form.id }, saveLabel);
-  const cancel = h("button", { type: "button", class: "kp-button" }, "Cancel");
+  const save = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-flash-button": true, "data-kp-flash-words": t("rec.saved"), form: form.id }, saveLabel);
+  const cancel = h("button", { type: "button", class: "kp-button" }, t("common.cancel"));
   const line = h("p", { class: "rl-editor__line", role: "status" });
   dialog.replaceChildren(
     h(
       "header",
       { class: "kp-drawer__head" },
       h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, title),
-      h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": "Close without saving", "data-close": true }, "✕"),
+      h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("de.closeNoSave"), "data-close": true }, "✕"),
       h("p", { class: "kp-drawer__desc" }, text),
     ),
     form,
@@ -92,14 +93,14 @@ const why = (e) => (e instanceof ApiError ? e.message : String(e));
 
 /**
  * The sides block: one bordered group per side, each with its ingredients, an optional label in both languages, Up,
- * Down and Remove; "Add a side" under them.
+ * Down and Remove; t("de.addSide") under them.
  * @param {Item[]} sides the dish's sides
  */
 function sidesBlock(sides) {
   const box = h("div", { class: "dl-sides" });
   const groups = h("div", { class: "dl-sides__groups" });
-  const none = h("p", { class: "rl-rows__empty" }, "No sides: the dish always comes the same way.");
-  const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, "Add a side");
+  const none = h("p", { class: "rl-rows__empty" }, t("de.noSides"));
+  const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("de.addSide"));
   /** @type {{ el: HTMLElement, get: () => Item | null }[]} */
   let list = [];
 
@@ -107,7 +108,7 @@ function sidesBlock(sides) {
     none.hidden = list.length > 0;
     list.forEach((entry, i) => {
       const head = /** @type {HTMLElement} */ (entry.el.querySelector(".dl-side__title"));
-      head.textContent = `Side ${i + 1}`;
+      head.textContent = t("de.side", i + 1);
       const [up, down] = /** @type {HTMLButtonElement[]} */ ([...entry.el.querySelectorAll("[data-dl-move]")]);
       up.disabled = i === 0;
       down.disabled = i === list.length - 1;
@@ -116,12 +117,12 @@ function sidesBlock(sides) {
   };
   /** @param {Item} side @param {boolean} [focus] */
   const push = (side, focus = false) => {
-    const picker = ingredientsPicker(Array.isArray(side.ingredients) ? side.ingredients : [], { label: "Ingredients of the side" });
-    const nl = input(String(side.label?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: "e.g. Kroketten met mayonaise", "aria-label": "Dutch label of the side" });
-    const en = input(String(side.label?.en ?? ""), "text", { autocomplete: "off", placeholder: "e.g. Croquettes with mayonnaise", "aria-label": "English label of the side" });
-    const up = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "up", "aria-label": "Move the side up" }, "Up");
-    const down = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "down", "aria-label": "Move the side down" }, "Down");
-    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, "Remove");
+    const picker = ingredientsPicker(Array.isArray(side.ingredients) ? side.ingredients : [], { label: t("de.sideIngs") });
+    const nl = input(String(side.label?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("de.phLabelNl"), "aria-label": t("de.labelNlAria") });
+    const en = input(String(side.label?.en ?? ""), "text", { autocomplete: "off", placeholder: t("de.phLabelEn"), "aria-label": t("de.labelEnAria") });
+    const up = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "up", "aria-label": t("de.upLabel") }, t("de.up"));
+    const down = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "down", "aria-label": t("de.downLabel") }, t("de.down"));
+    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("de.remove"));
     const el = h(
       "div",
       { class: "dl-side" },
@@ -129,9 +130,9 @@ function sidesBlock(sides) {
       h(
         "div",
         { class: "kp-formgrid kitchen-formgrid" },
-        row("Ingredients", picker.el, "What goes together on this side; one entry on the small wheel."),
-        row("Dutch label", nl, "Optional; without it the side reads as its ingredients."),
-        row("English label", en, "Optional, as the Dutch label."),
+        row(t("nav.ingredients"), picker.el, t("de.sideIngsHint")),
+        row(t("de.labelNl"), nl, t("de.labelNlHint")),
+        row(t("de.labelEn"), en, t("de.labelEnHint")),
       ),
     );
     const entry = {
@@ -179,50 +180,50 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
   const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipe_id: null, ingredients: [], sides: [] };
   const n = names(d);
   const nl = input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees" });
-  const en = input(n.en, "text", { autocomplete: "off", placeholder: "Flemish beef stew" });
-  const category = select([["", "No category"], ...categories.map((c) => /** @type {[string, string]} */ ([c.id, label(c)]))], d.category ?? "", "Category");
-  const parents = toggle("On the parents' wheel", d.parents === true);
+  const en = input(n.en, "text", { autocomplete: "off", placeholder: t("de.phEn") });
+  const category = select([["", t("it.noCategory")], ...categories.map((c) => /** @type {[string, string]} */ ([c.id, label(c)]))], d.category ?? "", t("rec.category"));
+  const parents = toggle(t("it.onParents"), d.parents === true);
   const recipe = select(
-    [["", "No recipe"], ...[...recipes].sort((a, b) => String(a.name).localeCompare(String(b.name))).map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)]))],
+    [["", t("rec.noRecipe")], ...[...recipes].sort((a, b) => String(a.name).localeCompare(String(b.name))).map((r) => /** @type {[string, string]} */ ([r.id, String(r.name)]))],
     d.recipe_id ?? "",
-    "Recipe",
+    t("rec.recipe"),
   );
-  const fixed = ingredientsPicker(Array.isArray(d.ingredients) ? d.ingredients : [], { label: "Ingredients that always come with the dish" });
+  const fixed = ingredientsPicker(Array.isArray(d.ingredients) ? d.ingredients : [], { label: t("de.fixedAria") });
   const sides = sidesBlock(Array.isArray(d.sides) ? d.sides : []);
   const form = /** @type {HTMLFormElement} */ (
     h(
       "form",
       { class: "kp-drawer__body rl-form", id: "dl-editor-form", novalidate: true },
       sec(
-        "The dish",
-        "A dish shows on the Dutch wheel when it has a Dutch name and on the English one when it has an English name.",
+        t("de.dishTitle"),
+        t("de.dishText"),
         h(
           "div",
           { class: "kp-formgrid" },
-          row("Dutch name", nl, "What the parents' page on eten.kp-soft.dev says."),
-          row("English name", en, "What Kitchen says."),
-          row("Category", category, "Everyday, special, …; the parents' page can narrow the wheel to one."),
-          row("Parents' wheel", parents, "Only dishes with this on stand on the parents' wheel."),
-          row("Recipe", recipe, "The recipe to cook it from, if there is one."),
+          row(t("rec.dutchName"), nl, t("de.nlHint")),
+          row(t("rec.englishName"), en, t("rec.englishHint")),
+          row(t("rec.category"), category, t("de.catHint")),
+          row(t("it.parentsWheel"), parents, t("de.parentsHint")),
+          row(t("rec.recipe"), recipe, t("de.recipeHint")),
         ),
       ),
       sec(
-        "Always with it",
-        "The ingredients that come with the dish every time, such as the stew itself or a salad.",
-        h("div", { class: "kp-formgrid kitchen-formgrid" }, row("Ingredients", fixed.el, "Type to search; a new one can be added right here.")),
+        t("it.always"),
+        t("de.alwaysText"),
+        h("div", { class: "kp-formgrid kitchen-formgrid" }, row(t("nav.ingredients"), fixed.el, t("de.fixedHint"))),
       ),
       sec(
-        "Sides",
-        "The choices that go with the dish: each side is one or more ingredients that go together, such as fries with mayonnaise. The small wheel picks one side when there are two or more; one side is simply named.",
+        t("it.sides"),
+        t("de.sidesText"),
         sides.el,
       ),
     )
   );
   openDrawer(dialog, {
-    title: dish ? `Edit ${label(dish)}` : "Add a dish",
-    text: dish ? "Change any field; nothing is saved until you press Save." : "Fill in what you know; every field can be changed later.",
+    title: dish ? t("rec.editTitle", label(dish)) : t("list.dishes.add"),
+    text: dish ? t("rec.editText") : t("rec.addText"),
     form,
-    saveLabel: dish ? "Save the dish" : "Add the dish",
+    saveLabel: dish ? t("de.saveDish") : t("list.dishes.addSave"),
     onSave: async () => {
       const body = {
         ...(dish ?? {}),
@@ -235,18 +236,18 @@ export function openDishEditor(dialog, { dish, categories, recipes }) {
       };
       if (!body.name.nl && !body.name.en) {
         /** @type {HTMLInputElement} */ (nl).focus();
-        return { error: "A dish needs a name.", remedy: "Type its Dutch and its English name.", word: "Not saved" };
+        return { error: t("de.dishNeedsName"), remedy: t("de.dishFixName"), word: t("rec.notSaved") };
       }
       try {
         if (dish) await replace("dishes", body);
         else await create("dishes", body);
       } catch (e) {
-        return { error: why(e), word: "Not saved" };
+        return { error: why(e), word: t("rec.notSaved") };
       }
       const only = languages(body);
-      const where = only === "nl" ? "; it shows only on the Dutch wheel" : only === "en" ? "; it shows only on the English wheel" : "";
-      toast(`${dish ? "Saved" : "Added"} ${label(body)}${where}`);
-      return "Saved";
+      const where = only === "nl" ? t("de.onlyNl") : only === "en" ? t("de.onlyEn") : "";
+      toast(`${t(dish ? "rec.savedName" : "rec.addedName", label(body))}${where}`);
+      return t("rec.saved");
     },
   });
 }
@@ -264,7 +265,7 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
   const last = item ? count : count + 1;
   const position = h(
     "div",
-    { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": "1", "data-kp-quantity-max": String(Math.max(1, last)), "data-kp-quantity-label": "Position" },
+    { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": "1", "data-kp-quantity-max": String(Math.max(1, last)), "data-kp-quantity-label": t("it.position") },
     h("input", { class: "kp-quantity__input", value: String(Math.min(item?.order ?? last, last)) }),
   );
   const form = /** @type {HTMLFormElement} */ (
@@ -272,23 +273,23 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
       "form",
       { class: "kp-drawer__body rl-form", id: "dl-name-form", novalidate: true },
       sec(
-        `The ${noun}`,
-        `It shows in each language it has a name in.`,
+        t("de.nameTitle", noun),
+        t("de.nameText"),
         h(
           "div",
           { class: "kp-formgrid" },
-          row("Dutch name", nl, "What the parents' page says."),
-          row("English name", en, "What Kitchen says."),
-          row("Position", position, `Where it stands in the list of ${noun === "category" ? "categories" : "ingredient categories"}.`),
+          row(t("rec.dutchName"), nl, t("rec.dutchHint")),
+          row(t("rec.englishName"), en, t("rec.englishHint")),
+          row(t("it.position"), position, t(list === "dish_categories" ? "de.posDish" : "de.posIng")),
         ),
       ),
     )
   );
   openDrawer(dialog, {
-    title: item ? `Edit ${label(item)}` : `Add a ${noun}`,
-    text: "Nothing is saved until you press Save.",
+    title: item ? t("rec.editTitle", label(item)) : t(`list.${list}.add`),
+    text: t("de.nothingSaved"),
     form,
-    saveLabel: item ? `Save the ${noun}` : `Add the ${noun}`,
+    saveLabel: item ? t("common.save") : t(`list.${list}.addSave`),
     onSave: async () => {
       const body = {
         ...(item ?? {}),
@@ -297,7 +298,7 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
       };
       if (!body.name.nl && !body.name.en) {
         /** @type {HTMLInputElement} */ (nl).focus();
-        return { error: `A ${noun} needs a name.`, remedy: "Type its Dutch name, its English name or both.", word: "Not saved" };
+        return { error: t("de.needsName"), remedy: t("rec.fixName"), word: t("rec.notSaved") };
       }
       try {
         const saved = item ? await replace(list, body) : await create(list, body);
@@ -306,10 +307,10 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
         rest.splice(Math.max(0, body.order - 1), 0, saved);
         for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
       } catch (e) {
-        return { error: why(e), word: "Not saved" };
+        return { error: why(e), word: t("rec.notSaved") };
       }
-      toast(item ? `Saved ${label(body)}` : `Added ${label(body)}`);
-      return "Saved";
+      toast(t(item ? "rec.savedName" : "rec.addedName", label(body)));
+      return t("rec.saved");
     },
   });
 }
