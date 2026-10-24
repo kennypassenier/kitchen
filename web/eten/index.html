@@ -2,7 +2,16 @@
 <html lang="nl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- A web app on the home screen (Kenny, 24/10/2026 11:00): pinned on iOS it opens full screen, without Safari's
+         bar. Only this page has a manifest; Kitchen itself has none. -->
+    <link rel="manifest" href="/eten/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/eten/icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Eten" />
+    <meta name="theme-color" content="#2f5d50" />
     <title>Wat eten we vanavond?</title>
     <link rel="icon" href="/eten/icon.svg" type="image/svg+xml" />
     <!-- The stored theme before the first paint (chassis' copy of kp-themes' no-flash snippet). -->

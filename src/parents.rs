@@ -139,6 +139,8 @@ fn serve(files: &Files, name: &str) -> Response {
         Some("js") => "text/javascript; charset=utf-8",
         Some("css") => "text/css; charset=utf-8",
         Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("webmanifest") => "application/manifest+json",
         _ => "application/octet-stream",
     };
     (
@@ -351,7 +353,15 @@ fn not_home() -> Response {
 /// login) loads them too: refused, the wheel broke for Kenny away from home
 /// (found 24/10/2026, in Kitchen 1.0.0).
 fn home_only(path: &str) -> bool {
-    path == "/eten" || path == "/eten/data"
+    path == "/eten" || path == "/eten/data" || app_file(path)
+}
+
+/// The parents' page as a home-screen web app (Kenny, 24/10/2026 11:00):
+/// its manifest and icons belong to that page only and, like the page,
+/// answer only the home network.
+fn app_file(path: &str) -> bool {
+    path == "/eten/manifest.webmanifest"
+        || path.starts_with("/eten/icon-") && path.ends_with(".png")
 }
 
 /// The parents' wheel's own gate (see the module comment): `/eten…` answers
@@ -523,6 +533,7 @@ mod tests {
     #[test]
     fn only_the_page_and_its_data_are_kept_home() {
         assert!(home_only("/eten") && home_only("/eten/data"));
+        assert!(home_only("/eten/manifest.webmanifest") && home_only("/eten/icon-180.png"));
         for open in [
             "/eten/wheel.js",
             "/eten/wheel.css",
@@ -531,6 +542,25 @@ mod tests {
         ] {
             assert!(!home_only(open), "{open}");
         }
+    }
+
+    #[test]
+    fn the_parents_page_is_a_web_app_and_kitchen_is_not() {
+        let f = Files { dir: None };
+        let manifest: Value =
+            serde_json::from_slice(&f.read("manifest.webmanifest").unwrap()).unwrap();
+        assert_eq!(manifest["display"], "standalone");
+        assert_eq!(manifest["start_url"], "/");
+        for size in ["180", "192", "512"] {
+            assert!(f.read(&format!("icon-{size}.png")).is_some(), "{size}");
+        }
+        let page = String::from_utf8(f.read("index.html").unwrap()).unwrap();
+        assert!(page.contains("rel=\"manifest\"") && page.contains("apple-mobile-web-app-capable"));
+        let kitchen = crate::FILES
+            .iter()
+            .find(|(p, _)| *p == "index.html")
+            .map(|(_, b)| String::from_utf8_lossy(b).to_string());
+        assert!(kitchen.is_some_and(|k| !k.contains("rel=\"manifest\"")));
     }
 
     #[test]

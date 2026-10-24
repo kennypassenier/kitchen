@@ -6,6 +6,13 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Added
+- eten.kp-soft.dev is a web app: a manifest, home-screen icons and the iOS
+  meta tags, so the parents' wheel can be pinned and opens full screen;
+  safe areas keep it clear of the notch and the home bar. Manifest and
+  icons answer only the home network, like the page. Kitchen itself has
+  no manifest.
+
 ## [4.0.0] - 2026-10-24
 
 ### Changed
