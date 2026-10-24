@@ -208,6 +208,7 @@ export function createLog(card, { recipeId, retry }) {
     loading(w) {
       words = w;
       setCardState(card, "loading", { words: w.logLoading });
+      grid.hidden = false;
       // The grid itself loads with the package's busy card over its weeks, not as a blank (kp measure-states, 24/10/2026).
       setHeat(grid, { state: "loading", message: w.logLoading, skeleton: { rows: WEEKS, columns: 7 } });
     },
@@ -231,11 +232,14 @@ export function createLog(card, { recipeId, retry }) {
           view.started = true;
           this.show(k, w);
         });
-        paint();
+        // Under the card's empty plate the grid is not drawn at all: a grid kept behind the plate could be put in a state
+        // (loading, by a measure) that nobody can see.
+        grid.hidden = true;
         setCardState(card, "empty", { title: w.logEmptyTitle, text: w.logEmptyText, action: start });
         return;
       }
       view.started = true;
+      grid.hidden = false;
       paint();
       setCardState(card, "ready");
     },

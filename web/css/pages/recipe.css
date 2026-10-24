@@ -426,3 +426,8 @@ html[data-kp-calm] .rp-ing__amount[data-changed] {
 .rp-photofield .rp-photos {
   --kp-gallery-tile: 5.5rem;
 }
+
+/* The cooking log's grid is left out under the card's empty plate (js/recipe/log.js). */
+.rp-log__grid[hidden] {
+  display: none;
+}
