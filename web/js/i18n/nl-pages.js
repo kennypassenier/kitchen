@@ -710,4 +710,5 @@ export const NL_PAGES = {
   "de.copyText": "Een aanpasbare kopie met zijn recepten. Pas aan wat anders moet zijn en sla op; eerder wordt er niets gemaakt.",
   "edit.copyTitle": (name) => `Kopie van ${name}`,
   "edit.copyText": "Een aanpasbare kopie in hetzelfde gerecht. De foto's zijn dezelfde bestanden als die van het origineel. Pas aan wat anders moet zijn en sla op.",
+  "cook.screenOn": "Scherm blijft aan",
 };

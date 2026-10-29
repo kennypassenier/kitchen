@@ -710,4 +710,5 @@ export const EN_PAGES = {
   "de.copyText": "An editable copy with its recipes. Change what should differ, then save; nothing is made before that.",
   "edit.copyTitle": (name) => `Copy of ${name}`,
   "edit.copyText": "An editable copy in the same dish. Its photos are the same files as the original's. Change what should differ, then save.",
+  "cook.screenOn": "Screen stays on",
 };

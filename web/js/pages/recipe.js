@@ -281,7 +281,7 @@ export function mount(root, { params, navigate }) {
     });
     begin.addEventListener("click", () => {
       void runFlashButton(begin, async () => {
-        navigate(`/cook?id=${encodeURIComponent(id)}`);
+        navigate(`/cook?id=${encodeURIComponent(id)}&fresh=1`);
         return words.beginDone;
       });
     });

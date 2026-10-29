@@ -92,6 +92,14 @@ export function mount(root, { params, navigate }) {
   const recipeId = params.get("id") ?? "";
   const mini = params.get("mini") === "1";
   const storeKey = `kitchen:cook:${recipeId}:${mini ? "mini" : "full"}`;
+  // "Yes, cook this" and every "Cook it" arrive with `fresh=1` (Kenny, 29/10/2026): cooking starts at step 1 with no old
+  // timers or marks. The mark is taken off the address at once, so a reload of this page keeps the progress made since.
+  const fresh = params.get("fresh") === "1";
+  if (fresh) {
+    const clean = new URL(location.href);
+    clean.searchParams.delete("fresh");
+    history.replaceState(history.state, "", `${clean.pathname}${clean.search}${clean.hash}`);
+  }
   document.title = `${t("cook.title")} · Kitchen`;
 
   /** @type {(() => void)[]} */
@@ -103,6 +111,7 @@ export function mount(root, { params, navigate }) {
   /** @type {{ started?: boolean, timers?: any[], marks?: Record<string, { start?: number, end?: number }> }} */
   let memo = {};
   try {
+    if (fresh) sessionStorage.removeItem(storeKey);
     memo = JSON.parse(sessionStorage.getItem(storeKey) ?? "{}") ?? {};
   } catch {
     memo = {};
@@ -224,6 +233,13 @@ export function mount(root, { params, navigate }) {
     "data-kp-timers-empty": t("cook.noTimer"),
     "aria-label": t("cook.kitchenTimers"),
   });
+  // The screen (Kenny, 29/10/2026): the package's steps hold a Screen Wake Lock for the whole of cook mode (asked when the
+  // steps are given, asked again when the tab is visible again, let go when the page is left). This badge says so, and only
+  // while it holds; the package's own screen line is hidden in favour of it (cook.css).
+  const wakeBadge = h("span", { class: "kp-badge kp-badge--success ck-wake", role: "status", hidden: true }, t("cook.screenOn"));
+  steps.addEventListener("kp-focus-steps-wake", (e) => {
+    wakeBadge.hidden = /** @type {CustomEvent} */ (e).detail?.state !== "on";
+  });
   const cook = section(
     "ck-cook",
     t("cook.secCook"),
@@ -231,7 +247,7 @@ export function mount(root, { params, navigate }) {
     h(
       "div",
       { class: "ck-cook" },
-      h("div", { class: "ck-cook__main" }, h("h3", { class: "ck-part" }, t("cook.steps")), band, steps, stepPhotos),
+      h("div", { class: "ck-cook__main" }, h("div", { class: "ck-part-row" }, h("h3", { class: "ck-part" }, t("cook.steps")), wakeBadge), band, steps, stepPhotos),
       h(
         "div",
         { class: "ck-cook__side" },
@@ -327,6 +343,8 @@ export function mount(root, { params, navigate }) {
   root.replaceChildren(header, beginSection, cook, timelineSection, discSection, calmSection, doneSection);
 
   // Wire the package's components.
+  // The place the package remembered is forgotten before the steps are given, so they open on step 1.
+  if (fresh) memoryFor(steps, "focus-steps")?.forget("progress");
   undo.push(attachCardStates(root));
   undo.push(attachChecklists(root));
   undo.push(attachFocusSteps(root));

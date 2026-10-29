@@ -507,7 +507,7 @@ export function mount(root, { navigate }) {
         part.why.textContent = `${lastCooked(d)} ${bigger(d) ? t("wheel.sliceBigger") : odds() === "equal" ? t("wheel.sliceSame") : t("wheel.sliceSmaller")}`;
         part.timing.textContent = d.recipe ? timingOf(d) : t("wheel.noRecipeTiming");
         // The dish's other recipes, each straight into cook mode (09:27).
-        part.others.replaceChildren(...(d.others.length ? [t("wheel.otherRecipes"), " ", ...d.others.flatMap((o, i) => [i ? " · " : "", h("a", { href: `/cook?id=${encodeURIComponent(o.id)}` }, o.label)])] : []));
+        part.others.replaceChildren(...(d.others.length ? [t("wheel.otherRecipes"), " ", ...d.others.flatMap((o, i) => [i ? " · " : "", h("a", { href: `/cook?id=${encodeURIComponent(o.id)}&fresh=1` }, o.label)])] : []));
       }
       const idle = loaded && !spinning && !writing;
       const why = (/** @type {string} */ idleWhy) => (!loaded ? t("wheel.dishesLoading") : spinning ? t("wheel.wheelTurning") : writing ? t("wheel.saving") : idleWhy);
@@ -621,7 +621,7 @@ export function mount(root, { navigate }) {
       part.yes.addEventListener("click", () => {
         // The dish's recipe opens in cook mode; a dish without a recipe opens its own page, where the recipe is added.
         const d = chosen ? byId(chosen) : null;
-        if (d) navigate(d.cookId ? `/cook?id=${encodeURIComponent(d.cookId)}` : `/dishes/${encodeURIComponent(d.id)}`);
+        if (d) navigate(d.cookId ? `/cook?id=${encodeURIComponent(d.cookId)}&fresh=1` : `/dishes/${encodeURIComponent(d.id)}`);
       });
       part.again.addEventListener("click", () => void wheels?.spin());
       part.skip.addEventListener("click", () => void setAside());

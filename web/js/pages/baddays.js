@@ -783,7 +783,7 @@ export function mount(root, { navigate }) {
     }
     cook.removeAttribute("aria-disabled");
     cook.textContent = t("bad.cookThis");
-    cook.href = `/cook?id=${encodeURIComponent(recipe.id)}${version === "mini" ? "&mini=1" : ""}`;
+    cook.href = `/cook?id=${encodeURIComponent(recipe.id)}${version === "mini" ? "&mini=1" : ""}&fresh=1`;
   }
 
   function drawMini() {

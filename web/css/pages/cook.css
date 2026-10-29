@@ -158,3 +158,20 @@
 .ck-photos .rp-photos {
   min-block-size: 0;
 }
+
+/* The Steps heading and the "Screen stays on" badge share one line; the badge shows only while the screen is held. */
+.ck-part-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.ck-wake[hidden] {
+  display: none;
+}
+
+/* The package's own screen line says the same thing, in every state; the badge replaces it. */
+.ck-cook .kp-focus-steps__wake {
+  display: none;
+}

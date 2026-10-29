@@ -231,7 +231,7 @@ function dishRecipes(pageEl) {
             { "data-key": r.id },
             h("span", { class: "kp-action-list__lead" }, h("span", { class: "kp-badge" }, `${r.minutes ?? 0} min`)),
             h("div", { class: "kp-action-list__main" }, h("strong", { class: "kp-action-list__title" }, h("a", { href: `/recipe?id=${encodeURIComponent(r.id)}` }, label)), h("span", { class: "kp-action-list__text" }, r.summary || "")),
-            h("div", { class: "kp-row-actions" }, def, h("a", { class: "kp-button kp-button--sm kp-button--primary", href: `/cook?id=${encodeURIComponent(r.id)}` }, t("it.cook")), edit, copy, del),
+            h("div", { class: "kp-row-actions" }, def, h("a", { class: "kp-button kp-button--sm kp-button--primary", href: `/cook?id=${encodeURIComponent(r.id)}&fresh=1` }, t("it.cook")), edit, copy, del),
           );
         }),
       );
