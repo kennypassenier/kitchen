@@ -700,4 +700,8 @@ export const EN_PAGES = {
   "edit.camera": "Photo",
   "edit.cameraStep": (n) => `Add a photo to step ${n}`,
   "edit.photosFull": "A step holds at most 8 photos.",
+  "edit.draftAsk": (when) => `Restore the draft from ${when}?`,
+  "edit.draftText": "The editor saved it by itself before it was closed. Restore opens it here; Discard deletes it.",
+  "edit.draftRestore": "Restore the draft",
+  "edit.draftDiscard": "Discard the draft",
 };

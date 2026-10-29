@@ -251,3 +251,14 @@
   gap: var(--kp-space-sm, 0.5rem);
   align-items: start;
 }
+
+/* The draft offer above the editor's form (Kenny, 29/10/2026). */
+.rl-draft {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  margin-inline: var(--kp-space-lg, 1.5rem);
+}
+
+.rl-draft[hidden] {
+  display: none;
+}

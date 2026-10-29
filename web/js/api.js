@@ -7,7 +7,7 @@
 // connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], settings: Record<string, any> }} Kitchen */
 
 import { nameOf, lang, onLang, t } from "./i18n/index.js";
 
@@ -220,6 +220,27 @@ export async function remove(list, id) {
     tell();
   }
   return gone;
+}
+
+// Drafts (Kenny, 29/10/2026): the recipe editor autosaves its form into the kitchen's database, one per key (a recipe's id,
+// or `new:<dish id>`), so a closed tab or a dropped connection loses nothing. The server keeps one per key (src/store.rs);
+// the shared copy is not told, so no page redraws on every autosave.
+
+/** The draft saved under `key`, or null. @param {string} key @returns {Promise<Item | null>} */
+export async function readDraft(key) {
+  const all = await call("GET", "/data/drafts");
+  return (Array.isArray(all) ? all : []).find((/** @type {Item} */ d) => d.key === key) ?? null;
+}
+
+/** Save (or replace) the draft under `key`. @param {string} key @param {Item} data */
+export async function saveDraft(key, data) {
+  return call("POST", "/data/drafts", { key, data });
+}
+
+/** Delete the draft under `key`, if there is one. @param {string} key */
+export async function deleteDraft(key) {
+  const draft = await readDraft(key);
+  if (draft) await call("DELETE", `/data/drafts/${encodeURIComponent(draft.id)}`);
 }
 
 /** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */

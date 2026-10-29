@@ -26,7 +26,8 @@ use tokio::sync::RwLock;
 /// live inside their dish (`dish.recipes`, one the default), and the log,
 /// the freezer and resting point at dishes (`dish_id`). Format 5 (10:04):
 /// a shelf food's title, text and gear and a freezer item's name are
-/// `{nl, en}` like every other name.
+/// `{nl, en}` like every other name. The `drafts` list (Kenny, 29/10/2026)
+/// is optional in the file, so the format stays 5.
 pub const FORMAT: u32 = 5;
 
 /// The collections a page may read and write. Settings is a single object
@@ -40,6 +41,7 @@ pub const COLLECTIONS: &[&str] = &[
     "dish_categories",
     "ingredients",
     "ingredient_categories",
+    "drafts",
 ];
 
 /// The first contents of a new kitchen: the two dish categories and the
@@ -74,6 +76,10 @@ pub struct Data {
     pub ingredients: Vec<Value>,
     #[serde(default)]
     pub ingredient_categories: Vec<Value>,
+    /// The recipe editor's autosaved forms (Kenny, 29/10/2026): `{key, data, saved}`,
+    /// one per `key` (a recipe id, or `new:<dish id>`); see [`Store::create`].
+    #[serde(default)]
+    pub drafts: Vec<Value>,
     #[serde(default)]
     pub settings: Map<String, Value>,
 }
@@ -89,6 +95,7 @@ impl Data {
             "dish_categories" => Some(&mut self.dish_categories),
             "ingredients" => Some(&mut self.ingredients),
             "ingredient_categories" => Some(&mut self.ingredient_categories),
+            "drafts" => Some(&mut self.drafts),
             _ => None,
         }
     }
@@ -101,6 +108,8 @@ pub enum Refused {
     NotAnObject,
     NotFound,
     IdMismatch,
+    /// A draft without its `key`.
+    NoKey,
     NoPortionsLeft,
     /// A name that must be in both languages misses one (the field, as `name.en`).
     MissingName(String),
@@ -120,6 +129,7 @@ impl std::fmt::Display for Refused {
             Refused::IdMismatch => {
                 write!(f, "the id in the body differs from the id in the address")
             }
+            Refused::NoKey => write!(f, "a draft needs a key: the recipe it belongs to"),
             Refused::NoPortionsLeft => write!(f, "there are no portions of that dish left"),
             Refused::MissingName(field) => write!(
                 f,
@@ -195,6 +205,46 @@ impl Store {
             return Err(Refused::NotAnObject);
         };
         both_names(coll, &obj)?;
+        // One draft per `key`: saving again replaces the one there (its id and creation kept).
+        if coll == "drafts" {
+            let key = obj
+                .get("key")
+                .and_then(Value::as_str)
+                .filter(|k| !k.trim().is_empty())
+                .ok_or(Refused::NoKey)?
+                .to_string();
+            obj.insert(
+                "saved".into(),
+                Value::String(chassis::shell::time::now_rfc3339()),
+            );
+            return self
+                .change(|d| {
+                    let at = d
+                        .drafts
+                        .iter()
+                        .position(|v| v.get("key").and_then(Value::as_str) == Some(key.as_str()));
+                    let (id, created) = match at.map(|i| &d.drafts[i]) {
+                        Some(old) => (old.get("id").cloned(), old.get("created").cloned()),
+                        None => (None, None),
+                    };
+                    obj.insert(
+                        "id".into(),
+                        id.unwrap_or_else(|| Value::String(uuid::Uuid::new_v4().to_string())),
+                    );
+                    obj.insert(
+                        "created".into(),
+                        created
+                            .unwrap_or_else(|| Value::String(chassis::shell::time::now_rfc3339())),
+                    );
+                    let item = Value::Object(obj);
+                    match at {
+                        Some(i) => d.drafts[i] = item.clone(),
+                        None => d.drafts.push(item.clone()),
+                    }
+                    Ok(item)
+                })
+                .await;
+        }
         obj.insert("id".into(), Value::String(uuid::Uuid::new_v4().to_string()));
         obj.insert(
             "created".into(),
@@ -721,8 +771,52 @@ mod tests {
             dish_categories: vec![],
             ingredients: vec![],
             ingredient_categories: vec![],
+            drafts: vec![],
             settings: Map::new(),
         }
+    }
+
+    #[tokio::test]
+    async fn a_draft_is_one_per_key() {
+        let s = Store::in_memory(empty());
+        let first = s
+            .create(
+                "drafts",
+                serde_json::json!({"key": "new:d1", "data": {"short": "a"}}),
+            )
+            .await
+            .unwrap();
+        let again = s
+            .create(
+                "drafts",
+                serde_json::json!({"key": "new:d1", "data": {"short": "b"}}),
+            )
+            .await
+            .unwrap();
+        let other = s
+            .create("drafts", serde_json::json!({"key": "r1", "data": {}}))
+            .await
+            .unwrap();
+        // Saving the same key again replaces the draft; its id and creation stay, its data and time move.
+        assert_eq!(first["id"], again["id"]);
+        assert_eq!(first["created"], again["created"]);
+        assert_ne!(first["id"], other["id"]);
+        let all = s.list("drafts").await.unwrap();
+        assert_eq!(all.len(), 2);
+        assert_eq!(all[0]["data"]["short"], "b");
+        assert!(all[0]["saved"].is_string());
+        // A draft without a key is refused, and a delete by id removes it.
+        assert_eq!(
+            s.create("drafts", serde_json::json!({"data": {}})).await,
+            Err(Refused::NoKey)
+        );
+        s.delete("drafts", first["id"].as_str().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(s.list("drafts").await.unwrap().len(), 1);
+        // The collection is part of the file: an older file without it reads as none.
+        let d: Data = serde_json::from_str(r#"{"format": 5}"#).unwrap();
+        assert!(d.drafts.is_empty());
     }
 
     #[tokio::test]

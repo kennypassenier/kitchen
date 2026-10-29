@@ -21,10 +21,10 @@ const shown = (d) => String(d.name?.[lang()] || d.name?.[lang() === "nl" ? "en" 
 /**
  * A combobox over the dishes, holding one dish (an id) or one new dish (its two names).
  * @param {string | null} dishId the dish chosen to start with, or none
- * @param {{ label: string, id?: string, onChange?: () => void }} o `label` is the accessible name
+ * @param {{ label: string, id?: string, onChange?: () => void, fresh?: { nl: string, en: string } | null }} o `label` is the accessible name; `fresh` a new dish held from the start (a restored draft)
  * @returns {{ el: HTMLElement, input: HTMLInputElement, get: () => DishChoice | null, text: () => string, set: (id: string) => void }}
  */
-export function dishPicker(dishId, { label, id, onChange }) {
+export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) {
   const n = ++seq;
   const input = /** @type {HTMLInputElement} */ (
     h("input", { class: "kp-combobox__input", type: "text", role: "combobox", autocomplete: "off", "aria-expanded": "false", "aria-controls": `dp-list-${n}`, "aria-label": label, "aria-required": "true", placeholder: t("dp.placeholder"), ...(id ? { id } : {}) })
@@ -52,7 +52,7 @@ export function dishPicker(dishId, { label, id, onChange }) {
   /** @type {string | null} */
   let chosen = dishId;
   /** @type {{ nl: string, en: string } | null} */
-  let fresh = null;
+  let fresh = held;
   const dishes = () => [...(kitchenNow()?.dishes ?? [])].sort((a, b) => shown(a).localeCompare(shown(b)));
   const fill = () => {
     list.replaceChildren(
@@ -66,6 +66,7 @@ export function dishPicker(dishId, { label, id, onChange }) {
   const known = (/** @type {string} */ text) => dishes().find((d) => [d.name?.nl, d.name?.en].some((x) => String(x ?? "").trim().toLowerCase() === text.toLowerCase()));
   const typed = () => input.value.trim();
   if (dishId) handle?.set([dishId]);
+  else if (fresh) input.value = fresh[lang()] || fresh.nl || fresh.en;
 
   handle?.extend({
     shown: (option, _query, matched) => {

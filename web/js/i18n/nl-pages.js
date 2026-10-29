@@ -700,4 +700,8 @@ export const NL_PAGES = {
   "edit.camera": "Foto",
   "edit.cameraStep": (n) => `Een foto toevoegen aan stap ${n}`,
   "edit.photosFull": "Een stap heeft hooguit 8 foto's.",
+  "edit.draftAsk": (when) => `Het concept van ${when} terugzetten?`,
+  "edit.draftText": "De editor bewaarde het zelf voordat hij werd gesloten. Terugzetten opent het hier; Weggooien verwijdert het.",
+  "edit.draftRestore": "Concept terugzetten",
+  "edit.draftDiscard": "Concept weggooien",
 };

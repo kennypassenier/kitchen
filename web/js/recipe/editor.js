@@ -18,7 +18,7 @@ import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
-import { create, replace, kitchenNow, ApiError } from "../api.js";
+import { create, replace, kitchenNow, readDraft, saveDraft, deleteDraft, ApiError } from "../api.js";
 import { dishPicker } from "../dishes/picker.js";
 import { ingredientPicker, ingredientsPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
@@ -181,22 +181,28 @@ export const textCell = (label, value, placeholder = "") => {
 };
 
 /**
- * Open the editor for a recipe, or for a new one.
+ * Open the editor for a recipe, or for a new one. `restore` is a draft's form state (Kenny, 29/10/2026): the editor then
+ * opens with it instead of the saved recipe.
  * @param {HTMLDialogElement} dialog
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any> }} spec
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null }} spec
  */
-export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
-  const r = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
+export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null }) {
+  const base = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
+  const r = restore ? { ...base, ...restore } : base;
   const editing = Boolean(recipe);
+  // The draft's key: the recipe's id, or `new:<dish id>` for a new one.
+  const draftKey = recipe ? String(recipe.id) : `new:${preset.dish_id ?? ""}`;
   // Photos (Kenny, 24/10/2026 05:23): what this session uploads and what the recipe had, so Save and Cancel leave no stray file.
-  const tracker = photoTracker(photosOf(r));
+  const tracker = photoTracker(photosOf(recipe));
+  // A restored draft's photos were sent by an earlier session: this one answers for them now.
+  if (restore) for (const id of photosOf(restore)) if (!photosOf(recipe).includes(id)) tracker.uploaded(id);
   const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: t("edit.recipePhoto"), tracker });
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : t("list.recipes.add"));
 
   // ---- the dish -----------------------------------------------------------------------------------------------
   // The dish the recipe belongs to (Kenny, 29/10/2026): a recipe is always in a dish, an existing one or a new one that is
   // made when the recipe is saved. Choosing another dish for an existing recipe moves it.
-  const dishField = dishPicker(r.dish_id ?? preset.dish_id ?? null, { label: t("edit.dish"), id: "rl-dish" });
+  const dishField = dishPicker(restore ? restore.dish_id ?? null : r.dish_id ?? preset.dish_id ?? null, { label: t("edit.dish"), id: "rl-dish", fresh: restore?.new_dish ?? null });
   const ownLabel = String(r.label?.[lang()] || r.label?.[lang() === "nl" ? "en" : "nl"] || "").trim();
   const label = input(ownLabel, "text", { autocomplete: "off", placeholder: t("edit.labelPh") });
   const short = input(r.short ?? "", "text", { autocomplete: "off" });
@@ -534,6 +540,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     sec(t("edit.secSteps"), t("edit.secStepsText"), stepsSection),
   );
   const line = h("p", { class: "rl-editor__line", role: "status" });
+  // The draft offer (Kenny, 29/10/2026): a draft saved by an earlier session is offered above the form.
+  const offer = h("div", { class: "kp-alert kp-alert--info rl-draft", role: "status", hidden: true });
   dialog.replaceChildren(
     h(
       "header",
@@ -542,6 +550,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("edit.close"), "data-close": true }, "✕"),
       h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : t("rec.addText")),
     ),
+    offer,
     form,
     h("footer", { class: "kp-drawer__foot" }, line, cancel, save),
   );
@@ -560,18 +569,49 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, refreshTimes);
   refreshTimes();
 
+  // ---- the draft: saved in the database about a second after the last change ---------------------------------------
+  // Deleted on Save and on Cancel / Discard; what stays is what a closed tab or a dropped connection left.
+  const DRAFT_MS = 1000;
+  /** @type {number} */
+  let draftTimer = 0;
+  let draftChain = Promise.resolve();
+  let draftGone = false;
+  let opening = "";
+  const writeDraft = async () => {
+    if (draftGone) return;
+    const now = collect();
+    if (JSON.stringify(now) === opening) return;
+    await saveDraft(draftKey, now).catch(() => {}); // a draft that cannot be saved must never get in the way of editing
+  };
+  const queueDraft = () => {
+    clearTimeout(draftTimer);
+    draftTimer = window.setTimeout(() => (draftChain = draftChain.then(writeDraft)), DRAFT_MS);
+  };
+  const dropDraft = async () => {
+    draftGone = true;
+    clearTimeout(draftTimer);
+    await draftChain;
+    await deleteDraft(draftKey).catch(() => {});
+  };
+  for (const type of ["input", "change", "click", "kp-quantity-change", "rl-rows-change", "kp-combobox-change", "rl-photos-change"]) form.addEventListener(type, queueDraft);
+
   const close = () => void closeDialog(dialog);
-  // Leaving without saving: the photos this session sent are not wanted any more.
+  // Leaving without saving: the photos this session sent are not wanted any more, nor is the draft.
   const leave = () => {
     void tracker.discard();
+    void dropDraft();
     close();
   };
   cancel.addEventListener("click", leave);
   dialog.querySelector("[data-close]")?.addEventListener("click", leave);
+  // One Escape handler per opening: an editor re-opened on a restored draft replaces the one before it.
+  const again = /** @type {any} */ (dialog);
+  again.__rlAbort?.abort();
+  again.__rlAbort = new AbortController();
   dialog.addEventListener("cancel", (e) => {
     e.preventDefault();
     leave();
-  }, { once: true });
+  }, { once: true, signal: again.__rlAbort.signal });
 
   /** A step that runs alongside a step that is gone (or itself) runs on its own. @param {Record<string, any>[]} list */
   const tidyWith = (list) => list.map((s) => (s.with && s.with !== s.id && list.some((x) => x.id === s.with) ? s : { ...s, with: null }));
@@ -639,11 +679,42 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
         return { error: e instanceof ApiError ? e.message : String(e), word: t("rec.notSaved") };
       }
       await tracker.settle(photosOf(body));
+      await dropDraft();
       toast(editing ? t("rec.savedName", shownName) : t("rec.addedName", shownName));
       close();
       return t("set.saved");
     });
   });
 
-  dialog.showModal();
+  opening = JSON.stringify(collect());
+  if (!dialog.open) dialog.showModal();
+
+  // An earlier session's draft is offered, not applied: Restore opens the editor again on it, Discard deletes it.
+  if (!restore) {
+    void readDraft(draftKey)
+      .then((draft) => {
+        if (!draft || draftGone || !dialog.isConnected || JSON.stringify(draft.data) === opening) return;
+        const restoreButton = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("edit.draftRestore"));
+        const discardButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.draftDiscard"));
+        offer.replaceChildren(h("div", { class: "kp-alert__body" }, h("strong", null, t("edit.draftAsk", stamp(draft.saved))), " ", t("edit.draftText")), h("div", { class: "kp-row-actions" }, restoreButton, discardButton));
+        offer.hidden = false;
+        restoreButton.addEventListener("click", () => {
+          draftGone = true;
+          clearTimeout(draftTimer);
+          void tracker.discard();
+          openEditor(dialog, { recipe, mainOptions, preset, restore: draft.data });
+        });
+        discardButton.addEventListener("click", () => {
+          offer.hidden = true;
+          void deleteDraft(draftKey).catch(() => {});
+        });
+      })
+      .catch(() => {});
+  }
+}
+
+/** A stored time as the screens show it: dd/mm/yyyy HH:mm, Europe/Brussels. @param {string} iso */
+function stamp(iso) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso)).filter((x) => x.type !== "literal").map((x) => [x.type, x.value]));
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }

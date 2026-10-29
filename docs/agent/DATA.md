@@ -133,6 +133,18 @@ into `dish_id` in the freezer and resting; format 5 puts a shelf food's
 title, text and gear and a freezer item's name into `{nl, en}`, the old text
 in both halves.
 
+## drafts
+
+`{key, data, saved}` (Kenny, 29/10/2026): the recipe editor's autosaved form, in the database and not in the
+browser, so it follows Kenny from one device to the next. `key` is the recipe's id, or `new:<dish id>` for a
+recipe that has no id yet (`new:` alone when it has no dish); `data` is the editor's form state (a recipe body
+with `dish_id` or `new_dish`, `label` and the steps); `saved` is set by the server on every write. One draft per
+`key`: `POST /data/drafts` with the same `key` replaces it (its `id` and `created` stay), so the editor saves
+about 1 s after the last change without ever making a second one. The editor deletes the draft on Save and on
+Cancel / Discard; a draft that is still there is what a closed tab or a dropped connection left, and reopening
+the recipe offers "Restore the draft from dd/mm/yyyy HH:mm?". The list is optional in the file (an older file
+has none), so the format stays 5. Photos a draft refers to are files like any other (see Photos).
+
 ## dish_categories
 
 `{name: {nl, en}, order: number}`: "Dagelijkse kost" / "Everyday". `order`
