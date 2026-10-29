@@ -15,6 +15,28 @@ carries a **Migration** section saying what an operator must do.
   before any picture is fetched. The fetch refuses private, loopback and
   link-local destinations, pins the checked address, follows at most 3
   redirects and stops at 10 s and 2 MB (`docs/agent/DATA.md`).
+- A recipe has an optional `source` (the import stores the page's address): a
+  link on the recipe page, editable or clearable in the editor; the server
+  accepts only an http(s) address or nothing. No format change.
+- A remark in brackets or after a comma in an imported ingredient line is kept
+  as the line's note (editable, shown under the name on the recipe page).
+- Cook mode honours a step's fixed `start`: counted from the moment cooking
+  began and shown as a planned wait in the timeline.
+- `scripts/measure.mjs` runs kp's measures with the theme set in localStorage,
+  so dark is measured here too.
+
+### Changed
+- An imported ingredient line the catalogue does not know is no longer dropped
+  on Save: the editor warns, each line can be added as a new ingredient or
+  discarded, and Save waits until none is left.
+- Recipe drafts are dropped after 7 days (checked when the kitchen starts),
+  and a discarded or expired draft takes the photos only it refers to with it.
+
+### Fixed
+- Dagelijkse Kost imports read all steps: that site lists only two in its
+  recipe data, so the page's own instruction list is used when it is longer.
+- The step and recipe photo galleries keep their height while loading, empty
+  or failed instead of collapsing.
 
 ## [4.1.0] - 2026-10-24
 
