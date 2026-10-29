@@ -62,7 +62,7 @@ const listeners = new Set();
 
 /** The recipe fields a dish keeps for it; the view's name, dish and dates are not stored. @param {Item} r */
 function recipeBody(r) {
-  const { name, created, updated, isNew, dish_id, dishName, ...body } = r;
+  const { name, created, updated, isNew, dish_id, dishName, new_dish, ...body } = r;
   return body;
 }
 
@@ -94,13 +94,6 @@ function tell() {
 onLang(() => {
   if (copy) copy.recipes = recipeView(copy);
 });
-
-/** The name a recipe's title puts into its dish: the half of the language shown. @param {Item} dish @param {string} title */
-const named = (dish, title) => {
-  const name = { nl: String(dish?.name?.nl ?? ""), en: String(dish?.name?.en ?? "") };
-  name[lang()] = String(title ?? "").trim() || name[lang()];
-  return name;
-};
 
 /**
  * The whole kitchen; read once and shared. `force` reads it again (Retry).
@@ -151,22 +144,19 @@ function put(list, item) {
 /** Add an item to a list; resolves to the item with its new id. @param {string} list @param {Item} body */
 export async function create(list, body) {
   if (list === "recipes") {
-    // A new recipe: into its dish (`dish_id`, from the dish's page), else a new dish named after it (Recipes page).
+    // A new recipe goes into a dish and never makes one silently (Kenny, 29/10/2026): `dish_id` is the dish it joins,
+    // `new_dish` ({nl, en}, both halves) a dish made together with it; neither is an error. `label` is the recipe's own
+    // label ({nl, en}; both halves or none).
     const at = body.dish_id ? copy?.dishes.find((d) => d.id === body.dish_id) : null;
     const id = crypto.randomUUID();
+    const label = { nl: String(body.label?.nl ?? ""), en: String(body.label?.en ?? "") };
     if (at) {
       const list = Array.isArray(at.recipes) ? at.recipes : [];
-      const label = { nl: "", en: "" };
-      const typed = String(body.name ?? "").trim();
-      // A label needs both halves (Kenny, 24/10/2026 10:04): the editor has one name field, so the typed label fills
-      // the other half too while that is empty ("Oven" reads the same in both); the dish's page can change it.
-      if (typed && typed !== nameOf(at).text) {
-        label[lang()] = typed;
-        label[lang() === "nl" ? "en" : "nl"] ||= typed;
-      }
-      await replace("dishes", { ...at, recipes: [...list, { ...recipeBody(body), id, label, default: list.length === 0 }] });
+      await replace("dishes", { ...at, recipes: [...list, { ...recipeBody(body), id, label, default: !list.some((r) => r.default === true) }] });
+    } else if (body.new_dish?.nl && body.new_dish?.en) {
+      await create("dishes", { name: { nl: String(body.new_dish.nl), en: String(body.new_dish.en) }, category: null, parents: false, ingredients: [], sides: [], recipes: [{ ...recipeBody(body), id, label, default: true }] });
     } else {
-      await create("dishes", { name: named(null, body.name), category: null, parents: false, ingredients: [], sides: [], recipes: [{ ...recipeBody(body), id, label: { nl: "", en: "" }, default: true }] });
+      throw new ApiError("A recipe belongs to a dish: pick one, or name a new one.", 400);
     }
     return copy?.recipes.find((r) => r.id === id) ?? { ...body, id };
   }
@@ -178,22 +168,31 @@ export async function create(list, body) {
 /** Replace an item whole. @param {string} list @param {Item} item */
 export async function replace(list, item) {
   if (list === "recipes") {
-    // A recipe saved is its dish saved. A changed title renames the dish when it is its only recipe, else it becomes
-    // the recipe's label in the language shown.
+    // A recipe saved is its dish saved. When `dish_id` names another dish the recipe MOVES (Kenny, 29/10/2026): it is
+    // added to the new dish first (the default only when that dish had none), then taken off the old one, whose first
+    // remaining recipe becomes the default when the moved one was it. `label` ({nl, en}) replaces the label when given.
     const dish = copy?.dishes.find((d) => (d.recipes ?? []).some((/** @type {Item} */ r) => r.id === item.id));
     if (!dish) throw new ApiError("That recipe does not exist (any more).", 404);
-    const was = copy?.recipes.find((r) => r.id === item.id);
     const list = /** @type {Item[]} */ (dish.recipes);
     const old = /** @type {Item} */ (list.find((r) => r.id === item.id));
-    const typed = String(item.name ?? "").trim();
-    const renamed = typed && typed !== was?.name;
-    const label = { ...(old.label ?? { nl: "", en: "" }) };
-    if (renamed && list.length > 1) {
-      label[lang()] = typed;
-      label[lang() === "nl" ? "en" : "nl"] ||= typed;
+    const label = item.label ? { nl: String(item.label.nl ?? ""), en: String(item.label.en ?? "") } : { ...(old.label ?? { nl: "", en: "" }) };
+    const target = item.dish_id && item.dish_id !== dish.id ? copy?.dishes.find((d) => d.id === item.dish_id) : null;
+    if (item.dish_id && item.dish_id !== dish.id && !target) throw new ApiError("That dish does not exist (any more).", 404);
+    if (target) {
+      const there = Array.isArray(target.recipes) ? target.recipes : [];
+      const moved = { ...recipeBody(item), id: item.id, label, default: !there.some((/** @type {Item} */ r) => r.default === true) };
+      await replace("dishes", { ...target, recipes: [...there, moved] });
+      const rest = list.filter((r) => r.id !== item.id);
+      if (rest.length && !rest.some((r) => r.default === true)) rest[0] = { ...rest[0], default: true };
+      try {
+        await replace("dishes", { ...dish, recipes: rest });
+      } catch (e) {
+        await replace("dishes", { ...target, recipes: there }).catch(() => {}); // not in both dishes
+        throw e;
+      }
+    } else {
+      await replace("dishes", { ...dish, recipes: list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r)) });
     }
-    const recipes = list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r));
-    await replace("dishes", { ...dish, name: renamed && list.length === 1 ? named(dish, typed) : dish.name, recipes });
     return copy?.recipes.find((r) => r.id === item.id) ?? item;
   }
   const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item);

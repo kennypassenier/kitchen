@@ -18,7 +18,8 @@ import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
-import { create, replace, ApiError } from "../api.js";
+import { create, replace, kitchenNow, ApiError } from "../api.js";
+import { dishPicker } from "../dishes/picker.js";
 import { ingredientPicker, ingredientsPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
 import { wordsFor } from "./words.js";
@@ -185,7 +186,7 @@ export const textCell = (label, value, placeholder = "") => {
  * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any> }} spec
  */
 export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
-  const r = recipe ?? { name: "", short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
+  const r = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const editing = Boolean(recipe);
   // Photos (Kenny, 24/10/2026 05:23): what this session uploads and what the recipe had, so Save and Cancel leave no stray file.
   const tracker = photoTracker(photosOf(r));
@@ -193,7 +194,11 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : t("list.recipes.add"));
 
   // ---- the dish -----------------------------------------------------------------------------------------------
-  const name = input(r.name, "text", { required: "", autocomplete: "off" });
+  // The dish the recipe belongs to (Kenny, 29/10/2026): a recipe is always in a dish, an existing one or a new one that is
+  // made when the recipe is saved. Choosing another dish for an existing recipe moves it.
+  const dishField = dishPicker(r.dish_id ?? preset.dish_id ?? null, { label: t("edit.dish"), id: "rl-dish" });
+  const ownLabel = String(r.label?.[lang()] || r.label?.[lang() === "nl" ? "en" : "nl"] || "").trim();
+  const label = input(ownLabel, "text", { autocomplete: "off", placeholder: t("edit.labelPh") });
   const short = input(r.short ?? "", "text", { autocomplete: "off" });
   const summary = area(r.summary ?? "", 3);
   const meals = segmented(mealItems(), r.meals ?? [], "multi", t("edit.meals"));
@@ -209,7 +214,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const dish = h(
     "div",
     { class: "kp-formgrid" },
-    row(t("recs.colName"), name, t("edit.nameHint")),
+    row(t("edit.dish"), dishField.el, t("edit.dishHint"), "rl-dish-l"),
+    row(t("edit.label"), label, t("edit.labelHint")),
     row(t("edit.short"), short, t("edit.shortHint")),
     row(t("edit.summary"), summary, t("edit.summaryHint")),
     row(t("edit.meals"), meals, t("edit.mealsHint")),
@@ -494,14 +500,31 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
 
   /** A step that runs alongside a step that is gone (or itself) runs on its own. @param {Record<string, any>[]} list */
   const tidyWith = (list) => list.map((s) => (s.with && s.with !== s.id && list.some((x) => x.id === s.with) ? s : { ...s, with: null }));
+  /** The recipe's label from the field: both halves or none (the server refuses one half). */
+  const labelOut = () => {
+    const typed = /** @type {HTMLInputElement} */ (label).value.trim();
+    const old = { nl: String(r.label?.nl ?? ""), en: String(r.label?.en ?? "") };
+    if (typed === ownLabel) return old;
+    if (!typed) return { nl: "", en: "" };
+    const other = lang() === "nl" ? "en" : "nl";
+    return { ...old, [lang()]: typed, [other]: old[other].trim() || typed };
+  };
+  /** The dish named in the first field, as the name to show: an existing dish's, or the new one's. @param {{ id: string | null, name: { nl: string, en: string } | null }} choice */
+  const dishText = (choice) => {
+    const d = choice.id ? kitchenNow()?.dishes.find((x) => x.id === choice.id) : null;
+    return String(d?.name?.[lang()] || d?.name?.[lang() === "nl" ? "en" : "nl"] || choice.name?.[lang()] || "").trim();
+  };
   const collect = () => {
-    const nameValue = /** @type {HTMLInputElement} */ (name).value.trim();
+    const choice = dishField.get();
     const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
     return {
-      // A new recipe carries its preset along: `dish_id` puts it into that dish (Kenny, 24/10/2026 09:27).
+      // A new recipe carries its preset along; `dish_id` puts it into that dish (Kenny, 24/10/2026 09:27), `new_dish`
+      // makes a dish with it, and choosing another dish for an existing recipe moves it (api.js).
       ...(recipe ?? preset),
-      name: nameValue,
-      short: shortValue || nameValue.split(/\s+/)[0] || "",
+      dish_id: choice?.id ?? null,
+      new_dish: choice?.name ?? null,
+      label: labelOut(),
+      short: shortValue || dishText(choice ?? { id: null, name: null }).split(/\s+/)[0] || "",
       summary: /** @type {HTMLTextAreaElement} */ (summary).value.trim(),
       meals: getSegmentedValues(meals),
       ing: combobox(mainBox)?.values() ?? [],
@@ -529,10 +552,11 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     event.preventDefault();
     void runFlashButton(save, async () => {
       const body = collect();
-      if (!body.name) {
-        /** @type {HTMLInputElement} */ (name).focus();
-        return { error: t("edit.needsName"), remedy: t("edit.needsNameFix"), word: t("rec.notSaved") };
+      if (!body.dish_id && !body.new_dish) {
+        dishField.input.focus();
+        return { error: t("edit.needsDish"), remedy: t("edit.needsDishFix"), word: t("rec.notSaved") };
       }
+      const shownName = dishText({ id: body.dish_id, name: body.new_dish });
       try {
         if (recipe) await replace("recipes", body);
         else await create("recipes", body);
@@ -540,7 +564,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
         return { error: e instanceof ApiError ? e.message : String(e), word: t("rec.notSaved") };
       }
       await tracker.settle(photosOf(body));
-      toast(editing ? t("rec.savedName", body.name) : t("rec.addedName", body.name));
+      toast(editing ? t("rec.savedName", shownName) : t("rec.addedName", shownName));
       close();
       return t("set.saved");
     });

@@ -190,8 +190,7 @@ function dishRecipes(pageEl) {
   let dish = null;
   add.addEventListener("click", () => {
     if (!dish) return;
-    const n = (dish.recipes ?? []).length;
-    openRecipeEditor(null, { ...BLANK_RECIPE, dish_id: dish.id, name: n ? t("recipes.numbered", n + 1) : LISTS.dishes.name(dish) });
+    openRecipeEditor(null, { ...BLANK_RECIPE, dish_id: dish.id });
   });
   return {
     /** @param {Kitchen} k @param {Item} d */
