@@ -149,6 +149,46 @@ Cancel / Discard; a draft that is still there is what a closed tab or a dropped 
 the recipe offers "Restore the draft from dd/mm/yyyy HH:mm?". The list is optional in the file (an older file
 has none), so the format stays 5. Photos a draft refers to are files like any other (see Photos).
 
+## import (`POST /data/import`, `POST /data/import/image`)
+
+Kenny, 29/10/2026 14:27: a recipe from a website or from pasted text, with a preview. Nothing is stored by the
+import itself: the answer opens the recipe editor as an unsaved draft (`drafts`, key `new:<dish id>`, deleted on
+Save and Cancel like any draft).
+
+`POST /data/import` takes `{"url": "https://…"}` or `{"text": "…"}` (text wins when both are sent) and answers
+`{name, portions, ingredients: [text], steps: [text], minutes: {prep, cook, total}, image_url, source_url}`
+(`portions`, the minutes and `image_url` may be null; `source_url` is the page after redirects, null for text).
+A page is read from its `<script type="application/ld+json">` blocks: the first `Recipe` node (top level, in an
+array, `@graph` or `mainEntity`; `@type` may be an array) with `name`, `recipeYield`, `recipeIngredient`,
+`recipeInstructions` (string, array, `HowToStep`, `HowToSection`), ISO 8601 durations (`PT1H15M`, `P0DT20M`) and
+`image` (string, array, `ImageObject`). Pasted text is split by its headings (Ingredients / Ingrediënten; Method,
+Instructions, Directions, Steps, Bereiding, Werkwijze), bullets and numbers stripped; without headings, a line that
+starts with an amount is an ingredient. A failure is `{"error": "<code>"}`: `blocked_address`, `bad_url`,
+`unreachable`, `too_many_redirects`, `not_html`, `not_image`, `too_large`, `timeout`, `http_status`, `no_recipe`,
+`empty`; the page maps the code to words (`imp.err.*`).
+
+`POST /data/import/image` takes `{"url"}`, runs the same safe fetch (4 MiB cap), and answers the picture's bytes
+(`image/jpeg`, `image/png` or `image/webp`, by its first bytes; nothing else, SVG included, is passed on). It stores
+nothing: the browser makes the picture smaller and sends it through `POST /data/photos` like any photo
+(`web/js/recipe/cover.js`), and only after Kenny pressed Yes on "Use this photo as the cover?", so no third-party
+image is loaded before that and the site never sees the reader.
+
+Safety of the fetch (`src/import.rs`; the routes are behind the login and the parents' host redirects them to the
+wheel):
+
+| Rule | How |
+|---|---|
+| http(s) only, default port, no credentials | `parse_url` refuses anything else (`bad_url`), for the address and for every redirect target |
+| no private destinations | the host is resolved first and EVERY address must pass `allowed_ip`: not loopback, 10/8, 172.16/12, 192.168/16, 169.254/16, 0/8, 100.64/10, 198.18/15, 192.0.0/24, 240/4, multicast, broadcast, documentation; not `::`, `::1`, fe80::/10, fc00::/7, fec0::/10, ff00::/8; an IPv4 inside an IPv6 (`::ffff:`, `::a.b.c.d`, NAT64 `64:ff9b::`, 6to4 `2002::`) is judged as that IPv4 (`blocked_address`, before any connection) |
+| DNS cannot change after the check | the connection goes to the checked address (`ClientBuilder::resolve` pins it; TLS still verifies the host name); the system proxy is off so nothing routes around it |
+| redirects | followed by hand, at most 3 (`too_many_redirects`), each target judged like a typed address |
+| bounded | 10 s for everything (`timeout`), 2 MB page / 4 MiB picture, reading stops past the cap (`too_large`); a page must be `text/html` or `application/xhtml+xml` (`not_html`) |
+| nothing of ours leaves | no cookies, no `Authorization`, no `Referer`, `User-Agent: Kitchen recipe import` |
+
+Known limits: the imported text is not translated (it lands in the label and lines as written), a trailing note in an
+ingredient line ("chopped") is dropped when the name is matched, the source address is not stored on the recipe,
+and an imported ingredient line the catalogue does not know is kept only until Save (the editor says how many it left out).
+
 ## dish_categories
 
 `{name: {nl, en}, order: number}`: "Dagelijkse kost" / "Everyday". `order`

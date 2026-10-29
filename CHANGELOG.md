@@ -6,6 +6,16 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Added
+- Import a recipe (Recipes page and a dish's Recipes card): a web address or
+  pasted text becomes an unsaved draft in the recipe editor. Kitchen reads the
+  page's recipe data (JSON-LD), splits amounts, units and names, matches
+  ingredients to the catalogue (unknown ones offer "Add as a new ingredient"),
+  proposes step minutes from the text and asks "Use this photo as the cover?"
+  before any picture is fetched. The fetch refuses private, loopback and
+  link-local destinations, pins the checked address, follows at most 3
+  redirects and stops at 10 s and 2 MB (`docs/agent/DATA.md`).
+
 ## [4.1.0] - 2026-10-24
 
 ### Added
