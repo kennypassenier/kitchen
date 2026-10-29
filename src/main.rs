@@ -70,6 +70,15 @@ async fn main() -> std::process::ExitCode {
                 return std::process::ExitCode::FAILURE;
             }
         };
+        // Drafts nobody reopened for a week go, with the photos only they refer to (Kenny, 29/10/2026).
+        let pruned = store.prune_drafts(chassis::shell::time::now_epoch()).await;
+        if pruned > 0 {
+            tracing::info!(
+                pruned,
+                days = store::DRAFT_DAYS,
+                "old recipe drafts dropped"
+            );
+        }
         app.dashboard_routes(routes::router(store.clone(), &dir))
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);

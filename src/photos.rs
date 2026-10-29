@@ -62,7 +62,7 @@ impl Kind {
         }
     }
 
-    const ALL: [Kind; 2] = [Kind::Jpeg, Kind::Webp];
+    pub const ALL: [Kind; 2] = [Kind::Jpeg, Kind::Webp];
 }
 
 /// Why an upload was refused, in words a page shows as they are.

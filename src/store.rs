@@ -113,6 +113,8 @@ pub enum Refused {
     NoPortionsLeft,
     /// A name that must be in both languages misses one (the field, as `name.en`).
     MissingName(String),
+    /// A recipe's `source` that is not an http(s) address (the field, as `recipes[0].source`).
+    BadSource(String),
     Disk(String),
 }
 
@@ -135,6 +137,10 @@ impl std::fmt::Display for Refused {
                 f,
                 "{field} is empty: every name needs its Dutch and its English half"
             ),
+            Refused::BadSource(field) => write!(
+                f,
+                "{field} must be a web address starting with http:// or https://, or empty"
+            ),
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }
@@ -142,7 +148,56 @@ impl std::fmt::Display for Refused {
 
 pub struct Store {
     path: PathBuf,
+    /// Where the photo files live (`<state dir>/photos`); none for an in-memory store.
+    photos: Option<PathBuf>,
     data: RwLock<Data>,
+}
+
+/// A draft nobody reopened for this many days is dropped, with the photos only it refers to (Kenny, 29/10/2026; Claude's
+/// number, reversible).
+pub const DRAFT_DAYS: u64 = 7;
+
+/// `epoch` seconds as the kit writes its stamps (`2026-10-29T14:39:17Z`, UTC), which sort as text.
+pub fn rfc3339_at(epoch: u64) -> String {
+    let days = (epoch / 86_400) as i64;
+    let secs = epoch % 86_400;
+    // Days since 1970-01-01 to a civil date (Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        secs / 3600,
+        secs % 3600 / 60,
+        secs % 60
+    )
+}
+
+/// Every photo id a value refers to: a `photo` string or a `photos` list of strings, at any depth.
+fn photo_ids(v: &Value, out: &mut std::collections::HashSet<String>) {
+    match v {
+        Value::Object(o) => {
+            for (k, v) in o {
+                match (k.as_str(), v) {
+                    ("photo", Value::String(id)) => {
+                        out.insert(id.clone());
+                    }
+                    ("photos", Value::Array(a)) => {
+                        out.extend(a.iter().filter_map(Value::as_str).map(String::from));
+                    }
+                    _ => photo_ids(v, out),
+                }
+            }
+        }
+        Value::Array(a) => a.iter().for_each(|v| photo_ids(v, out)),
+        _ => {}
+    }
 }
 
 impl Store {
@@ -175,6 +230,7 @@ impl Store {
         };
         Ok(Self {
             path,
+            photos: Some(dir.join("photos")),
             data: RwLock::new(data),
         })
     }
@@ -184,6 +240,7 @@ impl Store {
     pub fn in_memory(data: Data) -> Self {
         Self {
             path: PathBuf::new(),
+            photos: None,
             data: RwLock::new(data),
         }
     }
@@ -295,17 +352,74 @@ impl Store {
     }
 
     pub async fn delete(&self, coll: &str, id: &str) -> Result<Value, Refused> {
-        self.change(|d| {
-            let c = d
-                .collection(coll)
-                .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
-            let at = c
-                .iter()
-                .position(|v| v.get("id").and_then(Value::as_str) == Some(id))
-                .ok_or(Refused::NotFound)?;
-            Ok(c.remove(at))
+        let gone = self
+            .change(|d| {
+                let c = d
+                    .collection(coll)
+                    .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
+                let at = c
+                    .iter()
+                    .position(|v| v.get("id").and_then(Value::as_str) == Some(id))
+                    .ok_or(Refused::NotFound)?;
+                Ok(c.remove(at))
+            })
+            .await?;
+        // A discarded draft takes the photos only it referred to along (Kenny, 29/10/2026).
+        if coll == "drafts" {
+            self.release_photos(std::slice::from_ref(&gone)).await;
+        }
+        Ok(gone)
+    }
+
+    /// Drop the drafts last saved more than [`DRAFT_DAYS`] before `now` (epoch seconds), and their photos. Runs when the
+    /// kitchen starts; answers how many drafts went.
+    pub async fn prune_drafts(&self, now: u64) -> usize {
+        let cutoff = rfc3339_at(now.saturating_sub(DRAFT_DAYS * 86_400));
+        // A draft with no readable `saved` stamp is kept: nothing says it is old.
+        let gone = self
+            .change(|d| {
+                let (old, keep): (Vec<Value>, Vec<Value>) =
+                    std::mem::take(&mut d.drafts).into_iter().partition(|v| {
+                        v.get("saved")
+                            .and_then(Value::as_str)
+                            .is_some_and(|s| s < cutoff.as_str())
+                    });
+                d.drafts = keep;
+                Ok(old)
+            })
+            .await
+            .unwrap_or_default();
+        self.release_photos(&gone).await;
+        gone.len()
+    }
+
+    /// Delete the photo files the removed `drafts` refer to, except those a recipe or another draft still refers to.
+    async fn release_photos(&self, drafts: &[Value]) {
+        let Some(dir) = self.photos.clone() else {
+            return;
+        };
+        let mut wanted = std::collections::HashSet::new();
+        drafts.iter().for_each(|v| photo_ids(v, &mut wanted));
+        if wanted.is_empty() {
+            return;
+        }
+        let mut kept = std::collections::HashSet::new();
+        {
+            let d = self.data.read().await;
+            photo_ids(&Value::Array(d.dishes.clone()), &mut kept);
+            photo_ids(&Value::Array(d.drafts.clone()), &mut kept);
+        }
+        let _ = tokio::task::spawn_blocking(move || {
+            for id in wanted.difference(&kept) {
+                if !crate::photos::valid_id(id) {
+                    continue;
+                }
+                for kind in crate::photos::Kind::ALL {
+                    let _ = std::fs::remove_file(dir.join(format!("{id}.{}", kind.ext())));
+                }
+            }
         })
-        .await
+        .await;
     }
 
     /// Take `n` portions out of a freezer item (negative puts them back,
@@ -434,9 +548,29 @@ fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
             .enumerate()
         {
             label(r.get("label"), &format!("recipes[{i}].label"))?;
+            source(r.get("source"), &format!("recipes[{i}].source"))?;
         }
     }
     Ok(())
+}
+
+/// A recipe's `source` (Kenny, 29/10/2026: where an imported recipe came from): absent, null or empty, or an http(s)
+/// address with a host, at most 2000 characters.
+fn source(v: Option<&Value>, at: &str) -> Result<(), Refused> {
+    let bad = || Refused::BadSource(at.into());
+    match v {
+        None | Some(Value::Null) => Ok(()),
+        Some(Value::String(s)) if s.trim().is_empty() => Ok(()),
+        Some(Value::String(s)) if s.len() <= 2000 => {
+            let url = reqwest::Url::parse(s.trim()).map_err(|_| bad())?;
+            if matches!(url.scheme(), "http" | "https") && url.host_str().is_some() {
+                Ok(())
+            } else {
+                Err(bad())
+            }
+        }
+        Some(_) => Err(bad()),
+    }
 }
 
 /// Format 4 to 5 (Kenny, 24/10/2026 10:04): a shelf food's `title`,
@@ -776,6 +910,43 @@ mod tests {
         }
     }
 
+    #[test]
+    fn stamps_sort_as_text_and_match_the_kit() {
+        assert_eq!(rfc3339_at(0), "1970-01-01T00:00:00Z");
+        assert_eq!(rfc3339_at(1_782_000_000), "2026-06-21T00:00:00Z");
+        assert_eq!(rfc3339_at(1_803_652_757), "2027-02-26T14:39:17Z");
+        assert_eq!(rfc3339_at(951_782_400), "2000-02-29T00:00:00Z");
+    }
+
+    #[tokio::test]
+    async fn drafts_older_than_a_week_go_and_take_their_own_photos() {
+        let dir = tempfile::tempdir().unwrap();
+        let photos = dir.path().join("photos");
+        std::fs::create_dir_all(&photos).unwrap();
+        let mine = "11111111-1111-4111-8111-111111111111";
+        let shared = "22222222-2222-4222-8222-222222222222";
+        for id in [mine, shared] {
+            std::fs::write(photos.join(format!("{id}.jpg")), b"x").unwrap();
+        }
+        let mut data = empty();
+        data.dishes.push(serde_json::json!({"id": "d", "recipes": [{"id": "r", "steps": [{"photos": [shared]}]}]}));
+        data.drafts.push(
+            serde_json::json!({"id": "a", "key": "new:", "saved": "2026-10-01T00:00:00Z",
+            "data": {"photo": mine, "steps": [{"photos": [shared]}]}}),
+        );
+        data.drafts.push(
+            serde_json::json!({"id": "b", "key": "r", "saved": "2026-10-29T10:00:00Z", "data": {}}),
+        );
+        let mut s = Store::in_memory(data);
+        s.photos = Some(photos.clone());
+        // 2026-10-29T12:00:00Z
+        let now = 1_793_275_200;
+        assert_eq!(s.prune_drafts(now).await, 1);
+        assert_eq!(s.list("drafts").await.unwrap().len(), 1);
+        assert!(!photos.join(format!("{mine}.jpg")).exists());
+        assert!(photos.join(format!("{shared}.jpg")).exists());
+    }
+
     #[tokio::test]
     async fn a_draft_is_one_per_key() {
         let s = Store::in_memory(empty());
@@ -934,6 +1105,36 @@ mod tests {
         assert_eq!(
             d.freezer[0]["dish"],
             serde_json::json!({"nl": "Soup", "en": "Soup"})
+        );
+    }
+
+    #[tokio::test]
+    async fn a_recipe_source_is_an_http_address_or_nothing() {
+        let s = Store::in_memory(empty());
+        let dish = |src: serde_json::Value| serde_json::json!({"name": {"nl": "a", "en": "a"}, "recipes": [{"source": src}]});
+        for ok in [
+            serde_json::json!("https://example.com/r?a=1"),
+            serde_json::json!(""),
+            serde_json::Value::Null,
+        ] {
+            assert!(s.create("dishes", dish(ok)).await.is_ok());
+        }
+        for bad in [
+            "javascript:alert(1)",
+            "ftp://example.com/",
+            "not a url",
+            "https://",
+        ] {
+            assert_eq!(
+                s.create("dishes", dish(serde_json::json!(bad))).await,
+                Err(Refused::BadSource("recipes[0].source".into())),
+                "{bad}"
+            );
+        }
+        assert!(
+            s.create("dishes", dish(serde_json::json!(5)))
+                .await
+                .is_err()
         );
     }
 
