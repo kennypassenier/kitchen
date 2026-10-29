@@ -184,9 +184,9 @@ export const textCell = (label, value, placeholder = "") => {
  * Open the editor for a recipe, or for a new one. `restore` is a draft's form state (Kenny, 29/10/2026): the editor then
  * opens with it instead of the saved recipe.
  * @param {HTMLDialogElement} dialog
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null }} spec
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js)
  */
-export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null }) {
+export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null, copyOf = "" }) {
   const base = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const r = restore ? { ...base, ...restore } : base;
   const editing = Boolean(recipe);
@@ -197,7 +197,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   // A restored draft's photos were sent by an earlier session: this one answers for them now.
   if (restore) for (const id of photosOf(restore)) if (!photosOf(recipe).includes(id)) tracker.uploaded(id);
   const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: t("edit.recipePhoto"), tracker });
-  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : t("list.recipes.add"));
+  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : copyOf ? t("edit.copyTitle", copyOf) : t("list.recipes.add"));
 
   // ---- the dish -----------------------------------------------------------------------------------------------
   // The dish the recipe belongs to (Kenny, 29/10/2026): a recipe is always in a dish, an existing one or a new one that is
@@ -548,7 +548,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       { class: "kp-drawer__head" },
       heading,
       h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("edit.close"), "data-close": true }, "✕"),
-      h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : t("rec.addText")),
+      h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : copyOf ? t("edit.copyText") : t("rec.addText")),
     ),
     offer,
     form,
@@ -702,7 +702,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
           draftGone = true;
           clearTimeout(draftTimer);
           void tracker.discard();
-          openEditor(dialog, { recipe, mainOptions, preset, restore: draft.data });
+          openEditor(dialog, { recipe, mainOptions, preset, copyOf, restore: draft.data });
         });
         discardButton.addEventListener("click", () => {
           offer.hidden = true;

@@ -174,12 +174,13 @@ function sidesBlock(sides) {
 }
 
 /**
- * Open the editor for a dish, or for a new one.
+ * Open the editor for a dish, or for a new one. `from` is a copy of a dish (recipe/duplicate.js `copyDish`): the editor opens
+ * on it as a new dish, and Save makes it (Kenny, 29/10/2026).
  * @param {HTMLDialogElement} dialog
- * @param {{ dish: Item | null, categories: Item[] }} spec
+ * @param {{ dish: Item | null, categories: Item[], from?: Item | null }} spec
  */
-export function openDishEditor(dialog, { dish, categories }) {
-  const d = dish ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipes: [], ingredients: [], sides: [] };
+export function openDishEditor(dialog, { dish, categories, from = null }) {
+  const d = dish ?? from ?? { name: { nl: "", en: "" }, category: categories[0]?.id ?? null, parents: true, recipes: [], ingredients: [], sides: [] };
   const n = names(d);
   const nl = input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees" });
   const en = input(n.en, "text", { autocomplete: "off", placeholder: t("de.phEn") });
@@ -216,13 +217,13 @@ export function openDishEditor(dialog, { dish, categories }) {
     )
   );
   openDrawer(dialog, {
-    title: dish ? t("rec.editTitle", label(dish)) : t("list.dishes.add"),
-    text: dish ? t("rec.editText") : t("rec.addText"),
+    title: dish ? t("rec.editTitle", label(dish)) : from ? t("de.copyTitle", label(from)) : t("list.dishes.add"),
+    text: dish ? t("rec.editText") : from ? t("de.copyText") : t("rec.addText"),
     form,
     saveLabel: dish ? t("de.saveDish") : t("list.dishes.addSave"),
     onSave: async () => {
       const body = {
-        ...(dish ?? {}),
+        ...(dish ?? from ?? {}),
         name: { nl: /** @type {HTMLInputElement} */ (nl).value.trim(), en: /** @type {HTMLInputElement} */ (en).value.trim() },
         category: category.value || null,
         parents: on(parents),

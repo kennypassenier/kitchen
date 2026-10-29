@@ -704,4 +704,10 @@ export const EN_PAGES = {
   "edit.draftText": "The editor saved it by itself before it was closed. Restore opens it here; Discard deletes it.",
   "edit.draftRestore": "Restore the draft",
   "edit.draftDiscard": "Discard the draft",
+  "common.duplicate": "Duplicate",
+  "rec.duplicateName": (name) => `Duplicate ${name}`,
+  "de.copyTitle": (name) => `Copy of ${name}`,
+  "de.copyText": "An editable copy with its recipes. Change what should differ, then save; nothing is made before that.",
+  "edit.copyTitle": (name) => `Copy of ${name}`,
+  "edit.copyText": "An editable copy in the same dish. Its photos are the same files as the original's. Change what should differ, then save.",
 };

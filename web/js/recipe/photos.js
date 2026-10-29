@@ -14,6 +14,7 @@
 import { h } from "../dom.js";
 import { setGallery, setGalleryUploading, GALLERY_ADD_EVENT } from "/static/kp/js/gallery.js";
 import { toast } from "/static/kp/js/overlays.js";
+import { kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";
 
 /** The long side, in pixels, a photo is made smaller to. */
@@ -97,8 +98,12 @@ export async function uploadPhoto(file) {
   return /** @type {string} */ (data.id);
 }
 
-/** Delete a photo file; a photo that is already gone is fine. @param {string} id */
+/** Whether some recipe of the kitchen still refers to this photo (a copy shares the original's files). @param {string} id */
+const referenced = (id) => (kitchenNow()?.recipes ?? []).some((r) => photosOf(r).includes(id));
+
+/** Delete a photo file; a photo that is already gone is fine, and one that another recipe (a copy) still shows stays. @param {string} id */
 export async function deletePhoto(id) {
+  if (referenced(id)) return;
   try {
     await fetch(photoUrl(id), { method: "DELETE", credentials: "same-origin" });
   } catch {

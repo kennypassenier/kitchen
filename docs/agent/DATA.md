@@ -89,6 +89,10 @@ default), which is lower than the 4 MiB cap here, so the browser shrinks a
 photo further until it is under about 1 MB; raise the knob only if that ever
 bites.
 
+Duplicate (Kenny, 29/10/2026): a copy of a recipe or dish refers to the SAME photo ids as the original: the
+files are shared, nothing is copied on disk. That is why a photo file is deleted (editor Save, Recipes-page delete)
+only when no recipe of the kitchen refers to it any more.
+
 Who deletes: the editor deletes the photos a recipe no longer refers to when it
 saves (a removed photo, a removed step) and the ones it uploaded when it is
 cancelled; the recipes page deletes a recipe's photos when the recipe is

@@ -18,6 +18,7 @@ import { create, replace, remove, kitchenNow, ingredientName, ApiError } from ".
 import { t, lang, nameOf, textOf } from "./i18n/index.js";
 import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
 import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
+import { copyRecipe, copyDish } from "./recipe/duplicate.js";
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting"} List */
@@ -422,10 +423,10 @@ export function openRecordEditor(list, item, preset = {}) {
 /** An empty recipe, for a dish that has none yet. */
 export const BLANK_RECIPE = { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
 
-/** Open the recipe editor for a recipe, or a new one that starts with `preset` (a new safe dish: `{ safe: true }`). @param {Item | null} r @param {Item} [preset] */
-export function openRecipeEditor(r, preset = {}) {
+/** Open the recipe editor for a recipe, or a new one that starts with `preset` (a new safe dish: `{ safe: true }`). `copyOf` names the recipe a copy is made of. @param {Item | null} r @param {Item} [preset] @param {string} [copyOf] */
+export function openRecipeEditor(r, preset = {}, copyOf = "") {
   const k = kitchenNow();
-  openEditor(drawer(), { recipe: r, preset, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
+  openEditor(drawer(), { recipe: r, preset, copyOf, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
 }
 
 /** Mark one of the recipes as a safe dish, or write a new one. */
@@ -599,7 +600,17 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
   });
 }
 
-/** Edit and Delete for one row of a list. @param {List} list @param {Item} item */
+/** Duplicate a recipe (Kenny, 29/10/2026): the editor opens on an editable copy in the same dish. @param {Item} recipe */
+export function duplicateRecipe(recipe) {
+  openRecipeEditor(null, { ...copyRecipe(recipe), dish_id: recipe.dish_id }, String(recipe.name ?? ""));
+}
+
+/** Duplicate a dish: the dish editor opens on an editable copy with its recipes. @param {Item} dishItem */
+export function duplicateDish(dishItem) {
+  openDishEditor(drawer(), { dish: null, from: copyDish(dishItem), categories: ordered(kitchenNow()?.dish_categories ?? []) });
+}
+
+/** Edit and Delete for one row of a list (a dish also Duplicate). @param {List} list @param {Item} item */
 export function rowActions(list, item) {
   const name = LISTS[list].name(item);
   const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", name) }, t("common.edit"));
@@ -608,7 +619,10 @@ export function rowActions(list, item) {
   del.addEventListener("click", () => deleteRecord(del, list, item));
   const blocked = inUse(list, item);
   if (blocked) del.setAttribute("title", blocked);
-  return h("div", { class: "kp-row-actions" }, edit, del);
+  if (list !== "dishes") return h("div", { class: "kp-row-actions" }, edit, del);
+  const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", name) }, t("common.duplicate"));
+  copy.addEventListener("click", () => duplicateDish(item));
+  return h("div", { class: "kp-row-actions" }, edit, copy, del);
 }
 
 // ---- one card with a data table, as /dishes and /log show their lists ----------------------------------------------

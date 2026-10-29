@@ -704,4 +704,10 @@ export const NL_PAGES = {
   "edit.draftText": "De editor bewaarde het zelf voordat hij werd gesloten. Terugzetten opent het hier; Weggooien verwijdert het.",
   "edit.draftRestore": "Concept terugzetten",
   "edit.draftDiscard": "Concept weggooien",
+  "common.duplicate": "Dupliceren",
+  "rec.duplicateName": (name) => `${name} dupliceren`,
+  "de.copyTitle": (name) => `Kopie van ${name}`,
+  "de.copyText": "Een aanpasbare kopie met zijn recepten. Pas aan wat anders moet zijn en sla op; eerder wordt er niets gemaakt.",
+  "edit.copyTitle": (name) => `Kopie van ${name}`,
+  "edit.copyText": "Een aanpasbare kopie in hetzelfde gerecht. De foto's zijn dezelfde bestanden als die van het origineel. Pas aan wat anders moet zijn en sla op.",
 };

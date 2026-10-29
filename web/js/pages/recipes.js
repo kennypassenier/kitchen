@@ -10,6 +10,7 @@ import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { openEditor } from "../recipe/editor.js";
+import { copyRecipe } from "../recipe/duplicate.js";
 import { deletePhoto, photosOf } from "../recipe/photos.js";
 import { dmy } from "../recipe/log.js";
 import { t } from "../i18n/index.js";
@@ -105,6 +106,11 @@ export function mount(root) {
     const k = kitchenNow();
     openEditor(/** @type {HTMLDialogElement} */ (editor), { recipe, mainOptions: [...new Set((k?.recipes ?? []).flatMap((r) => r.ing ?? []))] });
   };
+  /** An editable copy of a recipe, in the same dish (Kenny, 29/10/2026). @param {Record<string, any>} recipe */
+  const openCopy = (recipe) => {
+    const k = kitchenNow();
+    openEditor(/** @type {HTMLDialogElement} */ (editor), { recipe: null, preset: { ...copyRecipe(recipe), dish_id: recipe.dish_id }, copyOf: String(recipe.name ?? ""), mainOptions: [...new Set((k?.recipes ?? []).flatMap((r) => r.ing ?? []))] });
+  };
   add.addEventListener("click", () => openFor(null));
   empty.querySelector("[data-rl-add]")?.addEventListener("click", () => openFor(null));
 
@@ -115,8 +121,10 @@ export function mount(root) {
     return k.recipes.map((r) => {
       const cooked = last.get(r.id) ?? null;
       const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
+      const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", r.name) }, t("common.duplicate"));
       const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", r.name) }, t("common.delete"));
       edit.addEventListener("click", () => openFor(r));
+      copy.addEventListener("click", () => openCopy(r));
       del.addEventListener("click", () => {
         openConfirmation(del, {
           phrase: t("rec.deleteAsk", r.name),
@@ -143,7 +151,7 @@ export function mount(root) {
         h("td", { "data-label": t("recs.colPrep") }, h("span", { class: "kp-badge" }, prepLabels()[r.prep] ?? "–")),
         h("td", { "data-label": t("recs.colSafe") }, r.safe ? h("span", { class: "kp-badge kp-badge--success" }, t("recs.safe")) : "–"),
         h("td", { "data-label": t("recs.colLast"), "data-kp-sort-value": String(dayNumber(cooked)) }, cooked ? dmy(cooked) : t("recs.never")),
-        h("td", { "data-label": t("recs.colActions") }, h("div", { class: "rl-actions" }, edit, del)),
+        h("td", { "data-label": t("recs.colActions") }, h("div", { class: "rl-actions" }, edit, copy, del)),
       );
     });
   }

@@ -16,7 +16,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, make
 import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
-import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
+import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t, textOf } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
@@ -209,6 +209,8 @@ function dishRecipes(pageEl) {
           const label = recipeLabel(r, i);
           const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", label) }, t("common.edit"));
           edit.addEventListener("click", () => openRecipeEditor(view));
+          const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", label) }, t("common.duplicate"));
+          copy.addEventListener("click", () => duplicateRecipe(view));
           const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", label) }, t("common.delete"));
           del.addEventListener("click", () =>
             openConfirmation(del, {
@@ -229,7 +231,7 @@ function dishRecipes(pageEl) {
             { "data-key": r.id },
             h("span", { class: "kp-action-list__lead" }, h("span", { class: "kp-badge" }, `${r.minutes ?? 0} min`)),
             h("div", { class: "kp-action-list__main" }, h("strong", { class: "kp-action-list__title" }, h("a", { href: `/recipe?id=${encodeURIComponent(r.id)}` }, label)), h("span", { class: "kp-action-list__text" }, r.summary || "")),
-            h("div", { class: "kp-row-actions" }, def, h("a", { class: "kp-button kp-button--sm kp-button--primary", href: `/cook?id=${encodeURIComponent(r.id)}` }, t("it.cook")), edit, del),
+            h("div", { class: "kp-row-actions" }, def, h("a", { class: "kp-button kp-button--sm kp-button--primary", href: `/cook?id=${encodeURIComponent(r.id)}` }, t("it.cook")), edit, copy, del),
           );
         }),
       );
@@ -358,13 +360,15 @@ export function mount(root, { params, navigate }) {
   const crumb = h("nav", { class: "kp-breadcrumb", "aria-label": t("it.crumb") }, h("ol", null, h("li", null, h("a", { href: homeHref }, homeName)), h("li", { "aria-current": "page" }, meta.noun)));
   const title = h("h1", { class: "kp-page-header__title" }, "…");
   const edit = h("button", { type: "button", class: "kp-button" }, t("common.edit"));
+  // A dish can be duplicated from its own page (Kenny, 29/10/2026).
+  const copy = list === "dishes" ? h("button", { type: "button", class: "kp-button" }, t("common.duplicate")) : null;
 
   const del = h("button", { type: "button", class: "kp-button kp-button--destructive" }, t("common.delete"));
   const head = h(
     "header",
     { class: "kp-page-header" },
     crumb,
-    h("div", { class: "kp-page-header__inner" }, h("div", null, title, h("p", { class: "kp-page-header__description" }, t("it.keeps", meta.this))), h("div", { class: "kp-page-header__actions" }, edit, del)),
+    h("div", { class: "kp-page-header__inner" }, h("div", null, title, h("p", { class: "kp-page-header__description" }, t("it.keeps", meta.this))), h("div", { class: "kp-page-header__actions" }, edit, ...(copy ? [copy] : []), del)),
   );
   const kv = h("dl", { class: "kp-kv kp-kv--lines" });
   const card = h(
@@ -382,13 +386,15 @@ export function mount(root, { params, navigate }) {
   /** @type {Item | null} */
   let item = null;
   const setActions = (on) => {
-    for (const b of [edit, del]) {
+    for (const b of [edit, ...(copy ? [copy] : []), del]) {
       if (on) b.removeAttribute("aria-disabled");
       else b.setAttribute("aria-disabled", "true");
     }
   };
   setActions(false);
   edit.addEventListener("click", () => item && edit.getAttribute("aria-disabled") !== "true" && openRecordEditor(list, item));
+
+  copy?.addEventListener("click", () => item && copy.getAttribute("aria-disabled") !== "true" && duplicateDish(item));
 
   del.addEventListener("click", () => item && del.getAttribute("aria-disabled") !== "true" && deleteRecord(del, list, item, { after: () => navigate(homeHref) }));
 
