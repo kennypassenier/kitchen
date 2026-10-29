@@ -298,15 +298,21 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   );
 
   // ---- steps ---------------------------------------------------------------------------------------------------
+  // Quick-add (Kenny, 29/10/2026): one field at the top, Enter adds the step and the field is ready for the next. A step
+  // is one line (number, its text, chips for what it says, Up / Down and Remove) and "More" folds out the rest.
   const trackOptions = () => /** @type {[string, string][]} */ ([["", t("edit.tracksMeet")], ...tracks.get().map(([tk]) => /** @type {[string, string]} */ ([tk.id, tk.name || t("edit.unnamedTrack")]))]);
-  /** @type {{ el: HTMLElement, get: () => any, track: HTMLSelectElement }[]} */
+  /** @type {{ el: HTMLElement, get: () => any, track: HTMLSelectElement, partner: HTMLSelectElement, text: HTMLElement, head: HTMLElement, up: HTMLElement, down: HTMLElement, id: string, paint: () => void, options: () => void }[]} */
   let stepList = [];
-  const stepsBox = h("div", { class: "rl-steps" });
+  const stepsBox = h("ol", { class: "rl-steps" });
   const stepsEmpty = h("p", { class: "rl-rows__empty" }, t("edit.noSteps"));
+  const quick = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", id: "rl-quick", autocomplete: "off", enterkeyhint: "next", placeholder: t("edit.quickPh"), "aria-label": t("edit.quickLabel") }));
 
   /** @param {Record<string, any>} s */
   function stepEditor(s) {
-    const text = area(s.text ?? "", 2);
+    s.id ||= newId();
+    const text = area(s.text ?? "", 1);
+    text.classList.add("rl-step__text");
+    text.setAttribute("aria-label", t("edit.instruction"));
     const say = input(s.say ?? "", "text", { placeholder: t("edit.sayPh") });
     const track = select(trackOptions(), s.track ?? "", t("edit.track"));
     const mins = stepper(s.mins ?? 0, { max: 1440, unit: "min", label: t("recs.colMinutes") });
@@ -317,6 +323,9 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     const timerSecs = input(s.timer?.seconds ?? "", "number", { "aria-label": t("edit.timerSeconds"), min: "1", step: "1", placeholder: "600" });
     const note = input(s.note ?? "", "text", { placeholder: t("edit.notePh") });
     const warn = toggle(t("edit.warnSwitch"), s.note_tone === "warning");
+    // Where it falls in time (recipe/schedule.js): both optional, the draggable timeline will set them too.
+    const start = input(typeof s.start === "number" ? String(s.start) : "", "number", { min: "0", step: "1", inputmode: "numeric", placeholder: t("edit.startPh") });
+    const partner = select([["", t("edit.withNone")]], s.with ?? "", t("edit.with"));
     const uses = rows({
       columns: [
         { label: t("edit.amount"), width: "7rem", make: (u) => { const c = textCell(t("edit.amountWritten"), u.amount ?? "", t("edit.amountPh")); return c; } },
@@ -329,7 +338,6 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     const fields = h(
       "div",
       { class: "kp-formgrid" },
-      row(t("edit.instruction"), text, t("edit.instructionHint")),
       row(t("edit.sayAs"), say, t("edit.sayHint")),
       row(t("edit.track"), track, t("edit.trackHint")),
       row(t("recs.colMinutes"), mins, t("edit.minsHint")),
@@ -339,39 +347,72 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       row(t("edit.note"), note, ""),
       row(t("edit.warning"), warn, ""),
       row(t("edit.mini"), mini, ""),
+      row(t("edit.startAt"), start, t("edit.startHint")),
+      row(t("edit.with"), partner, t("edit.withHint")),
       row(t("edit.photos"), photos.el, t("edit.photosHint")),
     );
-    const form = h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, t("edit.stepNeeds")), uses.el));
-    const head = h("h3", { class: "kp-fw-semibold" });
+    const more = h("details", { class: "rl-step__more" }, h("summary", null, t("edit.more")), h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, t("edit.stepNeeds")), uses.el)));
+    const head = h("span", { class: "rl-step__n" });
+    const chips = h("div", { class: "rl-step__chips" });
     const up = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveUp"));
     const down = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveDown"));
     const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("edit.removeStep"));
-    const el = h("fieldset", { class: "rl-step" }, h("div", { class: "rl-step__head" }, head, h("div", { class: "rl-step__buttons" }, up, down, del)), form);
+    const el = h("li", { class: "rl-step", role: "group" }, head, text, h("div", { class: "rl-step__buttons" }, up, down, del), chips, more);
+    const secs = () => Number(/** @type {HTMLInputElement} */ (timerSecs).value);
     const entry = {
       el,
+      id: String(s.id),
       track,
+      partner,
+      text,
       head,
       up,
       down,
+      del,
+      /** The chips under the text say what the fold holds. */
+      paint: () => {
+        const m = getQuantity(mins);
+        const trackName = track.value ? (track.selectedOptions[0]?.textContent ?? "") : "";
+        const others = stepList.findIndex((e) => e.id === partner.value);
+        /** @type {[string, string][]} */
+        const list = [];
+        if (m > 0) list.push(["", t("wheel.min", m)]);
+        if (trackName) list.push(["", trackName]);
+        if (on(hasTimer) && secs() > 0) list.push(["", t("edit.chipTimer")]);
+        const nPhotos = photos.get().length;
+        if (nPhotos) list.push(["", t("edit.chipPhotos", nPhotos)]);
+        if (on(warn)) list.push(["kp-badge--warning", t("edit.chipWarning")]);
+        if (partner.value && others >= 0) list.push(["kp-badge--info", t("edit.chipWith", others + 1)]);
+        if (start.value !== "") list.push(["kp-badge--info", t("edit.chipStart", Number(/** @type {HTMLInputElement} */ (start).value))]);
+        chips.hidden = list.length === 0;
+        chips.replaceChildren(...list.map(([cls, label]) => h("span", { class: `kp-badge ${cls}`.trim() }, label)));
+      },
+      /** The partner list: every other step, by its number and the start of its text. */
+      options: () => {
+        const keep = partner.value || s.with || "";
+        const opts = [["", t("edit.withNone")], ...stepList.filter((e) => e.id !== entry.id).map((e) => /** @type {[string, string]} */ ([e.id, `${stepList.indexOf(e) + 1}. ${/** @type {HTMLTextAreaElement} */ (e.text).value.trim().slice(0, 40) || t("edit.unnamedStep")}`]))];
+        partner.replaceChildren(...opts.map(([v, label]) => h("option", { value: v }, label)));
+        partner.value = opts.some(([v]) => v === keep) ? keep : "";
+      },
       get: () => {
-        const secs = Number(/** @type {HTMLInputElement} */ (timerSecs).value);
         const tn = /** @type {HTMLInputElement} */ (timerName).value.trim();
+        const typedStart = /** @type {HTMLInputElement} */ (start).value;
         return {
-          id: s.id ?? (s.id = newId()),
+          id: entry.id,
           track: track.value || null,
           text: /** @type {HTMLTextAreaElement} */ (text).value.trim(),
           say: /** @type {HTMLInputElement} */ (say).value.trim(),
           mins: getQuantity(mins),
           active: on(active),
-          timer: on(hasTimer) && secs > 0 ? { seconds: secs, name: tn || t("edit.timerDefault") } : null,
+          timer: on(hasTimer) && secs() > 0 ? { seconds: secs(), name: tn || t("edit.timerDefault") } : null,
           uses: uses.get().map(([amount, what]) => ({ amount, name: what })).filter((u) => u.amount || u.name),
           note: /** @type {HTMLInputElement} */ (note).value.trim(),
           note_tone: on(warn) ? "warning" : "",
           mini: on(mini),
           photos: photos.get(),
-          // Where the step falls in time (Kenny, 29/10/2026): kept as it is, the timeline sets them (recipe/schedule.js).
-          start: typeof s.start === "number" ? s.start : null,
-          with: typeof s.with === "string" && s.with ? s.with : null,
+          // Where the step falls in time (Kenny, 29/10/2026): recipe/schedule.js.
+          start: typedStart === "" ? null : Math.max(0, Number(typedStart)),
+          with: partner.value || null,
         };
       },
     };
@@ -380,9 +421,12 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const renumber = () => {
     stepsEmpty.hidden = stepList.length > 0;
     stepList.forEach((e, i) => {
-      /** @type {any} */ (e).head.textContent = t("edit.stepN", i + 1);
-      /** @type {any} */ (e).up.disabled = i === 0;
-      /** @type {any} */ (e).down.disabled = i === stepList.length - 1;
+      e.head.textContent = String(i + 1);
+      e.el.setAttribute("aria-label", t("edit.stepN", i + 1));
+      e.up.disabled = i === 0;
+      e.down.disabled = i === stepList.length - 1;
+      e.options();
+      e.paint();
     });
     stepsBox.replaceChildren(...stepList.map((e) => e.el));
     stepsBox.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
@@ -391,31 +435,53 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const addStep = (s) => {
     const e = stepEditor(s);
     stepList.push(e);
-    /** @type {any} */ (e).up.addEventListener("click", () => move(e, -1));
-    /** @type {any} */ (e).down.addEventListener("click", () => move(e, 1));
-    e.el.querySelector(".rl-step__buttons .kp-button--ghost")?.addEventListener("click", () => {
+    e.up.addEventListener("click", () => move(e, -1, e.up));
+    e.down.addEventListener("click", () => move(e, 1, e.down));
+    /** @type {any} */ (e).del.addEventListener("click", () => {
       stepList = stepList.filter((x) => x !== e);
       renumber();
-      addStepButton.focus();
+      quick.focus();
     });
+    // The keyboard's way to reorder (Kenny, 29/10/2026): Alt+Up and Alt+Down in the step's text; the focus stays in it.
+    e.text.addEventListener("keydown", (ev) => {
+      const k = /** @type {KeyboardEvent} */ (ev);
+      if (!k.altKey || (k.key !== "ArrowUp" && k.key !== "ArrowDown")) return;
+      k.preventDefault();
+      move(e, k.key === "ArrowUp" ? -1 : 1, e.text);
+    });
+    e.el.addEventListener("input", () => e.paint());
+    e.el.addEventListener("change", () => e.paint());
+    e.el.addEventListener("kp-quantity-change", () => e.paint());
+    e.el.addEventListener("rl-photos-change", () => e.paint());
     return e;
   };
-  /** @param {any} e @param {number} by */
-  const move = (e, by) => {
+  /** @param {any} e @param {number} by @param {HTMLElement} focus what keeps the focus after the move */
+  const move = (e, by, focus) => {
     const i = stepList.indexOf(e);
     const j = i + by;
     if (j < 0 || j >= stepList.length) return;
     [stepList[i], stepList[j]] = [stepList[j], stepList[i]];
     renumber();
-    (by < 0 ? e.up : e.down).focus();
+    // A disabled button (the first step's Up) cannot keep it: the other one does.
+    (/** @type {HTMLButtonElement} */ (focus).disabled ? (by < 0 ? e.down : e.up) : focus).focus();
   };
-  const addStepButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.addStep"));
   for (const s of r.steps ?? []) addStep(s);
-  addStepButton.addEventListener("click", () => {
-    const e = addStep({});
+  /** Enter in the quick field: the step is added and the field is ready for the next one. */
+  const quickAdd = () => {
+    const typed = quick.value.trim();
+    if (!typed) return;
+    const last = stepList[stepList.length - 1];
+    const e = addStep({ text: typed, track: last?.track.value || null });
+    quick.value = "";
     renumber();
     attachControls(e.el);
-    e.el.querySelector("textarea")?.focus();
+    e.el.scrollIntoView({ block: "nearest" });
+    quick.focus();
+  };
+  quick.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" || ev.isComposing) return;
+    ev.preventDefault(); // Enter here never submits the form
+    quickAdd();
   });
   renumber();
   tracks.el.addEventListener("rl-rows-change", () => {
@@ -425,6 +491,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       const keep = sel.value;
       sel.replaceChildren(...opts.map(([v, text]) => h("option", { value: v }, text)));
       sel.value = opts.some(([v]) => v === keep) ? keep : "";
+      e.paint();
     }
   });
   /** The two times from the steps as they stand, and what is stored: a typed override wins. */
@@ -443,7 +510,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     minutesHint.textContent = on(minutesOver) ? t("edit.totalTyped", now.total) : t("edit.totalComputed", now.total);
     handsHint.textContent = on(handsOver) ? t("edit.handsTyped", now.handsOn) : t("edit.handsComputed", now.handsOn);
   };
-  const stepsSection = h("div", { class: "rl-steps-wrap" }, stepsBox, stepsEmpty, h("div", { class: "rl-rows__add" }, addStepButton));
+  const stepsSection = h("div", { class: "rl-steps-wrap" }, h("div", { class: "kp-formgrid" }, row(t("edit.quickLabel"), quick, t("edit.quickHint"))), stepsBox, stepsEmpty);
 
   // ---- the drawer ---------------------------------------------------------------------------------------------
   const sec = (title, text, ...body) => h("section", { class: "rl-formsec" }, h("h3", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...body);

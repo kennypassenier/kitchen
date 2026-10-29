@@ -180,6 +180,8 @@ export function photoField({ ids, max, label, tracker }) {
     setGallery(gallery, { items: itemsOf(list, label), state: "ready", add: list.length < max, label });
     if (busy) setGalleryUploading(gallery, t("photo.sending"));
     controls.hidden = list.length === 0;
+    // The editor's step line counts its photos (Kenny, 29/10/2026).
+    gallery.dispatchEvent(new CustomEvent("rl-photos-change", { bubbles: true, detail: { count: list.length } }));
     controls.replaceChildren(
       ...list.map((id, i) => {
         const button = (/** @type {string} */ act, /** @type {string} */ text, /** @type {string} */ extra = "") =>

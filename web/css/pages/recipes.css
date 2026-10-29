@@ -114,9 +114,24 @@
   min-inline-size: 0;
 }
 
+/* A step is one line: its number, its text, Up / Down / Remove; the chips under the text say what the fold holds, and
+   "More" folds out the rest on the same grid. */
+.rl-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .rl-step {
   display: grid;
-  gap: var(--kp-space-md, 1rem);
+  grid-template-columns: 2rem minmax(0, 1fr) max-content;
+  grid-template-areas:
+    "n text buttons"
+    ". chips chips"
+    ". photos photos"
+    "more more more";
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: start;
   min-inline-size: 0;
   margin: 0;
   padding: var(--kp-space-md, 1rem);
@@ -124,25 +139,69 @@
   border-radius: var(--radius, 0.5rem);
 }
 
-.rl-step__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
-  gap: var(--kp-space-sm, 0.5rem);
-  align-items: center;
+.rl-step__n {
+  grid-area: n;
+  align-self: center;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
-.rl-step__head h3 {
-  margin: 0;
+.rl-step__text {
+  grid-area: text;
+  min-inline-size: 0;
 }
 
 .rl-step__buttons {
+  grid-area: buttons;
   display: grid;
   grid-auto-flow: column;
   gap: var(--kp-space-sm, 0.5rem);
 }
 
+.rl-step__chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+.rl-step__chips[hidden] {
+  display: none;
+}
+
+.rl-step__photos {
+  grid-area: photos;
+  min-inline-size: 0;
+}
+
+.rl-step__photos[hidden] {
+  display: none;
+}
+
+.rl-step__more {
+  grid-area: more;
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-step__more > summary {
+  cursor: pointer;
+}
+
 /* A phone: each row is two columns, the first field across both. */
 @media (max-width: 40rem) {
+  .rl-step {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    grid-template-areas:
+      "n text"
+      ". buttons"
+      ". chips"
+      ". photos"
+      "more more";
+  }
+
   .rl-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
