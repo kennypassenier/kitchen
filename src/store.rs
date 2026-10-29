@@ -42,7 +42,12 @@ pub const COLLECTIONS: &[&str] = &[
     "ingredients",
     "ingredient_categories",
     "drafts",
+    "recipe_sources",
 ];
+
+/// The sites a real import fetch proved (Kenny, 29/10/2026 15:11 and 15:12): the first contents of the "Recipe
+/// sources" list. A kitchen file without the list gets them once, when it opens; after that the list is Kenny's.
+const SOURCES_SEED: &str = include_str!("recipe_sources_seed.json");
 
 /// The first contents of a new kitchen: the two dish categories and the
 /// default dinner time, nothing else (Kenny, 24/10/2026 05:04: he enters
@@ -80,6 +85,11 @@ pub struct Data {
     /// one per `key` (a recipe id, or `new:<dish id>`); see [`Store::create`].
     #[serde(default)]
     pub drafts: Vec<Value>,
+    /// Websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11): `{name, url, language, note?, verified,
+    /// verified_by}`. Absent in a file written before it existed, which [`Store::open`] fills once from
+    /// [`SOURCES_SEED`]; the format stays 5.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recipe_sources: Option<Vec<Value>>,
     #[serde(default)]
     pub settings: Map<String, Value>,
 }
@@ -96,6 +106,7 @@ impl Data {
             "ingredients" => Some(&mut self.ingredients),
             "ingredient_categories" => Some(&mut self.ingredient_categories),
             "drafts" => Some(&mut self.drafts),
+            "recipe_sources" => Some(self.recipe_sources.get_or_insert_with(Vec::new)),
             _ => None,
         }
     }
@@ -115,6 +126,8 @@ pub enum Refused {
     MissingName(String),
     /// A recipe's `source` that is not an http(s) address (the field, as `recipes[0].source`).
     BadSource(String),
+    /// A recipe source that misses its name, address or language (the sentence a page shows).
+    BadRecipeSource(String),
     Disk(String),
 }
 
@@ -141,6 +154,7 @@ impl std::fmt::Display for Refused {
                 f,
                 "{field} must be a web address starting with http:// or https://, or empty"
             ),
+            Refused::BadRecipeSource(why) => write!(f, "{why}"),
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }
@@ -217,6 +231,10 @@ impl Store {
                 }
                 if data.format < FORMAT {
                     migrate(&mut data);
+                    write(&path, &data)?;
+                }
+                if data.recipe_sources.is_none() {
+                    data.recipe_sources = Some(sources_seed());
                     write(&path, &data)?;
                 }
                 data
@@ -523,6 +541,9 @@ fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
     if coll == "freezer" {
         return whole(obj.get("dish"), "dish");
     }
+    if coll == "recipe_sources" {
+        return recipe_source(obj);
+    }
     if !matches!(
         coll,
         "dishes" | "dish_categories" | "ingredients" | "ingredient_categories"
@@ -552,6 +573,39 @@ fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
         }
     }
     Ok(())
+}
+
+/// A recipe source (Kenny, 29/10/2026 15:11): a name, an http(s) address, a language (`nl` or `en`) and, when given, a
+/// note in both languages or in none.
+fn recipe_source(obj: &Map<String, Value>) -> Result<(), Refused> {
+    let bad = |why: &str| Refused::BadRecipeSource(why.into());
+    let text = |k: &str| {
+        obj.get(k)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .unwrap_or("")
+    };
+    if text("name").is_empty() {
+        return Err(bad("name is empty: a source needs a name"));
+    }
+    if text("url").is_empty() {
+        return Err(bad("url is empty: a source needs a web address"));
+    }
+    source(obj.get("url"), "url")?;
+    if !matches!(text("language"), "nl" | "en") {
+        return Err(bad("language must be nl or en"));
+    }
+    let note = |lang: &str| {
+        obj.get("note")
+            .and_then(|n| n.get(lang))
+            .and_then(Value::as_str)
+            .is_some_and(|s| !s.trim().is_empty())
+    };
+    match (note("nl"), note("en")) {
+        (true, false) => Err(Refused::MissingName("note.en".into())),
+        (false, true) => Err(Refused::MissingName("note.nl".into())),
+        _ => Ok(()),
+    }
 }
 
 /// A recipe's `source` (Kenny, 29/10/2026: where an imported recipe came from): absent, null or empty, or an http(s)
@@ -885,7 +939,13 @@ fn to_4(data: &mut Data) {
 pub fn seed() -> Data {
     let mut data: Data = serde_json::from_str(SEED).expect("src/seed.json is valid");
     data.format = FORMAT;
+    data.recipe_sources = Some(sources_seed());
     data
+}
+
+/// The verified sites, see [`SOURCES_SEED`].
+fn sources_seed() -> Vec<Value> {
+    serde_json::from_str(SOURCES_SEED).expect("src/recipe_sources_seed.json is valid")
 }
 
 #[cfg(test)]
@@ -906,6 +966,7 @@ mod tests {
             ingredients: vec![],
             ingredient_categories: vec![],
             drafts: vec![],
+            recipe_sources: None,
             settings: Map::new(),
         }
     }
@@ -1299,5 +1360,51 @@ mod tests {
         assert_eq!(lines[0]["ingredient"], id(2));
         assert!(lines[2].get("name").is_none());
         assert_eq!(d.dish_categories.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_recipe_source_needs_name_address_language_and_a_whole_note() {
+        let s = Store::in_memory(empty());
+        let ok = serde_json::json!({"name": "Site", "url": "https://example.com/recipes", "language": "nl"});
+        assert!(s.create("recipe_sources", ok.clone()).await.is_ok());
+        let with = |k: &str, v: serde_json::Value| {
+            let mut o = ok.clone();
+            o[k] = v;
+            o
+        };
+        for bad in [
+            with("name", "".into()),
+            with("url", "".into()),
+            with("url", "ftp://example.com".into()),
+            with("language", "fr".into()),
+        ] {
+            assert!(s.create("recipe_sources", bad).await.is_err());
+        }
+        assert_eq!(
+            s.create(
+                "recipe_sources",
+                with("note", serde_json::json!({"nl": "x", "en": ""}))
+            )
+            .await,
+            Err(Refused::MissingName("note.en".into()))
+        );
+        assert!(
+            s.create(
+                "recipe_sources",
+                with("note", serde_json::json!({"nl": "x", "en": "y"}))
+            )
+            .await
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn a_new_kitchen_starts_with_the_verified_sites() {
+        let sources = seed().recipe_sources.unwrap();
+        assert_eq!(sources.len(), 6);
+        assert!(sources.iter().all(
+            |s| s["url"].as_str().is_some_and(|u| u.starts_with("https://"))
+                && s["verified"] == "2026-10-29"
+        ));
     }
 }

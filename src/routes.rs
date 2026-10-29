@@ -57,7 +57,8 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 | Refused::IdMismatch
                 | Refused::NoKey
                 | Refused::MissingName(_)
-                | Refused::BadSource(_) => StatusCode::BAD_REQUEST,
+                | Refused::BadSource(_)
+                | Refused::BadRecipeSource(_) => StatusCode::BAD_REQUEST,
             };
             (code, Json(json!({ "error": e.to_string() }))).into_response()
         }

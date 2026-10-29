@@ -1,0 +1,80 @@
+[
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f01",
+  "name": "Dagelijkse Kost",
+  "url": "https://dagelijksekost.vrt.be/gerechten",
+  "language": "nl",
+  "note": {
+   "en": "Ingredients, all steps, portions, prep and cook time and the photo come through.",
+   "nl": "Ingrediënten, alle stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://dagelijksekost.vrt.be/gerechten/daube-varkenswangen-geglaceerde-wortel",
+  "created": "2026-10-29T16:00:00+02:00"
+ },
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f02",
+  "name": "24Kitchen",
+  "url": "https://www.24kitchen.nl/recepten",
+  "language": "nl",
+  "note": {
+   "en": "Ingredients, steps, portions, total time and the photo come through.",
+   "nl": "Ingrediënten, stappen, porties, totale tijd en de foto komen mee."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://www.24kitchen.nl/recepten/spaghetti-carbonara",
+  "created": "2026-10-29T16:00:00+02:00"
+ },
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f03",
+  "name": "Leuke recepten",
+  "url": "https://www.leukerecepten.nl/recepten/",
+  "language": "nl",
+  "note": {
+   "en": "Ingredients, steps, portions, prep and cook time and the photo come through.",
+   "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://www.leukerecepten.nl/recepten/pasta-carbonara/",
+  "created": "2026-10-29T16:00:00+02:00"
+ },
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f04",
+  "name": "BBC Good Food",
+  "url": "https://www.bbcgoodfood.com/recipes",
+  "language": "en",
+  "note": {
+   "en": "Ingredients, steps, portions, prep and cook time and the photo come through.",
+   "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://www.bbcgoodfood.com/recipes/easy-pancakes",
+  "created": "2026-10-29T16:00:00+02:00"
+ },
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f05",
+  "name": "Simply Recipes",
+  "url": "https://www.simplyrecipes.com/recipes/",
+  "language": "en",
+  "note": {
+   "en": "Ingredients, steps, portions, prep time and the photo come through (no cook time on the page).",
+   "nl": "Ingrediënten, stappen, porties, voorbereidingstijd en de foto komen mee (de pagina geeft geen bereidingstijd)."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://www.simplyrecipes.com/recipes/perfect_guacamole/",
+  "created": "2026-10-29T16:00:00+02:00"
+ },
+ {
+  "id": "a1c0b7e2-4d11-5a3e-8f10-0b1d2c3e4f06",
+  "name": "RecipeTin Eats",
+  "url": "https://www.recipetineats.com/recipes/",
+  "language": "en",
+  "note": {
+   "en": "Ingredients, steps, portions, prep and cook time and the photo come through.",
+   "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
+  },
+  "verified": "2026-10-29",
+  "verified_by": "Real import fetch (POST /data/import) of https://www.recipetineats.com/chicken-fried-rice/",
+  "created": "2026-10-29T16:00:00+02:00"
+ }
+]

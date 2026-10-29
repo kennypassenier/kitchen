@@ -606,6 +606,70 @@ mod tests {
         assert!(r.steps[2].starts_with("Doe de wangen in een kom"));
     }
 
+    /// The sites on the "Recipe sources" list (Kenny, 29/10/2026 15:11): the recipe block of one real page each, fetched
+    /// through the import on that day and cut down to the block. A site is on the list only while its fixture reads.
+    #[test]
+    fn the_verified_recipe_sources_read_whole() {
+        // (page, name, portions, ingredients, steps, prep, cook)
+        let cases = [
+            (
+                include_str!("../tests/fixtures/bbc-good-food-pancakes.html"),
+                "Easy pancakes",
+                12,
+                6,
+                5,
+                Some(10),
+                Some(20),
+            ),
+            (
+                include_str!("../tests/fixtures/simply-recipes-guacamole.html"),
+                "How to Make the Best Guacamole",
+                4,
+                10,
+                5,
+                Some(10),
+                None,
+            ),
+            (
+                include_str!("../tests/fixtures/recipetin-eats-fried-rice.html"),
+                "Chicken Fried Rice",
+                4,
+                16,
+                9,
+                Some(10),
+                Some(10),
+            ),
+            (
+                include_str!("../tests/fixtures/24kitchen-carbonara.html"),
+                "Originele spaghetti carbonara",
+                4,
+                6,
+                7,
+                Some(15),
+                None,
+            ),
+            (
+                include_str!("../tests/fixtures/leukerecepten-carbonara.html"),
+                "Pasta carbonara: romige klassieker",
+                4,
+                6,
+                8,
+                Some(10),
+                Some(15),
+            ),
+        ];
+        for (html, name, portions, ingredients, steps, prep, cook) in cases {
+            let r = from_page(html, None).unwrap_or_else(|| panic!("{name} did not read"));
+            assert_eq!(r.name, name);
+            assert_eq!(r.portions, Some(portions), "{name} portions");
+            assert_eq!(r.ingredients.len(), ingredients, "{name} ingredients");
+            assert_eq!(r.steps.len(), steps, "{name} steps");
+            assert_eq!(r.prep, prep, "{name} prep");
+            assert_eq!(r.cook, cook, "{name} cook");
+            assert!(r.image_url.is_some(), "{name} photo");
+        }
+    }
+
     #[test]
     fn a_page_without_a_recipe_block_is_none() {
         assert!(from_page("<html><script type=\"application/ld+json\">{\"@type\":\"Article\"}</script></html>", None).is_none());
