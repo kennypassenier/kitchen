@@ -421,7 +421,7 @@ export function openRecordEditor(list, item, preset = {}) {
 // ---- safe dishes: a recipe's `safe` flag ----------------------------------------------------------------------------
 
 /** An empty recipe, for a dish that has none yet. */
-export const BLANK_RECIPE = { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
+export const BLANK_RECIPE = { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 0, hands_on: 0, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [] };
 
 /** Open the recipe editor for a recipe, or a new one that starts with `preset` (a new safe dish: `{ safe: true }`). `copyOf` names the recipe a copy is made of. @param {Item | null} r @param {Item} [preset] @param {string} [copyOf] */
 export function openRecipeEditor(r, preset = {}, copyOf = "") {

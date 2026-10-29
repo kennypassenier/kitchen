@@ -187,7 +187,7 @@ export const textCell = (label, value, placeholder = "") => {
  * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js)
  */
 export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null, copyOf = "" }) {
-  const base = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 30, hands_on: 15, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
+  const base = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 0, hands_on: 0, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const r = restore ? { ...base, ...restore } : base;
   const editing = Boolean(recipe);
   // The draft's key: the recipe's id, or `new:<dish id>` for a new one.
@@ -542,6 +542,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   const line = h("p", { class: "rl-editor__line", role: "status" });
   // The draft offer (Kenny, 29/10/2026): a draft saved by an earlier session is offered above the form.
   const offer = h("div", { class: "kp-alert kp-alert--info rl-draft", role: "status", hidden: true });
+  form.prepend(offer);
   dialog.replaceChildren(
     h(
       "header",
@@ -550,7 +551,6 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("edit.close"), "data-close": true }, "✕"),
       h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : copyOf ? t("edit.copyText") : t("rec.addText")),
     ),
-    offer,
     form,
     h("footer", { class: "kp-drawer__foot" }, line, cancel, save),
   );

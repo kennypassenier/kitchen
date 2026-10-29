@@ -256,7 +256,6 @@
 .rl-draft {
   display: grid;
   gap: var(--kp-space-sm, 0.5rem);
-  margin-inline: var(--kp-space-lg, 1.5rem);
 }
 
 .rl-draft[hidden] {
