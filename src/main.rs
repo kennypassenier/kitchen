@@ -8,8 +8,10 @@
 
 #![forbid(unsafe_code)]
 
+mod import;
 mod parents;
 mod photos;
+mod recipe_parse;
 mod routes;
 mod store;
 

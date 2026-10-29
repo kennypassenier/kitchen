@@ -12,6 +12,7 @@
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
 //! | `GET`/`PATCH /data/settings` | the settings; PATCH merges, `null` removes a key |
 //! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
+//! | `POST /data/import`, `POST /data/import/image` | a recipe from a web page or pasted text, see `import.rs` |
 //!
 //! A refusal is HTTP 4xx (5xx for a failed save) with `{"error": "…"}` in
 //! words a page shows as they are.
@@ -40,6 +41,8 @@ pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
         .with_state(store)
         // Static segments win over `/data/{list}`, so the photo routes sit beside it.
         .merge(crate::photos::router(state_dir))
+        // The recipe import (Kenny, 29/10/2026 14:27): `/data/import` is static too, so it wins over `/data/{list}`.
+        .merge(crate::import::router())
 }
 
 fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
