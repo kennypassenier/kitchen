@@ -644,6 +644,7 @@ export const NL_PAGES = {
   "cook.howDone": (how) => `${how}, klaar`,
   "cook.howOnIt": (how) => `${how}, je bent eraan bezig`,
   "cook.howToDo": (how) => `${how}, nog te doen`,
+  "cook.howToDoAt": (how, time, wait) => `${how}, gepland om ${time} na ${wait} min wachten`,
   "cook.until": (say, time) => `${say}, tot ${time}`,
   "cook.nOfMDone": (n, m) => `${n} van ${m} klaar`,
   "cook.logged": "Genoteerd. Smakelijk.",

@@ -618,8 +618,13 @@ export function mount(root, { params, navigate }) {
       } else {
         // A step that runs alongside another (`with`) is planned from where that one is planned; it does not push its rows back.
         const partner = typeof s.with === "string" ? starts.get(s.with) : undefined;
-        const start = partner !== undefined ? Math.max(now, partner) : Math.max(now, ahead);
-        parts.push({ start, end: start + mins * MIN, state: "planned", words: t("cook.howToDo", how) });
+        // A step with a fixed `start` (minutes from the recipe's start, Kenny 29/10/2026) is planned there, counted from the
+        // moment cooking began (`first`); it cannot begin before the real now, and what lies between is a planned wait.
+        const pinned = typeof s.start === "number" && Number.isFinite(s.start) && s.start >= 0;
+        const fixed = pinned ? first + s.start * MIN : null;
+        const start = fixed !== null ? Math.max(now, fixed) : partner !== undefined ? Math.max(now, partner) : Math.max(now, ahead);
+        const waits = fixed !== null && start > ahead + MIN / 2 ? Math.round((start - Math.max(now, ahead)) / MIN) : 0;
+        parts.push({ start, end: start + mins * MIN, state: "planned", words: waits > 0 ? t("cook.howToDoAt", how, clock(start), waits) : t("cook.howToDo", how) });
         next = partner !== undefined ? Math.max(ahead, start + mins * MIN) : start + mins * MIN;
       }
       starts.set(s.id, parts[0].start);

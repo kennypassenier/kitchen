@@ -60,7 +60,7 @@ A step:
 | `note` | string | A line under the step |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
-| `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the timeline (a later kp-themes component), optional |
+| `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the timeline (a later kp-themes component), optional. Cook mode plans from the real now, so it counts the offset from the moment cooking began (the first step's real start): a step not yet reached is planned at that moment plus `start`, never earlier than now, and when that leaves a gap after the previous step the timeline says so ("planned for 18:45 after a wait of 12 min") |
 | `with` | string \| null | A step id: this step starts together with that one ("runs alongside"); it does not push its own track's next step back. `null` or absent = no partner. A dangling id is ignored |
 | `photos` | string[] | Photo ids in show order (at most 8 in the editor): shown under the step on the recipe page and large in cook mode while the step is in hand. Missing = none |
 
@@ -94,12 +94,18 @@ Duplicate (Kenny, 29/10/2026): a copy of a recipe or dish refers to the SAME pho
 files are shared, nothing is copied on disk. That is why a photo file is deleted (editor Save, Recipes-page delete)
 only when no recipe of the kitchen refers to it any more.
 
+Drafts (Kenny, 29/10/2026, Claude's number): a draft that was not saved for 7 days (`DRAFT_DAYS`, `src/store.rs`) is
+dropped when the kitchen starts, and a draft that is deleted (Discard in the draft offer, Save, Cancel) goes the same way
+through the store: in both cases the photo files only that draft refers to are deleted too. A photo a recipe or another
+draft still refers to stays (see Duplicate above). Saving over a draft with fewer photos leaves the dropped ones to the
+editor's own Save / Cancel clean-up.
+
 Who deletes: the editor deletes the photos a recipe no longer refers to when it
 saves (a removed photo, a removed step) and the ones it uploaded when it is
 cancelled; the recipes page deletes a recipe's photos when the recipe is
 deleted. Known limit: a photo that was uploaded and then never saved nor
-cancelled cleanly (tab closed, connection lost during delete) stays as an
-orphan file; nothing sweeps them.
+cancelled and is in no draft (a draft saves about a second after a change, so a tab closed within that second)
+stays as an orphan file; nothing sweeps them.
 
 ## dishes
 
@@ -148,7 +154,7 @@ with `dish_id` or `new_dish`, `label` and the steps); `saved` is set by the serv
 about 1 s after the last change without ever making a second one. The editor deletes the draft on Save and on
 Cancel / Discard; a draft that is still there is what a closed tab or a dropped connection left, and reopening
 the recipe offers "Restore the draft from dd/mm/yyyy HH:mm?". The list is optional in the file (an older file
-has none), so the format stays 5. Photos a draft refers to are files like any other (see Photos).
+has none), so the format stays 5. Photos a draft refers to are files like any other (see Photos); an old or discarded draft takes its own photos with it, and a draft not saved for 7 days is dropped at the next start.
 
 ## import (`POST /data/import`, `POST /data/import/image`)
 
