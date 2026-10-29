@@ -60,6 +60,13 @@ test("counting back starts each track just in time", () => {
   assert.equal(at(s, "m").start, 25);
 });
 
+test("counting back: a step that runs alongside does not pull its track earlier", () => {
+  const s = layout([step("a", "p", 10), step("b", "s", 20), step("c", "s", 5, { with: "b" }), step("m", null, 2)], tracks, { align: "end" });
+  assert.equal(s.total, 22);
+  assert.deepEqual([at(s, "b").start, at(s, "b").end, at(s, "c").start, at(s, "m").start], [0, 20, 0, 20]);
+  assert.equal(at(s, "a").start, 10); // the pasta track starts just in time
+});
+
 test("effective: computed, override and kept figures", () => {
   const r = { steps: [step("a", null, 10, { active: true }), step("b", null, 20)], tracks: [], minutes: 99, hands_on: 99 };
   assert.deepEqual([effective(r).minutes, effective(r).hands_on, effective(r).minutes_override], [30, 10, null]);

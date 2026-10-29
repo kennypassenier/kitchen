@@ -94,10 +94,11 @@ export function layout(steps, tracks, { stretch = written, align = "start" } = {
     const latest = new Map(lanes.map((l) => [l.id, total]));
     for (let i = placed.length - 1; i >= 0; i--) {
       const p = placed[i];
-      if (!pinned(p.step)) {
-        p.end = Math.min(...p.rows.map((r) => latest.get(r) ?? total));
-        p.start = p.end - p.mins;
-      }
+      // A step placed by hand keeps its place and bounds nobody: the steps before it on its track are bounded by the
+      // steps after it that move (one that runs alongside does not push its track, so it must not pull it either).
+      if (pinned(p.step)) continue;
+      p.end = Math.min(...p.rows.map((r) => latest.get(r) ?? total));
+      p.start = p.end - p.mins;
       for (const r of p.rows) latest.set(r, Math.min(latest.get(r) ?? total, p.start));
     }
     for (const p of placed) {
