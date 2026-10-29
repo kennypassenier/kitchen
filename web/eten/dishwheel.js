@@ -15,7 +15,11 @@
 //     same items again when the wheel is shown and when the fonts have loaded, never while it turns;
 //   - a stop without a rewind (see `monotoneEase`): a theme's curve that overshoots (pastel's "land") would turn the
 //     disc past its stop and back; the component hands kp the same curve with the overshoot taken out;
-//   - the hub's size (a smaller hub so a label never touches it).
+//   - the hub's size (a smaller hub so a label never touches it);
+//   - upright names (Kenny, 24/10/2026 11:40: "every name must read upright wherever its slice sits"): kp lays each name
+//     along its slice's radius for a disc that has not turned, so once the disc has stopped at some angle the names on
+//     the left half of the screen read upside down. kp has no option for it, so see `uprightLabels`: at rest, every
+//     label whose reading direction points left on screen is turned 180 degrees about the centre of its own text box.
 //
 // It imports nothing from web/js (no api.js, no i18n): /eten must load without the app. The words come in as options.
 // Nothing runs on import except one document-level font listener.
@@ -64,6 +68,27 @@ const LAST = new WeakMap();
 /** Wheels that want a redraw once their text can be measured. @type {Set<HTMLElement>} */
 const LIVE = new Set();
 
+/**
+ * Turn every label that reads right-to-left on screen by 180 degrees about the centre of its own text box, so it reads
+ * from the rim inward, upright. The box keeps its place (same radial band, same distance to hub and rim, same slice) and
+ * kp's one- or two-line fit is untouched. Idempotent: the label's own transform (kept in data-dw-base) is put back
+ * and measured first, so it can run after any redraw. Never while the disc turns, so a label does not flip in motion.
+ * @param {HTMLElement} el
+ */
+function uprightLabels(el) {
+  if (!el.isConnected || el.hasAttribute("data-kp-wheel-spinning")) return;
+  for (const t of /** @type {NodeListOf<SVGTextElement>} */ (el.querySelectorAll("text.kp-wheel__label"))) {
+    const base = t.getAttribute("data-dw-base") ?? t.getAttribute("transform") ?? "";
+    t.setAttribute("data-dw-base", base);
+    t.setAttribute("transform", base);
+    const m = t.getScreenCTM();
+    if (!m) continue; // hidden: drawn again, and turned, when it is shown
+    if (m.a >= -0.001) continue; // x-component of the reading direction: left to right or top-down already
+    const b = t.getBBox();
+    t.setAttribute("transform", `${base} rotate(180 ${(b.x + b.width / 2).toFixed(3)} ${(b.y + b.height / 2).toFixed(3)})`);
+  }
+}
+
 /** @param {HTMLElement} el */
 const measurable = (el) => el.isConnected && el.getBoundingClientRect().width > 0;
 
@@ -93,7 +118,10 @@ function refit(el) {
 
 // A theme's web font can start loading after the first paint (kp's own redraw on `document.fonts.ready` may already be
 // over by then) and a theme switch brings another face: every wheel is drawn again when a font has loaded.
-document.fonts?.addEventListener("loadingdone", () => LIVE.forEach(refit));
+document.fonts?.addEventListener("loadingdone", () => {
+  LIVE.forEach(refit);
+  LIVE.forEach(uprightLabels); // a face that changed a text box's size moves its centre
+});
 
 /**
  * The theme's own curve with the overshoot taken out. kp turns the disc along `--kp-wheel-ease`; a curve that passes 1
@@ -248,6 +276,19 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
   });
   watch.observe(big);
   if (small) watch.observe(small);
+  // kp draws the disc again on every change (items, glide frames, the stop of a spin): each draw replaces the labels, so
+  // the names are turned upright again right after it, as long as the disc is at rest (the stop clears the spinning mark
+  // before it draws, so the result is turned before anyone sees a frame of it).
+  const turn = new MutationObserver((records) => {
+    const hit = new Set();
+    for (const r of records) {
+      const root = /** @type {HTMLElement | null} */ ((r.target instanceof Element ? r.target : r.target.parentElement)?.closest("[data-kp-wheel]"));
+      if (root && r.target instanceof Element && r.target.closest(".kp-wheel__segments")) hit.add(root);
+    }
+    hit.forEach(uprightLabels);
+  });
+  turn.observe(big, { childList: true, subtree: true });
+  if (small) turn.observe(small, { childList: true, subtree: true });
 
   return {
     big,
@@ -268,6 +309,7 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
     spinSide: () => (small ? spinWheel(small) : Promise.resolve(null)),
     destroy() {
       watch.disconnect();
+      turn.disconnect();
       big.removeEventListener(WHEEL_SPIN_EVENT, onSpin);
       big.removeEventListener(WHEEL_RESULT_EVENT, onResult);
       big.removeEventListener(WHEEL_SPIN_EVENT, ease);
