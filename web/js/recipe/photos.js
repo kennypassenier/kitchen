@@ -161,7 +161,7 @@ export function showPhotos(el, ids, label) {
  */
 export function photoField({ ids, max, label, tracker, compact = false }) {
   let list = [...ids];
-  const gallery = galleryEl(label, { "data-kp-grid-columns": "3" });
+  const gallery = galleryEl(label, compact ? {} : { "data-kp-grid-columns": "3" });
   const controls = h("ul", { class: "rp-photoedit", "aria-label": t("photo.orderRemoval", label) });
   let busy = false;
 

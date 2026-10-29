@@ -190,8 +190,27 @@
   cursor: pointer;
 }
 
+/* The photo strip of a step: small tiles, wrapping. */
+.rl-step__photos .rp-photos {
+  --kp-gallery-tile: 4.5rem;
+}
+
 /* A phone: each row is two columns, the first field across both. */
 @media (max-width: 40rem) {
+  .rl-step__buttons {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  }
+
+  .rl-step__photos .rp-photoedit__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rl-step__photos .rp-photoedit__buttons {
+    grid-auto-columns: max-content;
+    justify-content: start;
+  }
+
   .rl-step {
     grid-template-columns: 2rem minmax(0, 1fr);
     grid-template-areas:
