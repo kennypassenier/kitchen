@@ -21,6 +21,7 @@ pages.
 | Shelf food | /bad-days | R only | C R U D, I ate this, `/shelf/<id>` (its days) |
 | Safe dish (a recipe's `safe`) | /bad-days | R; set only in the recipe editor | Add (pick a recipe or write a new one), Edit (the recipe), Not safe any more (the recipe stays) |
 | Log line | /log, recipe page | C R U D on the recipe page only, no list | C R U D on `/log` and the recipe page, `/log/<id>`; dishes and shelf foods |
+| Recipe source | /sources | did not exist | C R U D, `/sources/<id>`; links open in a new tab; "Import from this site" opens the import with a pointer to it |
 | Resting dish | / (the wheel) | C (set aside), R, D (bring back) | C R U D (Edit the last day), `/resting/<id>` |
 | Settings | /settings | R U (one object) | R U; nothing to add or delete |
 

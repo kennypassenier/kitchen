@@ -20,9 +20,11 @@ import { row, input, area, stepper, select, openEditor } from "./recipe/editor.j
 import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
 import { copyRecipe, copyDish } from "./recipe/duplicate.js";
 import { openImport } from "./recipe/import.js";
+export { externalLink, hostOf } from "./links.js";
+import { externalLink } from "./links.js";
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting"} List */
+/** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting" | "recipe_sources"} List */
 
 /** The day it is in Brussels, as YYYY-MM-DD. */
 export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
@@ -57,6 +59,7 @@ const PLACES = {
   freezer: { home: ["/bad-days#freezer", "baddays"], name: (f) => textOf(f.dish) || t("rec.aDish") },
   shelf: { home: ["/bad-days#zero-prep", "baddays"], name: (s) => textOf(s.title) || t("rec.aFood") },
   log: { home: ["/log", "log"], name: (e) => `${logWhat(e)}, ${dmy(e.date)}` },
+  recipe_sources: { home: ["/sources", "sources"], name: (s) => String(s.name || t("list.recipe_sources")) },
   resting: { home: ["/", "wheel"], name: (r) => t("rec.resting", dish(r.dish_id) ? nameOf(dish(r.dish_id)).text : t("rec.aDish")) },
 };
 
@@ -104,6 +107,7 @@ export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} 
   shelf: "shelf",
   log: "log",
   resting: "resting",
+  recipe_sources: "sources",
 });
 
 /** What a log line is about: the recipe or the shelf food, by name. @param {Item} e */
@@ -358,6 +362,43 @@ export function openRecordEditor(list, item, preset = {}) {
     });
     return;
   }
+  if (list === "recipe_sources") {
+    const name = input(String(v.name ?? ""), "text", { autocomplete: "off", placeholder: t("src.name") });
+    const url = input(String(v.url ?? ""), "text", { autocomplete: "off", inputmode: "url", placeholder: "https://…", spellcheck: "false" });
+    const language = choiceOf({ nl: t("src.nl"), en: t("src.en") }, String(v.language ?? lang()), t("src.language"));
+    const note = pair(v.note, "area", "");
+    const verified = dateField(String(v.verified ?? ""), { max: today(), label: t("src.verified") });
+    const how = input(String(v.verified_by ?? ""), "text", { autocomplete: "off" });
+    openForm({
+      list,
+      item,
+      title: t("src.title"),
+      text: t("src.cardLede"),
+      rows: [
+        row(t("src.name"), name, t("src.nameHint")),
+        row(t("src.url"), url, t("src.urlHint")),
+        row(t("src.language"), language, t("src.langHint")),
+        row(t("rec.inNl", t("src.note")), note.nl, t("src.noteHint")),
+        row(t("rec.inEn", t("src.note")), note.en, ""),
+        row(t("src.verified"), verified.el, t("src.verifiedHint")),
+        row(t("src.how"), how, t("src.howHint")),
+      ],
+      after: verified.start,
+      body: () => {
+        const n = /** @type {HTMLInputElement} */ (name).value.trim();
+        const u = /** @type {HTMLInputElement} */ (url).value.trim();
+        if (!n) return { error: t("src.errName"), remedy: t("src.fix") };
+        if (!u) return { error: t("src.errUrl"), remedy: t("src.fix") };
+        const text = note.get();
+        if ((text.nl || text.en) && (!text.nl || !text.en)) return { error: t("rec.halfText", t("src.note")), remedy: t("src.fix") };
+        const day = verified.get();
+        if (day && day > today()) return { error: t("rec.errDay"), remedy: t("rec.fixDay") };
+        return { name: n, url: u, language: getSegmentedValues(language)[0] ?? "nl", note: text, verified: day ?? "", verified_by: /** @type {HTMLInputElement} */ (how).value.trim() };
+      },
+      saved: (b) => t(item ? "rec.savedName" : "rec.addedName", b.name),
+    });
+    return;
+  }
   if (list === "resting") {
     const what = select(dishOptions(), v.dish_id ?? "", t("rec.dish"));
     const until = dateField(String(v.until ?? today()), { label: t("rec.restingUntil") });
@@ -430,10 +471,10 @@ export function openRecipeEditor(r, preset = {}, copyOf = "") {
   openEditor(drawer(), { recipe: r, preset, copyOf, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
 }
 
-/** Open the import drawer; a recipe imported from a dish's page goes into that dish (Kenny, 29/10/2026 14:27). @param {string | null} [dishId] */
-export function openRecipeImport(dishId = null) {
+/** Open the import drawer; a recipe imported from a dish's page goes into that dish (Kenny, 29/10/2026 14:27). `site` is a recipe source the drawer points at. @param {string | null} [dishId] @param {Item | null} [site] */
+export function openRecipeImport(dishId = null, site = null) {
   const k = kitchenNow();
-  openImport(drawer(), { dishId, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
+  openImport(drawer(), { dishId, site, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
 }
 
 /** Mark one of the recipes as a safe dish, or write a new one. */
@@ -636,7 +677,7 @@ export function rowActions(list, item) {
 
 /**
  * One card with a data table: header, a sentence, the table and its own states.
- * @param {{ id: string, title: string, lede: string, noun: string, plural: string, columns: [string, string?][], add: string, emptyTitle: string, emptyText: string }} spec
+ * @param {{ id: string, title: string, lede: string, noun: string, plural: string, columns: [string, string?, string?][], add: string, emptyTitle: string, emptyText: string }} spec
  */
 export function tableCard({ id, title, lede, noun, plural, columns, add, emptyTitle, emptyText }) {
   const addButton = h("button", { type: "button", class: "kp-button kp-button--primary" }, add);
@@ -663,7 +704,7 @@ export function tableCard({ id, title, lede, noun, plural, columns, add, emptyTi
         "table",
         { class: "kp-table" },
         h("caption", { class: "kp-sr-only" }, title),
-        h("thead", null, h("tr", null, ...columns.map(([text, sort]) => h("th", sort ? { scope: "col", "data-kp-sort": sort } : { scope: "col" }, text)))),
+        h("thead", null, h("tr", null, ...columns.map(([text, sort, filter]) => h("th", { scope: "col", ...(sort ? { "data-kp-sort": sort } : {}), ...(filter ? { "data-kp-filter": filter } : {}) }, text)))),
         body,
       ),
     ),

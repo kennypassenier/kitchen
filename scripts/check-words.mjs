@@ -10,7 +10,7 @@ import { NL_PAGES } from "../web/js/i18n/nl-pages.js";
 const EN = { ...EN_CORE, ...EN_PAGES };
 const NL = { ...NL_CORE, ...NL_PAGES };
 
-const LISTS = ["recipes", "dishes", "dish_categories", "ingredients", "ingredient_categories", "freezer", "shelf", "log", "resting"];
+const LISTS = ["recipes", "dishes", "dish_categories", "ingredients", "ingredient_categories", "freezer", "shelf", "log", "resting", "recipe_sources"];
 const files = (dir) => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : f.endsWith(".js") ? [join(dir, f)] : []));
 const used = new Map();
 for (const file of [...files("web/js"), ...files("web/eten")].filter((f) => !f.includes("/i18n/"))) {
@@ -20,7 +20,7 @@ for (const file of [...files("web/js"), ...files("web/eten")].filter((f) => !f.i
   for (const m of src.matchAll(/\bt\(\s*`list\.\$\{list\}`/g)) for (const l of LISTS) used.set(`list.${l}`, file);
   for (const m of src.matchAll(/\bt\(\s*`list\.\$\{list\}\.(the|this)`/g)) for (const l of LISTS) used.set(`list.${l}.${m[1]}`, file);
 }
-const optional = /^list\.(recipes|dishes|freezer|shelf|log|resting|recipes)\.inUse$/;
+const optional = /^list\.(recipes|dishes|freezer|shelf|log|resting|recipes|recipe_sources)\.inUse$/;
 let bad = 0;
 for (const [key, file] of used) {
   if (optional.test(key)) continue;

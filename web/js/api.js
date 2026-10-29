@@ -7,7 +7,7 @@
 // connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any> }} Kitchen */
 
 import { nameOf, lang, onLang, t } from "./i18n/index.js";
 

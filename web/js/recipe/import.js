@@ -12,6 +12,7 @@ import { importRecipe, kitchenNow, readDraft, saveDraft, ApiError } from "../api
 import { openEditor, row, input, area, newId } from "./editor.js";
 import { parseIngredientLine, firstMinutes, matchIngredient } from "./import-lines.js";
 import { importReason } from "./cover.js";
+import { externalLink, hostOf } from "../links.js";
 import { t } from "../i18n/index.js";
 
 /** What the server found, as the editor's form state. @typedef {{ name: string, portions: number | null, ingredients: string[], steps: string[], minutes: { prep: number | null, cook: number | null, total: number | null }, image_url: string | null, source_url: string | null }} Imported */
@@ -60,9 +61,9 @@ export function toRestore(imp, dishId, catalogue) {
 
 /**
  * Open the import drawer in `dialog`. `dishId` is the dish the recipe goes to when the import started on a dish's page.
- * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, mainOptions: string[] }} spec
+ * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, mainOptions: string[], site?: { name?: string, url?: string } | null }} spec
  */
-export function openImport(dialog, { dishId = null, mainOptions }) {
+export function openImport(dialog, { dishId = null, mainOptions, site = null }) {
   const url = input("", "text", { autocomplete: "off", inputmode: "url", placeholder: t("imp.urlPh"), spellcheck: "false" });
   const text = area("", 8);
   text.setAttribute("placeholder", t("imp.textPh"));
@@ -77,6 +78,15 @@ export function openImport(dialog, { dishId = null, mainOptions }) {
     { class: "kp-card ri-card", "data-kp-state": "ready", "aria-labelledby": "ri-card-t", "data-kp-loading-words": t("imp.reading") },
     h("div", { class: "kp-card__header" }, h("h3", { class: "kp-card__title", id: "ri-card-t" }, t("imp.secUrl"))),
     h("p", { class: "kp-card__body" }, t("imp.secUrlText")),
+    // Where to find a recipe that reads well (Kenny, 29/10/2026 15:11): the sources page, and, when the import was started
+    // from one of its rows, that site in a new tab.
+    h(
+      "p",
+      { class: "kp-card__body ri-sites" },
+      site?.url ? externalLink(site.url, t("src.openSite", site.name || hostOf(site.url))) : null,
+      site?.url ? ` ${t("imp.siteHint")} ` : null,
+      h("a", { class: "ri-sites__link", href: "/sources", title: t("imp.whichHint") }, t("imp.which")),
+    ),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, h("div", { class: "kp-formgrid" }, row(t("imp.url"), url, t("imp.urlHint"))))),
   );
   const stopCards = attachCardStates(card);
@@ -100,6 +110,8 @@ export function openImport(dialog, { dishId = null, mainOptions }) {
     void closeDialog(dialog);
   };
   cancel.addEventListener("click", close);
+  // The sources page replaces this one: the drawer gives way to it.
+  dialog.querySelector(".ri-sites__link")?.addEventListener("click", close);
   dialog.querySelector("[data-close]")?.addEventListener("click", close);
   // One Escape handler per opening, replaced by the editor's when it takes the dialog over (recipe/editor.js).
   const again = /** @type {any} */ (dialog);

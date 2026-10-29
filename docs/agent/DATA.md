@@ -253,6 +253,20 @@ zero-prep shelf food that was eaten
 since last cooked" and the recipe page's heat log read only the dish lines;
 "What I ate" (`/log`) and a shelf food's own page show both.
 
+## recipe_sources (Recipe sources, `/sources`)
+
+`{name, url, language: "nl" | "en", note?: {nl, en}, verified: "YYYY-MM-DD" | "", verified_by}`
+(Kenny, 29/10/2026 15:11, 15:12): a website whose recipe pages the import
+reads well. The server refuses an empty name, an address that is not
+http(s) with a host, a language other than `nl` or `en`, and a note in one
+language only (both or none). The collection is optional in the file and
+the format stays 5: a file without it, and a new kitchen, gets the six sites
+of `src/recipe_sources_seed.json` once when it opens (each proven by one real
+`POST /data/import` on 29/10/2026; fixtures of five of them are under
+`tests/fixtures/`, Dagelijkse Kost's was there already). After that the
+list is Kenny's: Add, Edit and Delete on `/sources`, an own page at
+`/sources/<id>`.
+
 ## resting
 
 `{dish_id, until: "YYYY-MM-DD"}`: "Not this one, not again this week".

@@ -29,6 +29,7 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/parents": () => import("./pages/parents.js"),
   "/dishes": () => import("./pages/dishes.js"),
   "/log": () => import("./pages/log.js"),
+  "/sources": () => import("./pages/sources.js"),
   "/ingredients": () => import("./pages/ingredients.js"),
 });
 
@@ -41,6 +42,7 @@ const DETAIL = /** @type {Record<string, string>} */ ({
   freezer: "/bad-days",
   shelf: "/bad-days",
   log: "/log",
+  sources: "/sources",
   resting: "/",
 });
 

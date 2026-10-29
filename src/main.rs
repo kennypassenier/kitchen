@@ -130,6 +130,8 @@ async fn main() -> std::process::ExitCode {
         .page(Page::new("parents", "Parents' wheel", "/parents"))
         // Every line of the log, recipes cooked and shelf foods eaten.
         .page(Page::new("log", "What I ate", "/log"))
+        // The websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11).
+        .page(Page::new("sources", "Recipe sources", "/sources"))
         .page(
             Page::new("recipe", "Recipe", "/recipe")
                 .group("Recipes")

@@ -4,7 +4,7 @@
 
 Open the app and log in. The bar has the places you go in the order of an
 evening: **What do we eat?**, **When do I start?**, **Bad days**,
-**Calm settings**, **Recipes** and **Dishes**. A recipe's own page and cook
+**Calm settings**, **Recipes**, **Dishes** and **Recipe sources**. A recipe's own page and cook
 mode open from a recipe.
 
 **What do we eat?** picks from your dishes (every dish, whatever its
@@ -13,6 +13,13 @@ category, and when the chosen dish has sides the small wheel under the big
 one picks the side. "Yes, cook this" opens the dish's default recipe in
 cook mode, with its other recipes listed under the answer; a dish without a
 recipe opens its page.
+
+**Recipe sources** lists websites whose recipes Kitchen imports reliably
+(Dagelijkse Kost, 24Kitchen, Leuke recepten, BBC Good Food, Simply Recipes and
+RecipeTin Eats to start with, each checked with a real import). A site opens
+in a new tab; "Import from this site" opens the import with a pointer to it,
+and you can add, edit and delete sources yourself. The import drawer links
+here as "Which sites work?".
 
 **Dishes** is what lands on a plate, and its recipes are its own: a dish's
 page lists them (one for the oven, one for the pressure cooker, …) with

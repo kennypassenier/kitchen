@@ -13,6 +13,7 @@ Release 0.1 holds five things, each approved as a screen design by Kenny on
 | Cook mode (`/cook`) | Gather everything first, then one step at a time, with parallel tracks (pasta while the sauce cooks), timers and a band that says what to do when one ends |
 | When do I start? (`/timing`) | Counts back from dinner time: when each track starts, a disc that shrinks, one gentle nudge |
 | Bad days (`/bad-days`) | Safe dishes, the freezer with Undo, a zero-prep shelf, mini recipes |
+| Recipe sources (`/sources`) | The websites whose recipe pages the import reads well, each proven by a real import; your own list, with Add, Edit and Delete, and every link opens in a new tab |
 | Recipe and calm settings (`/recipe`, `/recipes`, `/settings`) | The recipe with scaling, QR to the phone, print, the cooking log; calm mode, theme, kitchen settings |
 
 The name is Kenny's own answer to the name form (19/10/2026).

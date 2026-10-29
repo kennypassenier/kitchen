@@ -7,6 +7,16 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 ### Added
+- Recipe sources (`/sources`, Dutch "Receptbronnen"): the websites whose recipe
+  pages the import reads well, as a list of your own with Add, Edit, Delete,
+  search, a language filter and an own page per source. Every site link opens
+  in a new tab; "Import from this site" opens the import drawer with a pointer
+  to it, and the drawer links to the page ("Which sites work?"). New optional
+  `recipe_sources` collection (format stays 5; `POST /data/recipe_sources`
+  accepts only http(s) addresses, a language and a note in both languages or
+  none). A new kitchen, and a file from before the list, starts with six sites
+  proven by one real import each: Dagelijkse Kost, 24Kitchen, Leuke recepten,
+  BBC Good Food, Simply Recipes and RecipeTin Eats.
 - Import a recipe (Recipes page and a dish's Recipes card): a web address or
   pasted text becomes an unsaved draft in the recipe editor. Kitchen reads the
   page's recipe data (JSON-LD), splits amounts, units and names, matches

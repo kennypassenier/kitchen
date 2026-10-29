@@ -16,6 +16,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, make
 import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
+import { externalLink, hostOf } from "../links.js";
 import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, openRecipeImport, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t, textOf } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
@@ -143,6 +144,17 @@ function facts(list, item, k) {
         [t("rec.gear"), textOf(item.gear) || "–"],
         [t("rec.energy"), energies()[item.energy] ?? "–"],
         [t("it.eaten"), linkList(eaten.map((e) => itemLink("log", e, dmy(e.date))), t("it.notLogged"))],
+        ...stamps(item),
+      ];
+    }
+    case "recipe_sources": {
+      return [
+        [t("src.name"), item.name],
+        [t("src.url"), externalLink(item.url, hostOf(item.url))],
+        [t("src.language"), t(`src.${item.language === "nl" ? "nl" : "en"}`)],
+        [t("src.comes"), textOf(item.note) || "–"],
+        [t("src.verified"), item.verified ? dmy(item.verified) : t("src.none")],
+        [t("src.how"), item.verified_by || "–"],
         ...stamps(item),
       ];
     }
@@ -368,11 +380,13 @@ export function mount(root, { params, navigate }) {
   const copy = list === "dishes" ? h("button", { type: "button", class: "kp-button" }, t("common.duplicate")) : null;
 
   const del = h("button", { type: "button", class: "kp-button kp-button--destructive" }, t("common.delete"));
+  // A source opens the import with a pointer to its site (Kenny, 29/10/2026 15:11).
+  const fromSite = list === "recipe_sources" ? h("button", { type: "button", class: "kp-button" }, t("src.import")) : null;
   const head = h(
     "header",
     { class: "kp-page-header" },
     crumb,
-    h("div", { class: "kp-page-header__inner" }, h("div", null, title, h("p", { class: "kp-page-header__description" }, t("it.keeps", meta.this))), h("div", { class: "kp-page-header__actions" }, edit, ...(copy ? [copy] : []), del)),
+    h("div", { class: "kp-page-header__inner" }, h("div", null, title, h("p", { class: "kp-page-header__description" }, t("it.keeps", meta.this))), h("div", { class: "kp-page-header__actions" }, ...(fromSite ? [fromSite] : []), edit, ...(copy ? [copy] : []), del)),
   );
   const kv = h("dl", { class: "kp-kv kp-kv--lines" });
   const card = h(
@@ -390,13 +404,15 @@ export function mount(root, { params, navigate }) {
   /** @type {Item | null} */
   let item = null;
   const setActions = (on) => {
-    for (const b of [edit, ...(copy ? [copy] : []), del]) {
+    for (const b of [edit, ...(copy ? [copy] : []), ...(fromSite ? [fromSite] : []), del]) {
       if (on) b.removeAttribute("aria-disabled");
       else b.setAttribute("aria-disabled", "true");
     }
   };
   setActions(false);
   edit.addEventListener("click", () => item && edit.getAttribute("aria-disabled") !== "true" && openRecordEditor(list, item));
+
+  fromSite?.addEventListener("click", () => item && openRecipeImport(null, item));
 
   copy?.addEventListener("click", () => item && copy.getAttribute("aria-disabled") !== "true" && duplicateDish(item));
 
