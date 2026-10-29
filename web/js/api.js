@@ -243,6 +243,9 @@ export async function deleteDraft(key) {
   if (draft) await call("DELETE", `/data/drafts/${encodeURIComponent(draft.id)}`);
 }
 
+/** A recipe read from a web page (`{ url }`) or pasted text (`{ text }`), normalised; a refusal's message is its code (src/import.rs). @param {{ url?: string, text?: string }} body */
+export const importRecipe = (body) => call("POST", "/data/import", body);
+
 /** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */
 export const readWheelEnglish = () => call("GET", "/data/wheel/en");
 /** The same list in Dutch, behind the login: Kitchen's /parents in Dutch, also away from home. */

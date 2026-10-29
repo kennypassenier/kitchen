@@ -39,11 +39,11 @@ export function ingredientsPicker(values, { label }) {
  * A combobox over the ingredients, holding one ingredient id.
  * @param {string | null} value the ingredient chosen, or none
  * @param {{ label: string }} o the accessible name ("Ingredient of line 2")
- * @returns {{ el: HTMLElement, get: () => string | null }}
+ * @returns {{ el: HTMLElement, get: () => string | null, startNew: (name: string) => void }} `startNew` opens the inline new-ingredient step with a name (the import's proposal row)
  */
 export function ingredientPicker(value, { label }) {
   const p = build(value ? [value] : [], { label, multi: false });
-  return { el: p.el, get: p.one };
+  return { el: p.el, get: p.one, startNew: p.startNew };
 }
 
 /** @param {string[]} values @param {{ label: string, multi: boolean }} o */
@@ -169,5 +169,13 @@ function build(values, { label, multi }) {
   };
   const known = new Set((kitchenNow()?.ingredients ?? []).map((i) => i.id));
   const all = () => (handle?.values() ?? []).filter((v) => v !== NEW && (known.has(v) || (kitchenNow()?.ingredients ?? []).some((i) => i.id === v)));
-  return { el, one, all, clear: () => handle?.set([]) };
+  /** Open the new-ingredient step with a proposed name: it fills the language shown, the other half stays empty and required (Kenny, 29/10/2026 14:27). @param {string} name */
+  const startNew = (name) => {
+    nlField.value = lang() === "nl" ? name.trim() : "";
+    enField.value = lang() === "en" ? name.trim() : "";
+    missing.textContent = "";
+    asks.hidden = false;
+    (lang() === "nl" ? enField : nlField).focus();
+  };
+  return { el, one, all, startNew, clear: () => handle?.set([]) };
 }

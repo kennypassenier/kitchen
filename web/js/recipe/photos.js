@@ -241,5 +241,5 @@ export function photoField({ ids, max, label, tracker, compact = false }) {
   const wrap = h("div", { class: "rp-photofield" }, gallery, controls, chooser);
 
   paint();
-  return { el: wrap, get: () => [...list], pick: () => (list.length < max ? chooser.click() : undefined), full: () => list.length >= max };
+  return { el: wrap, get: () => [...list], set: (/** @type {string[]} */ ids) => { list = ids.slice(0, max); paint(); }, pick: () => (list.length < max ? chooser.click() : undefined), full: () => list.length >= max };
 }

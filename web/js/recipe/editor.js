@@ -22,6 +22,7 @@ import { create, replace, kitchenNow, readDraft, saveDraft, deleteDraft, ApiErro
 import { dishPicker } from "../dishes/picker.js";
 import { ingredientPicker, ingredientsPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
+import { coverCard } from "./cover.js";
 import { wordsFor } from "./words.js";
 import { effective } from "./schedule.js";
 import { t, lang } from "../i18n/index.js";
@@ -184,9 +185,9 @@ export const textCell = (label, value, placeholder = "") => {
  * Open the editor for a recipe, or for a new one. `restore` is a draft's form state (Kenny, 29/10/2026): the editor then
  * opens with it instead of the saved recipe.
  * @param {HTMLDialogElement} dialog
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js)
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string, imported?: boolean, cover?: string | null }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js); `imported` makes it the preview of an import (recipe/import.js) and `cover` is the picture address the page offered (recipe/cover.js)
  */
-export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null, copyOf = "" }) {
+export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore = null, copyOf = "", imported = false, cover = null }) {
   const base = recipe ?? { short: "", summary: "", meals: ["dinner"], ing: [], minutes: 0, hands_on: 0, portions: 2, prep: "light", safe: false, gear: "", last_note: "", mini_note: "", tracks: [], ingredients: [], tools: [], steps: [], ...preset };
   const r = restore ? { ...base, ...restore } : base;
   const editing = Boolean(recipe);
@@ -197,7 +198,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   // A restored draft's photos were sent by an earlier session: this one answers for them now.
   if (restore) for (const id of photosOf(restore)) if (!photosOf(recipe).includes(id)) tracker.uploaded(id);
   const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: t("edit.recipePhoto"), tracker });
-  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : copyOf ? t("edit.copyTitle", copyOf) : t("list.recipes.add"));
+  const heading = h("h2", { class: "kp-dialog__title", id: "rl-editor-t" }, editing ? t("rec.editTitle", r.name) : copyOf ? t("edit.copyTitle", copyOf) : imported ? t("imp.previewTitle") : t("list.recipes.add"));
 
   // ---- the dish -----------------------------------------------------------------------------------------------
   // The dish the recipe belongs to (Kenny, 29/10/2026): a recipe is always in a dish, an existing one or a new one that is
@@ -273,7 +274,25 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   });
   const ingredients = rows({
     columns: [
-      { label: t("edit.ingredient"), width: "minmax(0, 1fr)", make: (i) => { const c = ingredientPicker(i.ingredient ?? null, { label: t("edit.ingredient") }); return { el: c.el, get: () => ({ ...i, id: i.id ?? (i.id = newId()), ingredient: c.get() }) }; } },
+      {
+        label: t("edit.ingredient"),
+        width: "minmax(0, 1fr)",
+        make: (i) => {
+          const c = ingredientPicker(i.ingredient ?? null, { label: t("edit.ingredient") });
+          const cell = h("div", { class: "ri-cell" }, c.el);
+          // An imported line the catalogue did not know (Kenny, 29/10/2026 14:27): what the page said, and a button that
+          // opens the picker's own new-ingredient step with the parsed name. It goes once the line has an ingredient.
+          if (i.proposal) {
+            const addNew = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("imp.addNew"));
+            const note = h("div", { class: "ri-proposal" }, h("p", { class: "ri-proposal__text" }, t("imp.fromPage", i.proposal.text)), addNew);
+            addNew.addEventListener("click", () => c.startNew(String(i.proposal.name ?? "")));
+            const settle = () => void (note.hidden = Boolean(c.get()));
+            for (const type of ["input", "change", "kp-combobox-change"]) cell.addEventListener(type, () => setTimeout(settle, 0));
+            cell.append(note);
+          }
+          return { el: cell, get: () => { const ingredient = c.get(); return { ...i, id: i.id ?? (i.id = newId()), ingredient, proposal: ingredient ? undefined : i.proposal }; } };
+        },
+      },
       { label: t("edit.amount"), width: "6rem", make: (i) => { const el = input(i.amount ?? "", "number", { "aria-label": t("edit.amount"), step: "any", min: "0", inputmode: "decimal" }); return { el, get: () => (/** @type {HTMLInputElement} */ (el).value === "" ? null : Number(/** @type {HTMLInputElement} */ (el).value)) }; } },
       { label: t("edit.unit"), width: "8rem", make: (i) => { const el = select([...new Set([...UNITS, i.unit].filter(Boolean))].map((u) => [u, unitName(u)]), i.unit ?? "g", t("edit.unit")); return { el, get: () => el.value }; } },
       { label: t("edit.list"), width: "14rem", make: (i) => { const el = select([...new Set([...groups(), ...(r.ingredients ?? []).map((/** @type {any} */ x) => x.group), i.group].filter(Boolean))].map((g) => [g, g]), i.group ?? groups()[0], t("edit.whichList")); return { el, get: () => el.value }; } },
@@ -540,6 +559,18 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     sec(t("edit.secSteps"), t("edit.secStepsText"), stepsSection),
   );
   const line = h("p", { class: "rl-editor__line", role: "status" });
+  // The cover offer of an import: nothing is loaded from the page's site until Yes (recipe/cover.js).
+  if (cover) {
+    form.prepend(
+      coverCard({
+        url: cover,
+        picked: (id) => {
+          tracker.uploaded(id);
+          recipePhoto.set([id]);
+        },
+      }),
+    );
+  }
   // The draft offer (Kenny, 29/10/2026): a draft saved by an earlier session is offered above the form.
   const offer = h("div", { class: "kp-alert kp-alert--info rl-draft", role: "status", hidden: true });
   form.prepend(offer);
@@ -549,7 +580,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       { class: "kp-drawer__head" },
       heading,
       h("button", { type: "button", class: "kp-icon-button kp-dialog__close", "aria-label": t("edit.close"), "data-close": true }, "✕"),
-      h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : copyOf ? t("edit.copyText") : t("rec.addText")),
+      h("p", { class: "kp-drawer__desc" }, editing ? t("rec.editText") : copyOf ? t("edit.copyText") : imported ? t("imp.previewText") : t("rec.addText")),
     ),
     form,
     h("footer", { class: "kp-drawer__foot" }, line, cancel, save),
@@ -579,7 +610,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   let opening = "";
   const writeDraft = async () => {
     if (draftGone) return;
-    const now = collect();
+    const now = collect(true);
     if (JSON.stringify(now) === opening) return;
     await saveDraft(draftKey, now).catch(() => {}); // a draft that cannot be saved must never get in the way of editing
   };
@@ -629,7 +660,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     const d = choice.id ? kitchenNow()?.dishes.find((x) => x.id === choice.id) : null;
     return String(d?.name?.[lang()] || d?.name?.[lang() === "nl" ? "en" : "nl"] || choice.name?.[lang()] || "").trim();
   };
-  const collect = () => {
+  /** The form as a recipe body. `forDraft` keeps imported ingredient lines the catalogue does not know yet, which a Save would drop. @param {boolean} [forDraft] */
+  const collect = (forDraft = false) => {
     const choice = dishField.get();
     const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
     return {
@@ -656,7 +688,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
       mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),
       tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name),
-      ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient),
+      ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient || (forDraft && i.proposal)),
       tools: tools.get().map(([tk]) => tk).filter((tk) => tk.name),
       steps: tidyWith(stepList.map((e) => e.get()).filter((s) => s.text)),
       photo: recipePhoto.get()[0] ?? null,
@@ -672,6 +704,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
         return { error: t("edit.needsDish"), remedy: t("edit.needsDishFix"), word: t("rec.notSaved") };
       }
       const shownName = dishText({ id: body.dish_id, name: body.new_dish });
+      // Imported lines still waiting for an ingredient are not saved (a line without one is dropped): say so.
+      const skipped = ingredients.get().filter(([n]) => !n.ingredient && n.proposal).length;
       try {
         if (recipe) await replace("recipes", body);
         else await create("recipes", body);
@@ -681,12 +715,13 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       await tracker.settle(photosOf(body));
       await dropDraft();
       toast(editing ? t("rec.savedName", shownName) : t("rec.addedName", shownName));
+      if (skipped) toast(t("imp.skipped", skipped), { live: "polite" });
       close();
       return t("set.saved");
     });
   });
 
-  opening = JSON.stringify(collect());
+  opening = JSON.stringify(collect(true));
   if (!dialog.open) dialog.showModal();
 
   // An earlier session's draft is offered, not applied: Restore opens the editor again on it, Discard deletes it.

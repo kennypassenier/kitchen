@@ -19,6 +19,7 @@ import { t, lang, nameOf, textOf } from "./i18n/index.js";
 import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
 import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
 import { copyRecipe, copyDish } from "./recipe/duplicate.js";
+import { openImport } from "./recipe/import.js";
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting"} List */
@@ -427,6 +428,12 @@ export const BLANK_RECIPE = { short: "", summary: "", meals: ["dinner"], ing: []
 export function openRecipeEditor(r, preset = {}, copyOf = "") {
   const k = kitchenNow();
   openEditor(drawer(), { recipe: r, preset, copyOf, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
+}
+
+/** Open the import drawer; a recipe imported from a dish's page goes into that dish (Kenny, 29/10/2026 14:27). @param {string | null} [dishId] */
+export function openRecipeImport(dishId = null) {
+  const k = kitchenNow();
+  openImport(drawer(), { dishId, mainOptions: [...new Set((k?.recipes ?? []).flatMap((x) => x.ing ?? []))] });
 }
 
 /** Mark one of the recipes as a safe dish, or write a new one. */

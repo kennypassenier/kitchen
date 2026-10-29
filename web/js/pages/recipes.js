@@ -10,6 +10,7 @@ import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { openEditor } from "../recipe/editor.js";
+import { openImport } from "../recipe/import.js";
 import { copyRecipe } from "../recipe/duplicate.js";
 import { deletePhoto, photosOf } from "../recipe/photos.js";
 import { dmy } from "../recipe/log.js";
@@ -28,6 +29,7 @@ export function mount(root) {
   document.title = `${t("nav.recipes")} · Kitchen`;
   let alive = true;
   const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("list.recipes.add"));
+  const importer = h("button", { type: "button", class: "kp-button" }, t("imp.button"));
 
   const head = h(
     "header",
@@ -36,7 +38,7 @@ export function mount(root) {
       "div",
       { class: "kp-page-header__inner" },
       h("div", null, h("h1", { class: "kp-page-header__title" }, t("nav.recipes")), h("p", { class: "kp-page-header__description" }, t("recs.intro"))),
-      h("div", { class: "kp-page-header__actions" }, add),
+      h("div", { class: "kp-page-header__actions" }, importer, add),
     ),
   );
 
@@ -112,6 +114,7 @@ export function mount(root) {
     openEditor(/** @type {HTMLDialogElement} */ (editor), { recipe: null, preset: { ...copyRecipe(recipe), dish_id: recipe.dish_id }, copyOf: String(recipe.name ?? ""), mainOptions: [...new Set((k?.recipes ?? []).flatMap((r) => r.ing ?? []))] });
   };
   add.addEventListener("click", () => openFor(null));
+  importer.addEventListener("click", () => openImport(/** @type {HTMLDialogElement} */ (editor), { mainOptions: [...new Set((kitchenNow()?.recipes ?? []).flatMap((r) => r.ing ?? []))] }));
   empty.querySelector("[data-rl-add]")?.addEventListener("click", () => openFor(null));
 
   /** @param {Kitchen} k */

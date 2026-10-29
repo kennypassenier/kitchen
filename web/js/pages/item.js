@@ -16,7 +16,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName, defaultRecipe, make
 import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
-import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
+import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, openRecipeImport, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t, textOf } from "../i18n/index.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
@@ -176,11 +176,12 @@ function facts(list, item, k) {
  */
 function dishRecipes(pageEl) {
   const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
+  const importer = h("button", { type: "button", class: "kp-button" }, t("imp.button"));
   const listEl = h("ul", { class: "kp-action-list it-recipes" });
   const card = h(
     "section",
     { class: "kp-card it-card", "data-kp-state": "ready", "aria-labelledby": "it-recipes-t" },
-    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), h("div", { class: "kp-card__actions" }, add)),
+    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), h("div", { class: "kp-card__actions" }, importer, add)),
     h("p", { class: "kp-card__body" }, t("it.recipesLede")),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, listEl)),
   );
@@ -191,6 +192,9 @@ function dishRecipes(pageEl) {
   add.addEventListener("click", () => {
     if (!dish) return;
     openRecipeEditor(null, { ...BLANK_RECIPE, dish_id: dish.id });
+  });
+  importer.addEventListener("click", () => {
+    if (dish) openRecipeImport(dish.id);
   });
   return {
     /** @param {Kitchen} k @param {Item} d */
