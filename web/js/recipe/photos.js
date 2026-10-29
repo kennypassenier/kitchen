@@ -13,6 +13,7 @@
 
 import { h } from "../dom.js";
 import { setGallery, setGalleryUploading, GALLERY_ADD_EVENT } from "/static/kp/js/gallery.js";
+import { holdFootprint } from "/static/kp/js/footprint.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";
@@ -141,8 +142,14 @@ export function photoTracker(original) {
 const itemsOf = (ids, label) => ids.map((id, i) => ({ id, src: photoUrl(id), alt: `${label} ${i + 1}` }));
 
 /** Gallery options both uses share: no address hash (several galleries on a page), no caption. @param {Record<string, string>} [more] */
-const galleryEl = (label, more = {}) =>
-  h("div", { class: "kp-gallery rp-photos", "data-kp-gallery": "", "data-kp-lightbox-hash": "off", "data-kp-caption": "none", "aria-label": label, ...more });
+const galleryEl = (label, more = {}) => {
+  const el = h("div", { class: "kp-gallery rp-photos", "data-kp-gallery": "", "data-kp-lightbox-hash": "off", "data-kp-caption": "none", "aria-label": label, ...more });
+  // The package's footprint (Kenny, 29/10/2026: the photo section collapsed when empty, loading or failed): the gallery keeps
+  // the height it had while ready under its loading, empty and failed plates. Apps attach it themselves; auto.js only does
+  // the hosts that were in the page at load.
+  holdFootprint(el);
+  return el;
+};
 
 /**
  * Pictures shown read-only: thumbnails that open large. Fills `el` (made if missing) and returns it.
