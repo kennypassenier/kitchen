@@ -550,8 +550,6 @@ export const EN_PAGES = {
   "edit.note": "Note",
   "edit.warning": "Warning",
   "edit.mini": "Mini",
-  "edit.photos": "Photos",
-  "edit.photosHint": "Pictures that make the step clearer; a phone can take one now.",
   "edit.stepNeeds": "What this step needs",
   "edit.moveUp": "Move up",
   "edit.moveDown": "Move down",
@@ -699,4 +697,7 @@ export const EN_PAGES = {
   "edit.chipWarning": "Warning",
   "edit.chipWith": (n) => `With step ${n}`,
   "edit.chipStart": (m) => `From minute ${m}`,
+  "edit.camera": "Photo",
+  "edit.cameraStep": (n) => `Add a photo to step ${n}`,
+  "edit.photosFull": "A step holds at most 8 photos.",
 };

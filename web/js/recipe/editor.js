@@ -334,7 +334,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       items: s.uses ?? [], add: t("edit.addUse"), noun: "item", blank: () => ({ amount: "", name: "" }),
     });
     const timerRow = h("div", { class: "rl-pair" }, timerName, timerSecs);
-    const photos = photoField({ ids: s.photos ?? [], max: 8, label: t("edit.stepPhoto"), tracker });
+    const photos = photoField({ ids: s.photos ?? [], max: 8, label: t("edit.stepPhoto"), tracker, compact: true });
+    photos.el.classList.add("rl-step__photos");
     const fields = h(
       "div",
       { class: "kp-formgrid" },
@@ -349,7 +350,6 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       row(t("edit.mini"), mini, ""),
       row(t("edit.startAt"), start, t("edit.startHint")),
       row(t("edit.with"), partner, t("edit.withHint")),
-      row(t("edit.photos"), photos.el, t("edit.photosHint")),
     );
     const more = h("details", { class: "rl-step__more" }, h("summary", null, t("edit.more")), h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, t("edit.stepNeeds")), uses.el)));
     const head = h("span", { class: "rl-step__n" });
@@ -357,7 +357,13 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     const up = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveUp"));
     const down = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.moveDown"));
     const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("edit.removeStep"));
-    const el = h("li", { class: "rl-step", role: "group" }, head, text, h("div", { class: "rl-step__buttons" }, up, down, del), chips, more);
+    // The camera button on the first line (Kenny, 29/10/2026) opens the picker; the photos sit in a strip under the line.
+    const camera = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.camera"));
+    camera.addEventListener("click", () => {
+      if (photos.full()) toast(t("edit.photosFull"), { live: "polite" });
+      else photos.pick();
+    });
+    const el = h("li", { class: "rl-step", role: "group" }, head, text, h("div", { class: "rl-step__buttons" }, camera, up, down, del), chips, photos.el, more);
     const secs = () => Number(/** @type {HTMLInputElement} */ (timerSecs).value);
     const entry = {
       el,
@@ -369,6 +375,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       up,
       down,
       del,
+      camera,
       /** The chips under the text say what the fold holds. */
       paint: () => {
         const m = getQuantity(mins);
@@ -423,6 +430,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     stepList.forEach((e, i) => {
       e.head.textContent = String(i + 1);
       e.el.setAttribute("aria-label", t("edit.stepN", i + 1));
+      e.camera.setAttribute("aria-label", t("edit.cameraStep", i + 1));
       e.up.disabled = i === 0;
       e.down.disabled = i === stepList.length - 1;
       e.options();

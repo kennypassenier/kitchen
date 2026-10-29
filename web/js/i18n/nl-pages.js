@@ -550,8 +550,6 @@ export const NL_PAGES = {
   "edit.note": "Notitie",
   "edit.warning": "Waarschuwing",
   "edit.mini": "Mini",
-  "edit.photos": "Foto's",
-  "edit.photosHint": "Foto's die de stap duidelijker maken; met een telefoon neem je er meteen een.",
   "edit.stepNeeds": "Wat deze stap nodig heeft",
   "edit.moveUp": "Naar boven",
   "edit.moveDown": "Naar beneden",
@@ -699,4 +697,7 @@ export const NL_PAGES = {
   "edit.chipWarning": "Waarschuwing",
   "edit.chipWith": (n) => `Met stap ${n}`,
   "edit.chipStart": (m) => `Vanaf minuut ${m}`,
+  "edit.camera": "Foto",
+  "edit.cameraStep": (n) => `Een foto toevoegen aan stap ${n}`,
+  "edit.photosFull": "Een stap heeft hooguit 8 foto's.",
 };

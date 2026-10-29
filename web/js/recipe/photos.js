@@ -150,10 +150,11 @@ export function showPhotos(el, ids, label) {
 }
 
 /**
- * The editor's photo field.
- * @param {{ ids: string[], max: number, label: string, tracker: ReturnType<typeof photoTracker> }} spec
+ * The editor's photo field. `compact` is the step line's strip (Kenny, 29/10/2026): no Add tile, the field is hidden while
+ * it holds no photo, and `pick()` opens the picker (the camera button on the step's first line calls it).
+ * @param {{ ids: string[], max: number, label: string, tracker: ReturnType<typeof photoTracker>, compact?: boolean }} spec
  */
-export function photoField({ ids, max, label, tracker }) {
+export function photoField({ ids, max, label, tracker, compact = false }) {
   let list = [...ids];
   const gallery = galleryEl(label, { "data-kp-grid-columns": "3" });
   const controls = h("ul", { class: "rp-photoedit", "aria-label": t("photo.orderRemoval", label) });
@@ -177,7 +178,8 @@ export function photoField({ ids, max, label, tracker }) {
   };
 
   function paint() {
-    setGallery(gallery, { items: itemsOf(list, label), state: "ready", add: list.length < max, label });
+    setGallery(gallery, { items: itemsOf(list, label), state: "ready", add: !compact && list.length < max, label });
+    wrap.hidden = compact && list.length === 0;
     if (busy) setGalleryUploading(gallery, t("photo.sending"));
     controls.hidden = list.length === 0;
     // The editor's step line counts its photos (Kenny, 29/10/2026).
@@ -203,9 +205,10 @@ export function photoField({ ids, max, label, tracker }) {
     );
   }
 
-  gallery.addEventListener(GALLERY_ADD_EVENT, (event) => {
+  /** @param {File[]} picked */
+  const addFiles = (picked) => {
     if (busy) return;
-    const files = /** @type {CustomEvent} */ (event).detail.files.slice(0, Math.max(0, max - list.length));
+    const files = picked.slice(0, Math.max(0, max - list.length));
     void (async () => {
       busy = true;
       setGalleryUploading(gallery, t("photo.sending"));
@@ -222,8 +225,16 @@ export function photoField({ ids, max, label, tracker }) {
       busy = false;
       paint();
     })();
+  };
+  gallery.addEventListener(GALLERY_ADD_EVENT, (event) => addFiles(/** @type {CustomEvent} */ (event).detail.files));
+  // The camera button's picker: a phone offers the camera or the library, a PC the file chooser.
+  const chooser = /** @type {HTMLInputElement} */ (h("input", { type: "file", accept: "image/*", multiple: true, hidden: true, tabindex: "-1", "aria-hidden": "true" }));
+  chooser.addEventListener("change", () => {
+    addFiles([...(chooser.files ?? [])]);
+    chooser.value = "";
   });
+  const wrap = h("div", { class: "rp-photofield" }, gallery, controls, chooser);
 
   paint();
-  return { el: h("div", { class: "rp-photofield" }, gallery, controls), get: () => [...list] };
+  return { el: wrap, get: () => [...list], pick: () => (list.length < max ? chooser.click() : undefined), full: () => list.length >= max };
 }
