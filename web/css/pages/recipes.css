@@ -99,6 +99,14 @@
   gap: var(--kp-space-sm, 0.5rem);
 }
 
+/* A computed time: the figure, and the Override switch under it. */
+.rl-time {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-sm, 0.5rem);
+  justify-items: start;
+}
+
 .rl-steps,
 .rl-steps-wrap {
   display: grid;

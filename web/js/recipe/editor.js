@@ -11,7 +11,7 @@
 import { attachSegmented, getSegmentedValues } from "/static/kp/js/segmented.js";
 import { attachSelects } from "/static/kp/js/combobox.js";
 import { attachComboboxes, combobox } from "/static/kp/js/combobox.js";
-import { attachQuantities, getQuantity } from "/static/kp/js/quantity.js";
+import { attachQuantities, getQuantity, setQuantity } from "/static/kp/js/quantity.js";
 import { attachSwitches } from "/static/kp/js/forms.js";
 import { attachAutosize } from "/static/kp/js/autosize.js";
 import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
@@ -22,6 +22,7 @@ import { create, replace, ApiError } from "../api.js";
 import { ingredientPicker, ingredientsPicker } from "../ingredients/picker.js";
 import { photoField, photoTracker, photosOf } from "./photos.js";
 import { wordsFor } from "./words.js";
+import { effective } from "./schedule.js";
 import { t, lang } from "../i18n/index.js";
 
 /** Meals and preparation, as the data names them. */
@@ -217,8 +218,22 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   );
 
   // ---- time, portions, how much preparing ---------------------------------------------------------------------
-  const minutes = stepper(r.minutes ?? 0, { max: 1440, unit: "min", label: t("edit.totalMinutes") });
-  const hands = stepper(r.hands_on ?? 0, { max: 1440, unit: "min", label: t("edit.handsMinutes") });
+  // The two times are computed from the steps (Kenny, 29/10/2026; recipe/schedule.js) and shown live: the figure is the
+  // stepper itself, unreachable until the Override switch lets a typed value win.
+  const was = effective(r);
+  const timeOverride = (/** @type {number | null | undefined} */ typed, /** @type {number} */ computed, /** @type {number} */ stored) => typeof typed === "number" || (computed === 0 && stored > 0);
+  const minutes = stepper(was.minutes, { max: 1440, unit: "min", label: t("edit.totalMinutes") });
+  const hands = stepper(was.hands_on, { max: 1440, unit: "min", label: t("edit.handsMinutes") });
+  const minutesOver = toggle(t("edit.overrideSwitch"), timeOverride(r.minutes_override, was.total, Number(r.minutes) || 0));
+  const handsOver = toggle(t("edit.overrideSwitch"), timeOverride(r.hands_on_override, was.handsOn, Number(r.hands_on) || 0));
+  const minutesHint = h("p", { class: "kp-formgrid__value", role: "status" });
+  const handsHint = h("p", { class: "kp-formgrid__value", role: "status" });
+  /** A time row: the stepper, the Override switch under it, and a live sentence in the value track. @param {string} label @param {HTMLElement} q @param {HTMLElement} over @param {HTMLElement} hint */
+  const timeRow = (label, q, over, hint) => {
+    const el = row(label, h("div", { class: "rl-time" }, q, over), "");
+    el.append(hint);
+    return el;
+  };
   const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: t("bad.unitMany"), one: t("bad.unitOne"), label: t("bad.colPortions") });
   const prep = segmented(prepItems(), [r.prep ?? "light"], "single", t("edit.preparing"));
   const safe = toggle(t("edit.safeSwitch"), Boolean(r.safe));
@@ -226,8 +241,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const facts = h(
     "div",
     { class: "kp-formgrid" },
-    row(t("edit.totalTime"), minutes, t("edit.totalHint")),
-    row(t("edit.handsTime"), hands, t("edit.handsHint")),
+    timeRow(t("edit.totalTime"), minutes, minutesOver, minutesHint),
+    timeRow(t("edit.handsTime"), hands, handsOver, handsHint),
     row(t("bad.colPortions"), portions, t("edit.portionsHint")),
     row(t("edit.preparing"), prep, t("edit.prepHint")),
     row(t("edit.safeFav"), safe, t("edit.safeHint")),
@@ -258,7 +273,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
   const manyAdd = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.manyAdd"));
   manyAdd.addEventListener("click", () => {
     const ids = many.get();
-    for (const id of ids) ingredients.add({ ingredient: id, amount: null, unit: "g", group: GROUPS[0] });
+    for (const id of ids) ingredients.add({ ingredient: id, amount: null, unit: "g", group: groups()[0] });
     if (ids.length) many.clear();
   });
 
@@ -348,6 +363,9 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
           note_tone: on(warn) ? "warning" : "",
           mini: on(mini),
           photos: photos.get(),
+          // Where the step falls in time (Kenny, 29/10/2026): kept as it is, the timeline sets them (recipe/schedule.js).
+          start: typeof s.start === "number" ? s.start : null,
+          with: typeof s.with === "string" && s.with ? s.with : null,
         };
       },
     };
@@ -361,6 +379,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       /** @type {any} */ (e).down.disabled = i === stepList.length - 1;
     });
     stepsBox.replaceChildren(...stepList.map((e) => e.el));
+    stepsBox.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
   };
   /** @param {Record<string, any>} s */
   const addStep = (s) => {
@@ -402,6 +421,22 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       sel.value = opts.some(([v]) => v === keep) ? keep : "";
     }
   });
+  /** The two times from the steps as they stand, and what is stored: a typed override wins. */
+  const timesNow = () => {
+    const steps = stepList.map((e) => e.get()).filter((x) => x.text);
+    const typed = (/** @type {HTMLElement} */ sw, /** @type {HTMLElement} */ q) => (on(sw) ? getQuantity(q) : null);
+    return effective(r, { steps, tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name), minutes_override: typed(minutesOver, minutes), hands_on_override: typed(handsOver, hands) });
+  };
+  const refreshTimes = () => {
+    const now = timesNow();
+    for (const [sw, q, computed] of /** @type {[HTMLElement, HTMLElement, number][]} */ ([[minutesOver, minutes, now.minutes], [handsOver, hands, now.hands_on]])) {
+      if (on(sw)) q.removeAttribute("data-kp-quantity-disabled");
+      else q.setAttribute("data-kp-quantity-disabled", "");
+      setQuantity(q, on(sw) ? getQuantity(q) : computed);
+    }
+    minutesHint.textContent = on(minutesOver) ? t("edit.totalTyped", now.total) : t("edit.totalComputed", now.total);
+    handsHint.textContent = on(handsOver) ? t("edit.handsTyped", now.handsOn) : t("edit.handsComputed", now.handsOn);
+  };
   const stepsSection = h("div", { class: "rl-steps-wrap" }, stepsBox, stepsEmpty, h("div", { class: "rl-rows__add" }, addStepButton));
 
   // ---- the drawer ---------------------------------------------------------------------------------------------
@@ -441,6 +476,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     attachFlashButtons(root);
   }
   attachControls(dialog);
+  for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, refreshTimes);
+  refreshTimes();
 
   const close = () => void closeDialog(dialog);
   // Leaving without saving: the photos this session sent are not wanted any more.
@@ -455,6 +492,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
     leave();
   }, { once: true });
 
+  /** A step that runs alongside a step that is gone (or itself) runs on its own. @param {Record<string, any>[]} list */
+  const tidyWith = (list) => list.map((s) => (s.with && s.with !== s.id && list.some((x) => x.id === s.with) ? s : { ...s, with: null }));
   const collect = () => {
     const nameValue = /** @type {HTMLInputElement} */ (name).value.trim();
     const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
@@ -466,8 +505,12 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       summary: /** @type {HTMLTextAreaElement} */ (summary).value.trim(),
       meals: getSegmentedValues(meals),
       ing: combobox(mainBox)?.values() ?? [],
-      minutes: getQuantity(minutes),
-      hands_on: getQuantity(hands),
+      ...(() => {
+        // The two times as they are stored (Kenny, 29/10/2026): the computed figure, or the typed one when Override is on;
+        // `minutes` and `hands_on` always hold the effective value so every reader keeps working.
+        const now = timesNow();
+        return { minutes: now.minutes, hands_on: now.hands_on, minutes_override: now.minutes_override, hands_on_override: now.hands_on_override };
+      })(),
       portions: getQuantity(portions),
       prep: getSegmentedValues(prep)[0] ?? "light",
       safe: on(safe),
@@ -477,7 +520,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {} }) {
       tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name),
       ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient),
       tools: tools.get().map(([tk]) => tk).filter((tk) => tk.name),
-      steps: stepList.map((e) => e.get()).filter((s) => s.text),
+      steps: tidyWith(stepList.map((e) => e.get()).filter((s) => s.text)),
       photo: recipePhoto.get()[0] ?? null,
     };
   };

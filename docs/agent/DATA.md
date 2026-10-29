@@ -28,8 +28,10 @@ there is no `name` in it.
 | `summary` | string | A few sentences for the recipe page's lede; may be empty |
 | `meals` | string[] | `breakfast`, `lunch`, `dinner` |
 | `ing` | string[] | Main ingredients the wheel filters on: `chicken`, `beef`, `egg`, `cheese`, `tomato`, `potato`, … |
-| `minutes` | number | Total time, start to plate |
-| `hands_on` | number | Minutes of real work |
+| `minutes` | number | Total time, start to plate: the effective value (Kenny, 29/10/2026: computed from the steps, see below) |
+| `hands_on` | number | Minutes of real work: the effective value, computed from the hands-on steps |
+| `minutes_override` | number \| null | A time typed by hand (the editor's Override switch); when a number it is what `minutes` holds. Absent = null |
+| `hands_on_override` | number \| null | The same for `hands_on` |
 | `portions` | number | Portions the amounts below make |
 | `prep` | `none` \| `light` \| `full` | How much preparing it needs (`none` = no prep, a bad-day dish) |
 | `safe` | boolean | A safe favourite for bad days |
@@ -57,7 +59,20 @@ A step:
 | `note` | string | A line under the step |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
+| `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the timeline (a later kp-themes component), optional |
+| `with` | string \| null | A step id: this step starts together with that one ("runs alongside"); it does not push its own track's next step back. `null` or absent = no partner. A dangling id is ignored |
 | `photos` | string[] | Photo ids in show order (at most 8 in the editor): shown under the step on the recipe page and large in cook mode while the step is in hand. Missing = none |
+
+### Computed times (`web/js/recipe/schedule.js`)
+
+One pure module lays the steps out per track (sequential, a step with `start` placed there, a step with `with`
+beside its partner, a step with no track, or a track that is gone, after every track so far) and the editor, the
+timing page and cook mode all use it (timing counts back from dinner with `align: "end"`, cook mode takes its rows
+and the `with` pairs). The recipe's total is the critical path (the latest end); the hands-on time is the union of
+the `active` steps' intervals. The editor writes the effective values into `minutes` and `hands_on` on every save
+(computed, or the typed override), so every reader keeps reading those two; a recipe whose steps have no minutes yet
+keeps the figures it has. No store change: all four fields are optional, format stays 5. Test:
+`node --test scripts/schedule.test.mjs`.
 
 ### Photos
 

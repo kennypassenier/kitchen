@@ -31,6 +31,7 @@ import { statePlate } from "/static/kp/js/state-plate.js";
 import { memoryFor } from "/static/kp/js/remember.js";
 import { showPhotos } from "../recipe/photos.js";
 import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
+import { lanesOf as scheduleLanes } from "../recipe/schedule.js";
 import { wordsFor } from "../recipe/words.js";
 import { t, lang } from "../i18n/index.js";
 
@@ -536,12 +537,10 @@ export function mount(root, { params, navigate }) {
     return { active, done };
   }
 
-  /** The recipe's rows: each track that has a step here, else one row for the whole recipe; a step with no track is in every row. */
+  /** The recipe's rows (recipe/schedule.js: one per track that has a step here, else one for the whole recipe; a step with no track is in every row). */
   function lanesOf() {
-    const tracks = /** @type {Item[]} */ (recipe?.tracks ?? []).filter((t) => shown.some((s) => s.track === t.id));
-    const lanes = tracks.length ? tracks.map((t, i) => ({ id: t.id, label: String(t.name), series: /** @type {1 | 2 | 3 | 4 | 5} */ ((i % 5) + 1) })) : [{ id: "all", label: String(recipe?.name ?? ""), series: /** @type {const} */ (1) }];
-    /** @param {Item} s @returns {string[]} */
-    const rowsOf = (s) => (tracks.some((t) => t.id === s.track) ? [s.track] : lanes.map((l) => l.id));
+    const { lanes: found, rowsOf } = scheduleLanes(shown, /** @type {Item[]} */ (recipe?.tracks ?? []));
+    const lanes = found.map((l) => ({ id: l.id, label: l.name ?? String(recipe?.name ?? ""), series: l.series }));
     return { lanes, rowsOf };
   }
 
@@ -574,6 +573,8 @@ export function mount(root, { params, navigate }) {
     const left = [];
     const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
     let last = now;
+    /** @type {Map<string, number>} where each step starts in this plan, for the steps that run alongside it */
+    const starts = new Map();
     shown.forEach((s, i) => {
       const rows = rowsOf(s);
       const mins = Math.max(1, Number(s.mins) || 0);
@@ -597,10 +598,13 @@ export function mount(root, { params, navigate }) {
         if (planned > now) for (const row of rows) left.push({ id: `${row}:${s.id}`, lane: row, from: now, to: planned, label: t("cook.until", say, clock(planned)), tone: "info" });
         next = Math.max(now, planned);
       } else {
-        const start = Math.max(now, ahead);
+        // A step that runs alongside another (`with`) is planned from where that one is planned; it does not push its rows back.
+        const partner = typeof s.with === "string" ? starts.get(s.with) : undefined;
+        const start = partner !== undefined ? Math.max(now, partner) : Math.max(now, ahead);
         parts.push({ start, end: start + mins * MIN, state: "planned", words: t("cook.howToDo", how) });
-        next = start + mins * MIN;
+        next = partner !== undefined ? Math.max(ahead, start + mins * MIN) : start + mins * MIN;
       }
+      starts.set(s.id, parts[0].start);
       for (const row of rows) cursor.set(row, next);
       last = Math.max(last, next);
       for (const row of rows) {

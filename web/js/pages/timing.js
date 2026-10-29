@@ -11,6 +11,7 @@ import { attachTimes, setTime } from "/static/kp/js/timefield.js";
 import { attachSelects, combobox, attachComboboxes, drawnSelect } from "/static/kp/js/combobox.js";
 import { attachSentences, sentence, setSentenceWhy } from "/static/kp/js/sentence.js";
 import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timeline.js";
+import { layout, lanesOf, paced } from "../recipe/schedule.js";
 import { attachTimerDiscs } from "/static/kp/js/timer-disc.js";
 import { attachCountdowns } from "/static/kp/js/countdown.js";
 import { setAttention, attachAttention } from "/static/kp/js/attention.js";
@@ -64,37 +65,34 @@ const hasTimes = (recipe) => timedSteps(recipe).length > 0;
 
 /**
  * Count back from dinner: every lane ends `spare` minutes before it, each step takes its minutes (hands-on ones
- * stretched by the pace) and a lane starts where its first step starts. A step without a track is where the
- * tracks meet: it closes every lane. A recipe without tracks is one lane.
+ * stretched by the pace) and a lane starts where its first step starts. The laying out is recipe/schedule.js (the
+ * one cook mode and the editor use too): a step without a track is where the tracks meet and closes every lane, a
+ * recipe without tracks is one lane, and a step with its own `start` or one that runs alongside another keeps that.
  * @param {Item} recipe
  * @param {{ serve: number, spare: number, pace: number, dropped: Set<string> }} input
  * @returns {Plan | null}
  */
 function planFor(recipe, { serve, spare, pace, dropped }) {
-  const steps = timedSteps(recipe);
-  if (steps.length === 0) return null;
+  const timed = timedSteps(recipe);
+  if (timed.length === 0) return null;
   const tracks = /** @type {Item[]} */ (recipe.tracks ?? []);
-  const known = new Set(tracks.map((t) => t.id));
-  const meeting = steps.filter((s) => !s.track || !known.has(s.track));
-  /** @type {{ id: string, label: string, series: 1 | 2 | 3 | 4 | 5, steps: Item[] }[]} */
-  let sources = tracks
-    .map((t, i) => ({ id: t.id, label: t.name, series: /** @type {1 | 2 | 3 | 4 | 5} */ ((i % 5) + 1), steps: [...steps.filter((s) => s.track === t.id), ...meeting] }))
-    .filter((t) => t.steps.some((s) => s.track === t.id));
-  if (sources.length === 0) sources = [{ id: "all", label: recipe.short || recipe.name, series: 1, steps }];
-  const kept = sources.filter((t) => !dropped.has(t.id));
-  const use = kept.length > 0 ? kept : sources;
+  const every = lanesOf(timed, tracks).lanes;
+  // A lane the person dropped goes with its own steps; the steps where the tracks meet stay.
+  const kept = every.filter((l) => !dropped.has(l.id));
+  const dropIds = kept.length > 0 ? new Set(every.filter((l) => !kept.includes(l)).map((l) => l.id)) : new Set();
+  const steps = timed.filter((s) => !dropIds.has(s.track));
+  const sched = layout(steps, tracks, { stretch: paced(pace), align: "end" });
   const end = serve - spare * MIN;
-  const lanes = use.map((src) => {
-    let cursor = end;
-    const timed = [...src.steps]
-      .reverse()
-      .map((s) => {
-        const mins = Math.ceil(Number(s.mins) * (s.active ? pace : 1));
-        cursor -= mins * MIN;
-        return { id: `${src.id}:${s.id}`, lane: src.id, label: sentenceCase(s.say || s.text), say: s.say || String(s.text).toLowerCase(), mins, active: Boolean(s.active), start: cursor, end: cursor + mins * MIN };
-      })
-      .reverse();
-    return { id: src.id, label: src.label, series: src.series, steps: timed, start: cursor };
+  const origin = end - sched.total * MIN;
+  const lanes = sched.lanes.map((src) => {
+    const own = sched.steps
+      .filter((p) => p.rows.includes(src.id))
+      .map((p) => {
+        const s = p.step;
+        const mins = p.mins;
+        return { id: `${src.id}:${s.id}`, lane: src.id, label: sentenceCase(s.say || s.text), say: s.say || String(s.text).toLowerCase(), mins, active: Boolean(s.active), start: origin + p.start * MIN, end: origin + p.end * MIN };
+      });
+    return { id: src.id, label: src.name ?? (recipe.short || recipe.name), series: src.series, steps: own, start: Math.min(...own.map((x) => x.start)) };
   });
   const start = Math.min(...lanes.map((l) => l.start));
   const first = lanes.flatMap((l) => l.steps).find((s) => s.start === start);

@@ -490,9 +490,7 @@ export const EN_PAGES = {
   "edit.safeSwitch": "A safe favourite for bad days",
   "edit.gearPh": "1 pot, the oven",
   "edit.totalTime": "Total time",
-  "edit.totalHint": "Start to plate.",
   "edit.handsTime": "Hands-on time",
-  "edit.handsHint": "Minutes of real work.",
   "edit.portionsHint": "The amounts below make this many.",
   "edit.prepHint": "None is a bad-day dish.",
   "edit.safeFav": "Safe favourite",
@@ -673,4 +671,9 @@ export const EN_PAGES = {
   // parents' wheel
   "parents.dishesTitle": "Go to the dishes, where a dish is put on this wheel",
   "parents.openDishes": "Open the dishes",
+  "edit.overrideSwitch": "Override: type it myself",
+  "edit.totalComputed": (m) => `Counted from the steps: ${m} min from the first step to the last.`,
+  "edit.totalTyped": (m) => `Typed by hand. The steps count ${m} min.`,
+  "edit.handsComputed": (m) => `Counted from the hands-on steps: ${m} min (steps that run alongside count once).`,
+  "edit.handsTyped": (m) => `Typed by hand. The hands-on steps count ${m} min.`,
 };

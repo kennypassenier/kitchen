@@ -490,9 +490,7 @@ export const NL_PAGES = {
   "edit.safeSwitch": "Een veilige favoriet voor slechte dagen",
   "edit.gearPh": "1 pot, de oven",
   "edit.totalTime": "Totale tijd",
-  "edit.totalHint": "Van begin tot bord.",
   "edit.handsTime": "Tijd zelf bezig",
-  "edit.handsHint": "Minuten echt werk.",
   "edit.portionsHint": "De hoeveelheden hieronder zijn voor zoveel porties.",
   "edit.prepHint": "Geen is een gerecht voor slechte dagen.",
   "edit.safeFav": "Veilige favoriet",
@@ -673,4 +671,9 @@ export const NL_PAGES = {
   // parents' wheel
   "parents.dishesTitle": "Ga naar de gerechten, waar je een gerecht op dit wiel zet",
   "parents.openDishes": "Open de gerechten",
+  "edit.overrideSwitch": "Overschrijven: zelf invullen",
+  "edit.totalComputed": (m) => `Geteld uit de stappen: ${m} min van de eerste tot de laatste stap.`,
+  "edit.totalTyped": (m) => `Zelf ingevuld. De stappen tellen ${m} min.`,
+  "edit.handsComputed": (m) => `Geteld uit de stappen waar je zelf bij bent: ${m} min (stappen die tegelijk lopen tellen één keer).`,
+  "edit.handsTyped": (m) => `Zelf ingevuld. De stappen waar je bij bent tellen ${m} min.`,
 };
