@@ -316,6 +316,40 @@ fn minutes_field(r: &Value, key: &str) -> Option<u32> {
     r.get(key).and_then(Value::as_str).and_then(iso_minutes)
 }
 
+/// The instructions a page shows in its HTML when its JSON-LD gives fewer (Kenny, 29/10/2026: Dagelijkse Kost lists only
+/// the first two steps in the recipe block and the rest in `data-testid="recipe-instruction"` blocks): the first
+/// paragraph after each marker.
+fn dom_steps(html: &str) -> Vec<String> {
+    const MARK: &str = "data-testid=\"recipe-instruction\"";
+    let mut out = Vec::new();
+    let mut at = 0;
+    while let Some(i) = html[at..].find(MARK) {
+        let from = at + i + MARK.len();
+        let next = html[from..].find(MARK).map_or(html.len(), |n| from + n);
+        let block = &html[from..next];
+        if let Some(p) = block.find("<p") {
+            let after = &block[p..];
+            if let (Some(open), Some(close)) = (after.find('>'), after.find("</p>"))
+                && open < close
+            {
+                let text = clean(&after[open + 1..close]);
+                // The page repeats its list further down (a preview of the first steps): the first step again ends it.
+                if out.first() == Some(&text) {
+                    break;
+                }
+                if !text.is_empty() {
+                    out.push(text);
+                }
+            }
+        }
+        at = next;
+        if out.len() >= MAX_LINES {
+            break;
+        }
+    }
+    out
+}
+
 /// The recipe a page describes, or none when it has no readable recipe block.
 pub fn from_page(html: &str, page: Option<&Url>) -> Option<Imported> {
     for block in ld_json_blocks(html) {
@@ -335,6 +369,10 @@ pub fn from_page(html: &str, page: Option<&Url>) -> Option<Imported> {
         let mut steps = Vec::new();
         if let Some(i) = r.get("recipeInstructions") {
             steps_of(i, &mut steps, 0);
+        }
+        let shown = dom_steps(html);
+        if shown.len() > steps.len() {
+            steps = shown;
         }
         let ingredients: Vec<String> =
             match r.get("recipeIngredient").or_else(|| r.get("ingredients")) {
@@ -549,6 +587,23 @@ mod tests {
             r.source_url.as_deref(),
             Some("https://example.com/recipes/pancakes")
         );
+    }
+
+    /// A real Dagelijkse Kost page (fetched 29/10/2026, cut down to its recipe block and instruction list): the
+    /// JSON-LD names two steps, the page shows all of them.
+    #[test]
+    fn dagelijkse_kost_steps_come_from_the_page_when_the_block_has_only_two() {
+        let html = include_str!("../tests/fixtures/dagelijkse-kost-daube.html");
+        let url = Url::parse(
+            "https://dagelijksekost.vrt.be/gerechten/daube-varkenswangen-geglaceerde-wortel",
+        )
+        .unwrap();
+        let r = from_page(html, Some(&url)).unwrap();
+        assert_eq!(r.portions, Some(4));
+        assert_eq!(r.ingredients.len(), 30);
+        assert_eq!(r.steps.len(), 20);
+        assert_eq!(r.steps[0], "Kruid de varkenswangen met peper en zout.");
+        assert!(r.steps[2].starts_with("Doe de wangen in een kom"));
     }
 
     #[test]
