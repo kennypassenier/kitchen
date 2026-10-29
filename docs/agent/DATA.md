@@ -37,11 +37,12 @@ there is no `name` in it.
 | `safe` | boolean | A safe favourite for bad days |
 | `gear` | string | What it dirties: "1 pot", "the oven, 2 pots" |
 | `last_note` | string | The "Last time" note on the recipe page |
-| `ingredients` | `{id, ingredient, amount: number \| null, unit, group, note?}`[] | `ingredient` is an `ingredients` id (format 3; the name comes from there). Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard") |
+| `ingredients` | `{id, ingredient, amount: number \| null, unit, group, note?}`[] | `ingredient` is an `ingredients` id (format 3; the name comes from there). Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard"); `note` is a plain remark about the line ("chopped", "schil en sap"; Kenny, 29/10/2026), one text in whatever language it was written, like a step's `note`: edited under the ingredient in the editor, read under the name on the recipe page and in the print sheet |
 | `tools` | `{id, name}`[] | Gathered before cooking (the Begin checklist's "Tools") |
 | `tracks` | `{id, name}`[] | Parallel tracks ("Pasta", "Sauce"); empty for a one-track dish |
 | `steps` | step[] | In cooking order, see below |
 | `mini_note` | string | What the mini version (bad days) leaves out |
+| `source` | string \| null | Where an imported recipe came from (Kenny, 29/10/2026): an `http://` or `https://` address, or absent / null / empty. The server refuses anything else (400, "recipes[0].source must be a web address…"). Shown on the recipe page as a link ("Source" / "Bron", `target="_blank"`, `rel="noopener noreferrer"`, the host as its text) and editable or clearable in the editor. Optional with no default needed, so the format stays 5 |
 | `photo` | string \| null | A photo id (see Photos below): the one picture of the dish, at the top of the recipe page (Kenny, 24/10/2026 05:23) |
 
 A step:
@@ -185,9 +186,16 @@ wheel):
 | bounded | 10 s for everything (`timeout`), 2 MB page / 4 MiB picture, reading stops past the cap (`too_large`); a page must be `text/html` or `application/xhtml+xml` (`not_html`) |
 | nothing of ours leaves | no cookies, no `Authorization`, no `Referer`, `User-Agent: Kitchen recipe import` |
 
-Known limits: the imported text is not translated (it lands in the label and lines as written), a trailing note in an
-ingredient line ("chopped") is dropped when the name is matched, the source address is not stored on the recipe,
-and an imported ingredient line the catalogue does not know is kept only until Save (the editor says how many it left out).
+Reading a line (`web/js/recipe/import-lines.js`): what stands in brackets and what follows the first comma ("1 sinaasappel
+(schil en sap)", "2 uien, fijn gesneden") becomes the line's `note` ("schil en sap", "fijn gesneden"; several are joined with
+"; "), the rest is the name that is matched against the catalogue. The page's address (`source_url`) is stored on the recipe
+as `source`.
+
+An imported line the catalogue does not know is never dropped silently: the editor lists such lines in a warning above the
+ingredient lines, each line offers "Add as a new ingredient" (the picker's own step; both names required) and "Discard this
+line", and Save is refused with a message while any is left. The unresolved lines stay in the draft until then.
+
+Known limit: the imported text is not translated (it lands in the label and lines as written).
 
 ## dish_categories
 

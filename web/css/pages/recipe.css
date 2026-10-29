@@ -84,6 +84,14 @@
   font-size: var(--kp-text-sm, 0.8125rem);
 }
 
+.rp-facts .rp-source {
+  grid-column: 1 / -1;
+}
+
+.rp-facts .rp-source dd {
+  overflow-wrap: anywhere;
+}
+
 .rp-facts dd {
   margin: 0;
   font-weight: 600;
@@ -215,6 +223,12 @@ html[data-kp-calm] .rp-ing__amount[data-changed] {
   display: grid;
   gap: var(--kp-space-2xs, 0.125rem);
   min-inline-size: 0;
+}
+
+.rp-ing__note {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  overflow-wrap: anywhere;
 }
 
 .rp-ing__word[data-kp-hovercard] {

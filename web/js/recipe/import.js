@@ -22,7 +22,7 @@ const PASTE_INSTEAD = new Set(["no_recipe", "http_status", "not_html", "unreacha
 /**
  * The editor's form state for an imported recipe: label from the name, portions, one step per instruction with the first
  * duration it names as its minutes, the page's total as the override only when the page gives one and no step has minutes,
- * and one ingredient line per line, matched to the catalogue or kept as a proposal.
+ * and one ingredient line per line (a remark in brackets becomes its note), matched to the catalogue or kept as a proposal that must be resolved before Save, and the page's address as the recipe's source.
  * @param {Imported} imp @param {string | null} dishId @param {{ id: string, name?: { nl?: string, en?: string } }[]} catalogue
  */
 export function toRestore(imp, dishId, catalogue) {
@@ -40,6 +40,7 @@ export function toRestore(imp, dishId, catalogue) {
       amount: p.amount,
       unit: p.unit,
       group,
+      ...(p.note ? { note: p.note } : {}),
       ...(found ? {} : { proposal: { text: p.text, name: p.name } }),
     };
   });
@@ -48,6 +49,8 @@ export function toRestore(imp, dishId, catalogue) {
     dish_id: dishId,
     new_dish: null,
     ...(name ? { label: { nl: name, en: name } } : {}),
+    // Where it came from (Kenny, 29/10/2026): only a web address the server vetted, shown as a link on the recipe page.
+    ...(imp.source_url && /^https?:\/\//i.test(imp.source_url) ? { source: imp.source_url } : {}),
     portions: Math.min(24, Math.max(1, imp.portions ?? 2)),
     steps,
     ingredients,

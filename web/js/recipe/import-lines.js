@@ -63,9 +63,9 @@ export function leadingNumber(s) {
 const tidy = (n) => Math.round(n * 100) / 100;
 
 /**
- * An ingredient line as an editor line: `{ amount, unit, name, text }`. `name` is what is left of the line without the
- * amount, the unit, a leading "of"/"van", a trailing note after a comma and anything in brackets; `text` is the line as
- * written. No amount: `amount` is null (the unit "pc" then means nothing).
+ * An ingredient line as an editor line: `{ amount, unit, name, note, text }`. `name` is what is left of the line without the
+ * amount, the unit and a leading "of"/"van"; `note` is what stood in brackets and after a comma (joined with "; ", empty
+ * when there was none); `text` is the line as written. No amount: `amount` is null (the unit "pc" then means nothing).
  * @param {string} line
  */
 export function parseIngredientLine(line) {
@@ -94,12 +94,15 @@ export function parseIngredientLine(line) {
     } else if (amount !== null) amount = tidy(amount);
   }
   rest = rest.replace(/^(?:of|van|de|het|een|d')\s+/i, "");
-  const name = rest
-    .replace(/\([^)]*\)/g, " ")
-    .split(/[,;]/)[0]
-    .replace(/\s+/g, " ")
-    .trim();
-  return { amount, unit: unitName, name, text };
+  // What stands in brackets, and what follows the first comma, is a remark about the ingredient ("chopped", "schil en
+  // sap"), not its name: it becomes the line's note (Kenny, 29/10/2026) instead of being cut.
+  const remarks = [...rest.matchAll(/\(([^)]*)\)/g)].map((m) => m[1].trim());
+  const bare = rest.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const cut = bare.search(/[,;]/);
+  const name = (cut < 0 ? bare : bare.slice(0, cut)).trim();
+  if (cut >= 0) remarks.push(bare.slice(cut + 1).replace(/^[\s,;]+|[\s,;]+$/g, ""));
+  const note = remarks.filter(Boolean).join("; ");
+  return { amount, unit: unitName, name, note, text };
 }
 
 /** The first duration a step names, in minutes: "10 minuten", "10 min", "10 minutes", "1 uur", "1 hour", "1½ uur", "15-20 min" (first). @param {string} text */

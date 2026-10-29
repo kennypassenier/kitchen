@@ -318,3 +318,14 @@
   color: var(--muted-foreground);
   overflow-wrap: anywhere;
 }
+
+/* The warning above the lines of an import that still have no ingredient (Kenny, 29/10/2026). */
+.ri-unresolved[hidden] {
+  display: none;
+}
+
+.ri-unresolved__list {
+  margin: var(--kp-space-xs, 0.25rem) 0 0;
+  padding-inline-start: 1.25rem;
+  overflow-wrap: anywhere;
+}

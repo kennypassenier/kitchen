@@ -33,6 +33,22 @@ const STEP_WORDS = {
   en: { title: "The steps", lede: "Every step with the photos that make it clearer.", step: (/** @type {number} */ n) => `Step ${n}`, photo: "Photo of the dish", stepPhoto: "Step photo" },
 };
 
+/**
+ * Where the recipe came from (Kenny, 29/10/2026): a fact row with the address as a link that opens in a new tab; only a
+ * plain http(s) address is ever a link.
+ * @param {unknown} source
+ */
+function sourceRow(source) {
+  let url;
+  try {
+    url = typeof source === "string" && source.trim() ? new URL(source.trim()) : null;
+  } catch {
+    url = null;
+  }
+  if (!url || (url.protocol !== "https:" && url.protocol !== "http:")) return null;
+  return h("div", { class: "rp-source" }, h("dt", null, t("rec.source")), h("dd", null, h("a", { href: url.href, target: "_blank", rel: "noopener noreferrer" }, url.hostname.replace(/^www\./, ""))));
+}
+
 /** A card whose stage holds a header-less body or a data area. @param {string} dataClass */
 const stage = (dataClass = "") => h("div", { class: "kp-card__stage" }, h("div", { class: `kp-card__data ${dataClass}`.trim() }));
 
@@ -204,10 +220,8 @@ export function mount(root, { params, navigate }) {
         // The name links to the ingredient's own page (Kenny, 24/10/2026 05:15).
         const word = h("a", { class: "rp-ing__word", href: `/ingredients/${encodeURIComponent(ing.ingredient ?? "")}` }, ingredientName(ing.ingredient, lang()));
         const name = h("span", { class: "rp-ing__name" }, word);
-        if (ing.note) {
-          word.setAttribute("data-kp-hovercard", ing.note);
-          word.tabIndex = 0;
-        }
+        // The line's remark ("chopped", an import's brackets) is read on the page, not hidden in a hover (Kenny, 29/10/2026).
+        if (ing.note) name.append(h("span", { class: "rp-ing__note" }, ing.note));
         const amount = h("span", { class: "rp-ing__amount" });
         const unit = h("span", { class: "rp-ing__unit" });
         cells.set(ing.id, { amount, unit, ing });
@@ -254,6 +268,7 @@ export function mount(root, { params, navigate }) {
             h("div", null, h("dt", null, words.total), h("dd", null, total)),
             h("div", null, h("dt", null, words.hands), h("dd", null, r.hands_on ? minutesText(r.hands_on, words) : "–")),
             h("div", null, h("dt", null, words.effortLabel), h("dd", null, effort)),
+            sourceRow(r.source),
           ),
           h(
             "div",

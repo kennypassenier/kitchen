@@ -208,6 +208,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   const label = input(ownLabel, "text", { autocomplete: "off", placeholder: t("edit.labelPh") });
   const short = input(r.short ?? "", "text", { autocomplete: "off" });
   const summary = area(r.summary ?? "", 3);
+  // Where the recipe came from (Kenny, 29/10/2026): set by an import, editable, empty clears it.
+  const source = input(typeof r.source === "string" ? r.source : "", "url", { autocomplete: "off", inputmode: "url", placeholder: t("edit.sourcePh"), spellcheck: "false" });
   const meals = segmented(mealItems(), r.meals ?? [], "multi", t("edit.meals"));
   const mainSet = [...new Set([...MAIN, ...mainOptions, ...(r.ing ?? [])])].sort();
   const mainBox = h(
@@ -225,6 +227,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     row(t("edit.label"), label, t("edit.labelHint")),
     row(t("edit.short"), short, t("edit.shortHint")),
     row(t("edit.summary"), summary, t("edit.summaryHint")),
+    row(t("edit.source"), source, t("edit.sourceHint")),
     row(t("edit.meals"), meals, t("edit.mealsHint")),
     row(t("edit.mainIng"), mainBox, t("edit.mainHint")),
     row(t("edit.photo"), recipePhoto.el, t("edit.photoHint")),
@@ -279,18 +282,23 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
         width: "minmax(0, 1fr)",
         make: (i) => {
           const c = ingredientPicker(i.ingredient ?? null, { label: t("edit.ingredient") });
-          const cell = h("div", { class: "ri-cell" }, c.el);
-          // An imported line the catalogue did not know (Kenny, 29/10/2026 14:27): what the page said, and a button that
-          // opens the picker's own new-ingredient step with the parsed name. It goes once the line has an ingredient.
+          // A remark about the line ("chopped", "schil en sap"; an import fills it from the brackets), shown on the recipe page.
+          const noteField = input(i.note ?? "", "text", { "aria-label": t("edit.lineNote"), placeholder: t("edit.lineNotePh"), autocomplete: "off" });
+          const cell = h("div", { class: "ri-cell" }, c.el, noteField);
+          // An imported line the catalogue did not know (Kenny, 29/10/2026 14:27): what the page said, and two explicit
+          // actions: add it as a new ingredient (the picker's own step, both names required) or discard the line. Save is
+          // blocked while such a line stands (the alert above the list lists them). It goes once the line has an ingredient.
           if (i.proposal) {
             const addNew = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("imp.addNew"));
-            const note = h("div", { class: "ri-proposal" }, h("p", { class: "ri-proposal__text" }, t("imp.fromPage", i.proposal.text)), addNew);
+            const discard = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("imp.discard"));
+            const note = h("div", { class: "ri-proposal" }, h("p", { class: "ri-proposal__text" }, t("imp.fromPage", i.proposal.text)), h("div", { class: "kp-row-actions" }, addNew, discard));
             addNew.addEventListener("click", () => c.startNew(String(i.proposal.name ?? "")));
+            discard.addEventListener("click", () => /** @type {HTMLElement | null} */ (cell.closest(".rl-row")?.querySelector(".rl-row__remove"))?.click());
             const settle = () => void (note.hidden = Boolean(c.get()));
             for (const type of ["input", "change", "kp-combobox-change"]) cell.addEventListener(type, () => setTimeout(settle, 0));
             cell.append(note);
           }
-          return { el: cell, get: () => { const ingredient = c.get(); return { ...i, id: i.id ?? (i.id = newId()), ingredient, proposal: ingredient ? undefined : i.proposal }; } };
+          return { el: cell, get: () => { const ingredient = c.get(); const text = /** @type {HTMLInputElement} */ (noteField).value.trim(); return { ...i, id: i.id ?? (i.id = newId()), ingredient, note: text || undefined, proposal: ingredient ? undefined : i.proposal }; } };
         },
       },
       { label: t("edit.amount"), width: "6rem", make: (i) => { const el = input(i.amount ?? "", "number", { "aria-label": t("edit.amount"), step: "any", min: "0", inputmode: "decimal" }); return { el, get: () => (/** @type {HTMLInputElement} */ (el).value === "" ? null : Number(/** @type {HTMLInputElement} */ (el).value)) }; } },
@@ -314,11 +322,20 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   });
   /** A repeatable list under its own small heading and sentence. @param {string} title @param {string} text @param {...HTMLElement} els */
   const listBlock = (title, text, ...els) => h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...els);
+  // Imported lines still without an ingredient (Kenny, 29/10/2026): listed in a warning above the lines, and Save is blocked
+  // until each one is added as a new ingredient, given an ingredient, or discarded.
+  const unresolvedBox = h("div", { class: "kp-alert kp-alert--warning ri-unresolved", role: "status", hidden: true });
+  const unresolvedLines = () => ingredients.get().filter(([n]) => !n.ingredient && n.proposal).map(([n]) => String(n.proposal.text));
+  const paintUnresolved = () => {
+    const lines = unresolvedLines();
+    unresolvedBox.hidden = lines.length === 0;
+    if (lines.length) unresolvedBox.replaceChildren(h("div", { class: "kp-alert__body" }, h("strong", null, t("imp.unresolvedTitle", lines.length)), " ", t("imp.unresolvedText"), h("ul", { class: "ri-unresolved__list" }, ...lines.slice(0, 6).map((l) => h("li", null, l)), lines.length > 6 ? h("li", null, t("imp.more", lines.length - 6)) : null)));
+  };
   const lists = h(
     "div",
     { class: "rl-lists" },
     listBlock(t("edit.tracks"), t("edit.tracksHint"), tracks.el),
-    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), h("div", { class: "rl-many" }, many.el, manyAdd), ingredients.el),
+    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), unresolvedBox, h("div", { class: "rl-many" }, many.el, manyAdd), ingredients.el),
     listBlock(t("edit.tools"), t("edit.toolsHint"), tools.el),
   );
 
@@ -599,6 +616,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   attachControls(dialog);
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, refreshTimes);
   refreshTimes();
+  for (const type of ["input", "change", "kp-combobox-change", "rl-rows-change"]) form.addEventListener(type, () => setTimeout(paintUnresolved, 0));
+  paintUnresolved();
 
   // ---- the draft: saved in the database about a second after the last change ---------------------------------------
   // Deleted on Save and on Cancel / Discard; what stays is what a closed tab or a dropped connection left.
@@ -660,7 +679,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     const d = choice.id ? kitchenNow()?.dishes.find((x) => x.id === choice.id) : null;
     return String(d?.name?.[lang()] || d?.name?.[lang() === "nl" ? "en" : "nl"] || choice.name?.[lang()] || "").trim();
   };
-  /** The form as a recipe body. `forDraft` keeps imported ingredient lines the catalogue does not know yet, which a Save would drop. @param {boolean} [forDraft] */
+  /** The form as a recipe body. `forDraft` keeps imported ingredient lines the catalogue does not know yet (a Save is blocked while any is left). @param {boolean} [forDraft] */
   const collect = (forDraft = false) => {
     const choice = dishField.get();
     const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
@@ -673,6 +692,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       label: labelOut(),
       short: shortValue || dishText(choice ?? { id: null, name: null }).split(/\s+/)[0] || "",
       summary: /** @type {HTMLTextAreaElement} */ (summary).value.trim(),
+      source: /** @type {HTMLInputElement} */ (source).value.trim() || null,
       meals: getSegmentedValues(meals),
       ing: combobox(mainBox)?.values() ?? [],
       ...(() => {
@@ -704,8 +724,18 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
         return { error: t("edit.needsDish"), remedy: t("edit.needsDishFix"), word: t("rec.notSaved") };
       }
       const shownName = dishText({ id: body.dish_id, name: body.new_dish });
-      // Imported lines still waiting for an ingredient are not saved (a line without one is dropped): say so.
-      const skipped = ingredients.get().filter(([n]) => !n.ingredient && n.proposal).length;
+      // Imported lines still waiting for an ingredient are never dropped silently: Save waits until each is resolved.
+      const open = unresolvedLines().length;
+      if (open) {
+        paintUnresolved();
+        unresolvedBox.scrollIntoView({ block: "center" });
+        return { error: t("imp.blocked", open), remedy: t("imp.blockedFix"), word: t("rec.notSaved") };
+      }
+      const typedSource = /** @type {HTMLInputElement} */ (source).value.trim();
+      if (typedSource && !/^https?:\/\/\S+$/i.test(typedSource)) {
+        source.focus();
+        return { error: t("edit.sourceBad"), remedy: t("edit.sourceBadFix"), word: t("rec.notSaved") };
+      }
       try {
         if (recipe) await replace("recipes", body);
         else await create("recipes", body);
@@ -715,7 +745,6 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       await tracker.settle(photosOf(body));
       await dropDraft();
       toast(editing ? t("rec.savedName", shownName) : t("rec.addedName", shownName));
-      if (skipped) toast(t("imp.skipped", skipped), { live: "polite" });
       close();
       return t("set.saved");
     });
