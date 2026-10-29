@@ -13,6 +13,8 @@ import { nameOf, t, lang } from "../i18n/index.js";
 /** @typedef {{ id: string | null, name: { nl: string, en: string } | null }} DishChoice */
 
 const NEW = "__new__";
+/** The option of the new dish this picker holds (it is made when the recipe is saved): the combobox needs a real option to keep its text. */
+const FRESH = "__fresh__";
 let seq = 0;
 
 /** A dish's name in the language shown, else its other half. @param {Item} d */
@@ -56,6 +58,7 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
   const dishes = () => [...(kitchenNow()?.dishes ?? [])].sort((a, b) => shown(a).localeCompare(shown(b)));
   const fill = () => {
     list.replaceChildren(
+      ...(fresh ? [h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": FRESH }, fresh[lang()] || fresh.nl || fresh.en)] : []),
       ...dishes().map((d) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": d.id }, shown(d) || nameOf(d).text)),
       h("li", { class: "kp-combobox__option ip-picker__create", role: "option", "data-kp-option": true, "data-value": NEW }, t("dp.addNewPlain")),
     );
@@ -66,7 +69,10 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
   const known = (/** @type {string} */ text) => dishes().find((d) => [d.name?.nl, d.name?.en].some((x) => String(x ?? "").trim().toLowerCase() === text.toLowerCase()));
   const typed = () => input.value.trim();
   if (dishId) handle?.set([dishId]);
-  else if (fresh) input.value = fresh[lang()] || fresh.nl || fresh.en;
+  else if (fresh) {
+    chosen = FRESH;
+    handle?.set([FRESH]);
+  }
 
   handle?.extend({
     shown: (option, _query, matched) => {
@@ -90,15 +96,10 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
     const v = /** @type {CustomEvent} */ (e).detail?.value;
     if (typeof v === "string" && v !== NEW) {
       chosen = v;
-      fresh = null;
       onChange?.();
     }
   });
-  input.addEventListener("input", () => {
-    // Typing over a held new dish drops it: the field says what it holds.
-    if (fresh && typed().toLowerCase() !== (fresh[lang()] || fresh.nl || fresh.en).toLowerCase()) fresh = null;
-    onChange?.();
-  });
+  input.addEventListener("input", () => onChange?.());
   cancel.addEventListener("click", () => {
     asks.hidden = true;
     input.focus();
@@ -111,9 +112,10 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
       return;
     }
     fresh = name;
-    chosen = null;
-    handle?.set([]);
-    input.value = name[lang()];
+    chosen = FRESH;
+    fill();
+    handle?.refresh();
+    handle?.set([FRESH]);
     asks.hidden = true;
     input.focus();
     onChange?.();
@@ -133,7 +135,7 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
   const get = () => {
     const text = typed();
     if (!text) return null;
-    if (fresh && text.toLowerCase() === (fresh[lang()] || fresh.nl || fresh.en).toLowerCase()) return { id: null, name: fresh };
+    if (fresh && chosen === FRESH && text.toLowerCase() === (fresh[lang()] || fresh.nl || fresh.en).toLowerCase()) return { id: null, name: fresh };
     const held = chosen ? dishes().find((d) => d.id === chosen) : null;
     if (held && [shown(held), held.name?.nl, held.name?.en].some((x) => String(x ?? "").trim().toLowerCase() === text.toLowerCase())) return { id: held.id, name: null };
     const named = known(text);
@@ -146,7 +148,6 @@ export function dishPicker(dishId, { label, id, onChange, fresh: held = null }) 
     text: typed,
     set: (/** @type {string} */ v) => {
       chosen = v;
-      fresh = null;
       handle?.set([v]);
     },
   };
