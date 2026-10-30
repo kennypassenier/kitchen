@@ -54,6 +54,7 @@ impl Imported {
 
 // ---- text clean-up ------------------------------------------------------------------------------------------------
 
+mod fields;
 mod ld_json;
 mod pasted;
 mod text;

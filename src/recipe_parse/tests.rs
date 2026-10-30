@@ -1,3 +1,4 @@
+use super::fields::*;
 use super::ld_json::*;
 use super::pasted::*;
 use super::text::*;
