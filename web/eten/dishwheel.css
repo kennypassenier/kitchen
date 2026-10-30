@@ -8,6 +8,9 @@
    the plate is not cramped. A card with wheels carries this class. */
 .dw-card {
   --kp-card-stage-min: 16rem;
+  /* The card's hold is capped at the plate's room (22rem), not at the wheels' height: the package's state measure
+     reads this cap as the footprint it must keep (Kenny, 24/10/2026 09:32: the empty card was far too tall). */
+  --kp-footprint-max: 22rem;
   min-inline-size: 0;
 }
 
