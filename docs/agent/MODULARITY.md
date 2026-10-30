@@ -132,6 +132,22 @@ One commit per file split, so a regression bisects to one move.
 | `import.rs` → `import/{mod,fail,ssrf,fetch,tests}.rs` (SSRF guard in `ssrf.rs`) | `[refactor-rs-import-1]` | 596 → 128 (largest part) |
 | `store.rs` → `store/{mod,data,validate,migrate,seed,ops,drafts}.rs` + `tests/{crud,validate,migrate}.rs` | `[refactor-rs-store-1]` | 1410 → 313 (migrate.rs, the largest part) |
 
+### Round 2 (30/10/2026)
+
+| Split | Commit ID | Before → after (lines) |
+|---|---|---|
+| `records.js` → `records/{index,lists,drawer,editors,safe,delete,table-card}.js`; name/link helpers and `dishHas` live in `lists.js`, pages import `records/index.js` | `[refactor-records-1]` | 716 → 227 (editors.js, the largest part) |
+| `pages/item.js` → `pages/item/{index,facts,dish-recipes,used-by,links}.js`; the `hasIt` alias is gone | `[refactor-item-1]` | 470 → 144 (facts.js) |
+| editor pure logic (`recipe/editor/logic.js`: step row to step, liveRows, the two times, label, dish name, recipe body and draft) + `scripts/editor.test.mjs` (19 cases, written, not run) | `[test-editor-1]` | +125 logic, +157 test |
+| `recipe/editor.js` → `recipe/editor/{index,details,times,lists,steps,step-row,timeline,draft,save,wiring,consts,controls,ids,logic}.js` | `[refactor-editor-1]` | 729 → 148 (index.js); step-row.js 147 |
+| `pages/recipe.js`: step words, source row, step photos → `recipe/page-parts.js` | `[refactor-recipe-1]` | 389 → 352 |
+| `pages/timing.js` → `pages/timing/{index,plan,text,frame,sentence,plan-view,timer,nudge,fill}.js`; `plan.js` is pure (schedule.test.mjs pattern fits) | `[refactor-timing-1]` | 734 → 142 (fill.js) |
+| `pages/baddays.js` → `pages/baddays/{index,template,helpers,safe,freezer,freezer-form,shelf,mini-recipe,month}.js` | `[refactor-baddays-1]` | 927 → 223 (template.js) |
+
+Left for round 3: `pages/cook.js` (816), `pages/wheel.js` (871), `web/css/pages/recipe.css` (447), and running every test once. Parts of the
+big closures share state through one explicit object (`ctx` in timing and baddays, the returned field objects in the editor);
+`step-row.js` `stepEditor` and a few `create*` functions are still longer than 40 lines (one closure per section, moved verbatim).
+
 Duplicates removed from section 4: dmy (4 definitions → `dmy` + `dmyDate`), today in Brussels (4), pad/hhmm/iso (4), capitalise (4),
 minutes to words (2), reason/why (4 incl. the log refusal), stamp (moved), card/section/button/link/actionRow builders (7 definitions
 in 4 pages), raw `fetch` with its own login redirect (2 modules, 3 redirects → 1), form primitives (moved). Not done yet: the
