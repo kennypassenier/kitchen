@@ -103,17 +103,17 @@ export function stepEditor(s, { tracker, trackOptions, list }) {
       const trackName = track.value ? (track.selectedOptions[0]?.textContent ?? "") : "";
       const others = list().findIndex((e) => e.id === partner.value);
       /** @type {[string, string][]} */
-      const list = [];
-      if (m > 0) list.push(["", t("wheel.min", m)]);
-      if (trackName) list.push(["", trackName]);
-      if (on(hasTimer) && secs() > 0) list.push(["", t("edit.chipTimer")]);
+      const shown = [];
+      if (m > 0) shown.push(["", t("wheel.min", m)]);
+      if (trackName) shown.push(["", trackName]);
+      if (on(hasTimer) && secs() > 0) shown.push(["", t("edit.chipTimer")]);
       const nPhotos = photos.get().length;
-      if (nPhotos) list.push(["", t("edit.chipPhotos", nPhotos)]);
-      if (on(warn)) list.push(["kp-badge--warning", t("edit.chipWarning")]);
-      if (partner.value && others >= 0) list.push(["kp-badge--info", t("edit.chipWith", others + 1)]);
-      if (start.value !== "") list.push(["kp-badge--info", t("edit.chipStart", Number(/** @type {HTMLInputElement} */ (start).value))]);
-      chips.hidden = list.length === 0;
-      chips.replaceChildren(...list.map(([cls, label]) => h("span", { class: `kp-badge ${cls}`.trim() }, label)));
+      if (nPhotos) shown.push(["", t("edit.chipPhotos", nPhotos)]);
+      if (on(warn)) shown.push(["kp-badge--warning", t("edit.chipWarning")]);
+      if (partner.value && others >= 0) shown.push(["kp-badge--info", t("edit.chipWith", others + 1)]);
+      if (start.value !== "") shown.push(["kp-badge--info", t("edit.chipStart", Number(/** @type {HTMLInputElement} */ (start).value))]);
+      chips.hidden = shown.length === 0;
+      chips.replaceChildren(...shown.map(([cls, label]) => h("span", { class: `kp-badge ${cls}`.trim() }, label)));
     },
     /** The partner list: every other step, by its number and the start of its text. */
     options: () => {
