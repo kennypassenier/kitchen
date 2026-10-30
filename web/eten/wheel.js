@@ -18,63 +18,14 @@ import { mountDishWheel } from "./dishwheel.js";
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
 import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
 import { attachArt } from "/static/kp/js/art.js";
+import { WORDS } from "./words.js";
+
+export { WORDS };
 
 /** @typedef {{ name: string, ingredients: string[] }} Side */
 /** @typedef {{ id: string, name: string, category: string | null, ingredients: string[], sides: Side[] }} Dish */
 /** @typedef {{ id: string, name: string, count: number }} Category */
 /** @typedef {{ lang: string, dishes: Dish[], categories: Category[] }} WheelData */
-
-/** @param {string[]} list @param {string} and */
-const join = (list, and) => (list.length < 2 ? list.join("") : `${list.slice(0, -1).join(", ")} ${and} ${list.at(-1)}`);
-/** A choice inside a sentence: "met frieten", never "met Frieten". @param {string} s */
-const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
-
-export const WORDS = {
-  nl: {
-    cardTitle: "Het eten van vanavond",
-    cardText: "Tik op een wiel om het te laten kiezen. Een tik op het kleine wiel kiest opnieuw voor hetzelfde gerecht.",
-    answerKicker: "Het avondeten",
-    dishKicker: "Het gerecht",
-    sideKicker: "Het bijgerecht",
-    filterLabel: "Soort eten",
-    all: "Alles",
-    loading: "De gerechten worden gelezen",
-    failedTitle: "De gerechten konden niet gelezen worden",
-    emptyTitle: "Er staat nog geen gerecht op dit wiel",
-    emptyText: "Kenny zet gerechten op dit wiel vanuit Kitchen; daarna staan ze hier.",
-    count: (/** @type {number} */ n) => `${n} ${n === 1 ? "gerecht" : "gerechten"}`,
-    sideFirst: "Draai eerst het grote wiel; dan kiest dit wiel het bijgerecht.",
-    nothing: (/** @type {string} */ dish) => `${dish}: hier valt niets te kiezen.`,
-    tagChoice: (/** @type {string[]} */ sides) => `Met een keuze: ${join(sides.map(lower), "of")}`,
-    tagSame: "Altijd op dezelfde manier",
-    tagWith: (/** @type {string} */ dish) => `Bij ${dish}`,
-    idle: "Tik op het grote wiel; het kiest het eten en het kleine wiel het bijgerecht.",
-    turning: "De wielen draaien…",
-    tonight: (/** @type {string} */ dish, /** @type {string[]} */ withs) => (withs.length ? `Vanavond: ${dish}, met ${join(withs.map(lower), "en")}.` : `Vanavond: ${dish}.`),
-  },
-  en: {
-    cardTitle: "Tonight's dinner",
-    cardText: "Tap a wheel to let it choose. A tap on the small wheel picks again for the same dish.",
-    answerKicker: "Dinner",
-    dishKicker: "The dish",
-    sideKicker: "The side",
-    filterLabel: "Kind of food",
-    all: "All",
-    loading: "Reading the dishes",
-    failedTitle: "The dishes could not be read",
-    emptyTitle: "No dish is on this wheel yet",
-    emptyText: "Open the dishes, add one with a Dutch and an English name and switch on “On the parents' wheel”.",
-    count: (/** @type {number} */ n) => `${n} ${n === 1 ? "dish" : "dishes"}`,
-    sideFirst: "Spin the big wheel first; then this wheel picks the side.",
-    nothing: (/** @type {string} */ dish) => `${dish}: nothing to choose here.`,
-    tagChoice: (/** @type {string[]} */ sides) => `With a choice of ${join(sides.map(lower), "or")}`,
-    tagSame: "Always the same way",
-    tagWith: (/** @type {string} */ dish) => `With ${dish}`,
-    idle: "Tap the big wheel; it picks the dish and the small wheel the side.",
-    turning: "The wheels are turning…",
-    tonight: (/** @type {string} */ dish, /** @type {string[]} */ withs) => (withs.length ? `Tonight: ${dish}, with ${join(withs.map(lower), "and")}.` : `Tonight: ${dish}.`),
-  },
-};
 
 /** The entries of the small wheel: the dish's sides by name. @param {Dish} d */
 const choices = (d) => (d.sides ?? []).map((s) => s.name);
@@ -86,23 +37,8 @@ const tagOf = (w, d) => (spins(d) ? w.tagChoice(choices(d)) : w.tagSame);
 /** @param {string} s */
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
-/**
- * Mount the wheel page into `root`.
- * @param {HTMLElement} root
- * @param {{ lang: "nl" | "en", load: (force: boolean) => Promise<WheelData>, emptyAction?: () => HTMLElement[] }} opts
- * @returns {() => void} cleanup
- */
-export function mountWheel(root, { lang, load, emptyAction }) {
-  const w = WORDS[lang];
-  /** @type {WheelData | null} */
-  let data = null;
-  /** @type {"loading" | "error" | "ready"} */
-  let status = "loading";
-  let failure = "";
-  let filter = "";
-  /** @type {Array<() => void>} */
-  const undo = [];
-
+/** The page's card, the wheels, and the answer column; returns the nodes the behaviour needs. @param {HTMLElement} root @param {typeof WORDS["nl"]} w */
+function buildPage(root, w) {
   root.innerHTML = `
     <div class="pr-page">
       <section class="kp-card dw-card pr-card" data-kp-state="loading" aria-labelledby="pr-card-t" data-kp-loading-words="${esc(w.loading)}">
@@ -121,131 +57,150 @@ export function mountWheel(root, { lang, load, emptyAction }) {
         </div>
       </section>
     </div>`;
+  return {
+    card: /** @type {HTMLElement} */ (root.querySelector(".pr-card")),
+    count: /** @type {HTMLElement} */ (root.querySelector("[data-pr-count]")),
+    filterBox: /** @type {HTMLElement} */ (root.querySelector("[data-pr-filter]")),
+    wheelsHost: /** @type {HTMLElement} */ (root.querySelector("[data-pr-wheels]")),
+  };
+}
 
-  const card = /** @type {HTMLElement} */ (root.querySelector(".pr-card"));
-  const count = /** @type {HTMLElement} */ (root.querySelector("[data-pr-count]"));
-  const filterBox = /** @type {HTMLElement} */ (root.querySelector("[data-pr-filter]"));
-  const wheels = mountDishWheel(/** @type {HTMLElement} */ (root.querySelector("[data-pr-wheels]")), {
+/** @typedef {{ w: typeof WORDS["nl"], el: ReturnType<typeof buildPage>, wheels: ReturnType<typeof mountDishWheel>, tonight: HTMLElement, hint: HTMLElement, emptyAction: (() => HTMLElement[]) | undefined, undo: Array<() => void>, data: WheelData | null, status: "loading" | "error" | "ready", failure: string, filter: string }} PageState */
+
+/** What the wheels chose, said as one dinner in the answer column. @param {PageState} s @param {import("./dishwheel.js").DishChange} change */
+function say(s, change) {
+  const { w, tonight, hint } = s;
+  const d = change.dish ? (s.data?.dishes.find((x) => x.id === change.dish?.id) ?? null) : null;
+  if (change.phase === "turning" || (d && spins(d) && !change.side)) {
+    tonight.textContent = w.turning;
+    hint.textContent = d ? tagOf(w, d) : "";
+    return;
+  }
+  if (!d) {
+    tonight.textContent = w.idle;
+    hint.textContent = "";
+    return;
+  }
+  // The fixed ingredients (the dish's own name left out: "Stoofvlees, met stoofvlees" says it twice), then the side
+  // the small wheel picked, or the only one.
+  const fixed = (d.ingredients ?? []).filter((n) => n.toLowerCase() !== d.name.toLowerCase());
+  tonight.textContent = w.tonight(d.name, [...fixed, ...(change.side ? [change.side] : [])]);
+  hint.textContent = tagOf(w, d);
+}
+
+/** The empty and failed notes carry the package's drawing. @param {PageState} s */
+function drawArt(s) {
+  const box = s.el.card.querySelector(".kp-card__empty:not([data-kp-art]), .kp-card__failure:not([data-kp-art])");
+  if (!box) return;
+  box.setAttribute("data-kp-art", box.classList.contains("kp-card__failure") ? "error" : "nomatch");
+  s.undo.push(attachArt(s.el.card));
+}
+
+/** The dishes on the big wheel, after the filter. @param {PageState} s */
+function fillBig(s) {
+  const list = (s.data?.dishes ?? []).filter((d) => !s.filter || d.category === s.filter);
+  s.el.count.textContent = s.w.count(list.length);
+  s.wheels.setDishes(list.map((d) => ({ id: d.id, label: d.name, tag: tagOf(s.w, d), sides: choices(d) })));
+}
+
+/** The categories as one row of choices; with fewer than two there is nothing to narrow and the row stays empty. @param {PageState} s */
+function drawFilter(s) {
+  const { filterBox } = s.el;
+  const cats = s.data?.categories ?? [];
+  if (cats.length < 2) {
+    filterBox.replaceChildren();
+    return;
+  }
+  const item = (/** @type {string} */ value, /** @type {string} */ label) =>
+    `<button type="button" class="kp-segmented__item" role="radio" aria-checked="${value === s.filter}" data-value="${esc(value)}"><span class="kp-segmented__label">${esc(label)}</span><span class="kp-segmented__count"></span></button>`;
+  filterBox.innerHTML = `<div class="kp-segmented kp-segmented--chips" data-kp-segmented="single" role="radiogroup" aria-label="${esc(s.w.filterLabel)}">${item("", s.w.all)}${cats.map((c) => item(c.id, c.name)).join("")}</div>`;
+  const group = /** @type {HTMLElement} */ (filterBox.firstElementChild);
+  s.undo.push(attachSegmented(group));
+  setSegmentedCounts(group, { "": s.data?.dishes.length ?? 0, ...Object.fromEntries(cats.map((c) => [c.id, c.count])) });
+  group.addEventListener(SEGMENTED_EVENT, () => {
+    const next = getSegmentedValues(group)[0] ?? "";
+    if (next === s.filter) return;
+    s.filter = next;
+    fillBig(s);
+  });
+}
+
+/** The card in the state the data is in. @param {PageState} s */
+function draw(s) {
+  const { w, el } = s;
+  if (s.status === "loading") {
+    el.count.textContent = "";
+    setCardState(el.card, "loading", { words: w.loading });
+    return;
+  }
+  if (s.status === "error") {
+    el.count.textContent = "";
+    setCardState(el.card, "error", { title: w.failedTitle, text: s.failure });
+    drawArt(s);
+    return;
+  }
+  if (!s.data?.dishes.length) {
+    el.count.textContent = w.count(0);
+    setCardState(el.card, "empty", { title: w.emptyTitle, text: w.emptyText, action: s.emptyAction?.() });
+    drawArt(s);
+    return;
+  }
+  if (s.filter && !s.data.categories.some((c) => c.id === s.filter)) s.filter = "";
+  drawFilter(s);
+  fillBig(s);
+  setCardState(el.card, "ready");
+}
+
+/** @param {PageState} s @param {(force: boolean) => Promise<WheelData>} load @param {boolean} [force] */
+function read(s, load, force = false) {
+  if (force) {
+    s.status = "loading";
+    draw(s);
+  }
+  load(force).then(
+    (d) => {
+      s.data = d;
+      s.status = "ready";
+      draw(s);
+    },
+    (/** @type {Error} */ e) => {
+      s.status = "error";
+      s.failure = e.message;
+      draw(s);
+    },
+  );
+}
+
+/**
+ * Mount the wheel page into `root`.
+ * @param {HTMLElement} root
+ * @param {{ lang: "nl" | "en", load: (force: boolean) => Promise<WheelData>, emptyAction?: () => HTMLElement[] }} opts
+ * @returns {() => void} cleanup
+ */
+export function mountWheel(root, { lang, load, emptyAction }) {
+  const w = WORDS[lang];
+  const el = buildPage(root, w);
+  /** @type {PageState} */
+  const s = { w, el, wheels: /** @type {any} */ (null), tonight: /** @type {any} */ (null), hint: /** @type {any} */ (null), emptyAction, undo: [], data: null, status: "loading", failure: "", filter: "" };
+  s.wheels = mountDishWheel(el.wheelsHost, {
     kiosk: true,
     words: { dishKicker: w.dishKicker, sideKicker: w.sideKicker, sideFirst: w.sideFirst, nothing: w.nothing, sideTag: w.tagWith },
-    onChange: (change) => say(change),
+    onChange: (change) => say(s, change),
   });
   // The answer column: what the wheels chose, said as one dinner.
-  const answerBox = /** @type {HTMLElement} */ (wheels.answer);
+  const answerBox = /** @type {HTMLElement} */ (s.wheels.answer);
   answerBox.innerHTML = `<p class="pr-kicker">${esc(w.answerKicker)}</p><p class="pr-tonight" data-pr-tonight aria-live="polite"></p><p class="pr-hint" data-pr-hint></p>`;
-  const tonight = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-tonight]"));
-  const hint = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-hint]"));
-  hint.textContent = "";
-  tonight.textContent = w.idle;
-  undo.push(attachCardStates(card), () => wheels.destroy());
-
-  /** The empty and failed notes carry the package's drawing. */
-  const drawArt = () => {
-    const box = card.querySelector(".kp-card__empty:not([data-kp-art]), .kp-card__failure:not([data-kp-art])");
-    if (!box) return;
-    box.setAttribute("data-kp-art", box.classList.contains("kp-card__failure") ? "error" : "nomatch");
-    undo.push(attachArt(card));
-  };
-
-  /** @param {import("./dishwheel.js").DishChange} change */
-  function say(change) {
-    const d = change.dish ? (data?.dishes.find((x) => x.id === change.dish?.id) ?? null) : null;
-    if (change.phase === "turning" || (d && spins(d) && !change.side)) {
-      tonight.textContent = w.turning;
-      hint.textContent = d ? tagOf(w, d) : "";
-      return;
-    }
-    if (!d) {
-      tonight.textContent = w.idle;
-      hint.textContent = "";
-      return;
-    }
-    // The fixed ingredients (the dish's own name left out: "Stoofvlees, met stoofvlees" says it twice), then the side
-    // the small wheel picked, or the only one.
-    const fixed = (d.ingredients ?? []).filter((n) => n.toLowerCase() !== d.name.toLowerCase());
-    tonight.textContent = w.tonight(d.name, [...fixed, ...(change.side ? [change.side] : [])]);
-    hint.textContent = tagOf(w, d);
-  }
-
-  /** The dishes the filter lets through. */
-  const shown = () => (data?.dishes ?? []).filter((d) => !filter || d.category === filter);
-
-  const fillBig = () => {
-    const list = shown();
-    count.textContent = w.count(list.length);
-    wheels.setDishes(list.map((d) => ({ id: d.id, label: d.name, tag: tagOf(w, d), sides: choices(d) })));
-  };
-
-  // The categories as one row of choices; with fewer than two there is nothing to narrow and the row stays empty.
-  const drawFilter = () => {
-    const cats = data?.categories ?? [];
-    if (cats.length < 2) {
-      filterBox.replaceChildren();
-      return;
-    }
-    const item = (/** @type {string} */ value, /** @type {string} */ label) =>
-      `<button type="button" class="kp-segmented__item" role="radio" aria-checked="${value === filter}" data-value="${esc(value)}"><span class="kp-segmented__label">${esc(label)}</span><span class="kp-segmented__count"></span></button>`;
-    filterBox.innerHTML = `<div class="kp-segmented kp-segmented--chips" data-kp-segmented="single" role="radiogroup" aria-label="${esc(w.filterLabel)}">${item("", w.all)}${cats.map((c) => item(c.id, c.name)).join("")}</div>`;
-    const group = /** @type {HTMLElement} */ (filterBox.firstElementChild);
-    undo.push(attachSegmented(group));
-    setSegmentedCounts(group, { "": data?.dishes.length ?? 0, ...Object.fromEntries(cats.map((c) => [c.id, c.count])) });
-    group.addEventListener(SEGMENTED_EVENT, () => {
-      const next = getSegmentedValues(group)[0] ?? "";
-      if (next === filter) return;
-      filter = next;
-      fillBig();
-    });
-  };
-
-  const draw = () => {
-    if (status === "loading") {
-      count.textContent = "";
-      setCardState(card, "loading", { words: w.loading });
-      return;
-    }
-    if (status === "error") {
-      count.textContent = "";
-      setCardState(card, "error", { title: w.failedTitle, text: failure });
-      drawArt();
-      return;
-    }
-    if (!data?.dishes.length) {
-      count.textContent = w.count(0);
-      setCardState(card, "empty", { title: w.emptyTitle, text: w.emptyText, action: emptyAction?.() });
-      drawArt();
-      return;
-    }
-    if (filter && !data.categories.some((c) => c.id === filter)) filter = "";
-    drawFilter();
-    fillBig();
-    setCardState(card, "ready");
-  };
-
-  const read = (force = false) => {
-    if (force) {
-      status = "loading";
-      draw();
-    }
-    load(force).then(
-      (d) => {
-        data = d;
-        status = "ready";
-        draw();
-      },
-      (/** @type {Error} */ e) => {
-        status = "error";
-        failure = e.message;
-        draw();
-      },
-    );
-  };
-  const retry = () => read(true);
-  card.addEventListener(CARD_RETRY_EVENT, retry);
-  undo.push(() => card.removeEventListener(CARD_RETRY_EVENT, retry));
-
-  draw();
-  read();
+  s.tonight = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-tonight]"));
+  s.hint = /** @type {HTMLElement} */ (answerBox.querySelector("[data-pr-hint]"));
+  s.hint.textContent = "";
+  s.tonight.textContent = w.idle;
+  s.undo.push(attachCardStates(el.card), () => s.wheels.destroy());
+  const retry = () => read(s, load, true);
+  el.card.addEventListener(CARD_RETRY_EVENT, retry);
+  s.undo.push(() => el.card.removeEventListener(CARD_RETRY_EVENT, retry));
+  draw(s);
+  read(s, load);
   return () => {
-    for (const fn of undo.reverse()) fn();
+    for (const fn of s.undo.reverse()) fn();
   };
 }
