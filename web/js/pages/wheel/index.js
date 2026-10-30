@@ -86,6 +86,25 @@ function loadFirst(ctx) {
   );
 }
 
+/** The whole screen, again, from the data and the model. @param {WheelCtx} ctx @param {{ refresh: () => void }} wheelView @param {{ refresh: () => void }} listView */
+function paintAll(ctx, wheelView, listView) {
+  derive(ctx);
+  const body = ctx.root.querySelector("#wl-card-body");
+  if (body) body.textContent = `${t("wheel.dinnerAt", dinnerTime(ctx))} ${t("wheel.cardBody")}`;
+  wheelView.refresh();
+  listView.refresh();
+  paintCounts(ctx);
+  describeFilters(ctx);
+  paintEasy(ctx);
+}
+
+/** Leaving the page: stop what runs, give the calm mode back, close the busy cards the loading states opened. @param {WheelCtx} ctx */
+function teardown(ctx) {
+  for (const fn of ctx.cleanups) fn();
+  releaseCalm(ctx);
+  for (const c of [ctx.el.cardMain, ctx.el.cardList]) if (c.getAttribute("data-kp-state") === "loading") setCardState(c, "ready");
+}
+
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} page */
 export function mount(root, { navigate }) {
   document.title = `${t("wheel.title")} · Kitchen`;
@@ -102,18 +121,7 @@ export function mount(root, { navigate }) {
   const listView = createListView(ctx, ctx.el.cardList);
   wireFilters(ctx);
   wireEasy(ctx);
-
-  /** The whole screen, again, from the data and the model. */
-  ctx.view.paintAll = () => {
-    derive(ctx);
-    const body = root.querySelector("#wl-card-body");
-    if (body) body.textContent = `${t("wheel.dinnerAt", dinnerTime(ctx))} ${t("wheel.cardBody")}`;
-    wheelView.refresh();
-    listView.refresh();
-    paintCounts(ctx);
-    describeFilters(ctx);
-    paintEasy(ctx);
-  };
+  ctx.view.paintAll = () => paintAll(ctx, wheelView, listView);
   ctx.cleanups.push(
     onKitchen((k) => {
       ctx.kitchen = k;
@@ -122,11 +130,5 @@ export function mount(root, { navigate }) {
   );
   ctx.view.paintAll();
   if (ctx.status === "loading") loadFirst(ctx);
-
-  return () => {
-    for (const fn of ctx.cleanups) fn();
-    releaseCalm(ctx);
-    // Close the busy cards the loading states opened.
-    for (const c of [ctx.el.cardMain, ctx.el.cardList]) if (c.getAttribute("data-kp-state") === "loading") setCardState(c, "ready");
-  };
+  return () => teardown(ctx);
 }
