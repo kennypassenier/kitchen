@@ -61,21 +61,9 @@ export function toRestore(imp, dishId, catalogue) {
   };
 }
 
-/**
- * Open the import drawer in `dialog`. `dishId` is the dish the recipe goes to when the import started on a dish's page.
- * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, mainOptions: string[], site?: { name?: string, url?: string } | null }} spec
- */
-export function openImport(dialog, { dishId = null, mainOptions, site = null }) {
-  const url = input("", "text", { autocomplete: "off", inputmode: "url", placeholder: t("imp.urlPh"), spellcheck: "false" });
-  const text = area("", 8);
-  text.setAttribute("placeholder", t("imp.textPh"));
-  const go = h("button", { type: "submit", class: "kp-button kp-button--primary", form: "ri-form" }, t("imp.go"));
-  const cancel = h("button", { type: "button", class: "kp-button" }, t("common.cancel"));
-  const alert = h("div", { class: "kp-alert kp-alert--destructive", role: "alert", hidden: true });
-  const fold = h("details", { class: "ri-fold" }, h("summary", null, t("imp.pasteSummary")), h("div", { class: "ri-fold__body" }, h("p", { class: "rl-formsec__text" }, t("imp.secTextText")), h("div", { class: "kp-formgrid" }, row(t("imp.textLabel"), text, t("imp.textHint")))));
-
-  // The address card: the package's card with its loading state while the page is read.
-  const card = h(
+/** The address card: the package's card with its loading state while the page is read. @param {HTMLElement} url @param {{ name?: string, url?: string } | null} site */
+function buildAddressCard(url, site) {
+  return h(
     "section",
     { class: "kp-card ri-card", "data-kp-state": "ready", "aria-labelledby": "ri-card-t", "data-kp-loading-words": t("imp.reading") },
     h("div", { class: "kp-card__header" }, h("h3", { class: "kp-card__title", id: "ri-card-t" }, t("imp.secUrl"))),
@@ -91,8 +79,26 @@ export function openImport(dialog, { dishId = null, mainOptions, site = null }) 
     ),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, h("div", { class: "kp-formgrid" }, row(t("imp.url"), url, t("imp.urlHint"))))),
   );
-  const stopCards = attachCardStates(card);
-  const form = h("form", { class: "kp-drawer__body rl-form", id: "ri-form", novalidate: true }, alert, card, fold);
+}
+
+/** The fields, buttons, alert, fold and card of the drawer. @param {{ name?: string, url?: string } | null} site */
+function buildParts(site) {
+  const url = input("", "text", { autocomplete: "off", inputmode: "url", placeholder: t("imp.urlPh"), spellcheck: "false" });
+  const text = area("", 8);
+  text.setAttribute("placeholder", t("imp.textPh"));
+  const go = h("button", { type: "submit", class: "kp-button kp-button--primary", form: "ri-form" }, t("imp.go"));
+  const cancel = h("button", { type: "button", class: "kp-button" }, t("common.cancel"));
+  const alert = h("div", { class: "kp-alert kp-alert--destructive", role: "alert", hidden: true });
+  const fold = h("details", { class: "ri-fold" }, h("summary", null, t("imp.pasteSummary")), h("div", { class: "ri-fold__body" }, h("p", { class: "rl-formsec__text" }, t("imp.secTextText")), h("div", { class: "kp-formgrid" }, row(t("imp.textLabel"), text, t("imp.textHint")))));
+  const card = buildAddressCard(url, site);
+  return { url, text, go, cancel, alert, fold, card };
+}
+
+/** @typedef {ReturnType<typeof buildParts>} ImportParts */
+
+/** Put the drawer's head, form and foot into the dialog. @param {HTMLDialogElement} dialog @param {ImportParts} p */
+function fillDrawer(dialog, p) {
+  const form = h("form", { class: "kp-drawer__body rl-form", id: "ri-form", novalidate: true }, p.alert, p.card, p.fold);
   const line = h("p", { class: "rl-editor__line", role: "status" });
   dialog.replaceChildren(
     h(
@@ -103,15 +109,19 @@ export function openImport(dialog, { dishId = null, mainOptions, site = null }) 
       h("p", { class: "kp-drawer__desc" }, t("imp.text")),
     ),
     form,
-    h("footer", { class: "kp-drawer__foot" }, line, cancel, go),
+    h("footer", { class: "kp-drawer__foot" }, line, p.cancel, p.go),
   );
   attachAutosize(dialog);
+  return form;
+}
 
+/** Cancel, the close button, Escape and the sources link all close the drawer. @param {HTMLDialogElement} dialog @param {ImportParts} p @param {() => void} stopCards */
+function wireClose(dialog, p, stopCards) {
   const close = () => {
     stopCards();
     void closeDialog(dialog);
   };
-  cancel.addEventListener("click", close);
+  p.cancel.addEventListener("click", close);
   // The sources page replaces this one: the drawer gives way to it.
   dialog.querySelector(".ri-sites__link")?.addEventListener("click", close);
   dialog.querySelector("[data-close]")?.addEventListener("click", close);
@@ -120,56 +130,78 @@ export function openImport(dialog, { dishId = null, mainOptions, site = null }) 
   again.__rlAbort?.abort();
   again.__rlAbort = new AbortController();
   dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); }, { once: true, signal: again.__rlAbort.signal });
+}
 
-  /** @param {string} title @param {string} body */
-  const fail = (title, body) => {
-    alert.replaceChildren(h("div", { class: "kp-alert__body" }, h("strong", null, title), " ", body));
-    alert.hidden = false;
-  };
+/** Show why the import failed. @param {ImportParts} p @param {string} title @param {string} body */
+function fail(p, title, body) {
+  p.alert.replaceChildren(h("div", { class: "kp-alert__body" }, h("strong", null, title), " ", body));
+  p.alert.hidden = false;
+}
 
+/** Write the draft, then open the editor on what the kitchen read. @param {HTMLDialogElement} dialog @param {{ dishId: string | null, mainOptions: string[] }} spec @param {Imported} found @param {() => void} stopCards */
+async function openOnImport(dialog, { dishId, mainOptions }, found, stopCards) {
+  const restore = toRestore(found, dishId, kitchenNow()?.ingredients ?? []);
+  // The draft is written first, as the editor would after the first change, but never over a draft that is already there.
+  const key = `new:${dishId ?? ""}`;
+  const existing = await readDraft(key).catch(() => null);
+  if (!existing) await saveDraft(key, restore).catch(() => {});
+  stopCards();
+  openEditor(dialog, { recipe: null, mainOptions, preset: dishId ? { dish_id: dishId } : {}, restore, imported: true, cover: found.image_url });
+}
+
+/** A failed import says why, and offers the pasted text when that is the way on. @param {ImportParts} p @param {unknown} e @param {boolean} usePaste */
+function showFailure(p, e, usePaste) {
+  const code = e instanceof ApiError ? e.message : "";
+  setCardState(p.card, "ready");
+  const paste = PASTE_INSTEAD.has(code) && !usePaste;
+  fail(p, t("imp.errTitle"), code === "no_recipe" ? (usePaste ? t("imp.noText") : t("imp.fallback")) : e instanceof ApiError ? importReason(code) : t("photo.dropped"));
+  if (paste) {
+    p.fold.open = true;
+    p.text.focus();
+  }
+}
+
+/** @param {HTMLDialogElement} dialog @param {ImportParts} p @param {HTMLFormElement} form @param {{ dishId: string | null, mainOptions: string[] }} spec @param {() => void} stopCards */
+function wireSubmit(dialog, p, form, spec, stopCards) {
   let busy = false;
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (busy) return;
-    alert.hidden = true;
-    const pasted = text.value.trim();
-    const address = url.value.trim();
-    const usePaste = fold.open && pasted !== "";
+    p.alert.hidden = true;
+    const pasted = p.text.value.trim();
+    const address = p.url.value.trim();
+    const usePaste = p.fold.open && pasted !== "";
     if (!usePaste && !address) {
-      fail(t("imp.errTitle"), t("imp.needInput"));
-      url.focus();
+      fail(p, t("imp.errTitle"), t("imp.needInput"));
+      p.url.focus();
       return;
     }
     busy = true;
-    go.setAttribute("aria-disabled", "true");
-    setCardState(card, "loading", { words: t("imp.reading") });
+    p.go.setAttribute("aria-disabled", "true");
+    setCardState(p.card, "loading", { words: t("imp.reading") });
     try {
       /** @type {Imported} */
       const found = await importRecipe(usePaste ? { text: pasted } : { url: address });
-      const catalogue = kitchenNow()?.ingredients ?? [];
-      const restore = toRestore(found, dishId, catalogue);
-      // The draft is written first, as the editor would after the first change, but never over a draft that is already there.
-      const key = `new:${dishId ?? ""}`;
-      const existing = await readDraft(key).catch(() => null);
-      if (!existing) await saveDraft(key, restore).catch(() => {});
-      stopCards();
-      openEditor(dialog, { recipe: null, mainOptions, preset: dishId ? { dish_id: dishId } : {}, restore, imported: true, cover: found.image_url });
-      return;
+      await openOnImport(dialog, spec, found, stopCards);
     } catch (e) {
-      const code = e instanceof ApiError ? e.message : "";
-      setCardState(card, "ready");
-      const paste = PASTE_INSTEAD.has(code) && !usePaste;
-      fail(t("imp.errTitle"), code === "no_recipe" ? (usePaste ? t("imp.noText") : t("imp.fallback")) : e instanceof ApiError ? importReason(code) : t("photo.dropped"));
-      if (paste) {
-        fold.open = true;
-        text.focus();
-      }
+      showFailure(p, e, usePaste);
     } finally {
       busy = false;
-      go.removeAttribute("aria-disabled");
+      p.go.removeAttribute("aria-disabled");
     }
   });
+}
 
+/**
+ * Open the import drawer in `dialog`. `dishId` is the dish the recipe goes to when the import started on a dish's page.
+ * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, mainOptions: string[], site?: { name?: string, url?: string } | null }} spec
+ */
+export function openImport(dialog, { dishId = null, mainOptions, site = null }) {
+  const p = buildParts(site);
+  const stopCards = attachCardStates(p.card);
+  const form = fillDrawer(dialog, p);
+  wireClose(dialog, p, stopCards);
+  wireSubmit(dialog, p, form, { dishId, mainOptions }, stopCards);
   if (!dialog.open) dialog.showModal();
-  url.focus();
+  p.url.focus();
 }
