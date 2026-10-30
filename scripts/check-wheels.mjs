@@ -4,12 +4,14 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+// The component is two files: the wheel itself and its label fitting (web/eten/dishwheel-fit.js).
 const COMPONENT = "web/eten/dishwheel.js";
+const PARTS = new Set([COMPONENT, "web/eten/dishwheel-fit.js"]);
 const files = (dir) => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : /\.(js|mjs|html)$/.test(f) ? [join(dir, f)] : []));
 let bad = 0;
 let seen = 0;
 for (const file of files("web")) {
-  if (file === COMPONENT) continue;
+  if (PARTS.has(file)) continue;
   seen++;
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
@@ -18,5 +20,5 @@ for (const file of files("web")) {
     if (/\b(setWheelItems|spinWheel|attachWheels)\s*\(/.test(code)) { console.log(`${file}:${i + 1}: drives a wheel itself`); bad++; }
   });
 }
-console.log(`${seen} files checked besides ${COMPONENT}, ${bad} problems`);
+console.log(`${seen} files checked besides ${[...PARTS].join(" and ")}, ${bad} problems`);
 process.exit(bad ? 1 : 0);

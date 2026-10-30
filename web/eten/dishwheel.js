@@ -21,9 +21,11 @@
 //     after a spin), so that workaround is gone (30/10/2026).
 //
 // It imports nothing from web/js (no api.js, no i18n): /eten must load without the app. The words come in as options.
-// Nothing runs on import except one document-level font listener.
+// Nothing runs on import except one document-level font listener (dishwheel-fit.js, the label fitting and the stop
+// without a rewind; split from this file on 30/10/2026 for size, the two files are the one component).
 
-import { attachWheels, setWheelItems, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_EVENT } from "/static/kp/js/wheel.js";
+import { attachWheels, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_EVENT } from "/static/kp/js/wheel.js";
+import { give, forget, watchShown, monotoneEase } from "./dishwheel-fit.js";
 
 /**
  * @typedef {object} DishItem one dish on the big wheel
@@ -62,107 +64,20 @@ import { attachWheels, setWheelItems, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_
  */
 
 let counter = 0;
-/** The last items given to a wheel element, for the redraw. @type {WeakMap<HTMLElement, object[]>} */
-const LAST = new WeakMap();
-/** Wheels that want a redraw once their text can be measured. @type {Set<HTMLElement>} */
-const LIVE = new Set();
-
-/** @param {HTMLElement} el */
-const measurable = (el) => el.isConnected && el.getBoundingClientRect().width > 0;
-
-/**
- * Draw the wheel's current items again, so every label is fitted with the face that is on the page now. Not while it
- * turns, and not once it has an outcome (setWheelItems would clear that). The glide kp plays for a changed set of
- * items would draw the labels by an estimate for a moment; the same items need no glide, so calm is switched on for the
- * one synchronous call that decides it (kp reads it at the start of the call) and put back at once.
- * @param {HTMLElement} el
- */
-function refit(el) {
-  if (!el.isConnected) {
-    LIVE.delete(el);
-    return;
-  }
-  const items = LAST.get(el);
-  if (!items?.length || !measurable(el) || el.hasAttribute("data-kp-wheel-spinning") || el.hasAttribute("data-kp-wheel-won")) return;
-  const root = document.documentElement;
-  const calm = root.hasAttribute("data-kp-calm");
-  if (!calm) root.setAttribute("data-kp-calm", "");
-  try {
-    setWheelItems(el, items);
-  } finally {
-    if (!calm) root.removeAttribute("data-kp-calm");
-  }
-}
-
-// A theme's web font can start loading after the first paint (kp's own redraw on `document.fonts.ready` may already be
-// over by then) and a theme switch brings another face: every wheel is drawn again when a font has loaded.
-document.fonts?.addEventListener("loadingdone", () => {
-  LIVE.forEach(refit);
-});
-
-/**
- * The theme's own curve with the overshoot taken out. kp turns the disc along `--kp-wheel-ease`; a curve that passes 1
- * (pastel's "land" reaches 1.08) turns the disc past its stop and back, which reads as the wheel rewinding. The same
- * curve divided by its highest point and never falling keeps the theme's feel and ends the turn on the stop. Curves
- * that stay between 0 and 1 are left alone.
- * @param {HTMLElement} el
- */
-function monotoneEase(el) {
-  el.style.removeProperty("--kp-wheel-ease");
-  const raw = getComputedStyle(el).getPropertyValue("--kp-wheel-ease").trim();
-  if (!raw) return;
-  /** @type {Animation} */
-  let probe;
-  try {
-    probe = document.createElement("i").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1000, easing: raw, fill: "both" });
-  } catch {
-    return;
-  }
-  probe.pause();
-  const steps = 100;
-  /** @type {number[]} */
-  const ys = [];
-  let bad = false;
-  let top = 0;
-  let prev = 0;
-  for (let i = 0; i <= steps; i++) {
-    probe.currentTime = (i * 1000) / steps;
-    const p = Number(probe.effect?.getComputedTiming().progress ?? i / steps);
-    if (p > 1.0001 || p < prev - 0.0001) bad = true;
-    prev = Math.max(prev, p);
-    top = Math.max(top, p);
-    ys.push(p);
-  }
-  probe.cancel();
-  if (!bad || top <= 0) return;
-  let run = 0;
-  const points = ys.map((y) => {
-    run = Math.max(run, y / top);
-    return run.toFixed(4);
-  });
-  points[steps] = "1";
-  el.style.setProperty("--kp-wheel-ease", `linear(${points.join(", ")})`);
-}
 
 /** @param {string | { label: string, tag?: string }} s */
 const sideLabel = (s) => (typeof s === "string" ? s : s.label);
 
-/**
- * Mount the wheels into `host`.
- * @param {HTMLElement} host
- * @param {DishWheelOptions} [options]
- */
-export function mountDishWheel(host, { words = {}, sides = true, answer = true, kiosk = false, cards = false, onChange } = {}) {
-  const id = `dw${++counter}`;
+/** @param {string} s */
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
+
+/** The wheel's reader name: its kicker when it has one, else a label. @param {string | undefined} kicker @param {string} k @param {string | undefined} label */
+const named = (kicker, k, label) => (kicker ? `aria-labelledby="${k}"` : `aria-label="${esc(label ?? "")}"`);
+
+/** The wheels' markup: the big wheel, the small one, and the answer column. @param {string} id @param {DishWords} words @param {{ sides: boolean, answer: boolean, kiosk: boolean, cards: boolean }} o */
+function markup(id, words, { sides, answer, kiosk, cards }) {
   const wheelAttrs = `data-kp-wheel${kiosk ? " data-kp-wheel-kiosk" : ""}${cards ? " data-kp-wheel-answer" : ""}`;
-  const esc = (/** @type {string} */ s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
-  const named = (/** @type {string | undefined} */ kicker, /** @type {string} */ k, /** @type {string | undefined} */ label) =>
-    kicker ? `aria-labelledby="${k}"` : `aria-label="${esc(label ?? "")}"`;
-  host.classList.add("dw");
-  host.toggleAttribute("data-dw-cards", cards);
-  host.toggleAttribute("data-dw-single", !sides);
-  host.toggleAttribute("data-dw-noanswer", !answer);
-  host.innerHTML = `
+  return `
     <div class="dw__wheels">
     <div class="dw__wheel dw__wheel--dish">
       ${words.dishKicker ? `<p class="dw__kicker" id="${id}-dk">${esc(words.dishKicker)}</p>` : ""}
@@ -178,81 +93,94 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
     }
     </div>
     ${answer ? '<div class="dw__answer" data-dw-answer></div>' : ""}`;
+}
+
+/** @typedef {{ big: HTMLElement, small: HTMLElement | null, words: DishWords, onChange: ((change: DishChange) => void) | undefined, dishes: Map<string, DishItem>, dish: DishItem | null }} WheelState dish is the dish the big wheel stands on */
+
+/** @param {WheelState} s @param {DishChange["phase"]} phase @param {string | null} [side] */
+function emit(s, phase, side = null) {
+  const list = (s.dish?.sides ?? []).map(sideLabel);
+  s.onChange?.({ phase, dish: s.dish, sides: list, side: side ?? (list.length === 1 ? list[0] : null) });
+}
+
+/** The small wheel empty, saying why. @param {WheelState} s @param {string | undefined} text */
+function clearSide(s, text) {
+  if (!s.small) return;
+  s.small.setAttribute("data-kp-wheel-empty", text ?? s.words.sideFirst ?? "");
+  give(s.small, []);
+}
+
+/** The big wheel stopped: the small one is filled with the dish's sides and spins, or says why not. @param {WheelState} s @param {Event} e */
+function onResult(s, e) {
+  const { words, small } = s;
+  const item = /** @type {CustomEvent} */ (e).detail?.item;
+  s.dish = s.dishes.get(item?.id) ?? null;
+  const dish = s.dish;
+  if (!dish) return emit(s, "idle");
+  const list = (dish.sides ?? []).map(sideLabel);
+  if (!small || list.length < 2) {
+    clearSide(s, list.length === 1 ? words.oneSide?.(dish.label, list[0]) : words.nothing?.(dish.label));
+    return emit(s, "dish");
+  }
+  const tag = words.sideTag?.(dish.label);
+  give(small, list.map((label, i) => ({ id: String(i), label, ...(tag ? { tag } : {}) })));
+  emit(s, "dish");
+  void spinWheel(small);
+}
+
+/** Listen to both wheels; returns the way to stop. @param {WheelState} s */
+function wire(s) {
+  const { big, small } = s;
+  const onSpin = () => {
+    s.dish = null;
+    clearSide(s, s.words.sideFirst);
+    emit(s, "turning");
+  };
+  const onBigResult = (/** @type {Event} */ e) => onResult(s, e);
+  const onSideSpin = () => emit(s, "side-turning");
+  const onSideResult = (/** @type {Event} */ e) => {
+    const label = /** @type {CustomEvent} */ (e).detail?.item?.label;
+    // A result that comes after the big wheel was spun again is of the old dish: ignored.
+    if (!s.dish || typeof label !== "string") return;
+    emit(s, "side", label);
+  };
+  // kp reads the curve right after the spin event: take the overshoot out of it for this spin.
+  const ease = (/** @type {Event} */ e) => monotoneEase(/** @type {HTMLElement} */ (e.currentTarget));
+  big.addEventListener(WHEEL_SPIN_EVENT, onSpin);
+  big.addEventListener(WHEEL_RESULT_EVENT, onBigResult);
+  small?.addEventListener(WHEEL_SPIN_EVENT, onSideSpin);
+  small?.addEventListener(WHEEL_RESULT_EVENT, onSideResult);
+  big.addEventListener(WHEEL_SPIN_EVENT, ease);
+  small?.addEventListener(WHEEL_SPIN_EVENT, ease);
+  return () => {
+    big.removeEventListener(WHEEL_SPIN_EVENT, onSpin);
+    big.removeEventListener(WHEEL_RESULT_EVENT, onBigResult);
+    big.removeEventListener(WHEEL_SPIN_EVENT, ease);
+    small?.removeEventListener(WHEEL_SPIN_EVENT, onSideSpin);
+    small?.removeEventListener(WHEEL_RESULT_EVENT, onSideResult);
+    small?.removeEventListener(WHEEL_SPIN_EVENT, ease);
+  };
+}
+
+/**
+ * Mount the wheels into `host`.
+ * @param {HTMLElement} host
+ * @param {DishWheelOptions} [options]
+ */
+export function mountDishWheel(host, { words = {}, sides = true, answer = true, kiosk = false, cards = false, onChange } = {}) {
+  host.classList.add("dw");
+  host.toggleAttribute("data-dw-cards", cards);
+  host.toggleAttribute("data-dw-single", !sides);
+  host.toggleAttribute("data-dw-noanswer", !answer);
+  host.innerHTML = markup(`dw${++counter}`, words, { sides, answer, kiosk, cards });
   const big = /** @type {HTMLElement} */ (host.querySelector("[data-dw-dish]"));
   const small = /** @type {HTMLElement | null} */ (host.querySelector("[data-dw-side]"));
   const answerBox = /** @type {HTMLElement | null} */ (host.querySelector("[data-dw-answer]"));
   const stopAttach = attachWheels(host);
-
-  /** @type {Map<string, DishItem>} */
-  let dishes = new Map();
-  /** @type {DishItem | null} the dish the big wheel stands on */
-  let dish = null;
-  /** @param {HTMLElement} el @param {object[]} items */
-  const give = (el, items) => {
-    LAST.set(el, items);
-    LIVE.add(el);
-    setWheelItems(el, items);
-    // Once the fonts that are loading now are in, and once the wheel is on screen and measurable.
-    void document.fonts?.ready.then(() => refit(el));
-  };
-  const emit = (/** @type {DishChange["phase"]} */ phase, /** @type {string | null} */ side = null) => {
-    const list = (dish?.sides ?? []).map(sideLabel);
-    onChange?.({ phase, dish, sides: list, side: side ?? (list.length === 1 ? list[0] : null) });
-  };
-  /** The small wheel empty, saying why. @param {string | undefined} text */
-  const clearSide = (text) => {
-    if (!small) return;
-    small.setAttribute("data-kp-wheel-empty", text ?? words.sideFirst ?? "");
-    give(small, []);
-  };
-
-  const onSpin = () => {
-    dish = null;
-    clearSide(words.sideFirst);
-    emit("turning");
-  };
-  const onResult = (/** @type {Event} */ e) => {
-    const item = /** @type {CustomEvent} */ (e).detail?.item;
-    dish = dishes.get(item?.id) ?? null;
-    if (!dish) return emit("idle");
-    const list = (dish.sides ?? []).map(sideLabel);
-    if (!small || list.length < 2) {
-      clearSide(list.length === 1 ? words.oneSide?.(dish.label, list[0]) : words.nothing?.(dish.label));
-      return emit("dish");
-    }
-    const tag = words.sideTag?.(dish.label);
-    give(small, list.map((label, i) => ({ id: String(i), label, ...(tag ? { tag } : {}) })));
-    emit("dish");
-    void spinWheel(small);
-  };
-  const onSideSpin = () => emit("side-turning");
-  const onSideResult = (/** @type {Event} */ e) => {
-    const label = /** @type {CustomEvent} */ (e).detail?.item?.label;
-    // A result that comes after the big wheel was spun again is of the old dish: ignored.
-    if (!dish || typeof label !== "string") return;
-    emit("side", label);
-  };
-  big.addEventListener(WHEEL_SPIN_EVENT, onSpin);
-  big.addEventListener(WHEEL_RESULT_EVENT, onResult);
-  small?.addEventListener(WHEEL_SPIN_EVENT, onSideSpin);
-  small?.addEventListener(WHEEL_RESULT_EVENT, onSideResult);
-  // kp reads the curve right after the spin event: take the overshoot out of it for this spin.
-  const ease = (/** @type {Event} */ e) => monotoneEase(/** @type {HTMLElement} */ (e.currentTarget));
-  big.addEventListener(WHEEL_SPIN_EVENT, ease);
-  small?.addEventListener(WHEEL_SPIN_EVENT, ease);
-  // A wheel that was hidden while it was drawn (a card still loading) is drawn again when it is shown.
-  /** @type {Map<HTMLElement, number>} */
-  const seen = new Map();
-  const watch = new ResizeObserver((entries) => {
-    for (const { target } of entries) {
-      const el = /** @type {HTMLElement} */ (target);
-      const width = el.getBoundingClientRect().width;
-      if (width > 0 && seen.get(el) === 0) refit(el);
-      seen.set(el, width);
-    }
-  });
-  watch.observe(big);
-  if (small) watch.observe(small);
+  /** @type {WheelState} */
+  const s = { big, small, words, onChange, dishes: new Map(), dish: null };
+  const unwire = wire(s);
+  const watch = watchShown(small ? [big, small] : [big]);
   return {
     big,
     small,
@@ -260,11 +188,11 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
     answer: answerBox,
     /** Put these dishes on the big wheel; the small wheel is emptied and nothing is chosen. @param {DishItem[]} items */
     setDishes(items) {
-      dishes = new Map(items.map((d) => [d.id, d]));
-      dish = null;
-      clearSide(words.sideFirst);
+      s.dishes = new Map(items.map((d) => [d.id, d]));
+      s.dish = null;
+      clearSide(s, words.sideFirst);
       give(big, items.map(({ sides: _sides, ...rest }) => rest));
-      emit("idle");
+      emit(s, "idle");
     },
     /** Spin the big wheel, as a press on Spin does. */
     spin: () => spinWheel(big),
@@ -272,14 +200,9 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
     spinSide: () => (small ? spinWheel(small) : Promise.resolve(null)),
     destroy() {
       watch.disconnect();
-      big.removeEventListener(WHEEL_SPIN_EVENT, onSpin);
-      big.removeEventListener(WHEEL_RESULT_EVENT, onResult);
-      big.removeEventListener(WHEEL_SPIN_EVENT, ease);
-      small?.removeEventListener(WHEEL_SPIN_EVENT, onSideSpin);
-      small?.removeEventListener(WHEEL_RESULT_EVENT, onSideResult);
-      small?.removeEventListener(WHEEL_SPIN_EVENT, ease);
-      LIVE.delete(big);
-      if (small) LIVE.delete(small);
+      unwire();
+      forget(big);
+      if (small) forget(small);
       stopAttach?.();
     },
   };
