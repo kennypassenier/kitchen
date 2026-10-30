@@ -4,6 +4,7 @@
 import { h } from "../dom.js";
 import { t, lang } from "../i18n/index.js";
 import { showPhotos } from "./photos.js";
+import { pick } from "./bilingual.js";
 
 /** The words of the steps-with-photos section (Kenny, 24/10/2026 05:23); the rest of the page keeps its words in recipe/words.js. */
 export const STEP_WORDS = {
@@ -42,7 +43,7 @@ export function paintStepPhotos(stepCard, stepList, r) {
       h(
         "li",
         { class: "rp-stepphotos__item" },
-        h("div", { class: "rp-stepphotos__text" }, h("h3", { class: "kp-fw-semibold" }, text.step(i + 1)), h("p", null, s.text)),
+        h("div", { class: "rp-stepphotos__text" }, h("h3", { class: "kp-fw-semibold" }, text.step(i + 1)), h("p", null, pick(s.text, lang()))),
         (s.photos ?? []).length > 0 ? showPhotos(null, s.photos, `${text.stepPhoto} ${i + 1}`) : null,
       ),
     ),

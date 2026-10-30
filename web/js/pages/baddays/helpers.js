@@ -1,6 +1,8 @@
 // Small pure helpers of the bad-days page: texts, dates and the safe / mini recipes.
 
 import { daysSinceCooked } from "../../api.js";
+import { lang } from "../../i18n/index.js";
+import { localStep } from "../../recipe/bilingual.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 /** @typedef {import("../../api.js").Item} Item */
@@ -45,7 +47,7 @@ export function miniRecipe(k) {
 
 /** A recipe's steps as focus-steps wants them. @param {Item[]} steps */
 export const toFocusSteps = (steps) =>
-  steps.map((s) => ({
+  steps.map((raw) => localStep(raw, lang())).map((s) => ({
     id: s.id,
     text: s.text,
     ...(s.uses?.length ? { ingredients: s.uses.map((/** @type {Item} */ u) => ({ amount: u.amount, name: u.name })) } : {}),

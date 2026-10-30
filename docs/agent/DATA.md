@@ -37,7 +37,7 @@ there is no `name` in it.
 | `safe` | boolean | A safe favourite for bad days |
 | `gear` | string | What it dirties: "1 pot", "the oven, 2 pots" |
 | `last_note` | string | The "Last time" note on the recipe page |
-| `ingredients` | `{id, ingredient, amount: number \| null, unit, group, note?}`[] | `ingredient` is an `ingredients` id (format 3; the name comes from there). Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard"); `note` is a plain remark about the line ("chopped", "schil en sap"; Kenny, 29/10/2026), one text in whatever language it was written, like a step's `note`: edited under the ingredient in the editor, read under the name on the recipe page and in the print sheet |
+| `ingredients` | `{id, ingredient, amount: number \| null, unit, group, note?}`[] | `ingredient` is an `ingredients` id (format 3; the name comes from there). Scalable amounts for `portions`; `unit` is `g`, `ml`, `pc`, `tbsp`, `tsp`, `pinch`, `clove`, `slice`, `handful`, …; `group` heads the checklist ("Ingredients", "From the cupboard"); `note` is a plain remark about the line ("chopped", "schil en sap"; Kenny, 29/10/2026), a string or `{nl, en}` like a step's `note` (the other language is optional, 30/10/2026): edited under the ingredient in the editor, read under the name on the recipe page and in the print sheet |
 | `tools` | `{id, name}`[] | Gathered before cooking (the Begin checklist's "Tools") |
 | `tracks` | `{id, name}`[] | Parallel tracks ("Pasta", "Sauce"); empty for a one-track dish |
 | `steps` | step[] | In cooking order, see below |
@@ -51,13 +51,13 @@ A step:
 |---|---|---|
 | `id` | string | Stable within the recipe |
 | `track` | string \| null | A track id; `null` where the tracks meet |
-| `text` | string | The instruction, one action |
+| `text` | string \| `{nl, en}` | The instruction, one action. A plain string is one text shown in both languages (imports, older recipes); `{nl, en}` is the same step in both, both halves written (Kenny, 30/10/2026: the other language is optional, never required; an empty half is saved as the plain string). Read with `textOf()` / `pick()` (`web/js/recipe/bilingual.js`), which fall back to the half there is |
 | `say` | string | Lower-case phrase for timing sentences: "put the pasta water on" |
 | `mins` | number | How long the step takes |
 | `active` | boolean | Hands-on (stretched by a slow-day pace) or walk-away |
 | `timer` | `{seconds, name}` \| null | A timer the step starts |
 | `uses` | `{amount: string, name}`[] | What this step needs, as written ("400 g") |
-| `note` | string | A line under the step |
+| `note` | string \| `{nl, en}` | A line under the step; the same two shapes as `text` |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
 | `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the editor's timeline when a step is dragged to a place the flow would not put it (Kenny, 30/10/2026, see "The timeline" below), optional. Cook mode plans from the real now, so it counts the offset from the moment cooking began (the first step's real start): a step not yet reached is planned at that moment plus `start`, never earlier than now, and when that leaves a gap after the previous step the timeline says so ("planned for 18:45 after a wait of 12 min") |

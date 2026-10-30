@@ -102,6 +102,8 @@ export const NL_PARENTS = {
   "edit.sourceBadFix": "Begin met https:// of http://, of maak het veld leeg.",
   "edit.lineNote": "Notitie bij deze regel",
   "edit.lineNotePh": "Notitie, bijvoorbeeld fijngesneden",
+  "edit.lineNoteOther": "Notitie bij deze regel in het Engels (optioneel)",
+  "edit.lineNoteOtherPh": "Engelse notitie (optioneel)",
   "rec.source": "Bron",
   "imp.discard": "Deze regel weggooien",
   "imp.unresolvedTitle": (n) => (n === 1 ? "1 geïmporteerde regel heeft nog geen ingrediënt." : `${n} geïmporteerde regels hebben nog geen ingrediënt.`),

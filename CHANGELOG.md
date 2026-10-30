@@ -7,6 +7,14 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 ### Added
+- The other language of a recipe step's text and note, and of an ingredient line's note, is optional (Kenny, 30/10/2026,
+  "Optioneel"). The editor has a clearly labelled field for it ("Text in Dutch (optional)" / "Tekst in het Engels
+  (optioneel)") inside the step's "More" fold, and a second field under an ingredient line's note. Without a translation
+  Kitchen shows the one text it has in both languages (an import stays untranslated and saves without a second
+  language); with one, the recipe page, cook mode, the timing page, the bad-days recipe and the print sheet show the
+  language in use. No format change: a text is a plain string or `{nl, en}` with both halves (`web/js/recipe/bilingual.js`).
+- The parents' page (eten.kp-soft.dev) has the kit's theme picker top right, in Dutch; the choice is kept in that browser
+  and applied before the first paint (Kenny, 24/10/2026 09:29).
 - A draggable timeline in the recipe editor (own section "Timeline"): the steps as clips on one lane per track, like
   a video editor. Drag a step to move it, drag it to another track to run it at the same time, drag its edge to
   change how long it takes; Enter picks a step up for the keyboard, a zoom control and a sideways scroll inside its

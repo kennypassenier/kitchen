@@ -2,7 +2,8 @@
 // without an ingredient (Kenny, 29/10/2026).
 
 import { h } from "../../dom.js";
-import { t } from "../../i18n/index.js";
+import { t, lang } from "../../i18n/index.js";
+import { halves, combine } from "../bilingual.js";
 import { input, select, rows, textCell } from "../../ui/form-parts.js";
 import { ingredientPicker, ingredientsPicker } from "../../ingredients/picker.js";
 import { unresolvedOf } from "./logic.js";
@@ -38,14 +39,18 @@ const ingredientColumn = () => ({
   make: (/** @type {any} */ i) => {
     const c = ingredientPicker(i.ingredient ?? null, { label: t("edit.ingredient") });
     // A remark about the line ("chopped", "schil en sap"; an import fills it from the brackets), shown on the recipe page.
-    const noteField = input(i.note ?? "", "text", { "aria-label": t("edit.lineNote"), placeholder: t("edit.lineNotePh"), autocomplete: "off" });
-    const cell = h("div", { class: "ri-cell" }, c.el, noteField);
+    // The note's other language is optional (Kenny, 30/10/2026; recipe/bilingual.js): the first field is the language Kitchen is shown in.
+    const mine = lang();
+    const words = halves(i.note ?? "", mine);
+    const noteField = input(words.main, "text", { "aria-label": t("edit.lineNote"), placeholder: t("edit.lineNotePh"), autocomplete: "off" });
+    const otherField = input(words.other, "text", { "aria-label": t("edit.lineNoteOther"), placeholder: t("edit.lineNoteOtherPh"), autocomplete: "off" });
+    const cell = h("div", { class: "ri-cell" }, c.el, noteField, otherField);
     if (i.proposal) proposalNote(i, c, cell);
     return {
       el: cell,
       get: () => {
         const ingredient = c.get();
-        const text = /** @type {HTMLInputElement} */ (noteField).value.trim();
+        const text = combine(/** @type {HTMLInputElement} */ (noteField).value, /** @type {HTMLInputElement} */ (otherField).value, mine);
         return { ...i, id: i.id ?? (i.id = newId()), ingredient, note: text || undefined, proposal: ingredient ? undefined : i.proposal };
       },
     };

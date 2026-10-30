@@ -11,6 +11,7 @@
 import { setChecklistItems } from "/static/kp/js/checklist.js";
 import { preparePrint } from "/static/kp/js/print.js";
 import { amountOf } from "./amounts.js";
+import { pick } from "./bilingual.js";
 import { ingredientName } from "../api.js";
 import { ZONE } from "../format.js";
 import { lang as appLang } from "../i18n/index.js";
@@ -52,12 +53,12 @@ h2 { margin: 1.25rem 0 0; font-size: 1rem; }
 function drawText(doc, { recipe, portions, words, total }) {
   /** @type {HTMLElement} */ (doc.querySelector("h1")).textContent = recipe.name;
   /** @type {HTMLElement} */ (doc.querySelector(".meta")).textContent = `${words.forPortions(portions)} · ${words.total} ${total}`;
-  const steps = /** @type {{ text: string }[]} */ (recipe.steps ?? []);
+  const steps = /** @type {{ text: import("./bilingual.js").Text }[]} */ (recipe.steps ?? []);
   const heading = /** @type {HTMLElement} */ (doc.querySelector("h2"));
   const ol = /** @type {HTMLElement} */ (doc.querySelector("ol"));
   heading.textContent = words.howTo;
   heading.hidden = ol.hidden = steps.length === 0;
-  ol.replaceChildren(...steps.map((s) => Object.assign(doc.createElement("li"), { textContent: s.text })));
+  ol.replaceChildren(...steps.map((s) => Object.assign(doc.createElement("li"), { textContent: pick(s.text, appLang()) })));
 }
 
 /** The ingredients as the package's checklist, scaled to the portions. @param {HTMLElement} list @param {SheetSpec} spec */
@@ -72,7 +73,7 @@ function drawIngredients(list, { recipe, portions, words }) {
       return {
         id: ing.id,
         label: ingredientName(ing.ingredient, appLang()),
-        detail: [amount, ing.note].filter(Boolean).join(". "),
+        detail: [amount, pick(ing.note, appLang())].filter(Boolean).join(". "),
         group: ing.group || fallbackGroup,
       };
     }),

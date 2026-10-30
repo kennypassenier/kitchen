@@ -7,7 +7,8 @@ import { setFocusSteps, setFocusStepsState, getStepIndex } from "/static/kp/js/f
 import { setTimersState, getTimers, restoreTimers } from "/static/kp/js/timer.js";
 import { setCardState } from "/static/kp/js/card-state.js";
 import { showPhotos } from "../../recipe/photos.js";
-import { t } from "../../i18n/index.js";
+import { t, lang } from "../../i18n/index.js";
+import { localStep } from "../../recipe/bilingual.js";
 import { link } from "../../ui/cards.js";
 import { stepsOf, focusStepsOf } from "./logic.js";
 import { miseItems } from "./mise.js";
@@ -67,7 +68,8 @@ function restoreTimersOf(ctx) {
 export function fill(ctx, r) {
   const { mise, steps, stepPhotos } = ctx.el;
   ctx.recipe = r;
-  ctx.shown = stepsOf(r, ctx.mini);
+  // A step may carry its text and note in both languages (Kenny, 30/10/2026): cook mode reads them in the one shown.
+  ctx.shown = stepsOf(r, ctx.mini).map((s) => localStep(s, lang()));
   fillHeader(ctx, r);
   fillBegin(ctx, r);
   setChecklistState(mise, "ready");

@@ -5,6 +5,8 @@ import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { toItems, fromItems } from "../sequence.js";
 import { settle } from "../meet.js";
+import { pick } from "../bilingual.js";
+import { lang } from "../../i18n/index.js";
 
 /** @typedef {{ host: HTMLElement, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, steps: ReturnType<typeof import("./steps.js").stepFields>, syncing: boolean, paintQueued: boolean, seqState: string }} TimelineState */
 
@@ -20,7 +22,7 @@ function paintTimeline(s) {
     meet: t("edit.tracksMeet"),
     all: t("edit.timelineAll"),
     unnamed: t("edit.unnamedTrack"),
-    label: (st, n) => `${number.get(st.id) ?? n}. ${st.text}`,
+    label: (st, n) => `${number.get(st.id) ?? n}. ${pick(st.text, lang())}`,
   });
   setSequencerItems(s.host, items, lanes);
   const state = items.length ? "ready" : "empty";

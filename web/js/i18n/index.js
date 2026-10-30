@@ -8,6 +8,7 @@
 // follows Kenny from the phone to the PC; the browser keeps a copy only to draw the first frame in the right language
 // before the kitchen has loaded. English is the default. The parents' page on eten.kp-soft.dev stays Dutch.
 
+import { pick } from "../recipe/bilingual.js";
 import { setStrings, DEFAULT_STRINGS } from "/static/kp/js/strings.js";
 import { EN as EN_CORE } from "./en.js";
 import { NL as NL_CORE } from "./nl.js";
@@ -103,9 +104,7 @@ export function nameOf(item) {
  * @returns {string}
  */
 export function textOf(v) {
-  if (typeof v === "string") return v;
-  const o = /** @type {Record<string, unknown> | null} */ (v && typeof v === "object" ? v : null);
-  return String(o?.[current] || o?.[current === "nl" ? "en" : "nl"] || "").trim();
+  return pick(v, current);
 }
 
 applyKp(current);

@@ -102,6 +102,8 @@ export const EN_PARENTS = {
   "edit.sourceBadFix": "Start it with https:// or http://, or empty the field.",
   "edit.lineNote": "Note for this line",
   "edit.lineNotePh": "Note, e.g. chopped",
+  "edit.lineNoteOther": "Note for this line in Dutch (optional)",
+  "edit.lineNoteOtherPh": "Dutch note (optional)",
   "rec.source": "Source",
   "imp.discard": "Discard this line",
   "imp.unresolvedTitle": (n) => (n === 1 ? "1 imported line has no ingredient yet." : `${n} imported lines have no ingredient yet.`),

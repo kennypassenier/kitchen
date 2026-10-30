@@ -4,6 +4,7 @@ import { h } from "../../dom.js";
 import { ingredientName } from "../../api.js";
 import { amountOf } from "../../recipe/amounts.js";
 import { lang } from "../../i18n/index.js";
+import { pick } from "../../recipe/bilingual.js";
 
 /** @typedef {Map<string, { amount: HTMLElement, unit: HTMLElement, ing: any }>} Cells The amount cells of the list, by ingredient id. */
 
@@ -12,7 +13,8 @@ function ingredientLine(ing, cells) {
   const word = h("a", { class: "rp-ing__word", href: `/ingredients/${encodeURIComponent(ing.ingredient ?? "")}` }, ingredientName(ing.ingredient, lang()));
   const name = h("span", { class: "rp-ing__name" }, word);
   // The line's remark ("chopped", an import's brackets) is read on the page, not hidden in a hover (Kenny, 29/10/2026).
-  if (ing.note) name.append(h("span", { class: "rp-ing__note" }, ing.note));
+  const note = pick(ing.note, lang());
+  if (note) name.append(h("span", { class: "rp-ing__note" }, note));
   const amount = h("span", { class: "rp-ing__amount" });
   const unit = h("span", { class: "rp-ing__unit" });
   cells.set(ing.id, { amount, unit, ing });

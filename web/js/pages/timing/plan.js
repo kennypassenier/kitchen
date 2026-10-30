@@ -3,6 +3,8 @@
 
 import { layout, lanesOf, paced } from "../../recipe/schedule.js";
 import { ZONE, pad, cap } from "../../format.js";
+import { lang } from "../../i18n/index.js";
+import { pick } from "../../recipe/bilingual.js";
 
 /** @typedef {import("../../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -66,7 +68,7 @@ export function planFor(recipe, { serve, spare, pace, dropped }) {
       .map((p) => {
         const s = p.step;
         const mins = p.mins;
-        return { id: `${src.id}:${s.id}`, lane: src.id, label: cap(s.say || s.text), say: s.say || String(s.text).toLowerCase(), mins, active: Boolean(s.active), start: origin + p.start * MIN, end: origin + p.end * MIN };
+        return { id: `${src.id}:${s.id}`, lane: src.id, label: cap(s.say || pick(s.text, lang())), say: s.say || pick(s.text, lang()).toLowerCase(), mins, active: Boolean(s.active), start: origin + p.start * MIN, end: origin + p.end * MIN };
       });
     return { id: src.id, label: src.name ?? (recipe.short || recipe.name), series: src.series, steps: own, start: Math.min(...own.map((x) => x.start)) };
   });

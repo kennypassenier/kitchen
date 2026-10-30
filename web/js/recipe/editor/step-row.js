@@ -10,6 +10,8 @@ import { row, input, area, stepper, toggle, on, select, rows, textCell } from ".
 import { photoField } from "../photos.js";
 import { stepFromFields, partnerChoices } from "./logic.js";
 import { newId } from "./ids.js";
+import { halves, combine } from "../bilingual.js";
+import { lang } from "../../i18n/index.js";
 
 /**
  * @typedef {{ el: HTMLElement, get: () => any, set: (p: any) => void, track: HTMLSelectElement, partner: HTMLSelectElement, text: HTMLElement, head: HTMLElement, up: HTMLElement, down: HTMLElement, camera: HTMLElement, start: HTMLElement, id: string, paint: () => void, options: () => void }} StepRow
@@ -17,7 +19,11 @@ import { newId } from "./ids.js";
 
 /** The inputs of one step, filled from the step. @param {Record<string, any>} s @param {{ tracker: any, trackOptions: () => [string, string][] }} o */
 function makeFields(s, { tracker, trackOptions }) {
-  const text = area(s.text ?? "", 1);
+  // The text and the note have an optional second language (Kenny, 30/10/2026): the main field is the language Kitchen is shown
+  // in, the field in the fold is the other one; recipe/bilingual.js reads and writes both.
+  const words = halves(s.text ?? "", lang());
+  const noted = halves(s.note ?? "", lang());
+  const text = area(words.main, 1);
   text.classList.add("rl-step__text");
   text.setAttribute("aria-label", t("edit.instruction"));
   const photos = photoField({ ids: s.photos ?? [], max: 8, label: t("edit.stepPhoto"), tracker, compact: true });
@@ -32,7 +38,9 @@ function makeFields(s, { tracker, trackOptions }) {
     hasTimer: toggle(t("edit.timerSwitch"), Boolean(s.timer)),
     timerName: input(s.timer?.name ?? "", "text", { "aria-label": t("edit.timerName"), placeholder: t("edit.timerNamePh") }),
     timerSecs: input(s.timer?.seconds ?? "", "number", { "aria-label": t("edit.timerSeconds"), min: "1", step: "1", placeholder: "600" }),
-    note: input(s.note ?? "", "text", { placeholder: t("edit.notePh") }),
+    textOther: area(words.other, 1),
+    note: input(noted.main, "text", { placeholder: t("edit.notePh") }),
+    noteOther: input(noted.other, "text", { "aria-label": t("edit.noteOther"), placeholder: t("edit.noteOtherPh") }),
     warn: toggle(t("edit.warnSwitch"), s.note_tone === "warning"),
     // Where it falls in time (recipe/schedule.js): both optional; the draggable timeline writes them too.
     start: input(typeof s.start === "number" ? String(s.start) : "", "number", { min: "0", step: "1", inputmode: "numeric", placeholder: t("edit.startPh") }),
@@ -54,6 +62,7 @@ function foldOf(f) {
   const fields = h(
     "div",
     { class: "kp-formgrid" },
+    row(t("edit.textOther"), f.textOther, t("edit.textOtherHint")),
     row(t("edit.sayAs"), f.say, t("edit.sayHint")),
     row(t("edit.track"), f.track, t("edit.trackHint")),
     row(t("recs.colMinutes"), f.mins, t("edit.minsHint")),
@@ -61,6 +70,7 @@ function foldOf(f) {
     row(t("edit.timer"), f.hasTimer, t("edit.timerHint")),
     row(t("edit.timerPair"), timerRow, ""),
     row(t("edit.note"), f.note, ""),
+    row(t("edit.noteOther"), f.noteOther, t("edit.noteOtherHint")),
     row(t("edit.warning"), f.warn, ""),
     row(t("edit.mini"), f.mini, ""),
     row(t("edit.startAt"), f.start, t("edit.startHint")),
@@ -103,12 +113,12 @@ function paintChips(f, chips, partnerAt) {
   chips.replaceChildren(...shown.map(([cls, label]) => h("span", { class: `kp-badge ${cls}`.trim() }, label)));
 }
 
-/** The fields read back into a step. @param {string} id @param {ReturnType<typeof makeFields>} f */
-function readStep(id, f) {
+/** The fields read back into a step. @param {string} id @param {ReturnType<typeof makeFields>} f @param {"nl" | "en"} mine the language the main fields were written in */
+function readStep(id, f, mine) {
   return stepFromFields({
     id,
     track: f.track.value,
-    text: /** @type {HTMLTextAreaElement} */ (f.text).value,
+    text: combine(/** @type {HTMLTextAreaElement} */ (f.text).value, /** @type {HTMLTextAreaElement} */ (f.textOther).value, mine),
     say: /** @type {HTMLInputElement} */ (f.say).value,
     mins: getQuantity(f.mins),
     active: on(f.active),
@@ -117,7 +127,7 @@ function readStep(id, f) {
     timerSeconds: /** @type {HTMLInputElement} */ (f.timerSecs).value,
     timerDefault: t("edit.timerDefault"),
     uses: /** @type {[string, string][]} */ (f.uses.get()),
-    note: /** @type {HTMLInputElement} */ (f.note).value,
+    note: combine(/** @type {HTMLInputElement} */ (f.note).value, /** @type {HTMLInputElement} */ (f.noteOther).value, mine),
     warn: on(f.warn),
     mini: on(f.mini),
     photos: f.photos.get(),
@@ -130,6 +140,7 @@ function readStep(id, f) {
 export function stepEditor(s, { tracker, trackOptions, list }) {
   s.id ||= newId();
   const f = makeFields(s, { tracker, trackOptions });
+  const mine = lang();
   const line = lineParts(f);
   const el = h("li", { class: "rl-step", role: "group" }, line.head, f.text, h("div", { class: "rl-step__buttons" }, line.camera, line.up, line.down, line.del), line.chips, f.photos.el, foldOf(f));
   const entry = {
@@ -164,7 +175,7 @@ export function stepEditor(s, { tracker, trackOptions, list }) {
       f.partner.replaceChildren(...opts.map(([v, label]) => h("option", { value: v }, label)));
       f.partner.value = opts.some(([v]) => v === keep) ? keep : "";
     },
-    get: () => readStep(entry.id, f),
+    get: () => readStep(entry.id, f, mine),
   };
   return entry;
 }

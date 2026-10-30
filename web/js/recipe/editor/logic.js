@@ -4,6 +4,7 @@
 
 import { effective } from "../schedule.js";
 import { settle } from "../meet.js";
+import { tidy } from "../bilingual.js";
 
 /** Tracks with a name (an unnamed track row counts nowhere). @param {Record<string, any>[]} list */
 export const namedOnly = (list) => list.filter((tk) => tk.name);
@@ -26,7 +27,7 @@ export function timesOf(r, steps, trackList, typed) {
 
 /**
  * One step row's fields as a step. `v` holds the raw field values; the trimming and the timer rule live here.
- * @param {{ id: string, track: string, text: string, say: string, mins: number, active: boolean, hasTimer: boolean, timerName: string, timerSeconds: string, uses: [string, string][], note: string, warn: boolean, mini: boolean, photos: string[], start: string, partner: string, timerDefault: string }} v
+ * @param {{ id: string, track: string, text: import("../bilingual.js").Text, say: string, mins: number, active: boolean, hasTimer: boolean, timerName: string, timerSeconds: string, uses: [string, string][], note: import("../bilingual.js").Text, warn: boolean, mini: boolean, photos: string[], start: string, partner: string, timerDefault: string }} v
  */
 export function stepFromFields(v) {
   const secs = Number(v.timerSeconds);
@@ -34,13 +35,14 @@ export function stepFromFields(v) {
   return {
     id: v.id,
     track: v.track || null,
-    text: v.text.trim(),
+    // The text and the note are one plain string or `{nl, en}` (recipe/bilingual.js: the other language is optional).
+    text: tidy(v.text),
     say: v.say.trim(),
     mins: v.mins,
     active: v.active,
     timer: v.hasTimer && secs > 0 ? { seconds: secs, name: name || v.timerDefault } : null,
     uses: v.uses.map(([amount, what]) => ({ amount, name: what })).filter((u) => u.amount || u.name),
-    note: v.note.trim(),
+    note: tidy(v.note),
     note_tone: v.warn ? "warning" : "",
     mini: v.mini,
     photos: v.photos,
