@@ -89,6 +89,21 @@ function usedRow(x, k) {
   );
 }
 
+/** The rows that pass the filters, and the dishes the wheel picks among. @param {Kitchen} k @param {string} id @param {{ cat: HTMLSelectElement, flags: HTMLElement }} f */
+function filteredRows(k, id, { cat, flags }) {
+  const on = new Set(getSegmentedValues(flags));
+  return usingDishes(k, id)
+    .map((d) => rowData(d, id))
+    .filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
+}
+
+/** The category choices follow the kitchen; the chosen one stays chosen. @param {HTMLSelectElement} cat @param {Kitchen} k */
+function fillCategories(cat, k) {
+  const was = cat.value;
+  cat.replaceChildren(h("option", { value: "" }, t("it.everyCategory")), ...ordered(k.dish_categories).map((c) => h("option", { value: c.id }, LISTS.dish_categories.name(c))));
+  cat.value = was;
+}
+
 /**
  * An ingredient's dishes and recipes: one data table with a search and four filters (the dish's category, on the
  * parents' wheel, safe, has a recipe), and a wheel that picks only among the dishes with it.
@@ -97,11 +112,11 @@ function usedRow(x, k) {
 export function usedBy(pageEl, id) {
   const table = tableCard(TABLE());
   table.addButtons.forEach((b) => b.addEventListener("click", () => openRecordEditor("dishes", null)));
-  const { cat, flags, filters } = buildFilters();
-  table.card.querySelector(".kp-lede")?.after(filters);
+  const filters = buildFilters();
+  table.card.querySelector(".kp-lede")?.after(filters.filters);
   const { wheels, wheelCard } = buildWheelCard();
   pageEl.append(table.card, wheelCard);
-  const stops = [attachDataTables(table.card), attachSegmented(filters), attachSelects(filters), () => wheels.destroy()].filter((f) => typeof f === "function");
+  const stops = [attachDataTables(table.card), attachSegmented(filters.filters), attachSelects(filters.filters), () => wheels.destroy()].filter((f) => typeof f === "function");
   const handle = dataTable(table.table);
   /** @type {Kitchen | null} */
   let kitchen = null;
@@ -109,32 +124,24 @@ export function usedBy(pageEl, id) {
   const draw = () => {
     const k = kitchen;
     if (!k) return;
-    const on = new Set(getSegmentedValues(flags));
-    const rows = usingDishes(k, id)
-      .map((d) => rowData(d, id))
-      .filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
-    table.body.replaceChildren(...rows.map((x) => usedRow(x, k)));
+    table.body.replaceChildren(...filteredRows(k, id, filters).map((x) => usedRow(x, k)));
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
     wheels.setDishes(usingDishes(k, id).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
   };
-  cat.addEventListener("change", draw);
-  flags.addEventListener(SEGMENTED_EVENT, draw);
+  filters.cat.addEventListener("change", draw);
+  filters.flags.addEventListener(SEGMENTED_EVENT, draw);
   handle?.busy({ text: t("it.readingDishes"), overlay: true });
   handle?.state("loading");
   return {
     /** @param {Kitchen} k */
     show(k) {
       kitchen = k;
-      const was = cat.value;
-      cat.replaceChildren(h("option", { value: "" }, t("it.everyCategory")), ...ordered(k.dish_categories).map((c) => h("option", { value: c.id }, LISTS.dish_categories.name(c))));
-      cat.value = was;
+      fillCategories(filters.cat, k);
       draw();
     },
     /** @param {string} why */
-    fail(why) {
-      handle?.fail(why);
-    },
+    fail: (why) => handle?.fail(why),
     stop() {
       for (const s of stops) s();
     },

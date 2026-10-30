@@ -29,6 +29,33 @@ function wireWords(s, data) {
   attachFlashButtons(data);
 }
 
+/** Under the card's empty plate the grid is not drawn at all: a grid kept behind the plate could be put in a state (loading, by a measure) that nobody can see. @param {HTMLElement} card @param {import("./paint.js").LogState} s @param {import("../words.js").Words} w @param {() => void} again */
+function showEmpty(card, s, w, again) {
+  const start = h("button", { type: "button", class: "kp-button kp-button--primary" }, w.logStart);
+  start.addEventListener("click", () => {
+    s.view.started = true;
+    again();
+  });
+  s.el.grid.hidden = true;
+  setCardState(card, "empty", { title: w.logEmptyTitle, text: w.logEmptyText, action: start });
+}
+
+/** Draw the entries of this recipe. @param {HTMLElement} card @param {HTMLElement} data @param {import("./paint.js").LogState} s @param {string} recipeId @param {import("../../api.js").Kitchen} k @param {import("../words.js").Words} w */
+function showLog(card, data, s, recipeId, k, w) {
+  const first = s.words !== w;
+  s.words = w;
+  s.kitchen = k;
+  s.entries = new Map();
+  for (const e of k.log) if (e.recipe_id === recipeId && !s.entries.has(e.date)) s.entries.set(e.date, e);
+  wireWords(s, data);
+  if (first) drawFeelings(s);
+  if (s.entries.size === 0 && !s.view.started) return showEmpty(card, s, w, () => showLog(card, data, s, recipeId, k, w));
+  s.view.started = true;
+  s.el.grid.hidden = false;
+  paint(s);
+  setCardState(card, "ready");
+}
+
 /**
  * Build the log into its card (a `.kp-card[data-kp-state]` with a stage).
  * @param {HTMLElement} card
@@ -40,19 +67,7 @@ export function createLog(card, { recipeId, retry }) {
   const s = { words: null, kitchen: null, view: { day: today(), started: false }, feeling: "none", entries: new Map(), el: buildLogDom(data), narrow: matchMedia("(max-width: 36rem)") };
   wireActions(s, recipeId);
   card.addEventListener("kp-card-retry", retry);
-
-  /** Under the card's empty plate the grid is not drawn at all: a grid kept behind the plate could be put in a state (loading, by a measure) that nobody can see. @param {import("../words.js").Words} w @param {() => void} again */
-  function showEmpty(w, again) {
-    const start = h("button", { type: "button", class: "kp-button kp-button--primary" }, w.logStart);
-    start.addEventListener("click", () => {
-      s.view.started = true;
-      again();
-    });
-    s.el.grid.hidden = true;
-    setCardState(card, "empty", { title: w.logEmptyTitle, text: w.logEmptyText, action: start });
-  }
-
-  const api = {
+  return {
     /** Loading, from the first frame. @param {import("../words.js").Words} w */
     loading(w) {
       s.words = w;
@@ -66,21 +81,7 @@ export function createLog(card, { recipeId, retry }) {
       s.words = w;
       setCardState(card, "error", { title: w.logFailedTitle, text: w.logFailedText(why) });
     },
-    /** Draw the entries of this recipe. @param {import("../../api.js").Kitchen} k @param {import("../words.js").Words} w */
-    show(k, w) {
-      const first = s.words !== w;
-      s.words = w;
-      s.kitchen = k;
-      s.entries = new Map();
-      for (const e of k.log) if (e.recipe_id === recipeId && !s.entries.has(e.date)) s.entries.set(e.date, e);
-      wireWords(s, data);
-      if (first) drawFeelings(s);
-      if (s.entries.size === 0 && !s.view.started) return showEmpty(w, () => api.show(k, w));
-      s.view.started = true;
-      s.el.grid.hidden = false;
-      paint(s);
-      setCardState(card, "ready");
-    },
+    /** @param {import("../../api.js").Kitchen} k @param {import("../words.js").Words} w */
+    show: (k, w) => showLog(card, data, s, recipeId, k, w),
   };
-  return api;
 }

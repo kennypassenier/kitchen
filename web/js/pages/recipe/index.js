@@ -95,28 +95,11 @@ function paintLoading(ctx, log) {
   log.loading(ctx.words);
 }
 
-/**
- * @param {HTMLElement} root
- * @param {{ params: URLSearchParams, navigate: (href: string) => void }} page
- */
-export function mount(root, { params, navigate }) {
-  /** @type {RecipeCtx} */
-  const ctx = { id: params.get("id") ?? "", navigate, words: wordsFor(lang()), recipe: null, portions: 0, alive: true, el: buildFrame() };
-  let recipeJson = "";
-  const { card, code, logSec, page } = ctx.el;
-  const log = createLog(logSec.el, { recipeId: ctx.id, retry: () => void load(true) });
-  root.replaceChildren(page);
-  attachCardStates(page);
-  const cleanups = [attachHoverCards(page)];
-  const share = createShare(ctx);
-  const cardView = createCardView(ctx, share.paintSheet);
-  paintLoading(ctx, log);
-  const draw = (/** @type {Kitchen} */ k) => {
-    recipeJson = show(ctx, k, recipeJson, cardView, share, log);
-  };
-
+/** The first read, a Retry and a failed read: loading states, then `draw`. @param {RecipeCtx} ctx @param {ReturnType<typeof createLog>} log @param {(k: Kitchen) => void} draw */
+function createLoader(ctx, log, draw) {
+  const { card, code } = ctx.el;
   /** @param {boolean} [force] */
-  async function load(force = false) {
+  return async function load(force = false) {
     if (force || !kitchenNow()) {
       setCardState(card, "loading", { words: ctx.words.loading });
       setQr(code, { state: "loading" });
@@ -131,7 +114,31 @@ export function mount(root, { params, navigate }) {
       lower(ctx, false);
       setCardState(card, "error", { title: ctx.words.failedTitle, text: reason(e) });
     }
-  }
+  };
+}
+
+/**
+ * @param {HTMLElement} root
+ * @param {{ params: URLSearchParams, navigate: (href: string) => void }} page
+ */
+export function mount(root, { params, navigate }) {
+  /** @type {RecipeCtx} */
+  const ctx = { id: params.get("id") ?? "", navigate, words: wordsFor(lang()), recipe: null, portions: 0, alive: true, el: buildFrame() };
+  let recipeJson = "";
+  const { card, logSec, page } = ctx.el;
+  /** @type {(force?: boolean) => Promise<void>} */
+  let load = async () => {};
+  const log = createLog(logSec.el, { recipeId: ctx.id, retry: () => void load(true) });
+  root.replaceChildren(page);
+  attachCardStates(page);
+  const cleanups = [attachHoverCards(page)];
+  const share = createShare(ctx);
+  const cardView = createCardView(ctx, share.paintSheet);
+  paintLoading(ctx, log);
+  const draw = (/** @type {Kitchen} */ k) => {
+    recipeJson = show(ctx, k, recipeJson, cardView, share, log);
+  };
+  load = createLoader(ctx, log, draw);
   card.addEventListener("kp-card-retry", () => void load(true));
   cleanups.push(
     onKitchen(() => {
