@@ -1,7 +1,7 @@
 // The recipes screen, `/recipes`: every recipe in one table, with Add, Edit
 // and Delete. Built only from the package's parts: the page header, the
 // data table with its own loading, empty and failed states, a drawer on the
-// form grid for the editor (js/recipe/editor.js) and the typed confirmation
+// form grid for the editor (js/recipe/editor/) and the typed confirmation
 // for Delete.
 
 import { loadKitchen, onKitchen, kitchenNow, remove, ApiError } from "../api.js";
@@ -9,7 +9,7 @@ import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
-import { openEditor } from "../recipe/editor.js";
+import { openEditor } from "../recipe/editor/index.js";
 import { openImport } from "../recipe/import.js";
 import { copyRecipe } from "../recipe/duplicate.js";
 import { deletePhoto, photosOf } from "../recipe/photos.js";

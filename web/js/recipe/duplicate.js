@@ -3,7 +3,7 @@
 // <state dir>/photos, docs/agent/DATA.md), so a photo file is deleted only when no recipe refers to it any more
 // (recipe/photos.js `deletePhoto`).
 
-import { newId } from "./editor.js";
+import { newId } from "./editor/ids.js";
 
 /** The words a copy's name gets, per language. */
 const SUFFIX = { nl: " (kopie)", en: " (copy)" };

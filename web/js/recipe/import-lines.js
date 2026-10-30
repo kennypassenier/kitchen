@@ -1,6 +1,6 @@
 // Reading the lines of an imported recipe (Kenny, 29/10/2026 14:27): an ingredient line into amount, unit and name, and
 // the first duration of a step into minutes. Pure functions, no DOM, no words, no api, so a node script can check them.
-// The units are the ones the recipe editor knows (js/recipe/editor.js UNITS); a metric or imperial unit it lacks is
+// The units are the ones the recipe editor knows (js/recipe/editor/consts.js UNITS); a metric or imperial unit it lacks is
 // converted into one it has (1 kg = 1000 g, 1 dl = 100 ml, 1 cup = 240 ml).
 
 /** The vulgar fractions a page may use. */

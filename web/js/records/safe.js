@@ -8,7 +8,7 @@ import { t, textOf } from "../i18n/index.js";
 import { row, select } from "../ui/form-parts.js";
 import { today, dmy } from "../format.js";
 import { openDrawer, sec } from "../dishes/editor.js";
-import { openEditor } from "../recipe/editor.js";
+import { openEditor } from "../recipe/editor/index.js";
 import { openImport } from "../recipe/import.js";
 import { drawer } from "./drawer.js";
 

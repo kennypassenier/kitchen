@@ -9,7 +9,8 @@ import { attachAutosize } from "/static/kp/js/autosize.js";
 import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
 import { h } from "../dom.js";
 import { importRecipe, kitchenNow, readDraft, saveDraft, ApiError } from "../api.js";
-import { openEditor, newId } from "./editor.js";
+import { openEditor } from "./editor/index.js";
+import { newId } from "./editor/ids.js";
 import { row, input, area } from "../ui/form-parts.js";
 import { parseIngredientLine, firstMinutes, matchIngredient } from "./import-lines.js";
 import { importReason } from "./cover.js";
@@ -114,7 +115,7 @@ export function openImport(dialog, { dishId = null, mainOptions, site = null }) 
   // The sources page replaces this one: the drawer gives way to it.
   dialog.querySelector(".ri-sites__link")?.addEventListener("click", close);
   dialog.querySelector("[data-close]")?.addEventListener("click", close);
-  // One Escape handler per opening, replaced by the editor's when it takes the dialog over (recipe/editor.js).
+  // One Escape handler per opening, replaced by the editor's when it takes the dialog over (recipe/editor/index.js).
   const again = /** @type {any} */ (dialog);
   again.__rlAbort?.abort();
   again.__rlAbort = new AbortController();
