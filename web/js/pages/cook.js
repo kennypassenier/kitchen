@@ -34,14 +34,14 @@ import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timelin
 import { lanesOf as scheduleLanes } from "../recipe/schedule.js";
 import { wordsFor } from "../recipe/words.js";
 import { t, lang } from "../i18n/index.js";
-import { ZONE, today, cap } from "../format.js";
+import { today } from "../format.js";
+import { MIN, stepsOf as stepsFor, focusStepsOf, nextAfter, markSteps, firstOf, planRuns, laneCounts } from "./cook/logic.js";
 import { link, actionRow, section as sectionOf } from "../ui/cards.js";
 
 /** @typedef {import("../api.js").Item} Item */
 
 /** The dial the discs measure: 60 minutes, the classic Time Timer (Kenny's default). */
 const DIAL_MINUTES = 60;
-const MIN = 60000;
 const TIMELINE_EVERY_MS = 10000;
 
 /** "2 cloves", "400 g", "1" (a piece) or "" (no amount). @param {Item} ing */
@@ -375,51 +375,14 @@ export function mount(root, { params, navigate }) {
   skipBtn.addEventListener("click", begin);
 
   // ------------------------------------------------------------------ steps, tracks and the timers' next step
-  /** The recipe's steps the cook sees: all, or the mini ones. @param {Item} r */
-  const stepsOf = (r) => (mini ? r.steps.filter((/** @type {Item} */ s) => s.mini) : r.steps);
-
-  /** @param {Item} r @param {Item[]} list @returns {import("/static/kp/js/focus-steps.js").FocusStep[]} */
-  function focusSteps(r, list) {
-    /** @param {string | null} id */
-    const trackName = (id) => (id ? (r.tracks.find((/** @type {Item} */ t) => t.id === id)?.name ?? id) : undefined);
-    return list.map((s) => ({
-      id: s.id,
-      title: cap(s.say) || undefined,
-      text: s.text,
-      ingredients: (s.uses ?? []).map((/** @type {Item} */ u) => ({ amount: u.amount, name: u.name })),
-      timer: s.timer ? { seconds: s.timer.seconds, name: s.timer.name } : undefined,
-      note: s.note || undefined,
-      noteTone: s.note_tone === "warning" ? "warning" : undefined,
-      track: trackName(s.track),
-    }));
-  }
-
-  /**
-   * Where a finished timer leads: the step after the one that started it, or the next step on the same track.
-   * @param {Item} timer @returns {{ index: number, number: number, text: string } | null}
-   */
-  function nextAfter(timer) {
-    const at = shown.findIndex((s) => s.id === timer.id);
-    if (at < 0) return null;
-    const track = shown[at].track;
-    let to = -1;
-    for (let i = at + 1; i < shown.length; i++) {
-      if (!track || shown[i].track === track) {
-        to = i;
-        break;
-      }
-    }
-    if (to < 0) return null;
-    const lane = track ? shown.filter((s) => s.track === track) : shown;
-    return { index: to, number: lane.indexOf(shown[to]) + 1, text: shown[to].text };
-  }
+  const stepsOf = (/** @type {Item} */ r) => stepsFor(r, mini);
 
   const refreshBand = () => {
     const done = getTimers(timers).filter((tm) => tm.state === "done");
     setAttention(
       band,
       done.map((tm) => {
-        const next = nextAfter(tm);
+        const next = nextAfter(shown, tm);
         const action = h(
           "button",
           { type: "button", class: "kp-button kp-button--sm", ...(next ? { "data-ck-from": shown.findIndex((x) => x.id === tm.id) } : { "data-ck-stop": tm.id }) },
@@ -532,6 +495,15 @@ export function mount(root, { params, navigate }) {
     return { lanes, rowsOf };
   }
 
+  /** The plan's sentences (planRuns itself knows no words). */
+  const planText = {
+    how: (/** @type {number} */ mins, /** @type {boolean} */ active) => t("cook.how", mins, active),
+    done: (/** @type {string} */ how) => t("cook.howDone", how),
+    onIt: (/** @type {string} */ how) => t("cook.howOnIt", how),
+    todo: (/** @type {string} */ how) => t("cook.howToDo", how),
+    todoAt: (/** @type {string} */ how, /** @type {string} */ at, /** @type {number} */ waits) => t("cook.howToDoAt", how, at, waits),
+  };
+
   /** Draw the plan from this moment: passed steps where they really were, the one in hand growing, the rest counted on from now. */
   function paintTimeline() {
     if (!recipe) return;
@@ -542,80 +514,13 @@ export function mount(root, { params, navigate }) {
     const now = Date.now();
     const { active, done } = progressNow();
     const marks = (memo.marks ??= {});
-    // The real times: a step's start is when it came into hand, its end when it was passed.
-    shown.forEach((s, i) => {
-      const m = marks[s.id];
-      if (done.has(i)) {
-        if (!m?.end) marks[s.id] = { start: m?.start, end: now };
-      } else if (m?.end) delete marks[s.id];
-      if (i === active && !done.has(i) && !marks[s.id]?.start) marks[s.id] = { ...marks[s.id], start: now };
-    });
+    markSteps(marks, shown, active, done, now);
     keep();
     const { lanes, rowsOf } = lanesOf();
-    const first = Math.min(now, ...Object.values(marks).map((m) => m.start ?? now));
-    /** @type {Map<string, number>} */
-    const cursor = new Map(lanes.map((l) => [l.id, first]));
-    /** @type {import("../recipe/timeline.js").TimelineRun[]} */
-    const runs = [];
-    const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
-    let last = now;
-    /** @type {Map<string, number>} where each step starts in this plan, for the steps that run alongside it */
-    const starts = new Map();
-    shown.forEach((s, i) => {
-      const rows = rowsOf(s);
-      const mins = Math.max(1, Number(s.mins) || 0);
-      const m = marks[s.id];
-      const ahead = Math.max(...rows.map((r) => cursor.get(r) ?? first));
-      const say = cap(s.say || String(s.text));
-      const how = t("cook.how", mins, s.active);
-      /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string, plannedEnd?: number }[]} */
-      const parts = [];
-      let next;
-      if (done.has(i)) {
-        const start = Math.min(m?.start ?? ahead, now - 1000);
-        const end = Math.max(start + 30000, Math.min(now, m?.end ?? start + mins * MIN));
-        parts.push({ start, end, state: "ok", words: t("cook.howDone", how) });
-        next = end;
-      } else if (i === active) {
-        const start = m?.start ?? now;
-        const planned = start + mins * MIN;
-        // What is left of its time is drawn by the package after now (`plannedEnd`, kp-themes 11.3.0, replacing Kitchen's own lane
-        // stretch); past its time the rest of the plan begins from this moment.
-        parts.push({ start, end: now, state: "running", words: t("cook.howOnIt", how), plannedEnd: planned });
-        next = Math.max(now, planned);
-      } else {
-        // A step that runs alongside another (`with`) is planned from where that one is planned; it does not push its rows back.
-        const partner = typeof s.with === "string" ? starts.get(s.with) : undefined;
-        // A step with a fixed `start` (minutes from the recipe's start, Kenny 29/10/2026) is planned there, counted from the
-        // moment cooking began (`first`); it cannot begin before the real now, and what lies between is a planned wait.
-        const pinned = typeof s.start === "number" && Number.isFinite(s.start) && s.start >= 0;
-        const fixed = pinned ? first + s.start * MIN : null;
-        const start = fixed !== null ? Math.max(now, fixed) : partner !== undefined ? Math.max(now, partner) : Math.max(now, ahead);
-        const waits = fixed !== null && start > ahead + MIN / 2 ? Math.round((start - Math.max(now, ahead)) / MIN) : 0;
-        parts.push({ start, end: start + mins * MIN, state: "planned", words: waits > 0 ? t("cook.howToDoAt", how, clock(start), waits) : t("cook.howToDo", how) });
-        next = partner !== undefined ? Math.max(ahead, start + mins * MIN) : start + mins * MIN;
-      }
-      starts.set(s.id, parts[0].start);
-      for (const row of rows) cursor.set(row, next);
-      last = Math.max(last, next);
-      for (const row of rows) {
-        parts.forEach((part) =>
-          runs.push({
-            id: `${row}:${s.id}`,
-            lane: row,
-            label: say,
-            start: part.start,
-            end: part.end,
-            state: part.state,
-            series: lanes.find((l) => l.id === row)?.series,
-            detail: `${say}, ${part.words}`,
-            plannedEnd: part.plannedEnd,
-          }),
-        );
-      }
-    });
+    const first = firstOf(marks, now);
+    const { runs, last } = planRuns({ shown, lanes, rowsOf, marks, active, done, now, first }, planText);
     drawTimeline(line.el, {
-      lanes: lanes.map((l) => ({ ...l, sub: t("cook.nOfMDone", shown.filter((s, i) => rowsOf(s).includes(l.id) && done.has(i)).length, shown.filter((s) => rowsOf(s).includes(l.id)).length) })),
+      lanes: lanes.map((l) => ({ ...l, sub: t("cook.nOfMDone", ...laneCounts(shown, rowsOf, l.id, done)) })),
       runs,
       from: first - MIN,
       to: last + 3 * MIN,
@@ -745,7 +650,7 @@ export function mount(root, { params, navigate }) {
     paintStart();
 
     setFocusStepsState(steps, "ready");
-    setFocusSteps(steps, focusSteps(r, shown));
+    setFocusSteps(steps, focusStepsOf(r, shown));
     steps.setAttribute("aria-label", r.name);
     delete stepPhotos.dataset.key;
     paintPhotos();
