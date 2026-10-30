@@ -63,6 +63,66 @@ pub(super) fn joined(names: &[String], lang: Lang) -> String {
     }
 }
 
+/// One parents' dish as the wheel shows it, or None when it is not for the parents or has no name in `lang`.
+fn wheel_dish(data: &Data, lang: Lang, d: &Value) -> Option<Value> {
+    if d.get("parents").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    let name = named(d.get("name"), lang)?;
+    // The names in `lang` of a list of ingredient ids, the ones without such a name left out.
+    let names = |ids: Option<&Value>| -> Vec<String> {
+        ids.and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| named(by_id(&data.ingredients, Some(id))?.get("name"), lang))
+            .collect()
+    };
+    let fixed = names(d.get("ingredients"));
+    let sides: Vec<Value> = d
+        .get("sides")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|side| {
+            let shown = names(side.get("ingredients"));
+            if shown.is_empty() {
+                return None;
+            }
+            // The side's own label when it has one in `lang` ("Kroketten met mayonaise"; 05:27).
+            let name = named(side.get("label"), lang).unwrap_or_else(|| joined(&shown, lang));
+            Some(json!({ "name": name, "ingredients": side["ingredients"] }))
+        })
+        .collect();
+    let category = by_id(&data.dish_categories, d.get("category"))
+        .filter(|c| named(c.get("name"), lang).is_some())
+        .map(|c| c["id"].clone())
+        .unwrap_or(Value::Null);
+    Some(json!({
+        "id": d["id"],
+        "name": name,
+        "category": category,
+        "ingredients": fixed,
+        "sides": sides,
+    }))
+}
+
+/// The categories the shown dishes use, in their order, with how many dishes each holds.
+fn wheel_categories(data: &Data, lang: Lang, dishes: &[Value]) -> Vec<Value> {
+    let mut cats: Vec<&Value> = data
+        .dish_categories
+        .iter()
+        .filter(|c| named(c.get("name"), lang).is_some())
+        .collect();
+    cats.sort_by(|a, b| order(a).total_cmp(&order(b)));
+    cats.into_iter()
+        .filter_map(|c| {
+            let n = dishes.iter().filter(|d| d["category"] == c["id"]).count();
+            (n > 0)
+                .then(|| json!({ "id": c["id"], "name": named(c.get("name"), lang), "count": n }))
+        })
+        .collect()
+}
+
 /// The dishes on the parents' wheel in one language.
 ///
 /// A dish shows when `parents` is true and it has a name in `lang`. Its
@@ -74,50 +134,11 @@ pub(super) fn joined(names: &[String], lang: Lang) -> String {
 /// Categories are the ones the shown dishes use, in their order, with how
 /// many dishes each holds.
 pub fn wheel(data: &Data, lang: Lang) -> Value {
-    let mut dishes: Vec<Value> = Vec::new();
-    for d in &data.dishes {
-        if d.get("parents").and_then(Value::as_bool) != Some(true) {
-            continue;
-        }
-        let Some(name) = named(d.get("name"), lang) else {
-            continue;
-        };
-        // The names in `lang` of a list of ingredient ids, the ones without such a name left out.
-        let names = |ids: Option<&Value>| -> Vec<String> {
-            ids.and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .filter_map(|id| named(by_id(&data.ingredients, Some(id))?.get("name"), lang))
-                .collect()
-        };
-        let fixed = names(d.get("ingredients"));
-        let sides: Vec<Value> = d
-            .get("sides")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(|side| {
-                let shown = names(side.get("ingredients"));
-                if shown.is_empty() {
-                    return None;
-                }
-                // The side's own label when it has one in `lang` ("Kroketten met mayonaise"; 05:27).
-                let name = named(side.get("label"), lang).unwrap_or_else(|| joined(&shown, lang));
-                Some(json!({ "name": name, "ingredients": side["ingredients"] }))
-            })
-            .collect();
-        let category = by_id(&data.dish_categories, d.get("category"))
-            .filter(|c| named(c.get("name"), lang).is_some())
-            .map(|c| c["id"].clone())
-            .unwrap_or(Value::Null);
-        dishes.push(json!({
-            "id": d["id"],
-            "name": name,
-            "category": category,
-            "ingredients": fixed,
-            "sides": sides,
-        }));
-    }
+    let mut dishes: Vec<Value> = data
+        .dishes
+        .iter()
+        .filter_map(|d| wheel_dish(data, lang, d))
+        .collect();
     dishes.sort_by(|a, b| {
         a["name"]
             .as_str()
@@ -125,19 +146,6 @@ pub fn wheel(data: &Data, lang: Lang) -> Value {
             .to_lowercase()
             .cmp(&b["name"].as_str().unwrap_or("").to_lowercase())
     });
-    let mut cats: Vec<&Value> = data
-        .dish_categories
-        .iter()
-        .filter(|c| named(c.get("name"), lang).is_some())
-        .collect();
-    cats.sort_by(|a, b| order(a).total_cmp(&order(b)));
-    let categories: Vec<Value> = cats
-        .into_iter()
-        .filter_map(|c| {
-            let n = dishes.iter().filter(|d| d["category"] == c["id"]).count();
-            (n > 0)
-                .then(|| json!({ "id": c["id"], "name": named(c.get("name"), lang), "count": n }))
-        })
-        .collect();
+    let categories = wheel_categories(data, lang, &dishes);
     json!({ "lang": lang.key(), "dishes": dishes, "categories": categories })
 }
