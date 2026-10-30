@@ -144,10 +144,6 @@ One commit per file split, so a regression bisects to one move.
 | `pages/timing.js` → `pages/timing/{index,plan,text,frame,sentence,plan-view,timer,nudge,fill}.js`; `plan.js` is pure (schedule.test.mjs pattern fits) | `[refactor-timing-1]` | 734 → 142 (fill.js) |
 | `pages/baddays.js` → `pages/baddays/{index,template,helpers,safe,freezer,freezer-form,shelf,mini-recipe,month}.js` | `[refactor-baddays-1]` | 927 → 223 (template.js) |
 
-Left for round 3: `pages/cook.js` (816), `pages/wheel.js` (871), `web/css/pages/recipe.css` (447), and running every test once. Parts of the
-big closures share state through one explicit object (`ctx` in timing and baddays, the returned field objects in the editor);
-`step-row.js` `stepEditor` and a few `create*` functions are still longer than 40 lines (one closure per section, moved verbatim).
-
 Duplicates removed from section 4: dmy (4 definitions → `dmy` + `dmyDate`), today in Brussels (4), pad/hhmm/iso (4), capitalise (4),
 minutes to words (2), reason/why (4 incl. the log refusal), stamp (moved), card/section/button/link/actionRow builders (7 definitions
 in 4 pages), raw `fetch` with its own login redirect (2 modules, 3 redirects → 1), form primitives (moved). Not done yet: the
@@ -155,3 +151,47 @@ wheel.js `card` (an HTML-string builder with a badge), `main.js`/`sheet.js`/`ete
 wrappers), name/link helpers and `dishHas` alias (they belong to the `records/` split), and the CSS repeated blocks.
 `reason` follows baddays' rule (`Error` → its message), so a non-ApiError in records, the dish editor and the log now shows the
 bare message instead of `Error: message`.
+
+### Round 3 (30/10/2026)
+
+| Split | Commit ID | Before → after (lines) |
+|---|---|---|
+| `minutesWords` moved to `i18n/minutes.js`, so `format.js` loads in node | `[refactor-format-1]` | format.js 41 → 36 |
+| cook mode's pure logic (`pages/cook/logic.js`: steps shown, focus steps, where a timer leads, real marks, fixed start offsets and planned waits, the plan from the real clock) + `scripts/cook.test.mjs` (22 cases) | `[test-cook-1]` | cook.js 816 → 721; +148 logic, +181 test |
+| `pages/cook.js` → `pages/cook/{index,parts,memo,stage,begin,calm,done,timers,timeline,states,mise,fill,load,logic}.js`; every live thing in `ctx.cleanups` | `[refactor-cook-1]` | 721 → 148 (logic.js, the largest); index.js 128 |
+| wheel's pure logic (`pages/wheel/logic.js`: fits, odds, constraints, loosening, resting/freezer/days rules, chips, start plan, dates) + `scripts/wheel.test.mjs` (29 cases) | `[test-wheel-1]` | wheel.js 867 → 725; +252 logic, +237 test |
+| `pages/wheel.js` → `pages/wheel/{index,model,labels,template,filters,easy,actions,answer,answer-html,card-sync,wheel-view,list-view,logic}.js`; `/` renders the identical DOM; check-wheels 0 | `[refactor-wheel-1]` | 725 → 252 (logic.js, the largest); index.js 132 |
+| `css/pages/recipe.css` → `css/pages/recipe/{base,card,qr,print,log,photos}.css`, six link tags in index.html in file order; computed styles identical at 1280/390, formal/dark and print | `[refactor-css-1]` | 447 → 219 (card.css) |
+| fix found by the browser check: `stepEditor`'s chip array shadowed the rows accessor (`list`), so the recipe editor opened without steps since `[refactor-editor-1]` | `[fix-editor-1]` | 10 lines |
+| `openRecordEditor` (208 lines) → `records/editors{,-stock,-log,-names}.js`; `stepEditor` (129) → five helpers | `[refactor-fns-1]` | editors.js 227 → 40 |
+| `nudgeItems`, timing `fill`, `renderSafe`, shelf and mini draws, cook `buildCookSection`, wheel view → named helpers; stale `pages/item.js` / `records.js` comments | `[refactor-fns-2]` | see commit |
+
+Tests (30/10/2026, run once at the end): `node --test scripts/*.test.mjs` 85 cases, all pass, 0.11 s; `cargo test` 49 tests, all pass, 22 s.
+Browser smoke (Firefox, throwaway kitchen): every touched page loads with 0 console and page errors; wheel (bring back, spin, set aside,
+filters, no energy), recipe editor (add, edit, draft restore, import preview from pasted text), cook flow, timing, bad days (freezer add and
+take, shelf, mini, calendar) are clean. A real pointer drag on the editor timeline lengthens the step before the meeting step by 5 min:
+meeting start 27 → 32 min, total 32 → 37 min, at 1280 and at 390.
+
+### Final numbers (after round 3)
+
+| | Before the audit | After |
+|---|---:|---:|
+| Source files measured (src/**/*.rs, web/js, web/eten, web/css, scripts, tests excl. fixtures html, build.rs) | 78 | 228 |
+| Lines / bytes | 20,309 / 920,990 | 22,694 / 1,040,438 (the tests and doc comments added) |
+| Files over 400 lines or 20 KB | 18 | **0** (largest: wheel.css 366, recipe.js 352 lines; 17 KB largest by bytes: settings.js) |
+| Files over 250 lines | n/a | 13 (see below) |
+| Lines relocated (`git diff --shortstat 19feab2..HEAD`) | | 12,562 removed from their old place, 15,058 added (incl. new tests) in 200 files |
+| Commits from 84ba542 (exclusive) to the end of round 3 | | 24 |
+
+Files still over 250 lines: wheel.css 366, pages/recipe.js 352, recipes.css 331, pages/settings.js 318, src/photos.rs 315 (51 test lines), api.js 314,
+store/migrate.rs 313, dishes/editor.js 312, recipe_parse/ld_json.rs 295, eten/dishwheel.js 286 (the one wheel component, "demo exact"),
+recipe_parse/tests.rs 262, wheel/logic.js 252, eten/wheel.js 251. All are one responsibility each and under the 400/20 KB limit.
+
+Remaining exceptions (not done, each by design or out of scope):
+- Functions over ~40 lines: the factories `createFiller`, `createNudge`, `createSentence`, `createTimer`, `createFreezer`, `wireFreezerForm`,
+  `createShelf`, `createMini`, `createMonth`, `createSafe` hold named inner helpers that each fit the limit but the factory as a whole does not;
+  pages never touched by a round (`pages/recipe.js` mount 316, `settings.js` mount 250, `recipe/log.js` createLog 209, `recipes.js` 164, `dishes.js` 132,
+  `ingredients.js` 114, `ingredients/picker.js` 132, `dishes/picker.js` 126, `recipe/import.js` 108, `photos.js`, `dishes/editor.js`) are still single closures.
+- The measure tool reports state-footprint faults on the wheel page (card empty/failed shorter than the loaded footprint) and one side-wheel
+  alignment fault; identical before the refactor (kp footprint helper / `web/eten/dishwheel.js`, not touched here).
+- Some round 2 splits (editor, records, baddays, timing) had never run in a browser before round 3 (see `[fix-editor-1]`).
