@@ -1,7 +1,4 @@
-use super::fields::*;
-use super::ld_json::*;
-use super::pasted::*;
-use super::text::*;
+use super::super::ld_json::*;
 use reqwest::Url;
 
 const GRAPH: &str = r#"<html><head><title>x</title>
@@ -22,7 +19,7 @@ const GRAPH: &str = r#"<html><head><title>x</title>
 ]}
 </script></head><body></body></html>"#;
 
-fn page() -> Url {
+pub(super) fn page() -> Url {
     Url::parse("https://example.com/recipes/pancakes").unwrap()
 }
 
@@ -55,7 +52,7 @@ fn a_recipe_in_a_graph_with_sections_and_a_relative_image() {
 /// JSON-LD names two steps, the page shows all of them.
 #[test]
 fn dagelijkse_kost_steps_come_from_the_page_when_the_block_has_only_two() {
-    let html = include_str!("../../tests/fixtures/dagelijkse-kost-daube.html");
+    let html = include_str!("../../../tests/fixtures/dagelijkse-kost-daube.html");
     let url = Url::parse(
         "https://dagelijksekost.vrt.be/gerechten/daube-varkenswangen-geglaceerde-wortel",
     )
@@ -75,7 +72,7 @@ fn the_verified_recipe_sources_read_whole() {
     // (page, name, portions, ingredients, steps, prep, cook)
     let cases = [
         (
-            include_str!("../../tests/fixtures/bbc-good-food-pancakes.html"),
+            include_str!("../../../tests/fixtures/bbc-good-food-pancakes.html"),
             "Easy pancakes",
             12,
             6,
@@ -84,7 +81,7 @@ fn the_verified_recipe_sources_read_whole() {
             Some(20),
         ),
         (
-            include_str!("../../tests/fixtures/simply-recipes-guacamole.html"),
+            include_str!("../../../tests/fixtures/simply-recipes-guacamole.html"),
             "How to Make the Best Guacamole",
             4,
             10,
@@ -93,7 +90,7 @@ fn the_verified_recipe_sources_read_whole() {
             None,
         ),
         (
-            include_str!("../../tests/fixtures/recipetin-eats-fried-rice.html"),
+            include_str!("../../../tests/fixtures/recipetin-eats-fried-rice.html"),
             "Chicken Fried Rice",
             4,
             16,
@@ -102,7 +99,7 @@ fn the_verified_recipe_sources_read_whole() {
             Some(10),
         ),
         (
-            include_str!("../../tests/fixtures/24kitchen-carbonara.html"),
+            include_str!("../../../tests/fixtures/24kitchen-carbonara.html"),
             "Originele spaghetti carbonara",
             4,
             6,
@@ -111,7 +108,7 @@ fn the_verified_recipe_sources_read_whole() {
             None,
         ),
         (
-            include_str!("../../tests/fixtures/leukerecepten-carbonara.html"),
+            include_str!("../../../tests/fixtures/leukerecepten-carbonara.html"),
             "Pasta carbonara: romige klassieker",
             4,
             6,
@@ -161,103 +158,4 @@ fn the_second_block_is_read_when_the_first_has_no_recipe() {
     let html = r#"<script type="application/ld+json">{"@type":"Organization"}</script>
     <script type="application/ld+json">[{"@type":"Recipe","name":"B","recipeIngredient":["x"]}]</script>"#;
     assert_eq!(from_page(html, None).unwrap().name, "B");
-}
-
-#[test]
-fn iso_durations_become_minutes() {
-    assert_eq!(iso_minutes("PT1H15M"), Some(75));
-    assert_eq!(iso_minutes("PT45M"), Some(45));
-    assert_eq!(iso_minutes("P0DT20M"), Some(20));
-    assert_eq!(iso_minutes("P1DT2H"), Some(1560));
-    assert_eq!(iso_minutes("PT90S"), Some(2));
-    assert_eq!(iso_minutes("pt30m"), Some(30));
-    assert_eq!(iso_minutes("PT0M"), None);
-    assert_eq!(iso_minutes("P1Y"), None);
-    assert_eq!(iso_minutes("45 minutes"), None);
-    assert_eq!(iso_minutes(""), None);
-}
-
-#[test]
-fn image_forms() {
-    let base = page();
-    let one = |s: &str| image_of(&serde_json::from_str(s).unwrap(), Some(&base));
-    assert_eq!(
-        one(r#""https://cdn.example.org/a.jpg""#).as_deref(),
-        Some("https://cdn.example.org/a.jpg")
-    );
-    assert_eq!(
-        one(r#"["https://cdn.example.org/a.jpg","b.jpg"]"#).as_deref(),
-        Some("https://cdn.example.org/a.jpg")
-    );
-    assert_eq!(
-        one(r#"{"@type":"ImageObject","url":"https://cdn.example.org/o.png"}"#).as_deref(),
-        Some("https://cdn.example.org/o.png")
-    );
-    assert_eq!(
-        one(r#"[{"url":"x.webp"}]"#).as_deref(),
-        Some("https://example.com/recipes/x.webp")
-    );
-    assert_eq!(one(r#""javascript:alert(1)""#), None);
-    assert_eq!(one(r#""data:image/png;base64,AAAA""#), None);
-    assert_eq!(one("42"), None);
-}
-
-#[test]
-fn the_yield_takes_the_first_number() {
-    let p = |s: &str| portions_of(&serde_json::from_str(s).unwrap());
-    assert_eq!(p(r#""4-6 people""#), Some(4));
-    assert_eq!(p(r#"["Serves 8"]"#), Some(8));
-    assert_eq!(p(r#""many""#), None);
-    assert_eq!(p("0"), None);
-}
-
-#[test]
-fn entities_and_tags_are_cleaned() {
-    assert_eq!(
-        clean("  Tom &amp; Jerry&#39;s <i>big</i>\n pie&nbsp;&#x41; "),
-        "Tom & Jerry's big pie A"
-    );
-    assert_eq!(clean("a &unknown; b"), "a &unknown; b");
-    assert_eq!(clean("1 < 2 without close"), "1 2 without close");
-}
-
-#[test]
-fn dutch_text_is_split_by_its_headings() {
-    let text = "Pannenkoeken\n\nIngrediënten\n- 250 g bloem\n• 2 eieren\nVoor de saus:\n1/2 l melk\n\nBereiding:\n1. Meng alles.\n2) Bak 3 minuten per kant.\nStap 3: Serveer.";
-    let r = from_text(text);
-    assert_eq!(r.name, "Pannenkoeken");
-    assert_eq!(r.ingredients, ["250 g bloem", "2 eieren", "1/2 l melk"]);
-    assert_eq!(
-        r.steps,
-        ["Meng alles.", "Bak 3 minuten per kant.", "Serveer."]
-    );
-    assert_eq!(r.source_url, None);
-}
-
-#[test]
-fn english_text_with_markdown_headings() {
-    let text = "## Ingredients\n* 1 cup rice\n* 2 cloves garlic\n\n## Method\n1. Rinse the rice.\n2. Cook it for 10 minutes.";
-    let r = from_text(text);
-    assert_eq!(r.name, "");
-    assert_eq!(r.ingredients, ["1 cup rice", "2 cloves garlic"]);
-    assert_eq!(r.steps, ["Rinse the rice.", "Cook it for 10 minutes."]);
-    for h in ["Directions", "INSTRUCTIONS:", "Steps", "Werkwijze"] {
-        assert_eq!(from_text(&format!("{h}\nDo it.")).steps, ["Do it."], "{h}");
-    }
-}
-
-#[test]
-fn text_without_headings_splits_on_amounts() {
-    let r = from_text("200 g flour\n2 eggs\nMix them well.\nBake.");
-    assert_eq!(r.ingredients, ["200 g flour", "2 eggs"]);
-    assert_eq!(r.steps, ["Mix them well.", "Bake."]);
-    assert!(!from_text("   \n \n").usable());
-}
-
-#[test]
-fn markers_come_off_but_amounts_stay() {
-    assert_eq!(strip_marker("1.5 kg potatoes"), "1.5 kg potatoes");
-    assert_eq!(strip_marker("12. Serve"), "Serve");
-    assert_eq!(strip_marker("- 3 eggs"), "3 eggs");
-    assert_eq!(strip_marker("1 2 eggs"), "1 2 eggs");
 }
