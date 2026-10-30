@@ -58,16 +58,8 @@ function union(spans) {
 /** A step that is placed by hand: it has its own start, or runs alongside another. @param {Step} s */
 const pinned = (s) => (typeof s.start === "number" && Number.isFinite(s.start) && s.start >= 0) || (typeof s.with === "string" && s.with !== "");
 
-/**
- * Lay the steps out. `align: "start"` (the default) lets every step begin as early as it may; `"end"` lets every step
- * begin as late as it may without the recipe taking longer (the timing page counts back from dinner and starts each
- * track just in time; a step placed by hand keeps its place and one that runs alongside follows its partner).
- * @param {Step[]} steps in cooking order @param {{ id: string, name?: string }[]} tracks
- * @param {{ stretch?: (s: Step) => number, align?: "start" | "end" }} [o]
- * @returns {Schedule}
- */
-export function layout(steps, tracks, { stretch = written, align = "start" } = {}) {
-  const { lanes, rowsOf } = lanesOf(steps, tracks);
+/** Every step as early as it may: after what came before on its rows, at its own start, or with its partner. @param {Step[]} steps @param {ReturnType<typeof lanesOf>} laid @param {(s: Step) => number} stretch */
+function placeForward(steps, { lanes, rowsOf }, stretch) {
   /** @type {Map<string, number>} */
   const cursor = new Map(lanes.map((l) => [l.id, 0]));
   /** @type {Map<string, Placed>} */
@@ -88,29 +80,46 @@ export function layout(steps, tracks, { stretch = written, align = "start" } = {
     placed.push(p);
     byId.set(p.id, p);
   }
-  const total = Math.max(0, ...placed.map((p) => p.end));
-  if (align === "end") {
-    /** @type {Map<string, number>} */
-    const latest = new Map(lanes.map((l) => [l.id, total]));
-    for (let i = placed.length - 1; i >= 0; i--) {
-      const p = placed[i];
-      // A step placed by hand keeps its place and bounds nobody: the steps before it on its track are bounded by the
-      // steps after it that move (one that runs alongside does not push its track, so it must not pull it either).
-      if (pinned(p.step)) continue;
-      p.end = Math.min(...p.rows.map((r) => latest.get(r) ?? total));
-      p.start = p.end - p.mins;
-      for (const r of p.rows) latest.set(r, Math.min(latest.get(r) ?? total, p.start));
-    }
-    for (const p of placed) {
-      const partner = typeof p.step.with === "string" ? byId.get(p.step.with) : undefined;
-      if (partner && !(typeof p.step.start === "number" && p.step.start >= 0)) {
-        p.start = partner.start;
-        p.end = p.start + p.mins;
-      }
+  return { placed, byId };
+}
+
+/** Every step as late as it may without the recipe taking longer; a step with a partner follows it again. @param {Placed[]} placed @param {Map<string, Placed>} byId @param {{ id: string }[]} lanes @param {number} total */
+function pushLate(placed, byId, lanes, total) {
+  /** @type {Map<string, number>} */
+  const latest = new Map(lanes.map((l) => [l.id, total]));
+  for (let i = placed.length - 1; i >= 0; i--) {
+    const p = placed[i];
+    // A step placed by hand keeps its place and bounds nobody: the steps before it on its track are bounded by the
+    // steps after it that move (one that runs alongside does not push its track, so it must not pull it either).
+    if (pinned(p.step)) continue;
+    p.end = Math.min(...p.rows.map((r) => latest.get(r) ?? total));
+    p.start = p.end - p.mins;
+    for (const r of p.rows) latest.set(r, Math.min(latest.get(r) ?? total, p.start));
+  }
+  for (const p of placed) {
+    const partner = typeof p.step.with === "string" ? byId.get(p.step.with) : undefined;
+    if (partner && !(typeof p.step.start === "number" && p.step.start >= 0)) {
+      p.start = partner.start;
+      p.end = p.start + p.mins;
     }
   }
+}
+
+/**
+ * Lay the steps out. `align: "start"` (the default) lets every step begin as early as it may; `"end"` lets every step
+ * begin as late as it may without the recipe taking longer (the timing page counts back from dinner and starts each
+ * track just in time; a step placed by hand keeps its place and one that runs alongside follows its partner).
+ * @param {Step[]} steps in cooking order @param {{ id: string, name?: string }[]} tracks
+ * @param {{ stretch?: (s: Step) => number, align?: "start" | "end" }} [o]
+ * @returns {Schedule}
+ */
+export function layout(steps, tracks, { stretch = written, align = "start" } = {}) {
+  const laid = lanesOf(steps, tracks);
+  const { placed, byId } = placeForward(steps, laid, stretch);
+  const total = Math.max(0, ...placed.map((p) => p.end));
+  if (align === "end") pushLate(placed, byId, laid.lanes, total);
   const handsOn = union(placed.filter((p) => p.step.active).map((p) => /** @type {[number, number]} */ ([p.start, p.end])));
-  return { steps: placed, lanes, rowsOf, total, handsOn };
+  return { steps: placed, lanes: laid.lanes, rowsOf: laid.rowsOf, total, handsOn };
 }
 
 /**
