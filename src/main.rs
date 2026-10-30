@@ -83,16 +83,8 @@ async fn main() -> std::process::ExitCode {
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);
     }
-    let host = std::env::var("KITCHEN_PARENTS_HOST")
-        .ok()
-        .map(|h| h.trim().to_ascii_lowercase())
-        .filter(|h| !h.is_empty());
-    let allow = std::env::var("KITCHEN_PARENTS_ALLOW")
-        .ok()
-        .filter(|a| !a.trim().is_empty())
-        .unwrap_or_else(|| parents::Allow::DEFAULT.to_string());
-    let allow = match parents::Allow::parse(&allow) {
-        Ok(a) => a,
+    let (host, allow) = match parents_settings() {
+        Ok(s) => s,
         Err(e) => {
             eprintln!("kitchen: {e}");
             return std::process::ExitCode::FAILURE;
@@ -115,6 +107,26 @@ async fn main() -> std::process::ExitCode {
         None => WebApp::embedded(FILES),
     };
     app.webapp(web);
+    register_pages(&mut app);
+    app.run().await
+}
+
+/// The host the parents' wheel is kept to and the clients it answers, from the environment.
+fn parents_settings() -> Result<(Option<String>, parents::Allow), String> {
+    let host = std::env::var("KITCHEN_PARENTS_HOST")
+        .ok()
+        .map(|h| h.trim().to_ascii_lowercase())
+        .filter(|h| !h.is_empty());
+    let allow = std::env::var("KITCHEN_PARENTS_ALLOW")
+        .ok()
+        .filter(|a| !a.trim().is_empty())
+        .unwrap_or_else(|| parents::Allow::DEFAULT.to_string());
+    let allow = parents::Allow::parse(&allow).map_err(|e| e.to_string())?;
+    Ok((host, allow))
+}
+
+/// The pages of the app's bar and the hidden ones.
+fn register_pages(app: &mut App) {
     // The bar: the four places a person goes, in the order of an evening.
     // The recipe page and cook mode are reached from a dish, not the bar.
     app.page(Page::new("wheel", "What do we eat?", "/"))
@@ -144,5 +156,4 @@ async fn main() -> std::process::ExitCode {
         // second home; the operator reads /healthz and `kitchen --check`.
         .disable_kit_page("status")
         .disable_kit_page("clients");
-    app.run().await
 }
