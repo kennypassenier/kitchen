@@ -51,6 +51,36 @@ function inUse(list, item) {
   return t(`list.${list}.inUse`, LISTS[list].name(item), users.length, users.join(", "));
 }
 
+/** A log line or a resting mark goes at once, with an Undo that puts it back. @param {List} list @param {Item} item @param {string} name @param {(() => void) | undefined} after */
+function deleteAtOnce(list, item, name, after) {
+  void remove(list, item.id).then(
+    () => {
+      after?.();
+      const { id, created, updated, ...rest } = item;
+      undoToast(t("rec.deletedDot", name), {
+        mode: "revert",
+        ms: 10_000,
+        clock: "ring",
+        undo: async () => {
+          try {
+            await create(list, rest);
+          } catch (e) {
+            toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
+          }
+        },
+      });
+    },
+    (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
+  );
+}
+
+/** A deleted category leaves no gap: the others close up to 1, 2, 3, …. @param {List} list */
+async function closeUp(list) {
+  if (list !== "dish_categories" && list !== "ingredient_categories") return;
+  const rest = ordered(kitchenNow()?.[list] ?? []);
+  for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
+}
+
 /**
  * Delete an item: a log line or a resting mark at once with Undo, anything a person typed more of after the typed
  * name. `after` runs once it is gone (a detail page goes back to its list).
@@ -63,28 +93,7 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
     toast(blocked, { live: "assertive" });
     return;
   }
-  if (list === "log" || list === "resting") {
-    void remove(list, item.id).then(
-      () => {
-        after?.();
-        const { id, created, updated, ...rest } = item;
-        undoToast(t("rec.deletedDot", name), {
-          mode: "revert",
-          ms: 10_000,
-          clock: "ring",
-          undo: async () => {
-            try {
-              await create(list, rest);
-            } catch (e) {
-              toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
-            }
-          },
-        });
-      },
-      (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
-    );
-    return;
-  }
+  if (list === "log" || list === "resting") return deleteAtOnce(list, item, name, after);
   openConfirmation(anchor, {
     phrase: t("rec.deleteAsk", name),
     typeName: name,
@@ -92,13 +101,7 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
     loses: loses(list, item),
     onAccept: () =>
       void remove(list, item.id)
-        .then(async () => {
-          // A deleted category leaves no gap: the others close up to 1, 2, 3, ….
-          if (list === "dish_categories" || list === "ingredient_categories") {
-            const rest = ordered(kitchenNow()?.[list] ?? []);
-            for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
-          }
-        })
+        .then(() => closeUp(list))
         .then(
           () => {
             toast(t("rec.deleted", name));
