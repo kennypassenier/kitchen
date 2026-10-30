@@ -69,74 +69,78 @@ function setActions({ edit, copy, del, fromSite }, on) {
   }
 }
 
+/** @typedef {{ list: Exclude<List, "recipes">, id: string, meta: (typeof LISTS)[keyof typeof LISTS], p: ReturnType<typeof buildPage>, cur: { item: Item | null }, extra: ReturnType<typeof usedBy> | null, recipesCard: ReturnType<typeof dishRecipes> | null }} ItemView */
+
+/** The item is not (any more) in the kitchen: an empty plate with the way back. @param {ItemView} v */
+function showMissing({ meta, p }) {
+  const [homeHref, homeName] = meta.home;
+  p.title.textContent = t("it.notThere", meta.this);
+  document.title = `${t("shell.notFoundTitle")} · Kitchen`;
+  setActions(p, false);
+  const back = h("a", { class: "kp-button kp-button--primary", href: homeHref }, t("it.open", homeName));
+  setCardState(p.card, "empty", { title: t("it.noneHere", meta.noun), text: t("it.noneHereText", homeName), action: back });
+}
+
+/** @param {ItemView} v @param {Kitchen} k */
+function showItem(v, k) {
+  const { list, meta, p } = v;
+  const item = /** @type {Item} */ (v.cur.item);
+  const name = meta.name(item);
+  p.title.replaceChildren(name, ...(["dishes", "dish_categories", "ingredients", "ingredient_categories"].includes(list) ? [" ", missingBadge(list, item) ?? ""] : []));
+  document.title = `${name} · Kitchen`;
+  p.kv.replaceChildren(...facts(list, item, k).map(([key, value]) => h("div", { class: "kp-kv__row" }, h("dt", null, key), h("dd", null, value))));
+  setActions(p, true);
+  v.recipesCard?.show(k, item);
+  setCardState(p.card, "ready");
+  v.extra?.show(k);
+}
+
+/** @param {ItemView} v @param {Kitchen} k */
+function show(v, k) {
+  v.cur.item = /** @type {Item[]} */ (k[v.list] ?? []).find((x) => x.id === v.id) ?? null;
+  if (v.cur.item) showItem(v, k);
+  else showMissing(v);
+}
+
 /**
  * @param {HTMLElement} root
  * @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx
  */
 export function mount(root, { params, navigate }) {
   const list = BY_BASE[params.get("list") ?? ""];
-  const id = params.get("id") ?? "";
-  const meta = LISTS[list];
-  const [homeHref, homeName] = meta.home;
   let alive = true;
   const p = buildPage(list);
-  const { title, kv, card, pageEl } = p;
-  root.replaceChildren(pageEl);
-  const stopCard = attachCardStates(card);
-  const extra = list === "ingredients" ? usedBy(pageEl, id) : null;
-  const recipesCard = list === "dishes" ? dishRecipes(pageEl) : null;
-  const cur = { /** @type {Item | null} */ item: null };
+  root.replaceChildren(p.pageEl);
+  const stopCard = attachCardStates(p.card);
+  const id = params.get("id") ?? "";
+  /** @type {ItemView} */
+  const v = { list, id, meta: LISTS[list], p, cur: { item: null }, extra: list === "ingredients" ? usedBy(p.pageEl, id) : null, recipesCard: list === "dishes" ? dishRecipes(p.pageEl) : null };
   setActions(p, false);
-  wireButtons(list, p, cur, navigate);
-
-  /** The item is not (any more) in the kitchen: an empty plate with the way back. */
-  function showMissing() {
-    title.textContent = t("it.notThere", meta.this);
-    document.title = `${t("shell.notFoundTitle")} · Kitchen`;
-    setActions(p, false);
-    const back = h("a", { class: "kp-button kp-button--primary", href: homeHref }, t("it.open", homeName));
-    setCardState(card, "empty", { title: t("it.noneHere", meta.noun), text: t("it.noneHereText", homeName), action: back });
-  }
-
-  /** @param {Kitchen} k */
-  function show(k) {
-    const item = /** @type {Item[]} */ (k[list] ?? []).find((x) => x.id === id) ?? null;
-    cur.item = item;
-    if (!item) return showMissing();
-    const name = meta.name(item);
-    title.replaceChildren(name, ...(["dishes", "dish_categories", "ingredients", "ingredient_categories"].includes(list) ? [" ", missingBadge(list, item) ?? ""] : []));
-    document.title = `${name} · Kitchen`;
-    kv.replaceChildren(...facts(list, item, k).map(([key, value]) => h("div", { class: "kp-kv__row" }, h("dt", null, key), h("dd", null, value))));
-    setActions(p, true);
-    recipesCard?.show(k, item);
-    setCardState(card, "ready");
-    extra?.show(k);
-  }
+  wireButtons(list, p, v.cur, navigate);
 
   /** @param {boolean} [force] */
   function load(force = false) {
-    if (force) setCardState(card, "loading");
+    if (force) setCardState(p.card, "loading");
     loadKitchen({ force }).then(
-      (k) => alive && show(k),
+      (k) => alive && show(v, k),
       (e) => {
         if (!alive) return;
-        extra?.fail(e instanceof Error ? e.message : String(e));
+        v.extra?.fail(e instanceof Error ? e.message : String(e));
         setActions(p, false);
-        setCardState(card, "error", { title: t("it.notRead", meta.the), text: e instanceof Error ? e.message : String(e) });
+        setCardState(p.card, "error", { title: t("it.notRead", v.meta.the), text: e instanceof Error ? e.message : String(e) });
       },
     );
   }
   const retry = () => load(true);
-  card.addEventListener(CARD_RETRY_EVENT, retry);
-  const stop = onKitchen((k) => alive && show(k));
+  p.card.addEventListener(CARD_RETRY_EVENT, retry);
+  const stop = onKitchen((k) => alive && show(v, k));
   load();
-
   return () => {
     alive = false;
     stop();
     stopCard();
-    extra?.stop();
-    recipesCard?.stop();
-    card.removeEventListener(CARD_RETRY_EVENT, retry);
+    v.extra?.stop();
+    v.recipesCard?.stop();
+    p.card.removeEventListener(CARD_RETRY_EVENT, retry);
   };
 }
