@@ -33,7 +33,7 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/ingredients": () => import("./pages/ingredients.js"),
 });
 
-/** Every item's own page, `/<word>/<id>` (pages/item.js), and the bar entry it lights up. */
+/** Every item's own page, `/<word>/<id>` (pages/item/index.js), and the bar entry it lights up. */
 const DETAIL = /** @type {Record<string, string>} */ ({
   dishes: "/dishes",
   categories: "/dishes",
@@ -61,7 +61,7 @@ function route(path, search) {
   if (!m || !(m[1] in DETAIL)) return null;
   params.set("list", m[1]);
   params.set("id", decodeURIComponent(m[2]));
-  return { load: () => import("./pages/item.js"), params, bar: DETAIL[m[1]] };
+  return { load: () => import("./pages/item/index.js"), params, bar: DETAIL[m[1]] };
 }
 
 const page = /** @type {HTMLElement} */ (document.getElementById("page"));

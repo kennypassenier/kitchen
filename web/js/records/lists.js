@@ -81,7 +81,7 @@ export function detailHref(list, id) {
   const e = encodeURIComponent(id);
   return list === "recipes" ? `/recipe?id=${e}` : `/${DETAIL_BASE[list]}/${e}`;
 }
-/** The path word of each list's detail page; js/main.js routes `/<word>/<id>` to pages/item.js. */
+/** The path word of each list's detail page; js/main.js routes `/<word>/<id>` to pages/item/index.js. */
 export const DETAIL_BASE = /** @type {Record<Exclude<List, "recipes">, string>} */ ({
   dishes: "dishes",
   dish_categories: "categories",
