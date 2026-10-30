@@ -27,6 +27,7 @@ import { coverCard } from "./cover.js";
 import { wordsFor } from "./words.js";
 import { effective } from "./schedule.js";
 import { toItems, fromItems } from "./sequence.js";
+import { settle } from "./meet.js";
 import { t, lang } from "../i18n/index.js";
 
 /** Meals and preparation, as the data names them. */
@@ -561,7 +562,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   });
   /** The two times from the steps as they stand, and what is stored: a typed override wins. */
   const timesNow = () => {
-    const steps = stepList.map((e) => e.get()).filter((x) => x.text);
+    const steps = settle(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks());
     const typed = (/** @type {HTMLElement} */ sw, /** @type {HTMLElement} */ q) => (on(sw) ? getQuantity(q) : null);
     return effective(r, { steps, tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name), minutes_override: typed(minutesOver, minutes), hands_on_override: typed(handsOver, hands) });
   };
@@ -589,7 +590,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   const paintTimeline = () => {
     if (syncing) return;
     const number = new Map(stepList.map((e, i) => [e.id, i + 1]));
-    const { items, lanes } = toItems(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks(), {
+    const { items, lanes } = toItems(settle(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks()), namedTracks(), {
       meet: t("edit.tracksMeet"),
       all: t("edit.timelineAll"),
       unnamed: t("edit.unnamedTrack"),
@@ -616,7 +617,8 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   seqHost.addEventListener(SEQUENCER_CHANGE_EVENT, (ev) => {
     syncing = true;
     try {
-      const after = fromItems(stepList.map((e) => e.get()), namedTracks(), /** @type {CustomEvent} */ (ev).detail.items);
+      // The meeting lane then follows the steps before it (recipe/meet.js, Kenny, 30/10/2026).
+      const after = settle(fromItems(stepList.map((e) => e.get()), namedTracks(), /** @type {CustomEvent} */ (ev).detail.items), namedTracks());
       const byId = new Map(stepList.map((e) => [e.id, e]));
       for (const st of after) /** @type {any} */ (byId.get(st.id))?.set(st);
       stepList = after.map((st) => /** @type {any} */ (byId.get(st.id)));
@@ -686,6 +688,17 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   const detachSeq = attachSequencers(form);
   /** @type {any} */ (dialog).__rlSeq = detachSeq;
   dialog.addEventListener("close", detachSeq, { once: true });
+  /** The meeting lane follows the steps before it (recipe/meet.js): a moved start is written into its field before anything is read. */
+  const settleFields = (/** @type {Event} */ ev) => {
+    if (syncing || seqHost.contains(/** @type {Node} */ (ev.target)) || (ev.type === "input" && stepList.some((e) => e.start === ev.target))) return;
+    const now = stepList.map((e) => e.get());
+    const after = settle(now, namedTracks());
+    after.forEach((st, i) => {
+      if (st !== now[i]) /** @type {any} */ (stepList[i]).set(st);
+    });
+  };
+  for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, settleFields);
+  settleFields(new Event("change"));
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, queuePaint);
   paintTimeline();
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, refreshTimes);

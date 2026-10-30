@@ -87,7 +87,10 @@ mapped to an item: `id` = step `id`; `lane` = `track` (a step with no track, or 
 dragged keeps `start` empty. Within each track the list is put in the order of the starts (the other tracks' order is
 not touched); then `start` is checked once more on that order, so what the timeline shows is what `schedule.js`
 computes (the total and hands-on time are read from there, updating when a drag is dropped, not during it). A step
-with no text is not an item. The sequencer refuses an overlap inside a lane (`overlap` default), so parallel work
+with no text is not an item. The meeting lane follows the steps before it (`web/js/recipe/meet.js`, Kenny, 30/10/2026,
+"Automatisch"): on every edit and drop a step with no track whose `start` is at or before the end of the steps before it
+loses that `start` (it follows the flow, so it moves along when a step before it grows or shrinks); a `start` later than
+that end stays, so `start` on such a step means "not earlier than". Test: `node --test scripts/meet.test.mjs`. The sequencer refuses an overlap inside a lane (`overlap` default), so parallel work
 needs a second track. Cook mode keeps its own run timeline (a gantt on the real clock).
 
 ### Photos

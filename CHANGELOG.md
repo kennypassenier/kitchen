@@ -15,6 +15,9 @@ carries a **Migration** section saying what an operator must do.
   and shown in the other, the total and hands-on time update when a drag is dropped, and the draft keeps saving.
   Within a track the list follows the order of the starts. No format change. Cook mode keeps its own run timeline
   (the real clock, steps done, the step in hand), which the sequencer is not.
+- A step in the "Where the tracks meet" lane now moves along by itself when a step before it gets longer or moves, so it
+  never overlaps one and the total stays right without dragging (`web/js/recipe/meet.js`). A step dragged later keeps
+  its later start.
 - Recipe sources (`/sources`, Dutch "Receptbronnen"): the websites whose recipe
   pages the import reads well, as a list of your own with Add, Edit, Delete,
   search, a language filter and an own page per source. Every site link opens
