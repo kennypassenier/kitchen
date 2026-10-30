@@ -2,6 +2,26 @@
 
 use super::MAX_LINE;
 
+/// The character an entity name stands for (`amp`, `#39`, `#x27`), if it is one we know.
+fn entity_char(name: &str) -> Option<char> {
+    match name {
+        "amp" => Some('&'),
+        "lt" => Some('<'),
+        "gt" => Some('>'),
+        "quot" => Some('"'),
+        "apos" => Some('\''),
+        "nbsp" => Some(' '),
+        _ => name
+            .strip_prefix('#')
+            .and_then(|n| {
+                n.strip_prefix(['x', 'X'])
+                    .map(|h| u32::from_str_radix(h, 16).ok())
+                    .unwrap_or_else(|| n.parse().ok())
+            })
+            .and_then(char::from_u32),
+    }
+}
+
 /// Decode the entities pages put inside JSON strings. Unknown ones stay as written.
 fn decode_entities(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -9,35 +29,14 @@ fn decode_entities(s: &str) -> String {
     while let Some(i) = rest.find('&') {
         out.push_str(&rest[..i]);
         let tail = &rest[i..];
-        match tail.find(';').filter(|&e| e <= 10) {
-            Some(e) => {
-                let name = &tail[1..e];
-                let ch = match name {
-                    "amp" => Some('&'),
-                    "lt" => Some('<'),
-                    "gt" => Some('>'),
-                    "quot" => Some('"'),
-                    "apos" => Some('\''),
-                    "nbsp" => Some(' '),
-                    _ => name
-                        .strip_prefix('#')
-                        .and_then(|n| {
-                            n.strip_prefix(['x', 'X'])
-                                .map(|h| u32::from_str_radix(h, 16).ok())
-                                .unwrap_or_else(|| n.parse().ok())
-                        })
-                        .and_then(char::from_u32),
-                };
-                match ch {
-                    Some(c) => {
-                        out.push(c);
-                        rest = &tail[e + 1..];
-                    }
-                    None => {
-                        out.push('&');
-                        rest = &tail[1..];
-                    }
-                }
+        let known = tail
+            .find(';')
+            .filter(|&e| e <= 10)
+            .and_then(|e| entity_char(&tail[1..e]).map(|c| (c, e)));
+        match known {
+            Some((c, e)) => {
+                out.push(c);
+                rest = &tail[e + 1..];
             }
             None => {
                 out.push('&');

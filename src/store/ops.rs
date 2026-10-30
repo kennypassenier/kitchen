@@ -12,45 +12,8 @@ impl Store {
             return Err(Refused::NotAnObject);
         };
         both_names(coll, &obj)?;
-        // One draft per `key`: saving again replaces the one there (its id and creation kept).
         if coll == "drafts" {
-            let key = obj
-                .get("key")
-                .and_then(Value::as_str)
-                .filter(|k| !k.trim().is_empty())
-                .ok_or(Refused::NoKey)?
-                .to_string();
-            obj.insert(
-                "saved".into(),
-                Value::String(chassis::shell::time::now_rfc3339()),
-            );
-            return self
-                .change(|d| {
-                    let at = d
-                        .drafts
-                        .iter()
-                        .position(|v| v.get("key").and_then(Value::as_str) == Some(key.as_str()));
-                    let (id, created) = match at.map(|i| &d.drafts[i]) {
-                        Some(old) => (old.get("id").cloned(), old.get("created").cloned()),
-                        None => (None, None),
-                    };
-                    obj.insert(
-                        "id".into(),
-                        id.unwrap_or_else(|| Value::String(uuid::Uuid::new_v4().to_string())),
-                    );
-                    obj.insert(
-                        "created".into(),
-                        created
-                            .unwrap_or_else(|| Value::String(chassis::shell::time::now_rfc3339())),
-                    );
-                    let item = Value::Object(obj);
-                    match at {
-                        Some(i) => d.drafts[i] = item.clone(),
-                        None => d.drafts.push(item.clone()),
-                    }
-                    Ok(item)
-                })
-                .await;
+            return self.save_draft(obj).await;
         }
         obj.insert("id".into(), Value::String(uuid::Uuid::new_v4().to_string()));
         obj.insert(
@@ -64,6 +27,45 @@ impl Store {
                 .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
             c.push(item.clone());
             Ok(item.clone())
+        })
+        .await
+    }
+
+    /// One draft per `key`: saving again replaces the one there (its id and creation kept).
+    async fn save_draft(&self, mut obj: serde_json::Map<String, Value>) -> Result<Value, Refused> {
+        let key = obj
+            .get("key")
+            .and_then(Value::as_str)
+            .filter(|k| !k.trim().is_empty())
+            .ok_or(Refused::NoKey)?
+            .to_string();
+        obj.insert(
+            "saved".into(),
+            Value::String(chassis::shell::time::now_rfc3339()),
+        );
+        self.change(|d| {
+            let at = d
+                .drafts
+                .iter()
+                .position(|v| v.get("key").and_then(Value::as_str) == Some(key.as_str()));
+            let (id, created) = match at.map(|i| &d.drafts[i]) {
+                Some(old) => (old.get("id").cloned(), old.get("created").cloned()),
+                None => (None, None),
+            };
+            obj.insert(
+                "id".into(),
+                id.unwrap_or_else(|| Value::String(uuid::Uuid::new_v4().to_string())),
+            );
+            obj.insert(
+                "created".into(),
+                created.unwrap_or_else(|| Value::String(chassis::shell::time::now_rfc3339())),
+            );
+            let item = Value::Object(obj);
+            match at {
+                Some(i) => d.drafts[i] = item.clone(),
+                None => d.drafts.push(item.clone()),
+            }
+            Ok(item)
         })
         .await
     }

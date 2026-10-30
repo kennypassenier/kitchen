@@ -113,15 +113,20 @@ pub fn from_text(text: &str) -> Imported {
             out.name = first.clone();
         }
     } else {
-        for line in loose {
-            if starts_with_amount(&line) {
-                if out.ingredients.len() < MAX_LINES {
-                    out.ingredients.push(line);
-                }
-            } else if out.steps.len() < MAX_LINES {
-                out.steps.push(line);
-            }
-        }
+        place_loose(&mut out, loose);
     }
     out
+}
+
+/// Without headings: lines that start with an amount are ingredients, the rest are steps.
+fn place_loose(out: &mut Imported, loose: Vec<String>) {
+    for line in loose {
+        if starts_with_amount(&line) {
+            if out.ingredients.len() < MAX_LINES {
+                out.ingredients.push(line);
+            }
+        } else if out.steps.len() < MAX_LINES {
+            out.steps.push(line);
+        }
+    }
 }
