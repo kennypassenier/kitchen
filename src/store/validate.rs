@@ -11,26 +11,6 @@ use super::Refused;
 /// and gear, when given, need both too. Items stored before that rule keep
 /// what they have until they are saved again.
 pub(super) fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Refused> {
-    let filled = |v: Option<&Value>, lang: &str| {
-        v.and_then(|n| n.get(lang))
-            .and_then(Value::as_str)
-            .is_some_and(|s| !s.trim().is_empty())
-    };
-    let whole = |v: Option<&Value>, at: &str| -> Result<(), Refused> {
-        for lang in ["nl", "en"] {
-            if !filled(v, lang) {
-                return Err(Refused::MissingName(format!("{at}.{lang}")));
-            }
-        }
-        Ok(())
-    };
-    // A label is optional, but a label given in one language only is half a name.
-    let label = |v: Option<&Value>, at: &str| -> Result<(), Refused> {
-        if filled(v, "nl") || filled(v, "en") {
-            whole(v, at)?;
-        }
-        Ok(())
-    };
     if coll == "shelf" {
         whole(obj.get("title"), "title")?;
         label(obj.get("text"), "text")?;
@@ -50,25 +30,51 @@ pub(super) fn both_names(coll: &str, obj: &Map<String, Value>) -> Result<(), Ref
     }
     whole(obj.get("name"), "name")?;
     if coll == "dishes" {
-        for (i, s) in obj
-            .get("sides")
+        dish_labels(obj)?;
+    }
+    Ok(())
+}
+
+/// Whether a `{nl, en}` half has words.
+fn filled(v: Option<&Value>, lang: &str) -> bool {
+    v.and_then(|n| n.get(lang))
+        .and_then(Value::as_str)
+        .is_some_and(|s| !s.trim().is_empty())
+}
+
+/// Both halves of a name must have words.
+fn whole(v: Option<&Value>, at: &str) -> Result<(), Refused> {
+    for lang in ["nl", "en"] {
+        if !filled(v, lang) {
+            return Err(Refused::MissingName(format!("{at}.{lang}")));
+        }
+    }
+    Ok(())
+}
+
+/// A label is optional, but a label given in one language only is half a name.
+fn label(v: Option<&Value>, at: &str) -> Result<(), Refused> {
+    if filled(v, "nl") || filled(v, "en") {
+        whole(v, at)?;
+    }
+    Ok(())
+}
+
+/// A dish's side labels and its recipes' labels and sources.
+fn dish_labels(obj: &Map<String, Value>) -> Result<(), Refused> {
+    let items = |k: &str| {
+        obj.get(k)
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
             .enumerate()
-        {
-            label(s.get("label"), &format!("sides[{i}].label"))?;
-        }
-        for (i, r) in obj
-            .get("recipes")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .enumerate()
-        {
-            label(r.get("label"), &format!("recipes[{i}].label"))?;
-            source(r.get("source"), &format!("recipes[{i}].source"))?;
-        }
+    };
+    for (i, s) in items("sides") {
+        label(s.get("label"), &format!("sides[{i}].label"))?;
+    }
+    for (i, r) in items("recipes") {
+        label(r.get("label"), &format!("recipes[{i}].label"))?;
+        source(r.get("source"), &format!("recipes[{i}].source"))?;
     }
     Ok(())
 }
