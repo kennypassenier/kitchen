@@ -19,7 +19,7 @@ import { onKitchen, patchSettings, loadKitchen } from "./api.js";
 
 /** Path → screen module. A screen's module loads on its first visit. */
 const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
-  "/": () => import("./pages/wheel.js"),
+  "/": () => import("./pages/wheel/index.js"),
   "/cook": () => import("./pages/cook/index.js"),
   "/timing": () => import("./pages/timing/index.js"),
   "/bad-days": () => import("./pages/baddays/index.js"),
