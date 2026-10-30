@@ -1,0 +1,141 @@
+// The recipe page, `/recipe?id=<recipe id>`: read it, scale it, begin.
+//
+// Four sections on one grid: the recipe itself (title, effort, the summary,
+// "Last time", the portions and the ingredients that follow them, the big
+// Begin cooking button), the code that opens cook mode on a phone, the
+// printable sheet, and the cooking log of this recipe. Everything the page
+// draws is the package's own part: the card with its states, the lede, the
+// quantity, the hover card, the flash button, the QR code, the print sheet,
+// the heat grid.
+
+// Split on 30/10/2026 (docs/agent/MODULARITY.md): this file joins the parts and reads the kitchen; the page's state is one
+// `ctx` object (the words, the recipe, the portions, the elements). frame.js builds the sections, card.js the recipe
+// card (ingredients.js its list), share-sheet.js the code and the printable sheet.
+
+import { loadKitchen, onKitchen, kitchenNow, reason } from "../../api.js";
+import { h } from "../../dom.js";
+import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
+import { attachHoverCards } from "/static/kp/js/hovercard.js";
+import { setQr } from "/static/kp/js/qr.js";
+import { wordsFor } from "../../recipe/words.js";
+import { createLog } from "../../recipe/log.js";
+import { paintStepPhotos } from "../../recipe/page-parts.js";
+import { lang } from "../../i18n/index.js";
+import { buildFrame, paintWords } from "./frame.js";
+import { createCardView } from "./card.js";
+import { createShare, drawPrintOptions } from "./share-sheet.js";
+
+/** @typedef {import("../../api.js").Kitchen} Kitchen */
+
+/**
+ * @typedef {object} RecipeCtx
+ * @property {string} id
+ * @property {(href: string) => void} navigate
+ * @property {import("../../recipe/words.js").Words} words
+ * @property {Record<string, any> | null} recipe
+ * @property {number} portions
+ * @property {boolean} alive
+ * @property {ReturnType<typeof buildFrame>} el
+ */
+
+/** The lower sections show once there is a recipe to show. @param {RecipeCtx} ctx @param {boolean} on */
+function lower(ctx, on) {
+  const { share, paper, logSec, stepCard } = ctx.el;
+  for (const el of [share.el, paper.el, logSec.el]) el.hidden = !on;
+  if (!on) stepCard.el.hidden = true;
+}
+
+/** The recipe is not in the kitchen. @param {RecipeCtx} ctx */
+function showNotFound(ctx) {
+  const { words } = ctx;
+  ctx.recipe = null;
+  lower(ctx, false);
+  document.title = `${words.notFoundTitle} · Kitchen`;
+  setCardState(ctx.el.card, "empty", { title: words.notFoundTitle, text: words.notFoundText, action: h("a", { class: "kp-button kp-button--primary", href: "/" }, words.wheel) });
+}
+
+/**
+ * @param {HTMLElement} root
+ * @param {{ params: URLSearchParams, navigate: (href: string) => void }} page
+ */
+export function mount(root, { params, navigate }) {
+  /** @type {RecipeCtx} */
+  const ctx = { id: params.get("id") ?? "", navigate, words: wordsFor(lang()), recipe: null, portions: 0, alive: true, el: buildFrame() };
+  let recipeJson = "";
+  /** @type {(() => void)[]} */
+  const cleanups = [];
+  const { card, code, logSec, stepCard, stepList, page } = ctx.el;
+  const log = createLog(logSec.el, { recipeId: ctx.id, retry: () => void load(true) });
+  root.replaceChildren(page);
+  attachCardStates(page);
+  cleanups.push(attachHoverCards(page));
+
+  const share = createShare(ctx);
+  const cardView = createCardView(ctx, share.paintSheet);
+  paintWords(ctx.el, ctx.words);
+  setQr(code, { state: "loading" });
+  setCardState(card, "loading", { words: ctx.words.loading });
+  setCardState(ctx.el.paper.el, "loading", { words: ctx.words.sheetLoading });
+  log.loading(ctx.words);
+
+  /** @param {Kitchen} k */
+  function show(k) {
+    const found = k.recipes.find((r) => r.id === ctx.id) ?? null;
+    const next = wordsFor(lang());
+    const switched = next !== ctx.words;
+    ctx.words = next;
+    if (!found) {
+      recipeJson = "";
+      showNotFound(ctx);
+      return;
+    }
+    const json = JSON.stringify(found);
+    const changed = json !== recipeJson || switched;
+    ctx.recipe = found;
+    recipeJson = json;
+    if (ctx.portions === 0) ctx.portions = found.portions || 1;
+    document.title = `${found.name} · Kitchen`;
+    if (changed) {
+      paintWords(ctx.el, ctx.words);
+      drawPrintOptions(ctx);
+      cardView.draw(found, k);
+      paintStepPhotos(stepCard, stepList, found);
+      share.paintShare();
+      share.paintSheet();
+    }
+    lower(ctx, true);
+    setCardState(card, "ready");
+    log.show(k, ctx.words);
+  }
+
+  /** @param {boolean} [force] */
+  async function load(force = false) {
+    if (force || !kitchenNow()) {
+      setCardState(card, "loading", { words: ctx.words.loading });
+      setQr(code, { state: "loading" });
+      log.loading(ctx.words);
+      lower(ctx, true);
+    }
+    try {
+      const k = await loadKitchen({ force });
+      if (ctx.alive) show(k);
+    } catch (e) {
+      if (!ctx.alive) return;
+      lower(ctx, false);
+      setCardState(card, "error", { title: ctx.words.failedTitle, text: reason(e) });
+    }
+  }
+  card.addEventListener("kp-card-retry", () => void load(true));
+  cleanups.push(
+    onKitchen(() => {
+      const k = kitchenNow();
+      if (k && ctx.alive && recipeJson !== "") show(k);
+    }),
+  );
+  void load();
+
+  return () => {
+    ctx.alive = false;
+    for (const clean of cleanups) clean();
+  };
+}

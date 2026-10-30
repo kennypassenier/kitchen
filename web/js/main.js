@@ -23,7 +23,7 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/cook": () => import("./pages/cook/index.js"),
   "/timing": () => import("./pages/timing/index.js"),
   "/bad-days": () => import("./pages/baddays/index.js"),
-  "/recipe": () => import("./pages/recipe.js"),
+  "/recipe": () => import("./pages/recipe/index.js"),
   "/recipes": () => import("./pages/recipes.js"),
   "/settings": () => import("./pages/settings.js"),
   "/parents": () => import("./pages/parents.js"),
