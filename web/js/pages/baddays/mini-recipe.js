@@ -36,81 +36,98 @@ function ledeOf(mini, version, steps, small) {
     : t("bad.fullLede", steps.length, mini.minutes, mini.portions, mini.gear);
 }
 
+/**
+ * @typedef {object} MiniState
+ * @property {import("./index.js").BadDaysCtx} ctx
+ * @property {{ title: HTMLElement, version: HTMLElement, lede: HTMLElement, steps: HTMLElement, cook: HTMLAnchorElement }} el
+ * @property {Item | null} mini
+ * @property {"mini" | "full"} version
+ */
+
+/** @param {MiniState} m */
+function drawMini(m) {
+  const { mini, el } = m;
+  if (!mini) return;
+  const steps = /** @type {Item[]} */ (mini.steps);
+  const small = steps.filter((s) => s.mini);
+  const hasMini = small.length > 0;
+  if (!hasMini) m.version = "full";
+  const shown = m.version === "mini" ? small : steps;
+  el.lede.textContent = ledeOf(mini, m.version, steps, small);
+  el.steps.setAttribute("aria-label", `${mini.name}, ${m.version === "mini" ? t("bad.miniVersion").toLowerCase() : t("bad.fullRecipe").toLowerCase()}`);
+  setFocusStepsState(el.steps, "ready");
+  setFocusSteps(el.steps, toFocusSteps(shown));
+  setSegmentedValues(el.version, [m.version]);
+  const miniItem = /** @type {HTMLButtonElement | null} */ ($('[data-value="mini"]', el.version));
+  if (miniItem) miniItem.disabled = !hasMini;
+  setSegmentedDisabled(el.version, false);
+  setCook(el.cook, mini, m.version);
+}
+
+/** No safe recipe yet: the card points at the recipes. @param {MiniState} m */
+function drawNoMini({ el }) {
+  el.title.textContent = t("bad.miniDefault");
+  el.lede.textContent = "";
+  setFocusStepsState(el.steps, "ready");
+  setFocusSteps(el.steps, []);
+  setSegmentedDisabled(el.version, true);
+  el.cook.removeAttribute("aria-disabled");
+  el.cook.textContent = t("bad.openMine");
+  el.cook.href = "/recipes";
+}
+
+/** @param {MiniState} m @param {Kitchen} k */
+function renderMini(m, k) {
+  const recipe = miniRecipe(k);
+  const signature = JSON.stringify(recipe ? [recipe.id, recipe.name, recipe.steps, recipe.mini_note, recipe.gear, recipe.minutes, recipe.portions] : null);
+  if (signature === m.ctx.drawn.mini) return;
+  m.ctx.drawn.mini = signature;
+  m.mini = recipe;
+  m.version = "mini";
+  if (!recipe) return drawNoMini(m);
+  m.el.title.textContent = recipe.name;
+  drawMini(m);
+}
+
 /** @param {import("./index.js").BadDaysCtx} ctx */
 export function createMini(ctx) {
-  const { page, drawn } = ctx;
-  const miniTitle = /** @type {HTMLElement} */ ($("[data-bd-mini-title]", page));
-  const miniVersion = /** @type {HTMLElement} */ ($("[data-bd-version]", page));
-  const miniLede = /** @type {HTMLElement} */ ($("[data-bd-mini-lede]", page));
-  const miniSteps = /** @type {HTMLElement} */ ($("[data-bd-steps]", page));
-  const cook = /** @type {HTMLAnchorElement} */ ($("[data-bd-cook]", page));
-  /** @type {Item | null} */
-  let mini = null;
-  /** @type {"mini" | "full"} */
-  let version = "mini";
-
-  function drawMini() {
-    if (!mini) return;
-    const steps = /** @type {Item[]} */ (mini.steps);
-    const small = steps.filter((s) => s.mini);
-    const hasMini = small.length > 0;
-    if (!hasMini) version = "full";
-    const shown = version === "mini" ? small : steps;
-    miniLede.textContent = ledeOf(mini, version, steps, small);
-    miniSteps.setAttribute("aria-label", `${mini.name}, ${version === "mini" ? t("bad.miniVersion").toLowerCase() : t("bad.fullRecipe").toLowerCase()}`);
-    setFocusStepsState(miniSteps, "ready");
-    setFocusSteps(miniSteps, toFocusSteps(shown));
-    setSegmentedValues(miniVersion, [version]);
-    const miniItem = /** @type {HTMLButtonElement | null} */ ($('[data-value="mini"]', miniVersion));
-    if (miniItem) miniItem.disabled = !hasMini;
-    setSegmentedDisabled(miniVersion, false);
-    setCook(cook, mini, version);
-  }
-
-  /** @param {Kitchen} k */
-  function renderMini(k) {
-    const recipe = miniRecipe(k);
-    const signature = JSON.stringify(recipe ? [recipe.id, recipe.name, recipe.steps, recipe.mini_note, recipe.gear, recipe.minutes, recipe.portions] : null);
-    if (signature === drawn.mini) return;
-    drawn.mini = signature;
-    mini = recipe;
-    version = "mini";
-    if (!recipe) {
-      miniTitle.textContent = t("bad.miniDefault");
-      miniLede.textContent = "";
-      setFocusStepsState(miniSteps, "ready");
-      setFocusSteps(miniSteps, []);
-      setSegmentedDisabled(miniVersion, true);
-      cook.removeAttribute("aria-disabled");
-      cook.textContent = t("bad.openMine");
-      cook.href = "/recipes";
-      return;
-    }
-    miniTitle.textContent = recipe.name;
-    drawMini();
-  }
-
-  miniVersion.addEventListener("kp-segmented-change", (event) => {
+  const { page } = ctx;
+  const q = (/** @type {string} */ sel) => $(sel, page);
+  /** @type {MiniState} */
+  const m = {
+    ctx,
+    el: {
+      title: /** @type {HTMLElement} */ (q("[data-bd-mini-title]")),
+      version: /** @type {HTMLElement} */ (q("[data-bd-version]")),
+      lede: /** @type {HTMLElement} */ (q("[data-bd-mini-lede]")),
+      steps: /** @type {HTMLElement} */ (q("[data-bd-steps]")),
+      cook: /** @type {HTMLAnchorElement} */ (q("[data-bd-cook]")),
+    },
+    mini: null,
+    version: "mini",
+  };
+  const { el } = m;
+  el.version.addEventListener("kp-segmented-change", (event) => {
     const value = /** @type {CustomEvent} */ (event).detail.value;
-    if (!mini || (value !== "mini" && value !== "full") || value === version) return;
-    version = value;
-    drawMini();
+    if (!m.mini || (value !== "mini" && value !== "full") || value === m.version) return;
+    m.version = value;
+    drawMini(m);
   });
-  miniSteps.addEventListener("kp-focus-steps-retry", ctx.reload);
-  cook.addEventListener("click", (event) => {
-    if (cook.getAttribute("aria-disabled") === "true") event.preventDefault();
+  el.steps.addEventListener("kp-focus-steps-retry", ctx.reload);
+  el.cook.addEventListener("click", (event) => {
+    if (el.cook.getAttribute("aria-disabled") === "true") event.preventDefault();
   });
   return {
-    render: renderMini,
+    render: (/** @type {Kitchen} */ k) => renderMini(m, k),
     loading: () => {
-      setFocusStepsState(miniSteps, "loading", t("bad.loadingRecipe"));
-      setCook(cook, null, version);
-      setSegmentedDisabled(miniVersion, true);
+      setFocusStepsState(el.steps, "loading", t("bad.loadingRecipe"));
+      setCook(el.cook, null, m.version);
+      setSegmentedDisabled(el.version, true);
     },
     /** @param {string} why */
     failed: (why) => {
-      setFocusStepsState(miniSteps, "error", `${t("bad.recipeFailed")} ${why}`);
-      setCook(cook, null, version);
+      setFocusStepsState(el.steps, "error", `${t("bad.recipeFailed")} ${why}`);
+      setCook(el.cook, null, m.version);
     },
   };
 }

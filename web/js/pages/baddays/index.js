@@ -46,20 +46,8 @@ import { createMonth } from "./month.js";
  * @property {() => void} reload
  */
 
-/**
- * @param {HTMLElement} root
- * @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx
- * @returns {() => void}
- */
-export function mount(root, { navigate }) {
-  document.title = `${t("nav.baddays")} · Kitchen`;
-  const page = h("div", { class: "bd-page" });
-  page.innerHTML = sections();
-  root.replaceChildren(page);
-
-  /** @type {(() => void)[]} */
-  const stops = [];
-
+/** Attach the package's behaviour to the page; the stops are kept for the clean-up. @param {HTMLElement} page @param {(() => void)[]} stops */
+function attachBehaviour(page, stops) {
   for (const attach of [
     attachCardStates,
     attachActionTiles,
@@ -78,55 +66,72 @@ export function mount(root, { navigate }) {
     const stop = /** @type {unknown} */ (attach(page));
     if (typeof stop === "function") stops.push(/** @type {() => void} */ (stop));
   }
+}
 
-  const ctx = /** @type {BadDaysCtx} */ ({ page, alive: true, stops, drawn: { safe: null, freezer: null, shelf: null, mini: null, month: null }, reload: () => reload() });
+/** Loading, failed and render over the five parts; a part is redrawn only when its data changed (`ctx.drawn`). @param {BadDaysCtx} ctx @param {ReturnType<typeof buildParts>} p */
+function createRunner(ctx, p) {
   const { drawn } = ctx;
+  const forget = () => {
+    for (const key of Object.keys(drawn)) drawn[key] = null;
+  };
+  /** @param {import("../../api.js").Kitchen} k */
+  const render = (k) => {
+    for (const part of [p.safe, p.freezer, p.shelf, p.mini, p.month]) part.render(k);
+  };
+  const loading = () => {
+    forget();
+    for (const part of p.all) part.loading();
+  };
+  /** @param {unknown} e */
+  const failed = (e) => {
+    const why = reason(e);
+    forget();
+    for (const part of p.all) part.failed(why);
+  };
+  /** Read the kitchen and draw it, or say why not. @param {boolean} force */
+  const read = (force) =>
+    loadKitchen({ force }).then(
+      (k) => ctx.alive && render(k),
+      (e) => ctx.alive && failed(e),
+    );
+  return { render, loading, read };
+}
 
+/** @param {BadDaysCtx} ctx */
+function buildParts(ctx) {
   const safe = createSafe(ctx);
   const freezer = createFreezer(ctx);
   wireFreezerForm(ctx);
   const shelf = createShelf(ctx);
   const mini = createMini(ctx);
   const month = createMonth(ctx);
-  const parts = [safe, shelf, freezer, mini, month];
+  return { safe, freezer, shelf, mini, month, all: [safe, shelf, freezer, mini, month] };
+}
 
-  function loading() {
-    for (const key of Object.keys(drawn)) drawn[key] = null;
-    for (const part of parts) part.loading();
-  }
-
-  /** @param {unknown} e */
-  function failed(e) {
-    const why = reason(e);
-    for (const key of Object.keys(drawn)) drawn[key] = null;
-    for (const part of parts) part.failed(why);
-  }
-
-  function reload() {
-    loading();
-    loadKitchen({ force: true }).then(
-      (k) => ctx.alive && render(k),
-      (e) => ctx.alive && failed(e),
-    );
-  }
-
-  // ---- the kitchen
-  /** @param {import("../../api.js").Kitchen} k */
-  function render(k) {
-    for (const part of [safe, freezer, shelf, mini, month]) part.render(k);
-  }
-
-  stops.push(onKitchen((k) => ctx.alive && render(k)));
+/**
+ * @param {HTMLElement} root
+ * @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx
+ * @returns {() => void}
+ */
+export function mount(root, { navigate }) {
+  document.title = `${t("nav.baddays")} · Kitchen`;
+  const page = h("div", { class: "bd-page" });
+  page.innerHTML = sections();
+  root.replaceChildren(page);
+  /** @type {(() => void)[]} */
+  const stops = [];
+  attachBehaviour(page, stops);
+  /** @type {{ read: (force: boolean) => unknown, loading: () => void, render: (k: import("../../api.js").Kitchen) => void }} */
+  let run;
+  const ctx = /** @type {BadDaysCtx} */ ({ page, alive: true, stops, drawn: { safe: null, freezer: null, shelf: null, mini: null, month: null }, reload: () => { run.loading(); void run.read(true); } });
+  run = createRunner(ctx, buildParts(ctx));
+  stops.push(onKitchen((k) => ctx.alive && run.render(k)));
   const known = kitchenNow();
-  if (known) render(known);
+  if (known) run.render(known);
   else {
-    loading();
-    loadKitchen().then(
-      (k) => ctx.alive && render(k),
-      (e) => ctx.alive && failed(e),
-    );
+    run.loading();
+    void run.read(false);
   }
-
   return () => {
     ctx.alive = false;
     for (const stop of stops.reverse()) stop();

@@ -65,57 +65,62 @@ async function onShelfClick(event, readout) {
   }
 }
 
+/** @typedef {{ ctx: import("./index.js").BadDaysCtx, card: HTMLElement, list: HTMLElement, levelEl: HTMLElement, items: Item[], level: "open" | "easy" | "any" }} ShelfState */
+
+/** @param {ShelfState} s */
+function drawShelf(s) {
+  const shown = s.items.filter((x) => LEVELS[s.level].includes(x.energy));
+  if (!s.items.length) {
+    emptyWith(s.card, t("bad.shelfEmpty"), t("bad.shelfEmptyText"), t("bad.addFood"), () => openRecordEditor("shelf", null));
+    return;
+  }
+  if (!shown.length) {
+    emptyWith(s.card, t("bad.littleTitle"), t("bad.littleText"), t("bad.showAll"), () => setSegmentedValues(s.levelEl, ["any"]));
+    return;
+  }
+  s.list.replaceChildren(...shown.map(shelfRow));
+  setCardState(s.card, "ready");
+}
+
+/** @param {ShelfState} s @param {Kitchen} k */
+function renderShelf(s, k) {
+  const { drawn } = s.ctx;
+  const signature = JSON.stringify(k.shelf.map((x) => [x.id, textOf(x.title), x.text, x.minutes, textOf(x.gear), x.energy]));
+  if (signature === drawn.shelf) return;
+  drawn.shelf = signature;
+  s.items = [...k.shelf];
+  const open = s.items.filter((x) => x.energy === "open").length;
+  const easy = s.items.filter((x) => x.energy === "easy").length;
+  setSegmentedCounts(s.levelEl, { open, easy: open + easy, any: s.items.length });
+  drawShelf(s);
+}
+
 /** @param {import("./index.js").BadDaysCtx} ctx */
 export function createShelf(ctx) {
-  const { page, drawn } = ctx;
-  const shelfCard = /** @type {HTMLElement} */ ($("#bd-shelf-card", page));
-  const shelfList = /** @type {HTMLElement} */ ($("[data-bd-shelf]", page));
-  const shelfLevel = /** @type {HTMLElement} */ ($("[data-bd-level]", page));
-  const shelfReadout = /** @type {HTMLElement} */ ($("[data-bd-shelf-readout]", page));
-  /** @type {Item[]} */
-  let shelfItems = [];
-  /** @type {"open" | "easy" | "any"} */
-  let level = "any";
-
-  function drawShelf() {
-    const shown = shelfItems.filter((s) => LEVELS[level].includes(s.energy));
-    if (!shelfItems.length) {
-      emptyWith(shelfCard, t("bad.shelfEmpty"), t("bad.shelfEmptyText"), t("bad.addFood"), () => openRecordEditor("shelf", null));
-      return;
-    }
-    if (!shown.length) {
-      emptyWith(shelfCard, t("bad.littleTitle"), t("bad.littleText"), t("bad.showAll"), () => setSegmentedValues(shelfLevel, ["any"]));
-      return;
-    }
-    shelfList.replaceChildren(...shown.map(shelfRow));
-    setCardState(shelfCard, "ready");
-  }
-
-  /** @param {Kitchen} k */
-  function renderShelf(k) {
-    const signature = JSON.stringify(k.shelf.map((s) => [s.id, textOf(s.title), s.text, s.minutes, textOf(s.gear), s.energy]));
-    if (signature === drawn.shelf) return;
-    drawn.shelf = signature;
-    shelfItems = [...k.shelf];
-    const open = shelfItems.filter((s) => s.energy === "open").length;
-    const easy = shelfItems.filter((s) => s.energy === "easy").length;
-    setSegmentedCounts(shelfLevel, { open, easy: open + easy, any: shelfItems.length });
-    drawShelf();
-  }
-
-  shelfLevel.addEventListener("kp-segmented-change", (event) => {
+  const { page } = ctx;
+  /** @type {ShelfState} */
+  const s = {
+    ctx,
+    card: /** @type {HTMLElement} */ ($("#bd-shelf-card", page)),
+    list: /** @type {HTMLElement} */ ($("[data-bd-shelf]", page)),
+    levelEl: /** @type {HTMLElement} */ ($("[data-bd-level]", page)),
+    items: [],
+    level: "any",
+  };
+  const readout = /** @type {HTMLElement} */ ($("[data-bd-shelf-readout]", page));
+  s.levelEl.addEventListener("kp-segmented-change", (event) => {
     const value = /** @type {CustomEvent} */ (event).detail.value;
     if (value !== "open" && value !== "easy" && value !== "any") return;
-    level = value;
-    drawShelf();
+    s.level = value;
+    drawShelf(s);
   });
-  shelfList.addEventListener("click", (event) => onShelfClick(event, shelfReadout));
+  s.list.addEventListener("click", (event) => onShelfClick(event, readout));
   $("[data-bd-shelf-add]", page)?.addEventListener("click", () => openRecordEditor("shelf", null));
-  shelfCard.addEventListener("kp-card-retry", ctx.reload);
+  s.card.addEventListener("kp-card-retry", ctx.reload);
   return {
-    render: renderShelf,
-    loading: () => setCardState(shelfCard, "loading"),
+    render: (/** @type {Kitchen} */ k) => renderShelf(s, k),
+    loading: () => setCardState(s.card, "loading"),
     /** @param {string} why */
-    failed: (why) => setCardState(shelfCard, "error", { title: t("bad.shelfFailed"), text: `${why} ${t("bad.nothingChanged")}` }),
+    failed: (why) => setCardState(s.card, "error", { title: t("bad.shelfFailed"), text: `${why} ${t("bad.nothingChanged")}` }),
   };
 }
