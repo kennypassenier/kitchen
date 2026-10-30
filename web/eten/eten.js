@@ -5,6 +5,7 @@
 
 import { setStrings } from "/static/kp/js/strings.js";
 import { mountWheel } from "./wheel.js";
+import { mountThemePicker } from "./theme.js";
 
 setStrings({
   wheelSpin: "Draai",
@@ -43,4 +44,5 @@ async function load(_force) {
   return data;
 }
 
+mountThemePicker(/** @type {HTMLElement} */ (document.getElementById("eten-theme")));
 mountWheel(/** @type {HTMLElement} */ (document.getElementById("page")), { lang: "nl", load });

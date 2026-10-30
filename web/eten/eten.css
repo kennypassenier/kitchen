@@ -19,3 +19,29 @@
     padding: max(var(--kp-space-md, 1rem), env(safe-area-inset-top)) max(var(--kp-space-md, 1rem), env(safe-area-inset-right)) max(var(--kp-space-md, 1rem), env(safe-area-inset-bottom)) max(var(--kp-space-md, 1rem), env(safe-area-inset-left));
   }
 }
+
+/* The bar above the wheel holds only the theme picker, top right (Kenny, 24/10/2026 09:29). The page is a grid of the bar
+   and the wheel, so the picker takes its own row and the wheel's page keeps its full-screen height. */
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-block-size: 100dvh;
+}
+
+.eten-bar {
+  display: grid;
+  justify-items: end;
+  padding-block-start: max(var(--kp-space-md, 1rem), env(safe-area-inset-top));
+  padding-inline: max(var(--kp-space-lg, 1.5rem), env(safe-area-inset-left)) max(var(--kp-space-lg, 1.5rem), env(safe-area-inset-right));
+}
+
+.eten-bar + .eten-shell {
+  min-block-size: 0;
+  padding-block-start: var(--kp-space-md, 1rem);
+}
+
+@media (max-width: 40rem) {
+  .eten-bar {
+    padding-inline: max(var(--kp-space-md, 1rem), env(safe-area-inset-left)) max(var(--kp-space-md, 1rem), env(safe-area-inset-right));
+  }
+}
