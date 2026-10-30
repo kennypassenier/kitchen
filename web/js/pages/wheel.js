@@ -18,6 +18,7 @@ import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
 import { openRecordEditor, detailHref, sideName } from "../records.js";
 import { t, nameOf } from "../i18n/index.js";
+import { pad, hhmm, dmyDate, localIso, cap, minutesWords } from "../format.js";
 
 /**
  * @typedef {object} Dish a dish as the wheel sees it, with what its recipe adds (Kenny, 24/10/2026 09:17, 09:18)
@@ -45,17 +46,12 @@ const FIRST_INGREDIENTS = ["chicken", "beef", "egg", "cheese", "tomato", "potato
 const LONG_DAYS = 21;
 const loadingWords = () => t("wheel.loading");
 
-const pad = (/** @type {number} */ n) => String(n).padStart(2, "0");
-const hhmm = (/** @type {number} */ m) => `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`;
-const dmy = (/** @type {Date} */ d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-const iso = (/** @type {Date} */ d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const daysAgo = (/** @type {number} */ n) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d;
 };
-const minutesText = (/** @type {number} */ m) => (m >= 60 ? t("wheel.hm", Math.floor(m / 60), m % 60) : t("wheel.min", m));
-const cap = (/** @type {string} */ s) => s.charAt(0).toUpperCase() + s.slice(1);
+const minutesText = (/** @type {number} */ m) => minutesWords(m, "wheel.hm", "wheel.min");
 const norm = (/** @type {unknown} */ s) => String(s ?? "").trim().toLowerCase();
 const band = (/** @type {number} */ m) => (m <= 20 ? "quick" : m <= 45 ? "mid" : "long");
 const isKind = (/** @type {Dish} */ d, /** @type {string} */ k) => (k === "safe" ? d.safe : k === "freezer" ? d.freezer > 0 : d.prep === "none");
@@ -101,7 +97,7 @@ export function mount(root, { navigate }) {
 
   function derive() {
     const k = kitchen;
-    const today = iso(new Date());
+    const today = localIso(new Date());
     const freezer = (k?.freezer ?? []).filter((f) => Number(f.portions) > 0);
     restItems = new Map();
     for (const r of k?.resting ?? []) if (String(r.until) >= today && r.dish_id) restItems.set(r.dish_id, r);
@@ -463,7 +459,7 @@ export function mount(root, { navigate }) {
     const lastCooked = (/** @type {Dish} */ d) =>
       !Number.isFinite(d.days)
         ? t("wheel.notCooked")
-        : t("wheel.lastCooked", d.days === 0 ? t("wheel.today") : d.days === 1 ? t("wheel.yesterday") : t("wheel.daysAgo", dmy(daysAgo(d.days)), d.days));
+        : t("wheel.lastCooked", d.days === 0 ? t("wheel.today") : d.days === 1 ? t("wheel.yesterday") : t("wheel.daysAgo", dmyDate(daysAgo(d.days)), d.days));
     const oddsLine = () =>
       ({
         equal: t("wheel.oddsEqual"),
@@ -516,7 +512,7 @@ export function mount(root, { navigate }) {
       setReason(part.skip, !d || !idle, why(t("wheel.spinFirstSkip")));
       const until = new Date();
       until.setDate(until.getDate() + 7);
-      part["skip-says"].textContent = t("wheel.skipSays", dmy(until));
+      part["skip-says"].textContent = t("wheel.skipSays", dmyDate(until));
       const rest = [...restItems.values()];
       part.rest.textContent = rest.length ? t("wheel.restingLabelList") : t("wheel.nothingResting");
       part.resting.replaceChildren(
@@ -532,7 +528,7 @@ export function mount(root, { navigate }) {
             "div",
             { class: "wl-rest" },
             h("span", { class: "wl-rest__name" }, h("a", { href: detailHref("resting", item.id) }, name)),
-            h("span", { class: "wl-rest__until" }, Number.isNaN(until.getTime()) ? "" : dmy(until)),
+            h("span", { class: "wl-rest__until" }, Number.isNaN(until.getTime()) ? "" : dmyDate(until)),
             h("span", { class: "kp-row-actions" }, edit, back),
           );
         }),
@@ -543,7 +539,7 @@ export function mount(root, { navigate }) {
       part.list.replaceChildren(
         ...items.map((id) => {
           const d = /** @type {Dish} */ (byId(id));
-          const meta = `${d.recipe ? `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)}` : t("wheel.noRecipeBadge")} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmy(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
+          const meta = `${d.recipe ? `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)}` : t("wheel.noRecipeBadge")} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmyDate(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
           return h("li", { class: "wl-fit" }, h("span", { class: "wl-fit__text" }, h("b", null, d.label), h("span", null, meta)), h("span", { class: "wl-fit__tags" }, bigger(d) ? badgeOf(t("wheel.biggerSlice"), "warning") : null));
         }),
       );
@@ -636,8 +632,8 @@ export function mount(root, { navigate }) {
       writing = true;
       paintAnswer();
       try {
-        await create("resting", { dish_id: d.id, until: iso(until) });
-        say(t("wheel.setAside", d.label, dmy(until)));
+        await create("resting", { dish_id: d.id, until: localIso(until) });
+        say(t("wheel.setAside", d.label, dmyDate(until)));
       } catch (e) {
         say(t("wheel.setAsideFailed", d.label, e instanceof Error ? e.message : String(e)));
       } finally {

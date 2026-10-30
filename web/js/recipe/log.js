@@ -7,11 +7,9 @@ import { attachSegmented, getSegmentedValues, setSegmentedValues } from "/static
 import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { undoToast } from "/static/kp/js/undo-toast.js";
 import { setCardState } from "/static/kp/js/card-state.js";
-import { create, remove, replace, ApiError } from "../api.js";
+import { create, remove, replace, reason } from "../api.js";
+import { today, dmy } from "../format.js";
 import { h } from "../dom.js";
-
-/** The day it is in Brussels, as YYYY-MM-DD. @param {Date} [now] */
-export const todayIso = (now = new Date()) => now.toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
 
 /** @param {string} iso @param {number} by */
 const plus = (iso, by) => new Date(Date.parse(`${iso}T12:00:00Z`) + by * 86_400_000).toISOString().slice(0, 10);
@@ -19,15 +17,12 @@ const plus = (iso, by) => new Date(Date.parse(`${iso}T12:00:00Z`) + by * 86_400_
 /** The Monday of the week a day is in. @param {string} iso */
 const mondayOf = (iso) => plus(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7));
 
-/** dd/mm/yyyy. @param {string} iso */
-export const dmy = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
-
 /** The weeks shown, oldest first, each by its Monday. */
 const WEEKS = 4;
 
 /** @param {unknown} error @param {import("./words.js").Words} words */
 const refusal = (error, words) => ({
-  error: error instanceof ApiError ? error.message : String(error),
+  error: reason(error),
   word: words.notSaved,
 });
 
@@ -43,7 +38,7 @@ export function createLog(card, { recipeId, retry }) {
   let words = null;
   /** @type {import("../api.js").Kitchen | null} */
   let kitchen = null;
-  const view = { day: todayIso(), started: false };
+  const view = { day: today(), started: false };
   let feeling = "none";
   /** Entries of this recipe by day. @type {Map<string, Record<string, any>>} */
   let entries = new Map();
@@ -96,7 +91,7 @@ export function createLog(card, { recipeId, retry }) {
 
   const paint = () => {
     if (!words || !kitchen) return;
-    const today = todayIso();
+    const today = today();
     const thisMonday = mondayOf(today);
     const mondays = Array.from({ length: WEEKS }, (_, i) => plus(thisMonday, (i - WEEKS + 1) * 7));
     grid.setAttribute("aria-label", words.logTitle);
@@ -157,7 +152,7 @@ export function createLog(card, { recipeId, retry }) {
   grid.addEventListener("kp-heat-pick", (event) => {
     const { rowKey, colKey, picked } = /** @type {CustomEvent} */ (event).detail;
     const day = plus(String(rowKey), Number(colKey));
-    view.day = picked && day <= todayIso() ? day : todayIso();
+    view.day = picked && day <= today() ? day : today();
     paint();
   });
   narrow.addEventListener("change", paint);

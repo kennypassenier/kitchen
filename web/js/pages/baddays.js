@@ -31,10 +31,11 @@ import { attachQuantities } from "/static/kp/js/quantity.js";
 import { attachForms, VALID_EVENT } from "/static/kp/js/forms.js";
 import { attachLoadingPieces } from "/static/kp/js/loading-pieces.js";
 import { attachMotion } from "/static/kp/js/motion.js";
-import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions } from "../api.js";
+import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions, reason } from "../api.js";
 import { h, $ } from "../dom.js";
 import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
 import { t, lang, nameOf, textOf } from "../i18n/index.js";
+import { dmy, today } from "../format.js";
 import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -267,17 +268,11 @@ const sections = () => `
   </section>
 `;
 
-/** "YYYY-MM-DD" as dd/mm/yyyy. @param {string} iso */
-const dmy = (iso) => iso.slice(0, 10).split("-").reverse().join("/");
-
 /** The first sentence of a text. @param {string} text */
 const firstSentence = (text) => (text.trim().match(/^.+?[.!?](?=\s|$)/) ?.[0] ?? text.trim());
 
 /** When a kitchen item was frozen, in ms. @param {Item} item */
 const frozenAt = (item) => Date.parse(item.frozen_on);
-
-/** The word for an error: api.js messages are fit to show as they are. @param {unknown} e */
-const reason = (e) => (e instanceof Error ? e.message : String(e));
 
 /** The newest log date of a recipe as "YYYY-MM-DD", or null. @param {Kitchen} k @param {string} id */
 function lastMade(k, id) {
@@ -592,7 +587,7 @@ export function mount(root, { navigate }) {
   const dateNote = /** @type {HTMLElement} */ ($("[data-bd-date-note]", page));
   const portionsInput = /** @type {HTMLInputElement} */ ($("#bd-add-portions", page));
   const picker = /** @type {HTMLElement} */ ($("[data-bd-date]", page));
-  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
+  const todayIso = today();
   picker.setAttribute("data-kp-max", todayIso);
   const setToday = () => datePicker(picker)?.set(todayIso);
   setToday();

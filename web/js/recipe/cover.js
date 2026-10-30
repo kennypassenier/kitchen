@@ -8,6 +8,7 @@ import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/
 import { h } from "../dom.js";
 import { uploadPhoto, showPhotos } from "./photos.js";
 import { t } from "../i18n/index.js";
+import { sendRaw } from "../raw.js";
 
 /** The words for an import failure's code. @param {string} code */
 export const importReason = (code) => {
@@ -21,16 +22,7 @@ export const importReason = (code) => {
  * @param {string} url @returns {Promise<File>}
  */
 export async function fetchCover(url) {
-  let res;
-  try {
-    res = await fetch("/data/import/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }), credentials: "same-origin" });
-  } catch {
-    throw new Error(t("photo.dropped"));
-  }
-  if (res.status === 401) {
-    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-    throw new Error(t("photo.signedOut"));
-  }
+  const res = await sendRaw("/data/import/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) }, { dropped: t("photo.dropped"), signedOut: t("photo.signedOut") });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(importReason(String(data?.error ?? "")));

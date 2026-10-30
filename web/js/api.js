@@ -10,6 +10,7 @@
 /** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any> }} Kitchen */
 
 import { nameOf, lang, onLang, t } from "./i18n/index.js";
+import { toLogin } from "./raw.js";
 
 export class ApiError extends Error {
   /** @param {string} message @param {number} status */
@@ -18,6 +19,9 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+/** The words for an error: api.js messages are fit to show as they are. @param {unknown} e */
+export const reason = (e) => (e instanceof Error ? e.message : String(e));
 
 /** @param {string} method @param {string} path @param {unknown} [body] */
 async function call(method, path, body) {
@@ -33,7 +37,7 @@ async function call(method, path, body) {
     throw new ApiError("The connection to the kitchen dropped. Nothing is lost; try again.", 0);
   }
   if (res.status === 401) {
-    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+    toLogin();
     throw new ApiError("Signed out; opening the login page.", 401);
   }
   const text = await res.text();

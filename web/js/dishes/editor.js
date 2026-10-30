@@ -21,9 +21,9 @@ import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { closeDialog } from "/static/kp/js/motion.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { h } from "../dom.js";
-import { create, replace, ApiError } from "../api.js";
+import { create, replace, reason } from "../api.js";
 import { ingredientsPicker } from "../ingredients/picker.js";
-import { row, input, toggle, on, select } from "../recipe/editor.js";
+import { row, input, toggle, on, select } from "../ui/form-parts.js";
 import { t, nameOf } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
@@ -89,9 +89,6 @@ export function openDrawer(dialog, { title, text, form, saveLabel, onSave }) {
   });
   dialog.showModal();
 }
-
-/** @param {unknown} e */
-const why = (e) => (e instanceof ApiError ? e.message : String(e));
 
 /**
  * The sides block: one bordered group per side, each with its ingredients, an optional label in both languages, Up,
@@ -241,7 +238,7 @@ export function openDishEditor(dialog, { dish, categories, from = null }) {
         if (dish) await replace("dishes", body);
         else await create("dishes", body);
       } catch (e) {
-        return { error: why(e), word: t("rec.notSaved") };
+        return { error: reason(e), word: t("rec.notSaved") };
       }
       const only = languages(body);
       const where = only === "nl" ? t("de.onlyNl") : only === "en" ? t("de.onlyEn") : "";
@@ -306,7 +303,7 @@ export function openNameEditor(dialog, { list, item, items, noun, example }) {
         rest.splice(Math.max(0, body.order - 1), 0, saved);
         for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
       } catch (e) {
-        return { error: why(e), word: t("rec.notSaved") };
+        return { error: reason(e), word: t("rec.notSaved") };
       }
       toast(t(item ? "rec.savedName" : "rec.addedName", label(body)));
       return t("rec.saved");

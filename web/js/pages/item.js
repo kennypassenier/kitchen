@@ -17,8 +17,9 @@ import { toast } from "/static/kp/js/overlays.js";
 import { openConfirmation } from "/static/kp/js/components.js";
 import { h } from "../dom.js";
 import { externalLink, hostOf } from "../links.js";
-import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, openRecipeImport, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, dmy, brusselsDay, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
+import { LISTS, DETAIL_BASE, itemLink, missingBadge, openRecordEditor, openRecipeEditor, openRecipeImport, duplicateRecipe, duplicateDish, BLANK_RECIPE, deleteRecord, energies, feelings, logWhat, tableCard, sideName, dishHas } from "../records.js";
 import { t, textOf } from "../i18n/index.js";
+import { dmy, brusselsDay } from "../format.js";
 import { names, languages, ordered } from "../dishes/editor.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */

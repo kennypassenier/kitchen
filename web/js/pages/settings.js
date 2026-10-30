@@ -15,6 +15,7 @@ import { attachTimes, setTime } from "/static/kp/js/timefield.js";
 import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
 import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
 import { t } from "../i18n/index.js";
+import { section as sectionOf, stageCard } from "../ui/cards.js";
 
 /** @typedef {{ key: string, label: string, text: string, said: (value: string) => string, def: string, defSaid: string }} Kitchen */
 
@@ -62,13 +63,7 @@ function segmented(label, items, id) {
 }
 
 /** A card of this screen, in its loading state from the first frame. @param {string} id @param {string} title @param {string} text @param {string} loading */
-function card(id, title, text, loading) {
-  return h(
-    "section",
-    { class: "kp-card st-card", id, "data-kp-state": "loading", "aria-label": title, "data-kp-loading-words": loading },
-    h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data st-data", id: `${id}-data` })),
-  );
-}
+const card = (id, title, text, loading) => stageCard({ id, label: title, loading, cls: "st-card", dataCls: "st-data" });
 
 /** @param {HTMLElement} root */
 export function mount(root) {
@@ -85,8 +80,7 @@ export function mount(root) {
   const kitchenCard = card("st-kitchen-card", t("set.kitchenCard"), "", t("set.loading"));
 
   /** @param {string} id @param {string} title @param {string} text @param {HTMLElement} body */
-  const section = (id, title, text, body) =>
-    h("section", { class: "st-sec", id, "aria-labelledby": `${id}-h` }, h("div", { class: "st-sec__head" }, h("h2", { id: `${id}-h` }, title), h("p", null, text)), body);
+  const section = (id, title, text, body) => sectionOf({ sec: "st-sec", head: "st-sec__head" }, id, title, text, body);
 
   // Calm mode
   const calmInput = /** @type {HTMLInputElement} */ (

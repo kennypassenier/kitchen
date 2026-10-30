@@ -17,6 +17,7 @@ import { holdFootprint } from "/static/kp/js/footprint.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";
+import { sendRaw, deleteRaw } from "../raw.js";
 
 /** The long side, in pixels, a photo is made smaller to. */
 export const MAX_SIDE = 1600;
@@ -84,16 +85,7 @@ export async function shrink(file) {
 export async function uploadPhoto(file) {
   if (!file.type.startsWith("image/")) throw new Error(t("photo.notPicture", file.name || t("photo.thatFile")));
   const blob = await shrink(file);
-  let res;
-  try {
-    res = await fetch("/data/photos", { method: "POST", headers: { "Content-Type": blob.type }, body: blob, credentials: "same-origin" });
-  } catch {
-    throw new Error(t("photo.dropped"));
-  }
-  if (res.status === 401) {
-    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-    throw new Error(t("photo.signedOut"));
-  }
+  const res = await sendRaw("/data/photos", { method: "POST", headers: { "Content-Type": blob.type }, body: blob }, { dropped: t("photo.dropped"), signedOut: t("photo.signedOut") });
   const data = await res.json().catch(() => null);
   if (!res.ok || !data?.id) throw new Error(data?.error ?? t("photo.answered", res.status));
   return /** @type {string} */ (data.id);
@@ -106,7 +98,7 @@ const referenced = (id) => (kitchenNow()?.recipes ?? []).some((r) => photosOf(r)
 export async function deletePhoto(id) {
   if (referenced(id)) return;
   try {
-    await fetch(photoUrl(id), { method: "DELETE", credentials: "same-origin" });
+    await deleteRaw(photoUrl(id));
   } catch {
     /* an orphan file is harmless (docs/agent/DATA.md, known limits) */
   }

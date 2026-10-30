@@ -20,7 +20,9 @@ import { attachSegmented } from "/static/kp/js/segmented.js";
 import { WORDS, wordsFor } from "../recipe/words.js";
 import { amountOf, minutesText } from "../recipe/amounts.js";
 import { createSheet } from "../recipe/sheet.js";
-import { createLog, dmy } from "../recipe/log.js";
+import { createLog } from "../recipe/log.js";
+import { dmy } from "../format.js";
+import { stage, dataOf, cardSection } from "../ui/cards.js";
 import { showPhotos } from "../recipe/photos.js";
 import { t, lang } from "../i18n/index.js";
 
@@ -49,23 +51,6 @@ function sourceRow(source) {
   return h("div", { class: "rp-source" }, h("dt", null, t("rec.source")), h("dd", null, h("a", { href: url.href, target: "_blank", rel: "noopener noreferrer" }, url.hostname.replace(/^www\./, ""))));
 }
 
-/** A card whose stage holds a header-less body or a data area. @param {string} dataClass */
-const stage = (dataClass = "") => h("div", { class: "kp-card__stage" }, h("div", { class: `kp-card__data ${dataClass}`.trim() }));
-
-/** @param {HTMLElement} card */
-const dataOf = (card) => /** @type {HTMLElement} */ (card.querySelector(".kp-card__data"));
-
-/**
- * A section card with its heading and the one sentence that says what it does.
- * @param {string} id @param {string} cls @param {Record<string, string>} [attrs] @param {...Node} body
- */
-function section(id, cls, attrs, ...body) {
-  const title = h("h2", { class: "kp-card__title", id: `${id}-t` });
-  const lede = h("p", { class: "kp-lede", id: `${id}-d` });
-  const el = h("section", { class: `kp-card ${cls}`, id, "aria-labelledby": `${id}-t`, ...attrs }, h("div", { class: "kp-card__header" }, title), lede, ...body);
-  return { el, title, lede };
-}
-
 /**
  * @param {HTMLElement} root
  * @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx
@@ -84,7 +69,7 @@ export function mount(root, { params, navigate }) {
   // ---- the four sections, in their loading state from the first frame --------------------------------------------
   const card = h("section", { class: "kp-card rp-card", "data-kp-state": "loading", "aria-label": t("recipe.cardLabel") }, stage());
 
-  const share = section("rp-share", "rp-sec");
+  const share = cardSection("rp-share", "rp-sec");
   const code = h("div", { class: "kp-qr", "data-kp-qr": true, "data-kp-qr-retry": true });
   const scanTitle = h("h3", { class: "kp-fw-semibold" });
   const stepsTitle = h("h3", { class: "kp-fw-semibold" });
@@ -94,7 +79,7 @@ export function mount(root, { params, navigate }) {
     h("div", { class: "rp-share__grid" }, h("div", { class: "rp-share__code" }, scanTitle, code), h("div", { class: "rp-share__words" }, stepsTitle, steps, qrLine)),
   );
 
-  const paper = section("rp-paper", "rp-sec", { "data-kp-state": "loading" }, stage());
+  const paper = cardSection("rp-paper", "rp-sec", { "data-kp-state": "loading" }, stage());
   const frame = h("iframe", { class: "rp-sheet" });
   const printTitle = h("h3", { class: "kp-fw-semibold" });
   const printText = h("p");
@@ -105,11 +90,11 @@ export function mount(root, { params, navigate }) {
     h("div", { class: "rp-print" }, frame, h("div", { class: "rp-print__words" }, printTitle, printText, printOptions, h("div", { class: "rp-print__go" }, printButton), printLine)),
   );
 
-  const logSec = section("rp-log", "rp-logcard", { "data-kp-state": "loading" }, stage());
+  const logSec = cardSection("rp-log", "rp-logcard", { "data-kp-state": "loading" }, stage());
   const log = createLog(logSec.el, { recipeId: id, retry: () => void load(true) });
 
   // The steps with their photos; there only when a step has a photo.
-  const stepCard = section("rp-stepcard", "rp-sec");
+  const stepCard = cardSection("rp-stepcard", "rp-sec");
   const stepList = h("ol", { class: "rp-stepphotos" });
   stepCard.el.append(stepList);
   stepCard.el.hidden = true;

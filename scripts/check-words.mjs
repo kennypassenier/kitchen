@@ -16,6 +16,8 @@ const used = new Map();
 for (const file of [...files("web/js"), ...files("web/eten")].filter((f) => !f.includes("/i18n/"))) {
   const src = readFileSync(file, "utf8");
   for (const m of src.matchAll(/\bt\(\s*"([a-zA-Z0-9_.-]+)"/g)) used.set(m[1], file);
+  // format.js minutesWords(minutes, "<page>.hm", "<page>.min"): the two keys are passed as words, not read with t() at the call.
+  for (const m of src.matchAll(/\bminutesWords\([^,()]+(?:\([^()]*\))?[^,()]*,\s*"([a-zA-Z0-9_.-]+)",\s*"([a-zA-Z0-9_.-]+)"/g)) { used.set(m[1], file); used.set(m[2], file); }
   for (const m of src.matchAll(/\bt\(\s*`list\.\$\{list\}\.([a-zA-Z]+)`/g)) for (const l of LISTS) used.set(`list.${l}.${m[1]}`, file);
   for (const m of src.matchAll(/\bt\(\s*`list\.\$\{list\}`/g)) for (const l of LISTS) used.set(`list.${l}`, file);
   for (const m of src.matchAll(/\bt\(\s*`list\.\$\{list\}\.(the|this)`/g)) for (const l of LISTS) used.set(`list.${l}.${m[1]}`, file);

@@ -14,9 +14,11 @@ import { openConfirmation } from "/static/kp/js/components.js";
 import { toast } from "/static/kp/js/overlays.js";
 import { undoToast } from "/static/kp/js/undo-toast.js";
 import { h } from "./dom.js";
-import { create, replace, remove, kitchenNow, ingredientName, ApiError } from "./api.js";
+import { create, replace, remove, kitchenNow, ingredientName, reason } from "./api.js";
 import { t, lang, nameOf, textOf } from "./i18n/index.js";
-import { row, input, area, stepper, select, openEditor } from "./recipe/editor.js";
+import { openEditor } from "./recipe/editor.js";
+import { row, input, area, stepper, select } from "./ui/form-parts.js";
+import { today, dmy, brusselsDay } from "./format.js";
 import { openDrawer, sec, openDishEditor, openNameEditor, ordered } from "./dishes/editor.js";
 import { copyRecipe, copyDish } from "./recipe/duplicate.js";
 import { openImport } from "./recipe/import.js";
@@ -26,20 +28,11 @@ import { externalLink } from "./links.js";
 /** @typedef {Record<string, any>} Item */
 /** @typedef {"recipes" | "dishes" | "dish_categories" | "ingredients" | "ingredient_categories" | "freezer" | "shelf" | "log" | "resting" | "recipe_sources"} List */
 
-/** The day it is in Brussels, as YYYY-MM-DD. */
-export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
-/** dd/mm/yyyy of an ISO date or datetime. @param {string} iso */
-export const dmy = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
-/** The YYYY-MM-DD in Brussels of an ISO datetime. @param {string} iso */
-export const brusselsDay = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
-
 /** What a shelf item asks of a person. */
 export const energies = () => /** @type {Record<string, string>} */ ({ open: t("rec.energyOpen"), easy: t("rec.energyEasy"), any: t("rec.energyAny") });
 /** A log line's feeling, as the recipe page names it. */
 export const feelings = () => /** @type {Record<string, string>} */ ({ easy: t("rec.feelEasy"), fine: t("rec.feelFine"), heavy: t("rec.feelHeavy") });
 
-/** @param {unknown} e */
-const why = (e) => (e instanceof ApiError ? e.message : String(e));
 /** @param {string} id */
 const dish = (id) => (id ? kitchenNow()?.dishes.find((d) => d.id === id) ?? null : null);
 /** @param {string} id */
@@ -239,7 +232,7 @@ function openForm({ list, item, title, text, rows, body, after, saved }) {
         const out = item ? await replace(list, { ...item, ...b }) : await create(list, b);
         toast(saved(out));
       } catch (e) {
-        return { error: why(e), word: t("rec.notSaved") };
+        return { error: reason(e), word: t("rec.notSaved") };
       }
       return t("rec.saved");
     },
@@ -510,7 +503,7 @@ export function openSafePicker() {
       try {
         await replace("recipes", { ...r, safe: true });
       } catch (e) {
-        return { error: why(e), word: t("rec.notSaved") };
+        return { error: reason(e), word: t("rec.notSaved") };
       }
       toast(t("rec.isSafe", r.name));
       return t("rec.saved");
@@ -528,10 +521,10 @@ export function unmarkSafe(r) {
         clock: "ring",
         undo: async () => {
           const now = kitchenNow()?.recipes.find((x) => x.id === r.id);
-          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => toast(t("rec.notBack", why(e)), { live: "assertive", sticky: true }));
+          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true }));
         },
       }),
-    (e) => toast(t("rec.notChanged", why(e)), { live: "assertive", sticky: true }),
+    (e) => toast(t("rec.notChanged", reason(e)), { live: "assertive", sticky: true }),
   );
 }
 
@@ -548,7 +541,7 @@ export async function ateShelf(s) {
       try {
         await remove("log", line.id);
       } catch (e) {
-        toast(t("rec.notTakenBack", why(e)), { live: "assertive", sticky: true });
+        toast(t("rec.notTakenBack", reason(e)), { live: "assertive", sticky: true });
       }
     },
   });
@@ -615,12 +608,12 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
             try {
               await create(list, rest);
             } catch (e) {
-              toast(t("rec.notBack", why(e)), { live: "assertive", sticky: true });
+              toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
             }
           },
         });
       },
-      (e) => toast(t("rec.notDeleted", why(e)), { live: "assertive", sticky: true }),
+      (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
     );
     return;
   }
@@ -643,7 +636,7 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
             toast(t("rec.deleted", name));
             after?.();
           },
-          (e) => toast(t("rec.notDeleted", why(e)), { live: "assertive", sticky: true }),
+          (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
         ),
   });
 }

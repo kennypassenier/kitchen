@@ -13,7 +13,7 @@ import { openEditor } from "../recipe/editor.js";
 import { openImport } from "../recipe/import.js";
 import { copyRecipe } from "../recipe/duplicate.js";
 import { deletePhoto, photosOf } from "../recipe/photos.js";
-import { dmy } from "../recipe/log.js";
+import { dmy } from "../format.js";
 import { t } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */

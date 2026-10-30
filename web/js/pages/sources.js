@@ -8,7 +8,8 @@
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
-import { tableCard, itemLink, openRecordEditor, openRecipeImport, deleteRecord, dmy } from "../records.js";
+import { tableCard, itemLink, openRecordEditor, openRecipeImport, deleteRecord } from "../records.js";
+import { dmy } from "../format.js";
 import { externalLink, hostOf } from "../links.js";
 import { t, textOf } from "../i18n/index.js";
 

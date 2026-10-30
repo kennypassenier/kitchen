@@ -34,6 +34,8 @@ import { mountTimeline, drawTimeline, setTimelineState } from "../recipe/timelin
 import { lanesOf as scheduleLanes } from "../recipe/schedule.js";
 import { wordsFor } from "../recipe/words.js";
 import { t, lang } from "../i18n/index.js";
+import { ZONE, today, cap } from "../format.js";
+import { link, actionRow, section as sectionOf } from "../ui/cards.js";
 
 /** @typedef {import("../api.js").Item} Item */
 
@@ -51,38 +53,8 @@ function amountOf(ing) {
   return `${n} ${unit}`.trim();
 }
 
-/** Today's date as stored (ISO, Brussels). */
-const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels" }).format(new Date());
-
-/** "put the pasta water on" → "Put the pasta water on". @param {string} s */
-const sentence = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-
-/** @param {string} href @param {string} label @param {string} [extra] */
-const link = (href, label, extra = "") => h("a", { class: `kp-button ${extra}`.trim(), href }, label);
-
-/** A formgrid row whose control holds buttons and whose value says what they do. @param {string} label @param {HTMLElement[]} buttons @param {string | HTMLElement} says */
-function actionRow(label, buttons, says) {
-  return h(
-    "div",
-    { class: "kp-formgrid__row" },
-    h("span", { class: "kp-formgrid__label" }, label),
-    // One button is the row's action, so the package centres the row on it and gives it the control track on a phone.
-    buttons.length === 1
-      ? h("div", { class: "kp-formgrid__actions" }, buttons[0])
-      : h("div", { class: "kp-formgrid__control" }, h("div", { class: "kp-formgrid__buttons" }, ...buttons)),
-    typeof says === "string" ? h("p", { class: "kp-formgrid__value" }, says) : says,
-  );
-}
-
 /** A section: a heading and its one sentence. @param {string} id @param {string} title @param {string} lead @param {...Node} body */
-function section(id, title, lead, ...body) {
-  return h(
-    "section",
-    { class: "ck-sec", id, "aria-labelledby": `${id}-h` },
-    h("div", { class: "ck-head" }, h("h2", { id: `${id}-h` }, title), h("p", null, lead)),
-    ...body,
-  );
-}
+const section = (id, title, lead, ...body) => sectionOf({ sec: "ck-sec", head: "ck-head" }, id, title, lead, ...body);
 
 /**
  * @param {HTMLElement} root
@@ -412,7 +384,7 @@ export function mount(root, { params, navigate }) {
     const trackName = (id) => (id ? (r.tracks.find((/** @type {Item} */ t) => t.id === id)?.name ?? id) : undefined);
     return list.map((s) => ({
       id: s.id,
-      title: sentence(s.say) || undefined,
+      title: cap(s.say) || undefined,
       text: s.text,
       ingredients: (s.uses ?? []).map((/** @type {Item} */ u) => ({ amount: u.amount, name: u.name })),
       timer: s.timer ? { seconds: s.timer.seconds, name: s.timer.name } : undefined,
@@ -585,7 +557,7 @@ export function mount(root, { params, navigate }) {
     const cursor = new Map(lanes.map((l) => [l.id, first]));
     /** @type {import("../recipe/timeline.js").TimelineRun[]} */
     const runs = [];
-    const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
+    const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
     let last = now;
     /** @type {Map<string, number>} where each step starts in this plan, for the steps that run alongside it */
     const starts = new Map();
@@ -594,7 +566,7 @@ export function mount(root, { params, navigate }) {
       const mins = Math.max(1, Number(s.mins) || 0);
       const m = marks[s.id];
       const ahead = Math.max(...rows.map((r) => cursor.get(r) ?? first));
-      const say = sentence(s.say || String(s.text));
+      const say = cap(s.say || String(s.text));
       const how = t("cook.how", mins, s.active);
       /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string, plannedEnd?: number }[]} */
       const parts = [];

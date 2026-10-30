@@ -29,6 +29,8 @@ import { effective } from "./schedule.js";
 import { toItems, fromItems } from "./sequence.js";
 import { settle } from "./meet.js";
 import { t, lang } from "../i18n/index.js";
+import { cap, stamp } from "../format.js";
+import { row, input, area, stepper, toggle, on, segmented, select, rows, textCell } from "../ui/form-parts.js";
 
 /** Meals and preparation, as the data names them. */
 const mealItems = () => [["breakfast", t("wheel.mealBreakfast")], ["lunch", t("wheel.mealLunch")], ["dinner", t("wheel.mealDinner")]];
@@ -41,148 +43,7 @@ const groups = () => [t("edit.groupMain"), t("edit.groupCupboard")];
 /** A unit written out in the language of the screen. @param {string} unit */
 const unitName = (unit) => wordsFor(lang()).units[/** @type {"g"} */ (unit)]?.[0] ?? unit;
 
-let serial = 0;
-/** @param {string} p */
-const uid = (p) => `${p}-${++serial}`;
 export const newId = () => (globalThis.crypto?.randomUUID?.() ?? `x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
-/** @param {string} s */
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/**
- * One row of the form grid: label, control, a hint in the value track.
- * @param {string} label @param {HTMLElement} control @param {string} [hint] @param {string} [labelId]
- */
-export function row(label, control, hint = "", labelId = uid("rl-l")) {
-  const first = control.querySelector("input, textarea, select, button") ?? control;
-  const labelEl = control.matches("[role=radiogroup], [role=group]") || !(first instanceof HTMLElement && first.id)
-    ? h("span", { class: "kp-formgrid__label", id: labelId }, label)
-    : h("label", { class: "kp-formgrid__label", for: first.id, id: labelId }, label);
-  if (control.matches("[role=radiogroup], [role=group]")) control.setAttribute("aria-labelledby", labelId);
-  return h("div", { class: "kp-formgrid__row" }, labelEl, h("div", { class: "kp-formgrid__control" }, control), hint ? h("p", { class: "kp-formgrid__value" }, hint) : null);
-}
-
-/** @param {string} value @param {string} [type] @param {Record<string, string>} [attrs] */
-export function input(value, type = "text", attrs = {}) {
-  return h("input", { class: "kp-field__input", type, id: uid("rl-i"), value, ...attrs });
-}
-
-/** @param {string} value @param {number} rows */
-export function area(value, rows = 3) {
-  const el = h("textarea", { class: "kp-field__input kp-field__input--multiline", id: uid("rl-t"), rows, "data-kp-autosize": true });
-  el.textContent = value;
-  return el;
-}
-
-/** A stepper: the package's quantity. @param {number} value @param {{ min?: number, max?: number, unit?: string, one?: string, label: string }} o */
-export function stepper(value, { min = 0, max = 1000, unit = "", one = "", label }) {
-  return h(
-    "div",
-    { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": String(min), "data-kp-quantity-max": String(max), "data-kp-quantity-unit": unit, "data-kp-quantity-unit-one": one || unit, "data-kp-quantity-label": label },
-    h("input", { class: "kp-quantity__input", value: String(value) }),
-  );
-}
-
-/** @param {string} label @param {boolean} on */
-export function toggle(label, on) {
-  const box = h("input", { class: "kp-switch__input", type: "checkbox", role: "switch", id: uid("rl-s") });
-  box.checked = on;
-  return h("label", { class: "kp-switch" }, box, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, label));
-}
-
-/** @param {HTMLElement} sw */
-export const on = (sw) => /** @type {HTMLInputElement} */ (sw.querySelector("input")).checked;
-
-/** A segmented control. @param {[string, string][]} items @param {string[]} values @param {"single" | "multi"} mode @param {string} label */
-function segmented(items, values, mode, label) {
-  return h(
-    "div",
-    { class: "kp-segmented kp-segmented--chips", "data-kp-segmented": mode, role: mode === "single" ? "radiogroup" : "group", "aria-label": label },
-    ...items.map(([value, text]) => {
-      const pressed = values.includes(value);
-      return h(
-        "button",
-        mode === "single"
-          ? { type: "button", class: "kp-segmented__item", "data-value": value, role: "radio", "aria-checked": String(pressed) }
-          : { type: "button", class: "kp-segmented__item", "data-value": value, "aria-pressed": String(pressed) },
-        h("span", { class: "kp-segmented__label" }, text),
-      );
-    }),
-  );
-}
-
-/** A native select the package draws. @param {[string, string][]} options @param {string} value @param {string} label */
-export function select(options, value, label) {
-  const el = h("select", { class: "kp-field__input", id: uid("rl-sel"), "aria-label": label }, ...options.map(([v, t]) => h("option", { value: v }, t)));
-  /** @type {HTMLSelectElement} */ (el).value = value;
-  return /** @type {HTMLSelectElement} */ (el);
-}
-
-/**
- * A repeatable list on shared columns: a header line, one row per item, and an Add button that says what it adds.
- * @param {{ columns: { label: string, width: string, make: (value: any) => { el: HTMLElement, get: () => any } }[], items: any[], add: string, noun: string, blank: () => any }} spec
- */
-export function rows({ columns, items, add, noun, blank }) {
-  const grid = h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` });
-  const head = h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, t("photo.remove")));
-  const body = h("div", { class: "rl-rows__body" });
-  /** @type {{ line: HTMLElement, cells: { get: () => any }[] }[]} */
-  let lines = [];
-  const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, add);
-  const empty = h("p", { class: "rl-rows__empty" }, t(`edit.none.${noun}`));
-
-  const sync = () => {
-    head.hidden = lines.length === 0;
-    empty.hidden = lines.length > 0;
-    lines.forEach(({ line }, i) => line.querySelector(".rl-row__remove")?.setAttribute("aria-label", t(`edit.removeNoun.${noun}`, i + 1)));
-  };
-  /** @param {any} item */
-  const push = (item) => {
-    const cells = columns.map((c) => c.make(item));
-    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost rl-row__remove" }, t("photo.remove"));
-    const line = h("div", { class: "rl-row" }, ...cells.map((c) => c.el), remove);
-    const entry = { line, cells };
-    remove.addEventListener("click", () => {
-      lines = lines.filter((l) => l !== entry);
-      line.remove();
-      sync();
-      grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
-      addButton.focus();
-    });
-    lines.push(entry);
-    body.append(line);
-    sync();
-    grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
-    return line;
-  };
-  for (const item of items) push(item);
-  addButton.addEventListener("click", () => {
-    const line = push(blank());
-    attachSelects(line);
-    attachQuantities(line);
-    attachSwitches(line);
-    line.querySelector("input, textarea, select")?.focus();
-  });
-  grid.append(head, body, empty, h("div", { class: "rl-rows__add" }, addButton));
-  sync();
-  return {
-    el: grid,
-    get: () => lines.map((l) => l.cells.map((c) => c.get())),
-    /** Add a line from outside (several ingredients picked at once). @param {any} item */
-    add: (item) => {
-      const line = push(item);
-      attachSelects(line);
-      attachQuantities(line);
-      attachSwitches(line);
-      return line;
-    },
-  };
-}
-
-/** @param {string} label @param {string} value @param {string} placeholder */
-export const textCell = (label, value, placeholder = "") => {
-  const el = input(value, "text", { "aria-label": label, placeholder });
-  return { el, get: () => /** @type {HTMLInputElement} */ (el).value.trim() };
-};
 
 /**
  * Open the editor for a recipe, or for a new one. `restore` is a draft's form state (Kenny, 29/10/2026): the editor then
@@ -865,10 +726,4 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       })
       .catch(() => {});
   }
-}
-
-/** A stored time as the screens show it: dd/mm/yyyy HH:mm, Europe/Brussels. @param {string} iso */
-function stamp(iso) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso)).filter((x) => x.type !== "literal").map((x) => [x.type, x.value]));
-  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }

@@ -18,6 +18,8 @@ import { setAttention, attachAttention } from "/static/kp/js/attention.js";
 import { attachSnoozes, setSnoozedUntil } from "/static/kp/js/snooze.js";
 import { attachSwitches } from "/static/kp/js/forms.js";
 import { t } from "../i18n/index.js";
+import { ZONE, pad, cap, minutesWords } from "../format.js";
+import { button, section as sectionOf, headedCard } from "../ui/cards.js";
 
 /** @typedef {import("../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -31,9 +33,6 @@ const DEFAULTS = { dinner_time: "18:30", pace: "normal", spare: 0 };
 const SPARES = [0, 5, 10, 15];
 const DIGITS_KEY = "kitchen:timing-digits";
 
-/** @param {number} n */
-const pad = (n) => String(n).padStart(2, "0");
-const ZONE = "Europe/Brussels";
 const parts = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 /** @param {number} ms @returns {Record<string, number>} the Brussels wall clock at that moment */
 function wall(ms) {
@@ -54,9 +53,7 @@ function hm(ms) {
   return `${pad(w.hour)}:${pad(w.minute)}`;
 }
 /** @param {number} minutes @returns {string} "50 minutes" or "1 h 18 min" */
-const words = (minutes) => (minutes >= 60 ? t("timing.hm", Math.floor(minutes / 60), minutes % 60) : t("timing.minutes", minutes));
-/** @param {string} text */
-const sentenceCase = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+const words = (minutes) => minutesWords(minutes, "timing.hm", "timing.minutes");
 
 /** Steps that can be counted back: a recipe needs at least one step with minutes. @param {Item} recipe */
 const timedSteps = (recipe) => (recipe.steps ?? []).filter((/** @type {Item} */ s) => Number(s.mins) > 0);
@@ -90,7 +87,7 @@ function planFor(recipe, { serve, spare, pace, dropped }) {
       .map((p) => {
         const s = p.step;
         const mins = p.mins;
-        return { id: `${src.id}:${s.id}`, lane: src.id, label: sentenceCase(s.say || s.text), say: s.say || String(s.text).toLowerCase(), mins, active: Boolean(s.active), start: origin + p.start * MIN, end: origin + p.end * MIN };
+        return { id: `${src.id}:${s.id}`, lane: src.id, label: cap(s.say || s.text), say: s.say || String(s.text).toLowerCase(), mins, active: Boolean(s.active), start: origin + p.start * MIN, end: origin + p.end * MIN };
       });
     return { id: src.id, label: src.name ?? (recipe.short || recipe.name), series: src.series, steps: own, start: Math.min(...own.map((x) => x.start)) };
   });
@@ -103,30 +100,15 @@ function planFor(recipe, { serve, spare, pace, dropped }) {
 function startsInWords(p) {
   const sorted = [...p.lanes].sort((a, b) => a.start - b.start);
   const parts = sorted.map((l) => t("timing.sayAt", l.steps[0].say, hm(l.start)));
-  if (parts.length === 1) return `${sentenceCase(parts[0])}.`;
-  return `${sentenceCase(parts[0])}, ${parts.slice(1).join(` ${t("timing.and")} `)}.`;
+  if (parts.length === 1) return `${cap(parts[0])}.`;
+  return `${cap(parts[0])}, ${parts.slice(1).join(` ${t("timing.and")} `)}.`;
 }
 
-/** A package button. @param {string} text @param {string} [extra] @param {(e: Event) => void} [onclick] */
-function button(text, extra = "", onclick) {
-  return h("button", { type: "button", class: `kp-button ${extra}`.trim(), onclick }, text);
-}
-
+const SEC = { sec: "tm-sec", head: "tm-sec__head" };
 /** A card in the shape every data card of this screen has. @param {{ id: string, title: string, text: string, loading: string, mod: string }} o */
-function card({ id, title, text, loading, mod }) {
-  return h(
-    "section",
-    { class: `kp-card tm-card tm-card--${mod}`, id, "data-kp-state": "loading", "aria-labelledby": `${id}-t`, "data-kp-loading-words": loading },
-    h("div", { class: "kp-card__header" }, h("h3", { class: "kp-card__title", id: `${id}-t` }, title)),
-    h("p", { class: "kp-card__body", id: `${id}-body` }, text),
-    h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data tm-data", id: `${id}-data` })),
-  );
-}
-
+const card = ({ id, title, text, loading, mod }) => headedCard({ id, title, text, loading, cls: `tm-card tm-card--${mod}`, dataCls: "tm-data" });
 /** A top-level section: heading, one sentence, then its card. @param {string} id @param {string} title @param {string} text @param {HTMLElement} body */
-function section(id, title, text, body) {
-  return h("section", { class: "tm-sec", id, "aria-labelledby": `${id}-h` }, h("div", { class: "tm-sec__head" }, h("h2", { id: `${id}-h` }, title), h("p", null, text)), body);
-}
+const section = (id, title, text, body) => sectionOf(SEC, id, title, text, body);
 
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
 export function mount(root, { params, navigate }) {
@@ -261,7 +243,7 @@ export function mount(root, { params, navigate }) {
     setCardState(planCard, "ready");
     gantt.addEventListener("kp-gantt-open", (event) => {
       const { run, point } = /** @type {CustomEvent} */ (event).detail;
-      if (run) planReadout.textContent = t("timing.runRead", sentenceCase(run.detail), hm(new Date(run.start).getTime()), hm(new Date(run.end).getTime()));
+      if (run) planReadout.textContent = t("timing.runRead", cap(run.detail), hm(new Date(run.start).getTime()), hm(new Date(run.end).getTime()));
       else if (point) planReadout.textContent = t("timing.pointRead", point.label, hm(new Date(point.at).getTime()));
     });
   }
@@ -544,7 +526,7 @@ export function mount(root, { params, navigate }) {
   }
 
   function buildSnooze() {
-    snoozeSlot.innerHTML = `<div class="kp-snooze" data-kp-snooze data-kp-snooze-choices="5m 10m pick" data-kp-snooze-max="1h" data-kp-look="chips" data-kp-time-zone="Europe/Brussels"></div>`;
+    snoozeSlot.innerHTML = `<div class="kp-snooze" data-kp-snooze data-kp-snooze-choices="5m 10m pick" data-kp-snooze-max="1h" data-kp-look="chips" data-kp-time-zone="${ZONE}"></div>`;
     snoozeDetach = attachSnoozes(snoozeSlot);
     const el = /** @type {HTMLElement} */ (snoozeSlot.firstElementChild);
     el.addEventListener("kp-snooze", (event) => {
