@@ -17,13 +17,8 @@ function writeSelect(select, v) {
   drawnSelect(select)?.refresh();
 }
 
-/**
- * What each row reads and says.
- * @param {{ langGroup: HTMLElement, dinner: HTMLElement, pace: HTMLElement, spare: HTMLSelectElement, sound: HTMLSelectElement, odds: HTMLSelectElement }} el
- * @returns {Record<string, SettingRow>}
- */
-export function settingRows(el) {
-  const { langGroup, dinner, pace, spare, sound, odds } = el;
+/** The rows with a segmented control or the time field. @param {{ langGroup: HTMLElement, dinner: HTMLElement, pace: HTMLElement }} el @returns {Record<string, SettingRow>} */
+function controlRows({ langGroup, dinner, pace }) {
   return {
     lang: {
       read: () => segValue(langGroup),
@@ -46,6 +41,12 @@ export function settingRows(el) {
       patch: (v) => ({ pace: v }),
       def: DEFAULTS.pace,
     },
+  };
+}
+
+/** The rows with a select. @param {{ spare: HTMLSelectElement, sound: HTMLSelectElement, odds: HTMLSelectElement }} el @returns {Record<string, SettingRow>} */
+function selectRows({ spare, sound, odds }) {
+  return {
     spare: {
       read: () => spare.value,
       write: (v) => writeSelect(spare, v),
@@ -68,6 +69,15 @@ export function settingRows(el) {
       def: DEFAULTS.odds,
     },
   };
+}
+
+/**
+ * What each row reads and says.
+ * @param {{ langGroup: HTMLElement, dinner: HTMLElement, pace: HTMLElement, spare: HTMLSelectElement, sound: HTMLSelectElement, odds: HTMLSelectElement }} el
+ * @returns {Record<string, SettingRow>}
+ */
+export function settingRows(el) {
+  return { ...controlRows(el), ...selectRows(el) };
 }
 
 /** What the kitchen's settings say, brought to the values the rows take. @param {Record<string, any>} s @returns {Record<string, string>} */
