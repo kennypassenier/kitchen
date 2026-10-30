@@ -28,6 +28,7 @@ import { wordsFor } from "./words.js";
 import { effective } from "./schedule.js";
 import { toItems, fromItems } from "./sequence.js";
 import { settle } from "./meet.js";
+import { timeOverride, liveRows as liveOf, timesOf, stepFromFields, trackChoices, partnerChoices, labelOut as labelOf, dishText as dishNameOf, unresolvedOf, recipeBody } from "./editor/logic.js";
 import { t, lang } from "../i18n/index.js";
 import { cap, stamp } from "../format.js";
 import { row, input, area, stepper, toggle, on, segmented, select, rows, textCell } from "../ui/form-parts.js";
@@ -101,7 +102,6 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   // The two times are computed from the steps (Kenny, 29/10/2026; recipe/schedule.js) and shown live: the figure is the
   // stepper itself, unreachable until the Override switch lets a typed value win.
   const was = effective(r);
-  const timeOverride = (/** @type {number | null | undefined} */ typed, /** @type {number} */ computed, /** @type {number} */ stored) => typeof typed === "number" || (computed === 0 && stored > 0);
   const minutes = stepper(was.minutes, { max: 1440, unit: "min", label: t("edit.totalMinutes") });
   const hands = stepper(was.hands_on, { max: 1440, unit: "min", label: t("edit.handsMinutes") });
   const minutesOver = toggle(t("edit.overrideSwitch"), timeOverride(r.minutes_override, was.total, Number(r.minutes) || 0));
@@ -189,7 +189,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   // Imported lines still without an ingredient (Kenny, 29/10/2026): listed in a warning above the lines, and Save is blocked
   // until each one is added as a new ingredient, given an ingredient, or discarded.
   const unresolvedBox = h("div", { class: "kp-alert kp-alert--warning ri-unresolved", role: "status", hidden: true });
-  const unresolvedLines = () => ingredients.get().filter(([n]) => !n.ingredient && n.proposal).map(([n]) => String(n.proposal.text));
+  const unresolvedLines = () => unresolvedOf(ingredients.get().map(([n]) => n));
   const paintUnresolved = () => {
     const lines = unresolvedLines();
     unresolvedBox.hidden = lines.length === 0;
@@ -206,7 +206,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   // ---- steps ---------------------------------------------------------------------------------------------------
   // Quick-add (Kenny, 29/10/2026): one field at the top, Enter adds the step and the field is ready for the next. A step
   // is one line (number, its text, chips for what it says, Up / Down and Remove) and "More" folds out the rest.
-  const trackOptions = () => /** @type {[string, string][]} */ ([["", t("edit.tracksMeet")], ...tracks.get().map(([tk]) => /** @type {[string, string]} */ ([tk.id, tk.name || t("edit.unnamedTrack")]))]);
+  const trackOptions = () => trackChoices(tracks.get().map(([tk]) => tk), { meet: t("edit.tracksMeet"), unnamed: t("edit.unnamedTrack") });
   /** @type {{ el: HTMLElement, get: () => any, track: HTMLSelectElement, partner: HTMLSelectElement, text: HTMLElement, head: HTMLElement, up: HTMLElement, down: HTMLElement, id: string, paint: () => void, options: () => void }[]} */
   let stepList = [];
   const stepsBox = h("ol", { class: "rl-steps" });
@@ -316,31 +316,30 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       /** The partner list: every other step, by its number and the start of its text. */
       options: () => {
         const keep = partner.value || s.with || "";
-        const opts = [["", t("edit.withNone")], ...stepList.filter((e) => e.id !== entry.id).map((e) => /** @type {[string, string]} */ ([e.id, `${stepList.indexOf(e) + 1}. ${/** @type {HTMLTextAreaElement} */ (e.text).value.trim().slice(0, 40) || t("edit.unnamedStep")}`]))];
+        const opts = partnerChoices(/** @type {any} */ (stepList), entry.id, { none: t("edit.withNone"), unnamed: t("edit.unnamedStep") });
         partner.replaceChildren(...opts.map(([v, label]) => h("option", { value: v }, label)));
         partner.value = opts.some(([v]) => v === keep) ? keep : "";
       },
-      get: () => {
-        const tn = /** @type {HTMLInputElement} */ (timerName).value.trim();
-        const typedStart = /** @type {HTMLInputElement} */ (start).value;
-        return {
+      get: () =>
+        stepFromFields({
           id: entry.id,
-          track: track.value || null,
-          text: /** @type {HTMLTextAreaElement} */ (text).value.trim(),
-          say: /** @type {HTMLInputElement} */ (say).value.trim(),
+          track: track.value,
+          text: /** @type {HTMLTextAreaElement} */ (text).value,
+          say: /** @type {HTMLInputElement} */ (say).value,
           mins: getQuantity(mins),
           active: on(active),
-          timer: on(hasTimer) && secs() > 0 ? { seconds: secs(), name: tn || t("edit.timerDefault") } : null,
-          uses: uses.get().map(([amount, what]) => ({ amount, name: what })).filter((u) => u.amount || u.name),
-          note: /** @type {HTMLInputElement} */ (note).value.trim(),
-          note_tone: on(warn) ? "warning" : "",
+          hasTimer: on(hasTimer),
+          timerName: /** @type {HTMLInputElement} */ (timerName).value,
+          timerSeconds: /** @type {HTMLInputElement} */ (timerSecs).value,
+          timerDefault: t("edit.timerDefault"),
+          uses: /** @type {[string, string][]} */ (uses.get()),
+          note: /** @type {HTMLInputElement} */ (note).value,
+          warn: on(warn),
           mini: on(mini),
           photos: photos.get(),
-          // Where the step falls in time (Kenny, 29/10/2026): recipe/schedule.js.
-          start: typedStart === "" ? null : Math.max(0, Number(typedStart)),
-          with: partner.value || null,
-        };
-      },
+          start: /** @type {HTMLInputElement} */ (start).value,
+          partner: partner.value,
+        }),
     };
     return entry;
   }
@@ -422,12 +421,11 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     }
   });
   /** The step rows that have text: the one set the times, the timeline and the meeting-lane pass all read (empty rows count nowhere). */
-  const liveRows = () => stepList.filter((e) => e.get().text);
+  const liveRows = () => liveOf(stepList);
   /** The two times from the steps as they stand, and what is stored: a typed override wins. */
   const timesNow = () => {
-    const steps = settle(liveRows().map((e) => e.get()), namedTracks());
     const typed = (/** @type {HTMLElement} */ sw, /** @type {HTMLElement} */ q) => (on(sw) ? getQuantity(q) : null);
-    return effective(r, { steps, tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name), minutes_override: typed(minutesOver, minutes), hands_on_override: typed(handsOver, hands) });
+    return timesOf(r, liveRows().map((e) => e.get()), tracks.get().map(([tk]) => tk), { minutes: typed(minutesOver, minutes), hands: typed(handsOver, hands) });
   };
   const refreshTimes = () => {
     const now = timesNow();
@@ -614,57 +612,34 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     leave();
   }, { once: true, signal: again.__rlAbort.signal });
 
-  /** A step that runs alongside a step that is gone (or itself) runs on its own. @param {Record<string, any>[]} list */
-  const tidyWith = (list) => list.map((s) => (s.with && s.with !== s.id && list.some((x) => x.id === s.with) ? s : { ...s, with: null }));
-  /** The recipe's label from the field: both halves or none (the server refuses one half). */
-  const labelOut = () => {
-    const typed = /** @type {HTMLInputElement} */ (label).value.trim();
-    const old = { nl: String(r.label?.nl ?? ""), en: String(r.label?.en ?? "") };
-    if (typed === ownLabel) return old;
-    if (!typed) return { nl: "", en: "" };
-    const other = lang() === "nl" ? "en" : "nl";
-    return { ...old, [lang()]: typed, [other]: old[other].trim() || typed };
-  };
-  /** The dish named in the first field, as the name to show: an existing dish's, or the new one's. @param {{ id: string | null, name: { nl: string, en: string } | null }} choice */
-  const dishText = (choice) => {
-    const d = choice.id ? kitchenNow()?.dishes.find((x) => x.id === choice.id) : null;
-    return String(d?.name?.[lang()] || d?.name?.[lang() === "nl" ? "en" : "nl"] || choice.name?.[lang()] || "").trim();
-  };
   /** The form as a recipe body. `forDraft` keeps imported ingredient lines the catalogue does not know yet (a Save is blocked while any is left). @param {boolean} [forDraft] */
   const collect = (forDraft = false) => {
     const choice = dishField.get();
-    const shortValue = /** @type {HTMLInputElement} */ (short).value.trim();
-    return {
-      // A new recipe carries its preset along; `dish_id` puts it into that dish (Kenny, 24/10/2026 09:27), `new_dish`
-      // makes a dish with it, and choosing another dish for an existing recipe moves it (api.js).
-      ...(recipe ?? preset),
-      dish_id: choice?.id ?? null,
-      new_dish: choice?.name ?? null,
-      label: labelOut(),
-      short: shortValue || dishText(choice ?? { id: null, name: null }).split(/\s+/)[0] || "",
-      summary: /** @type {HTMLTextAreaElement} */ (summary).value.trim(),
-      source: /** @type {HTMLInputElement} */ (source).value.trim() || null,
+    return recipeBody(recipe ?? preset, {
+      choice,
+      label: labelOf(r, /** @type {HTMLInputElement} */ (label).value, ownLabel, lang()),
+      shortTyped: /** @type {HTMLInputElement} */ (short).value,
+      dishName: dishText(choice ?? { id: null, name: null }),
+      summary: /** @type {HTMLTextAreaElement} */ (summary).value,
+      source: /** @type {HTMLInputElement} */ (source).value,
       meals: getSegmentedValues(meals),
       ing: combobox(mainBox)?.values() ?? [],
-      ...(() => {
-        // The two times as they are stored (Kenny, 29/10/2026): the computed figure, or the typed one when Override is on;
-        // `minutes` and `hands_on` always hold the effective value so every reader keeps working.
-        const now = timesNow();
-        return { minutes: now.minutes, hands_on: now.hands_on, minutes_override: now.minutes_override, hands_on_override: now.hands_on_override };
-      })(),
+      times: timesNow(),
       portions: getQuantity(portions),
       prep: getSegmentedValues(prep)[0] ?? "light",
       safe: on(safe),
-      gear: /** @type {HTMLInputElement} */ (gear).value.trim(),
-      last_note: /** @type {HTMLTextAreaElement} */ (lastNote).value.trim(),
-      mini_note: /** @type {HTMLTextAreaElement} */ (miniNote).value.trim(),
-      tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name),
-      ingredients: ingredients.get().map(([n, amount, unit, group]) => ({ ...n, amount, unit, group })).filter((i) => i.ingredient || (forDraft && i.proposal)),
-      tools: tools.get().map(([tk]) => tk).filter((tk) => tk.name),
-      steps: tidyWith(stepList.map((e) => e.get()).filter((s) => s.text)),
+      gear: /** @type {HTMLInputElement} */ (gear).value,
+      lastNote: /** @type {HTMLTextAreaElement} */ (lastNote).value,
+      miniNote: /** @type {HTMLTextAreaElement} */ (miniNote).value,
+      trackRows: tracks.get().map(([tk]) => tk),
+      ingredientRows: /** @type {any} */ (ingredients.get()),
+      toolRows: tools.get().map(([tk]) => tk),
+      steps: stepList.map((e) => e.get()),
       photo: recipePhoto.get()[0] ?? null,
-    };
+    }, forDraft);
   };
+  /** The dish named in the first field, as the name to show. @param {{ id: string | null, name: { nl: string, en: string } | null }} choice */
+  const dishText = (choice) => dishNameOf(choice, kitchenNow()?.dishes ?? [], lang());
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
