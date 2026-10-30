@@ -560,9 +560,11 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       e.paint();
     }
   });
+  /** The step rows that have text: the one set the times, the timeline and the meeting-lane pass all read (empty rows count nowhere). */
+  const liveRows = () => stepList.filter((e) => e.get().text);
   /** The two times from the steps as they stand, and what is stored: a typed override wins. */
   const timesNow = () => {
-    const steps = settle(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks());
+    const steps = settle(liveRows().map((e) => e.get()), namedTracks());
     const typed = (/** @type {HTMLElement} */ sw, /** @type {HTMLElement} */ q) => (on(sw) ? getQuantity(q) : null);
     return effective(r, { steps, tracks: tracks.get().map(([tk]) => tk).filter((tk) => tk.name), minutes_override: typed(minutesOver, minutes), hands_on_override: typed(handsOver, hands) });
   };
@@ -590,7 +592,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   const paintTimeline = () => {
     if (syncing) return;
     const number = new Map(stepList.map((e, i) => [e.id, i + 1]));
-    const { items, lanes } = toItems(settle(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks()), namedTracks(), {
+    const { items, lanes } = toItems(settle(liveRows().map((e) => e.get()), namedTracks()), namedTracks(), {
       meet: t("edit.tracksMeet"),
       all: t("edit.timelineAll"),
       unnamed: t("edit.unnamedTrack"),
@@ -691,10 +693,11 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   /** The meeting lane follows the steps before it (recipe/meet.js): a moved start is written into its field before anything is read. */
   const settleFields = (/** @type {Event} */ ev) => {
     if (syncing || seqHost.contains(/** @type {Node} */ (ev.target)) || (ev.type === "input" && stepList.some((e) => e.start === ev.target))) return;
-    const now = stepList.map((e) => e.get());
+    const rows = liveRows();
+    const now = rows.map((e) => e.get());
     const after = settle(now, namedTracks());
     after.forEach((st, i) => {
-      if (st !== now[i]) /** @type {any} */ (stepList[i]).set(st);
+      if (st !== now[i]) /** @type {any} */ (rows[i]).set(st);
     });
   };
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, settleFields);
