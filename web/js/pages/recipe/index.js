@@ -18,7 +18,7 @@ import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
 import { attachHoverCards } from "/static/kp/js/hovercard.js";
 import { setQr } from "/static/kp/js/qr.js";
 import { wordsFor } from "../../recipe/words.js";
-import { createLog } from "../../recipe/log.js";
+import { createLog } from "../../recipe/log/index.js";
 import { paintStepPhotos } from "../../recipe/page-parts.js";
 import { lang } from "../../i18n/index.js";
 import { buildFrame, paintWords } from "./frame.js";
