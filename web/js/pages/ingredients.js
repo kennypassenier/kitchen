@@ -8,7 +8,7 @@ import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
 import { names, ordered } from "../dishes/editor.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, missingBadge } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, missingBadge } from "../records/index.js";
 import { t } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */

@@ -8,7 +8,7 @@ import { loadKitchen, onKitchen, kitchenNow, ingredientName } from "../api.js";
 import { h } from "../dom.js";
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { names, label, languages, ordered } from "../dishes/editor.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, sideName, missingBadge } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, sideName, missingBadge } from "../records/index.js";
 import { t, lang } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */

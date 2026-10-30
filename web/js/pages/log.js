@@ -5,7 +5,7 @@
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, logWhat, feelings } from "../records.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, logWhat, feelings } from "../records/index.js";
 import { dmy } from "../format.js";
 import { t } from "../i18n/index.js";
 

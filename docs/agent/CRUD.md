@@ -4,7 +4,7 @@ Kenny, 24/10/2026 05:07 and 05:08: everything that is entered or read out
 has full CRUD in the screens (C add, R view, U edit, D delete), and every
 item has its own page. The API has had all four for every list since 1.0.0
 (`/data/{list}`, `/data/{list}/{id}`); this table is about the screens.
-`js/records.js` holds the editors and the deletes, `pages/item.js` the item
+`js/records/` holds the editors and the deletes, `pages/item.js` the item
 pages.
 
 | Item | Where | Before (C R U D, own page) | After (C R U D, own page) |

@@ -16,7 +16,7 @@ import { attachToggles, toggle } from "/static/kp/js/toggle.js";
 import { attachArt } from "/static/kp/js/art.js";
 import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
-import { openRecordEditor, detailHref, sideName } from "../records.js";
+import { openRecordEditor, detailHref, sideName } from "../records/index.js";
 import { t, nameOf } from "../i18n/index.js";
 import { pad, hhmm, dmyDate, localIso, cap, minutesWords } from "../format.js";
 

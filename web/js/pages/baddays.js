@@ -33,7 +33,7 @@ import { attachLoadingPieces } from "/static/kp/js/loading-pieces.js";
 import { attachMotion } from "/static/kp/js/motion.js";
 import { create, daysSinceCooked, kitchenNow, loadKitchen, onKitchen, takePortions, reason } from "../api.js";
 import { h, $ } from "../dom.js";
-import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records.js";
+import { openRecordEditor, deleteRecord, itemLink, openSafePicker, openRecipeEditor, unmarkSafe, ateShelf } from "../records/index.js";
 import { t, lang, nameOf, textOf } from "../i18n/index.js";
 import { dmy, today } from "../format.js";
 import { attachSelects, drawnSelect } from "/static/kp/js/combobox.js";
