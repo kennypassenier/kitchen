@@ -619,6 +619,7 @@ export function mount(root, { navigate }) {
   form.addEventListener("submit", (event) => {
     // The package's form fires its valid event and leaves the browser's own submit running, which reloaded the page
     // (a GET to /bad-days?dish=…) before the save went out: since 1.0.0 nothing was ever added (found 24/10/2026).
+    // kp-themes 11.3.0 stops a valid submit itself; this stays as a harmless guard for an invalid one (29/10/2026 audit).
     event.preventDefault();
     const dish = dishField.value.trim();
     const dishEn = dishEnField.value.trim();
