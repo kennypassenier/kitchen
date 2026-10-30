@@ -55,6 +55,47 @@ function showNotFound(ctx) {
 }
 
 /**
+ * Show the recipe the kitchen holds, or say it is not there. Returns what the page remembers of the last draw.
+ * @param {RecipeCtx} ctx @param {Kitchen} k @param {string} lastJson @param {ReturnType<typeof createCardView>} cardView @param {ReturnType<typeof createShare>} share @param {ReturnType<typeof createLog>} log
+ * @returns {string} the recipe as drawn (empty when it is not there)
+ */
+function show(ctx, k, lastJson, cardView, share, log) {
+  const found = k.recipes.find((r) => r.id === ctx.id) ?? null;
+  const next = wordsFor(lang());
+  const switched = next !== ctx.words;
+  ctx.words = next;
+  if (!found) {
+    showNotFound(ctx);
+    return "";
+  }
+  const json = JSON.stringify(found);
+  ctx.recipe = found;
+  if (ctx.portions === 0) ctx.portions = found.portions || 1;
+  document.title = `${found.name} · Kitchen`;
+  if (json !== lastJson || switched) {
+    paintWords(ctx.el, ctx.words);
+    drawPrintOptions(ctx);
+    cardView.draw(found, k);
+    paintStepPhotos(ctx.el.stepCard, ctx.el.stepList, found);
+    share.paintShare();
+    share.paintSheet();
+  }
+  lower(ctx, true);
+  setCardState(ctx.el.card, "ready");
+  log.show(k, ctx.words);
+  return json;
+}
+
+/** The first frame: every section loading. @param {RecipeCtx} ctx @param {ReturnType<typeof createLog>} log */
+function paintLoading(ctx, log) {
+  paintWords(ctx.el, ctx.words);
+  setQr(ctx.el.code, { state: "loading" });
+  setCardState(ctx.el.card, "loading", { words: ctx.words.loading });
+  setCardState(ctx.el.paper.el, "loading", { words: ctx.words.sheetLoading });
+  log.loading(ctx.words);
+}
+
+/**
  * @param {HTMLElement} root
  * @param {{ params: URLSearchParams, navigate: (href: string) => void }} page
  */
@@ -62,51 +103,17 @@ export function mount(root, { params, navigate }) {
   /** @type {RecipeCtx} */
   const ctx = { id: params.get("id") ?? "", navigate, words: wordsFor(lang()), recipe: null, portions: 0, alive: true, el: buildFrame() };
   let recipeJson = "";
-  /** @type {(() => void)[]} */
-  const cleanups = [];
-  const { card, code, logSec, stepCard, stepList, page } = ctx.el;
+  const { card, code, logSec, page } = ctx.el;
   const log = createLog(logSec.el, { recipeId: ctx.id, retry: () => void load(true) });
   root.replaceChildren(page);
   attachCardStates(page);
-  cleanups.push(attachHoverCards(page));
-
+  const cleanups = [attachHoverCards(page)];
   const share = createShare(ctx);
   const cardView = createCardView(ctx, share.paintSheet);
-  paintWords(ctx.el, ctx.words);
-  setQr(code, { state: "loading" });
-  setCardState(card, "loading", { words: ctx.words.loading });
-  setCardState(ctx.el.paper.el, "loading", { words: ctx.words.sheetLoading });
-  log.loading(ctx.words);
-
-  /** @param {Kitchen} k */
-  function show(k) {
-    const found = k.recipes.find((r) => r.id === ctx.id) ?? null;
-    const next = wordsFor(lang());
-    const switched = next !== ctx.words;
-    ctx.words = next;
-    if (!found) {
-      recipeJson = "";
-      showNotFound(ctx);
-      return;
-    }
-    const json = JSON.stringify(found);
-    const changed = json !== recipeJson || switched;
-    ctx.recipe = found;
-    recipeJson = json;
-    if (ctx.portions === 0) ctx.portions = found.portions || 1;
-    document.title = `${found.name} · Kitchen`;
-    if (changed) {
-      paintWords(ctx.el, ctx.words);
-      drawPrintOptions(ctx);
-      cardView.draw(found, k);
-      paintStepPhotos(stepCard, stepList, found);
-      share.paintShare();
-      share.paintSheet();
-    }
-    lower(ctx, true);
-    setCardState(card, "ready");
-    log.show(k, ctx.words);
-  }
+  paintLoading(ctx, log);
+  const draw = (/** @type {Kitchen} */ k) => {
+    recipeJson = show(ctx, k, recipeJson, cardView, share, log);
+  };
 
   /** @param {boolean} [force] */
   async function load(force = false) {
@@ -118,7 +125,7 @@ export function mount(root, { params, navigate }) {
     }
     try {
       const k = await loadKitchen({ force });
-      if (ctx.alive) show(k);
+      if (ctx.alive) draw(k);
     } catch (e) {
       if (!ctx.alive) return;
       lower(ctx, false);
@@ -129,11 +136,10 @@ export function mount(root, { params, navigate }) {
   cleanups.push(
     onKitchen(() => {
       const k = kitchenNow();
-      if (k && ctx.alive && recipeJson !== "") show(k);
+      if (k && ctx.alive && recipeJson !== "") draw(k);
     }),
   );
   void load();
-
   return () => {
     ctx.alive = false;
     for (const clean of cleanups) clean();
