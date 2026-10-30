@@ -44,10 +44,8 @@ export function createFiller(ctx, { frame, sentence, gantt }) {
   /** The plate of a recipe that cannot be counted back, with the one action that helps. @param {string} title @param {string} text @param {HTMLElement} action */
   const plate = (title, text, action) => ({ title, text, action });
 
-  /** @param {import("../api.js").Kitchen} k */
-  function fill(k) {
-    const list = countable(k);
-    // The picker: recipes with step times, the chosen one set.
+  /** The picker: the recipes with step times in name order, the chosen one set. @param {Item[]} list */
+  function fillPicker(list) {
     const listEl = /** @type {HTMLElement} */ ($("#tm-recipe-list", root));
     listEl.querySelectorAll("li[data-kp-option]").forEach((li) => li.remove());
     for (const r of list) listEl.prepend(h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": "", "data-value": r.id }, r.name));
@@ -64,12 +62,11 @@ export function createFiller(ctx, { frame, sentence, gantt }) {
     });
     ctx.recipe = recipeId ? recipeById(recipeId) : null;
     actions.replaceChildren();
-    if (list.length === 0) {
-      setCardState(pickCard, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
-      setCardState(nonePlate, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText2"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
-      return;
-    }
-    setCardState(pickCard, "ready");
+    return { handle, said, actions };
+  }
+
+  /** What the picker says about the recipe of the link. @param {ReturnType<typeof fillPicker>} picker */
+  function sayRecipe({ handle, said, actions }) {
     if (ctx.recipe && hasTimes(ctx.recipe)) {
       handle?.set([String(ctx.recipe.id)]);
       const lanes = /** @type {Item[]} */ (ctx.recipe.tracks ?? []).length;
@@ -78,25 +75,22 @@ export function createFiller(ctx, { frame, sentence, gantt }) {
     } else {
       said.textContent = recipeId ? t("timing.thatNoTimes") : t("timing.chooseToCount");
     }
+  }
 
-    if (!recipeId) {
-      setCardState(nonePlate, "empty", plate(t("timing.pickRecipe"), t("timing.chooseAbove"), h("button", { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, t("timing.chooseRecipe"))));
-      return;
-    }
-    // The recipe of the link: missing, without step times, or ready.
-    if (!ctx.recipe || !hasTimes(ctx.recipe)) {
-      const title = ctx.recipe ? t("timing.thisNoTimes") : t("timing.notInKitchen");
-      const text = ctx.recipe
-        ? t("timing.giveEveryStep")
-        : t("timing.linkOld");
-      const again = () => h(ctx.recipe ? "a" : "button", ctx.recipe ? { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(ctx.recipe?.id))}` } : { type: "button", class: "kp-button kp-button--primary", onclick: () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus() }, ctx.recipe ? t("timing.openRecipe") : t("timing.chooseRecipe"));
-      for (const c of dataCards) setCardState(c, "empty", plate(title, text, again()));
-      if (gantt) setTimelineState(gantt, "ready");
-      setCardState(planCard, "empty", plate(title, text, again()));
-      return;
-    }
+  const focusPicker = () => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", root))?.focus();
 
-    const s = k.settings ?? {};
+  /** The recipe of the link is missing or has no step times: every card says so, with the one action that helps. */
+  function showNotCountable() {
+    const title = ctx.recipe ? t("timing.thisNoTimes") : t("timing.notInKitchen");
+    const text = ctx.recipe ? t("timing.giveEveryStep") : t("timing.linkOld");
+    const again = () => h(ctx.recipe ? "a" : "button", ctx.recipe ? { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(ctx.recipe?.id))}` } : { type: "button", class: "kp-button kp-button--primary", onclick: focusPicker }, ctx.recipe ? t("timing.openRecipe") : t("timing.chooseRecipe"));
+    for (const c of dataCards) setCardState(c, "empty", plate(title, text, again()));
+    if (gantt) setTimelineState(gantt, "ready");
+    setCardState(planCard, "empty", plate(title, text, again()));
+  }
+
+  /** The dinner time, pace and time to spare from the settings, shown in the sentence's controls. @param {Record<string, any>} s */
+  function readSettings(s) {
     state.eat = typeof s.dinner_time === "string" && /^\d{1,2}:\d{2}$/.test(s.dinner_time) ? s.dinner_time : DEFAULTS.dinner_time;
     state.pace = s.pace === "slow" ? "slow" : "normal";
     state.spare = Number.isFinite(Number(s.spare)) ? Number(s.spare) : DEFAULTS.spare;
@@ -111,15 +105,41 @@ export function createFiller(ctx, { frame, sentence, gantt }) {
     if (paceEl) paceEl.value = state.pace;
     if (spareEl) spareEl.value = String(state.spare);
     for (const el of [paceEl, spareEl]) if (el) drawnSelect(el)?.refresh();
-    /** @type {HTMLElement} */ ($("#tm-sentence-card-t", root)).textContent = String(ctx.recipe.name);
-    const tracks = /** @type {Item[]} */ (ctx.recipe.tracks ?? []);
+  }
+
+  /** The sentence card's title and the line about the recipe's tracks. @param {Item} recipe */
+  function fillSentenceCard(recipe) {
+    /** @type {HTMLElement} */ ($("#tm-sentence-card-t", root)).textContent = String(recipe.name);
+    const tracks = /** @type {Item[]} */ (recipe.tracks ?? []);
     /** @type {HTMLElement} */ ($("#tm-sentence-card-body", root)).textContent =
       tracks.length > 1 ? t("timing.cookAtOnce", tracks.length, tracks.map((tr) => String(tr.name).toLowerCase()).join(", ").replace(/, ([^,]*)$/, ` ${t("timing.and")} $1`)) : t("timing.oneTrack");
+  }
+
+  /** @param {import("../../api.js").Kitchen} k */
+  function fill(k) {
+    const list = countable(k);
+    const picker = fillPicker(list);
+    if (list.length === 0) {
+      setCardState(pickCard, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
+      setCardState(nonePlate, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText2"), h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"))));
+      return;
+    }
+    setCardState(pickCard, "ready");
+    sayRecipe(picker);
+    if (!recipeId) {
+      setCardState(nonePlate, "empty", plate(t("timing.pickRecipe"), t("timing.chooseAbove"), h("button", { type: "button", class: "kp-button kp-button--primary", onclick: focusPicker }, t("timing.chooseRecipe"))));
+      return;
+    }
+    // The recipe of the link: missing, without step times, or ready.
+    if (!ctx.recipe || !hasTimes(ctx.recipe)) {
+      showNotCountable();
+      return;
+    }
+    readSettings(k.settings ?? {});
+    fillSentenceCard(ctx.recipe);
     setCardState(sentenceCard, "ready");
     if (gantt) setTimelineState(gantt, "ready");
-    setCardState(planCard, "ready");
-    setCardState(timerCard, "ready");
-    setCardState(nudgeCard, "ready");
+    for (const c of [planCard, timerCard, nudgeCard]) setCardState(c, "ready");
     ctx.view.draw();
   }
 

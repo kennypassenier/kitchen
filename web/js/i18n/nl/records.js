@@ -2,7 +2,7 @@
 // Part of nl.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
 
 export const NL_RECORDS = {
-  // records.js: the editors, deletes and list cards
+  // records/: the editors, deletes and list cards
   "common.and": "en",
   "rec.aRecipe": "Een recept",
   "rec.aDish": "Een gerecht",
@@ -130,7 +130,7 @@ export const NL_RECORDS = {
   "rec.fixName": "Typ zowel de Nederlandse als de Engelse naam.",
   "rec.phIngNl": "Frieten",
   "rec.phIngEn": "Fries",
-  // records.js: per list (noun, add, save, delete, what a delete loses, in use)
+  // records/: per list (noun, add, save, delete, what a delete loses, in use)
   "list.recipes": "recept",
   "list.recipes.add": "Recept toevoegen",
   "list.recipes.addSave": "Recept toevoegen",

@@ -9,6 +9,36 @@ import { safeRecipes, firstSentence, lastMade } from "./helpers.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 
+/** One safe dish: its link with the first sentence and when it was last made, and Edit / Not safe. @param {Kitchen} k @param {Record<string, any>} r */
+function safeRow(k, r) {
+  const made = lastMade(k, r.id);
+  const text = r.summary ? firstSentence(String(r.summary)) : t("bad.takesAbout", r.minutes, r.gear);
+  const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
+  const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("bad.notSafeName", r.name) }, t("bad.notSafe"));
+  edit.addEventListener("click", () => openRecipeEditor(r));
+  unsafe.addEventListener("click", () => unmarkSafe(r));
+  return h(
+    "li",
+    { class: "bd-safe__item" },
+    h(
+      "a",
+      { class: "kp-action", href: `/recipe?id=${encodeURIComponent(r.id)}` },
+      h("strong", { class: "kp-action__title" }, r.name),
+      h("span", { class: "kp-action__mark", "aria-hidden": "true" }),
+      h("span", { class: "kp-action__text" }, text),
+      h("span", { class: "kp-action__meta" }, h("span", null, `${r.minutes} min, ${r.gear}`), h("span", null, made ? t("bad.lastMade", dmy(made)) : t("bad.notMade"))),
+    ),
+    h("div", { class: "kp-row-actions" }, edit, unsafe),
+  );
+}
+
+/** No safe dish yet: the card says so and offers the picker. @param {HTMLElement} card */
+function showNoSafe(card) {
+  const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.addSafe"));
+  pick.addEventListener("click", () => openSafePicker());
+  setCardState(card, "empty", { title: t("bad.noSafe"), text: t("bad.noSafeText"), action: pick });
+}
+
 /** @param {import("./index.js").BadDaysCtx} ctx */
 export function createSafe(ctx) {
   const { page, drawn } = ctx;
@@ -23,43 +53,10 @@ export function createSafe(ctx) {
     drawn.safe = signature;
     safeCount.textContent = t("bad.dishCount", dishes.length);
     if (!dishes.length) {
-      const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.addSafe"));
-      pick.addEventListener("click", () => openSafePicker());
-      setCardState(safeCard, "empty", {
-        title: t("bad.noSafe"),
-        text: t("bad.noSafeText"),
-        action: pick,
-      });
+      showNoSafe(safeCard);
       return;
     }
-    safeList.replaceChildren(
-      ...dishes.map((r) => {
-        const made = lastMade(k, r.id);
-        const text = r.summary ? firstSentence(String(r.summary)) : t("bad.takesAbout", r.minutes, r.gear);
-        const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
-        const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("bad.notSafeName", r.name) }, t("bad.notSafe"));
-        edit.addEventListener("click", () => openRecipeEditor(r));
-        unsafe.addEventListener("click", () => unmarkSafe(r));
-        return h(
-          "li",
-          { class: "bd-safe__item" },
-          h(
-            "a",
-            { class: "kp-action", href: `/recipe?id=${encodeURIComponent(r.id)}` },
-            h("strong", { class: "kp-action__title" }, r.name),
-            h("span", { class: "kp-action__mark", "aria-hidden": "true" }),
-            h("span", { class: "kp-action__text" }, text),
-            h(
-              "span",
-              { class: "kp-action__meta" },
-              h("span", null, `${r.minutes} min, ${r.gear}`),
-              h("span", null, made ? t("bad.lastMade", dmy(made)) : t("bad.notMade")),
-            ),
-          ),
-          h("div", { class: "kp-row-actions" }, edit, unsafe),
-        );
-      }),
-    );
+    safeList.replaceChildren(...dishes.map((r) => safeRow(k, r)));
     setCardState(safeCard, "ready");
   }
   $("[data-bd-safe-add]", page)?.addEventListener("click", () => openSafePicker());

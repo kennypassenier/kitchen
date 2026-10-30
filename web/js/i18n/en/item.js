@@ -2,7 +2,7 @@
 // Part of en.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
 
 export const EN_ITEM = {
-  // pages/item.js: an item's own page
+  // pages/item/: an item's own page
   "it.none": "None",
   "it.added": "Added",
   "it.changed": "Last changed",

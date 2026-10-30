@@ -1,6 +1,6 @@
 // What I ate (/log): every line of the kitchen's log, the recipes that were cooked and the shelf foods that were eaten
 // (Kenny, 24/10/2026 05:07), newest first. One card with the package's data table and its loading, empty and failed
-// states; Add, Edit and Delete as on /dishes (js/records.js), and each line opens its own page.
+// states; Add, Edit and Delete as on /dishes (js/records/), and each line opens its own page.
 
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";

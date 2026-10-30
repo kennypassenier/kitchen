@@ -2,7 +2,7 @@
 // Part of en.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
 
 export const EN_RECORDS = {
-  // records.js: the editors, deletes and list cards
+  // records/: the editors, deletes and list cards
   "common.and": "and",
   "rec.aRecipe": "A recipe",
   "rec.aDish": "A dish",
@@ -130,7 +130,7 @@ export const EN_RECORDS = {
   "rec.fixName": "Type both its Dutch and its English name.",
   "rec.phIngNl": "Frieten",
   "rec.phIngEn": "Fries",
-  // records.js: per list (noun, add, save, delete, what a delete loses, in use)
+  // records/: per list (noun, add, save, delete, what a delete loses, in use)
   "list.recipes": "recipe",
   "list.recipes.add": "Add a recipe",
   "list.recipes.addSave": "Add the recipe",

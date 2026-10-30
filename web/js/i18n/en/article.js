@@ -2,7 +2,7 @@
 // Part of en.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
 
 export const EN_ARTICLE = {
-  // records.js: each list with its article
+  // records/: each list with its article
   "list.recipes.the": "the recipe",
   "list.recipes.this": "this recipe",
   "list.dishes.the": "the dish",

@@ -6,10 +6,9 @@ import { t } from "../../i18n/index.js";
 import { section } from "./parts.js";
 import { DIAL_MINUTES } from "./timers.js";
 
-/** The steps, their photos, the running timers and the band that says a timer ended. @param {import("./index.js").CookCtx} ctx */
-function buildCookSection(ctx) {
-  const band = h("div", { class: "kp-attention", "aria-label": t("cook.needsYou") });
-  const steps = h("div", {
+/** The focus-steps component, loading from the first frame. @param {string} storeKey */
+function buildSteps(storeKey) {
+  return h("div", {
     class: "kp-focus-steps",
     id: "ck-steps",
     "data-kp-focus-steps": "",
@@ -19,12 +18,14 @@ function buildCookSection(ctx) {
     "data-kp-state": "loading",
     "data-kp-focus-steps-empty": t("cook.noSteps"),
     "data-kp-focus-steps-empty-action": t("timing.openRecipe"),
-    "data-kp-remember": ctx.storeKey,
+    "data-kp-remember": storeKey,
     "aria-label": t("cook.steps"),
   });
-  // The photos of the step in hand, large (Kenny, 24/10/2026 05:23); empty and hidden for a step without any.
-  const stepPhotos = h("div", { class: "ck-photos", hidden: true });
-  const timers = h("div", {
+}
+
+/** The package's timers list, beside the steps. */
+function buildTimers() {
+  return h("div", {
     class: "kp-timers",
     id: "ck-timers",
     "data-kp-timers": "",
@@ -33,6 +34,15 @@ function buildCookSection(ctx) {
     "data-kp-timers-empty": t("cook.noTimer"),
     "aria-label": t("cook.kitchenTimers"),
   });
+}
+
+/** The steps, their photos, the running timers and the band that says a timer ended. @param {import("./index.js").CookCtx} ctx */
+function buildCookSection(ctx) {
+  const band = h("div", { class: "kp-attention", "aria-label": t("cook.needsYou") });
+  const steps = buildSteps(ctx.storeKey);
+  // The photos of the step in hand, large (Kenny, 24/10/2026 05:23); empty and hidden for a step without any.
+  const stepPhotos = h("div", { class: "ck-photos", hidden: true });
+  const timers = buildTimers();
   // The screen (Kenny, 29/10/2026): the package's steps hold a Screen Wake Lock for the whole of cook mode (asked when the
   // steps are given, asked again when the tab is visible again, let go when the page is left). This badge says so, and only
   // while it holds; the package's own screen line is hidden in favour of it (cook.css).

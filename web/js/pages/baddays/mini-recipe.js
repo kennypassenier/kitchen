@@ -9,6 +9,33 @@ import { miniRecipe, toFocusSteps } from "./helpers.js";
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 /** @typedef {import("../../api.js").Item} Item */
 
+/** @param {HTMLElement} group @param {boolean} off */
+function setSegmentedDisabled(group, off) {
+  if (off) group.setAttribute("aria-disabled", "true");
+  else group.removeAttribute("aria-disabled");
+}
+
+/** The "cook this" link: off with no recipe, else the recipe in cook mode (mini or in full), fresh. @param {HTMLAnchorElement} cook @param {Item | null} recipe @param {"mini" | "full"} version */
+function setCook(cook, recipe, version) {
+  if (!recipe) {
+    cook.removeAttribute("href");
+    cook.setAttribute("aria-disabled", "true");
+    cook.textContent = t("bad.cookThis");
+    return;
+  }
+  cook.removeAttribute("aria-disabled");
+  cook.textContent = t("bad.cookThis");
+  cook.href = `/cook?id=${encodeURIComponent(recipe.id)}${version === "mini" ? "&mini=1" : ""}&fresh=1`;
+}
+
+/** The sentence under the title: what the version holds. @param {Item} mini @param {"mini" | "full"} version @param {Item[]} steps @param {Item[]} small */
+function ledeOf(mini, version, steps, small) {
+  const minutes = (version === "mini" ? small : steps).reduce((sum, s) => sum + (Number(s.mins) || 0), 0);
+  return version === "mini"
+    ? t("bad.miniLede", small.length, minutes, mini.gear, mini.mini_note || t("bad.leftOut", steps.length - small.length))
+    : t("bad.fullLede", steps.length, mini.minutes, mini.portions, mini.gear);
+}
+
 /** @param {import("./index.js").BadDaysCtx} ctx */
 export function createMini(ctx) {
   const { page, drawn } = ctx;
@@ -22,25 +49,6 @@ export function createMini(ctx) {
   /** @type {"mini" | "full"} */
   let version = "mini";
 
-  /** @param {HTMLElement} group @param {boolean} off */
-  function setSegmentedDisabled(group, off) {
-    if (off) group.setAttribute("aria-disabled", "true");
-    else group.removeAttribute("aria-disabled");
-  }
-
-  /** @param {Item | null} recipe */
-  function setCook(recipe) {
-    if (!recipe) {
-      cook.removeAttribute("href");
-      cook.setAttribute("aria-disabled", "true");
-      cook.textContent = t("bad.cookThis");
-      return;
-    }
-    cook.removeAttribute("aria-disabled");
-    cook.textContent = t("bad.cookThis");
-    cook.href = `/cook?id=${encodeURIComponent(recipe.id)}${version === "mini" ? "&mini=1" : ""}&fresh=1`;
-  }
-
   function drawMini() {
     if (!mini) return;
     const steps = /** @type {Item[]} */ (mini.steps);
@@ -48,11 +56,7 @@ export function createMini(ctx) {
     const hasMini = small.length > 0;
     if (!hasMini) version = "full";
     const shown = version === "mini" ? small : steps;
-    const minutes = shown.reduce((sum, s) => sum + (Number(s.mins) || 0), 0);
-    miniLede.textContent =
-      version === "mini"
-        ? t("bad.miniLede", small.length, minutes, mini.gear, mini.mini_note || t("bad.leftOut", steps.length - small.length))
-        : t("bad.fullLede", steps.length, mini.minutes, mini.portions, mini.gear);
+    miniLede.textContent = ledeOf(mini, version, steps, small);
     miniSteps.setAttribute("aria-label", `${mini.name}, ${version === "mini" ? t("bad.miniVersion").toLowerCase() : t("bad.fullRecipe").toLowerCase()}`);
     setFocusStepsState(miniSteps, "ready");
     setFocusSteps(miniSteps, toFocusSteps(shown));
@@ -60,7 +64,7 @@ export function createMini(ctx) {
     const miniItem = /** @type {HTMLButtonElement | null} */ ($('[data-value="mini"]', miniVersion));
     if (miniItem) miniItem.disabled = !hasMini;
     setSegmentedDisabled(miniVersion, false);
-    setCook(mini);
+    setCook(cook, mini, version);
   }
 
   /** @param {Kitchen} k */
@@ -100,13 +104,13 @@ export function createMini(ctx) {
     render: renderMini,
     loading: () => {
       setFocusStepsState(miniSteps, "loading", t("bad.loadingRecipe"));
-      setCook(null);
+      setCook(cook, null, version);
       setSegmentedDisabled(miniVersion, true);
     },
     /** @param {string} why */
     failed: (why) => {
       setFocusStepsState(miniSteps, "error", `${t("bad.recipeFailed")} ${why}`);
-      setCook(null);
+      setCook(cook, null, version);
     },
   };
 }

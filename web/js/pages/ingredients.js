@@ -1,7 +1,7 @@
 // The ingredients screen, `/ingredients` (Kenny, 24/10/2026 05:15): the one list of ingredients every dish side and
 // every recipe line points at, and the categories they sit in ("Vlees" / "Meat" → Steak, "Aardappelen" / "Potatoes"
 // → Frieten). Two cards with the package's data table and its loading, empty and failed states; Add, Edit and
-// Delete through js/records.js, and every name opens its own page. An ingredient or a category still in use cannot
+// Delete through js/records/, and every name opens its own page. An ingredient or a category still in use cannot
 // be deleted; the refusal names what uses it.
 
 import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";

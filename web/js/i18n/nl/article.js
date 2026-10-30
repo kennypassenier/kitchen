@@ -2,7 +2,7 @@
 // Part of nl.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
 
 export const NL_ARTICLE = {
-  // records.js: each list with its article
+  // records/: each list with its article
   "list.recipes.the": "het recept",
   "list.recipes.this": "dit recept",
   "list.dishes.the": "het gerecht",

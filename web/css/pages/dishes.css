@@ -12,7 +12,7 @@
   min-inline-size: 0;
 }
 
-/* An item's own page (js/pages/item.js) and the ingredient screens: one column of cards, the same gap as every page. */
+/* An item's own page (js/pages/item/) and the ingredient screens: one column of cards, the same gap as every page. */
 .it-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
