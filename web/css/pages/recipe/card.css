@@ -1,0 +1,219 @@
+/* ---- 1 · the recipe card ------------------------------------------------------------------------------------- */
+
+/* The card keeps one footprint in every state: the stage holds the data, hidden but not removed, under the state's note. */
+.rp-card {
+  --kp-card-stage-min: 22rem;
+  container: rp-card / inline-size;
+}
+
+.rp-recipe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-lg, 1.5rem);
+  align-items: first baseline;
+}
+
+@container rp-card (min-width: 54rem) {
+  .rp-recipe {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--kp-space-xl, 2rem);
+  }
+}
+
+.rp-recipe__main,
+.rp-recipe__side {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.rp-recipe__head {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 1rem);
+  align-items: center;
+}
+
+.rp-recipe__head h1 {
+  margin: 0;
+}
+
+.rp-recipe__head .kp-badge {
+  justify-self: start;
+}
+
+.rp-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--kp-space-md, 1rem);
+  margin: 0;
+}
+
+.rp-facts > div {
+  display: grid;
+  gap: var(--kp-space-2xs, 0.125rem);
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.rp-facts dt {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.rp-facts .rp-source {
+  grid-column: 1 / -1;
+}
+
+.rp-facts .rp-source dd {
+  overflow-wrap: anywhere;
+}
+
+.rp-facts dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The big action: the whole width of the column, and the one thing that asks for a press. Under it the way to
+   work out when to start; each button has its line under it. */
+.rp-begin {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+}
+
+.rp-begin .kp-button {
+  inline-size: 100%;
+  justify-content: center;
+}
+
+.rp-begin .kp-button--lg {
+  min-block-size: 3.5rem;
+  font-size: var(--kp-text-lg, 1.125rem);
+}
+
+.rp-begin__timing {
+  margin-block-start: var(--kp-space-sm, 0.5rem);
+}
+
+.rp-begin__hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.rp-portions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--kp-space-md, 1rem);
+  align-items: center;
+}
+
+.rp-portions h3 {
+  margin: 0;
+}
+
+/* On a phone the stepper needs the whole width: the word goes above it, never cut. */
+@media (max-width: 36rem) {
+  .rp-portions {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+/* The ingredients share three columns for the whole list: the amount, the unit and the name stay under each other. */
+.rp-ings {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  gap: 0 var(--kp-space-md, 1rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-ing,
+.rp-ings__group {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.rp-ing {
+  align-items: baseline;
+  padding-block: var(--kp-space-sm, 0.5rem);
+  border-block-end: 1px solid var(--border);
+}
+
+.rp-ings__group {
+  padding-block: var(--kp-space-md, 1rem) var(--kp-space-xs, 0.25rem);
+}
+
+.rp-ings__group h4,
+.rp-ings__none {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.rp-ings__none {
+  grid-column: 1 / -1;
+  color: var(--muted-foreground);
+}
+
+.rp-ing__amount {
+  min-inline-size: 3.5ch;
+  text-align: end;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-ing__amount[data-changed] {
+  animation: rp-changed 1.2s ease-out;
+}
+
+@keyframes rp-changed {
+  from {
+    background: var(--muted);
+    box-shadow: 0 0 0 0.25rem var(--muted);
+  }
+  to {
+    background: transparent;
+    box-shadow: 0 0 0 0.25rem transparent;
+  }
+}
+
+/* Calm mode and a system that asks for less motion: the amount is simply the new number. */
+html[data-kp-calm] .rp-ing__amount[data-changed] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-ing__amount[data-changed] {
+    animation: none;
+  }
+}
+
+.rp-ing__unit {
+  color: var(--muted-foreground);
+}
+
+.rp-ing__name {
+  display: grid;
+  gap: var(--kp-space-2xs, 0.125rem);
+  min-inline-size: 0;
+}
+
+.rp-ing__note {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  overflow-wrap: anywhere;
+}
+
+.rp-ing__word[data-kp-hovercard] {
+  justify-self: start;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+}
+

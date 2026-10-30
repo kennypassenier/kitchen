@@ -1,0 +1,21 @@
+/* recipe screen: rules behind the screen's own prefix (rp-). Everything with a kp- class is the package;
+   the rp- rules only lay things out (grids, widths, the A4 frame) and write the readouts. No colour that is not a token. */
+
+.rp-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
+}
+
+.rp-page > [hidden] {
+  display: none;
+}
+
+.rp-line,
+.rp-log__hint,
+.rp-log__note {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+

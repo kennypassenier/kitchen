@@ -1,0 +1,44 @@
+/* ---- 3 · the printed sheet, shown on screen (the page's real print rules in a frame the shape of A4) -------------- */
+
+.rp-print {
+  inline-size: 100%;
+  max-inline-size: 64rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-lg, 1.5rem);
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .rp-print {
+    grid-template-columns: minmax(18rem, 30rem) minmax(0, 1fr);
+    gap: var(--kp-space-xl, 2rem);
+  }
+}
+
+.rp-sheet {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 210 / 297;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--kp-radius-sm, 0.25rem);
+  background: Canvas;
+  color-scheme: light;
+}
+
+.rp-print__words {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.rp-print__words :is(h3, p) {
+  margin: 0;
+}
+
+.rp-print__go {
+  display: grid;
+  grid-template-columns: max-content;
+}
+

@@ -1,0 +1,41 @@
+/* ---- 4 · the cooking log -------------------------------------------------------------------------------------- */
+
+.rp-logcard {
+  --kp-card-stage-min: 24rem;
+}
+
+.rp-log {
+  display: grid;
+  gap: var(--kp-space-lg, 1.5rem);
+  align-content: start;
+}
+
+.rp-log__add {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  max-inline-size: 60rem;
+}
+
+.rp-log__add h3 {
+  margin: 0;
+}
+
+.rp-log__grid {
+  min-inline-size: 0;
+  max-inline-size: 60rem;
+}
+
+@media (max-width: 40rem) {
+  .rp-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rp-recipe__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The cooking log's grid is left out under the card's empty plate (js/recipe/log.js). */
+.rp-log__grid[hidden] {
+  display: none;
+}

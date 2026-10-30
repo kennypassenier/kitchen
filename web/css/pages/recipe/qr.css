@@ -1,0 +1,45 @@
+/* ---- 2 · the QR code ------------------------------------------------------------------------------------------ */
+
+.rp-share__grid {
+  inline-size: 100%;
+  max-inline-size: 60rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-lg, 1.5rem);
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .rp-share__grid {
+    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+    gap: var(--kp-space-xl, 2rem);
+  }
+}
+
+.rp-share__grid > * {
+  min-inline-size: 0;
+}
+
+.rp-share__code,
+.rp-share__words {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-content: start;
+}
+
+.rp-share__code h3,
+.rp-share__words h3 {
+  margin: 0;
+}
+
+.rp-steps {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  margin: 0;
+  padding-inline-start: 1.5rem;
+}
+
+.rp-steps li::marker {
+  font-weight: 600;
+}
+
