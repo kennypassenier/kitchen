@@ -48,12 +48,39 @@ h2 { margin: 1.25rem 0 0; font-size: 1rem; }
  * @property {string} total the total time, written
  */
 
-/**
- * Turn an empty iframe into the sheet.
- * @param {HTMLIFrameElement} frame
- * @returns {Promise<{ draw: (spec: SheetSpec) => void, option: (name: keyof PrintOptions, value: string) => void, print: () => void }>}
- */
-export async function createSheet(frame) {
+/** The sheet's document: heading, meta line, steps. @param {Document} doc @param {SheetSpec} spec */
+function drawText(doc, { recipe, portions, words, total }) {
+  /** @type {HTMLElement} */ (doc.querySelector("h1")).textContent = recipe.name;
+  /** @type {HTMLElement} */ (doc.querySelector(".meta")).textContent = `${words.forPortions(portions)} · ${words.total} ${total}`;
+  const steps = /** @type {{ text: string }[]} */ (recipe.steps ?? []);
+  const heading = /** @type {HTMLElement} */ (doc.querySelector("h2"));
+  const ol = /** @type {HTMLElement} */ (doc.querySelector("ol"));
+  heading.textContent = words.howTo;
+  heading.hidden = ol.hidden = steps.length === 0;
+  ol.replaceChildren(...steps.map((s) => Object.assign(doc.createElement("li"), { textContent: s.text })));
+}
+
+/** The ingredients as the package's checklist, scaled to the portions. @param {HTMLElement} list @param {SheetSpec} spec */
+function drawIngredients(list, { recipe, portions, words }) {
+  const factor = portions / (recipe.portions || portions || 1);
+  const fallbackGroup = words.ingredients(portions).split(" ")[0];
+  setChecklistItems(
+    list,
+    (recipe.ingredients ?? []).map((/** @type {import("./amounts.js").Ingredient} */ ing) => {
+      const { text, unit } = amountOf(ing, factor, words);
+      const amount = [text, unit].filter(Boolean).join(" ");
+      return {
+        id: ing.id,
+        label: ingredientName(ing.ingredient, appLang()),
+        detail: [amount, ing.note].filter(Boolean).join(". "),
+        group: ing.group || fallbackGroup,
+      };
+    }),
+  );
+}
+
+/** The empty iframe, loaded with the frame's own page and the package's paper styles. @param {HTMLIFrameElement} frame */
+async function loadFrame(frame) {
   const css = await loadPaperCss();
   await new Promise((resolve) => {
     frame.addEventListener("load", resolve, { once: true });
@@ -64,12 +91,21 @@ export async function createSheet(frame) {
   const sheet = new win.CSSStyleSheet();
   sheet.replaceSync(css);
   doc.adoptedStyleSheets = [sheet];
+  return { win, doc };
+}
+
+/**
+ * Turn an empty iframe into the sheet.
+ * @param {HTMLIFrameElement} frame
+ * @returns {Promise<{ draw: (spec: SheetSpec) => void, option: (name: keyof PrintOptions, value: string) => void, print: () => void }>}
+ */
+export async function createSheet(frame) {
+  const { win, doc } = await loadFrame(frame);
   const list = /** @type {HTMLElement} */ (doc.querySelector(".kp-checklist"));
   /** @type {PrintOptions} */
   const options = { notes: "show", box: "square", groups: "keep", lines: "off" };
   /** @type {(() => void) | null} */
   let undo = null;
-
   const stamp = () => {
     undo?.();
     undo = preparePrint(doc, { timeZone: ZONE });
@@ -81,33 +117,11 @@ export async function createSheet(frame) {
     list.toggleAttribute("data-kp-print-notes-lines", options.lines === "on");
   };
   apply();
-
   return {
-    draw({ recipe, portions, words, lang, total }) {
-      doc.documentElement.lang = lang;
-      const factor = portions / (recipe.portions || portions || 1);
-      /** @type {HTMLElement} */ (doc.querySelector("h1")).textContent = recipe.name;
-      /** @type {HTMLElement} */ (doc.querySelector(".meta")).textContent = `${words.forPortions(portions)} · ${words.total} ${total}`;
-      const steps = /** @type {{ text: string }[]} */ (recipe.steps ?? []);
-      const heading = /** @type {HTMLElement} */ (doc.querySelector("h2"));
-      const ol = /** @type {HTMLElement} */ (doc.querySelector("ol"));
-      heading.textContent = words.howTo;
-      heading.hidden = ol.hidden = steps.length === 0;
-      ol.replaceChildren(...steps.map((s) => Object.assign(doc.createElement("li"), { textContent: s.text })));
-      const fallbackGroup = words.ingredients(portions).split(" ")[0];
-      setChecklistItems(
-        list,
-        (recipe.ingredients ?? []).map((/** @type {import("./amounts.js").Ingredient} */ ing) => {
-          const { text, unit } = amountOf(ing, factor, words);
-          const amount = [text, unit].filter(Boolean).join(" ");
-          return {
-            id: ing.id,
-            label: ingredientName(ing.ingredient, appLang()),
-            detail: [amount, ing.note].filter(Boolean).join(". "),
-            group: ing.group || fallbackGroup,
-          };
-        }),
-      );
+    draw(spec) {
+      doc.documentElement.lang = spec.lang;
+      drawText(doc, spec);
+      drawIngredients(list, spec);
       stamp();
     },
     option(name, value) {
