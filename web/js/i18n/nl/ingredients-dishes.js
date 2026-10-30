@@ -1,0 +1,42 @@
+// The ingredients and dishes screens, in Dutch.
+// Part of nl.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
+
+export const NL_INGREDIENTS_DISHES = {
+  // pages/ingredients.js
+  "ig.plural": "ingrediënten",
+  "ig.catPlural": "ingrediëntcategorieën",
+  "ig.usedBy": "Gebruikt door",
+  "ig.used": (n) => `${n} ${n === 1 ? "gerecht of recept" : "gerechten en recepten"}`,
+  "ig.lede": "Eén lijst voor de hele keuken: een gerecht neemt er zijn bijgerechten uit en een recept zijn regels. Open een ingrediënt om elk gerecht en recept ermee te zien, en een wiel dat ertussen kiest.",
+  "ig.allTitle": "Alle ingrediënten",
+  "ig.allLede": "Een ingrediënt staat in elke taal waarin het een naam heeft; de categorie houdt de lijst op orde.",
+  "ig.empty": "Nog geen ingrediënten",
+  "ig.emptyText": "Voeg er hier een toe, of typ een nieuw terwijl je een bijgerecht aan een gerecht of een regel aan een recept toevoegt.",
+  "ig.catTitle": "Ingrediëntcategorieën",
+  "ig.catLede": "Vlees, aardappelen, groenten, …: de groepen waarin de ingrediënten zitten.",
+  "ig.catEmpty": "Nog geen ingrediëntcategorieën",
+  "ig.catEmptyText": "Een nieuw ingrediënt heeft er een nodig; “Andere” / “Other” is meestal de eerste.",
+  "ig.reading": "De ingrediënten worden gelezen",
+  // pages/dishes.js
+  "dl.wheel": "Wiel",
+  "dl.parentsTitle": "Het wiel zoals de ouders van Kenny het zien",
+  "dl.openParents": "Open het wiel van de ouders",
+  "dl.plural": "gerechten",
+  "dl.catPlural": "categorieën",
+  "dl.choiceOf": (list) => `Keuze uit ${list.join(" of ")}`,
+  "dl.with": (x) => `Met ${x}`,
+  "dl.andWith": (x) => `met ${x}`,
+  "dl.bothWheels": "Beide wielen",
+  "dl.nlOnly": "Alleen het Nederlandse wiel",
+  "dl.enOnly": "Alleen het Engelse wiel",
+  "dl.used": (n) => `${n} ${n === 1 ? "gerecht" : "gerechten"}`,
+  "dl.lede": "Wat er op het bord komt, met zijn Nederlandse en Engelse naam en de bijgerechten die erbij horen. Het wiel van de ouders kiest uit de gerechten die ervoor aangeduid zijn.",
+  "dl.allTitle": "Alle gerechten",
+  "dl.allLede": "Een gerecht staat op het Nederlandse wiel met een Nederlandse naam en op het Engelse wiel met een Engelse naam; de kolom Wiel zegt welk.",
+  "dl.empty": "Nog geen gerechten",
+  "dl.emptyText": "Het wiel van de ouders heeft niets om uit te kiezen tot je er een toevoegt.",
+  "dl.catTitle": "Categorieën",
+  "dl.catLede": "Soorten eten, zoals dagelijks of speciaal; de pagina van de ouders kan zijn wiel tot één soort beperken.",
+  "dl.catEmpty": "Nog geen categorieën",
+  "dl.catEmptyText": "Zonder categorieën toont de pagina van de ouders al zijn gerechten op één wiel.",
+};

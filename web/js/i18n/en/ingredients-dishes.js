@@ -1,0 +1,42 @@
+// The ingredients and dishes screens, in English.
+// Part of en.js (split by page on 30/10/2026, docs/agent/MODULARITY.md); js/i18n/index.js merges the parts.
+
+export const EN_INGREDIENTS_DISHES = {
+  // pages/ingredients.js
+  "ig.plural": "ingredients",
+  "ig.catPlural": "ingredient categories",
+  "ig.usedBy": "Used by",
+  "ig.used": (n) => `${n} ${n === 1 ? "dish or recipe" : "dishes and recipes"}`,
+  "ig.lede": "One list for the whole kitchen: a dish takes its sides from it and a recipe its lines. Open an ingredient to see every dish and recipe with it, and a wheel that picks among them.",
+  "ig.allTitle": "All ingredients",
+  "ig.allLede": "An ingredient shows in each language it has a name in; the category keeps the list in order.",
+  "ig.empty": "No ingredients yet",
+  "ig.emptyText": "Add one here, or type a new one while you add a side to a dish or a line to a recipe.",
+  "ig.catTitle": "Ingredient categories",
+  "ig.catLede": "Meat, potatoes, vegetables, …: the groups the ingredients sit in.",
+  "ig.catEmpty": "No ingredient categories yet",
+  "ig.catEmptyText": "A new ingredient needs one; “Andere” / “Other” is the usual first.",
+  "ig.reading": "Reading the ingredients",
+  // pages/dishes.js
+  "dl.wheel": "Wheel",
+  "dl.parentsTitle": "The wheel as Kenny's parents see it",
+  "dl.openParents": "Open the parents' wheel",
+  "dl.plural": "dishes",
+  "dl.catPlural": "categories",
+  "dl.choiceOf": (list) => `Choice of ${list.join(" or ")}`,
+  "dl.with": (x) => `With ${x}`,
+  "dl.andWith": (x) => `with ${x}`,
+  "dl.bothWheels": "Both wheels",
+  "dl.nlOnly": "Dutch wheel only",
+  "dl.enOnly": "English wheel only",
+  "dl.used": (n) => `${n} ${n === 1 ? "dish" : "dishes"}`,
+  "dl.lede": "What lands on a plate, with its Dutch and English name and the sides that come with it. The parents' wheel picks from the dishes marked for it.",
+  "dl.allTitle": "All dishes",
+  "dl.allLede": "A dish shows on the Dutch wheel with a Dutch name and on the English wheel with an English name; the Wheel column says which.",
+  "dl.empty": "No dishes yet",
+  "dl.emptyText": "The parents' wheel has nothing to pick from until you add one.",
+  "dl.catTitle": "Categories",
+  "dl.catLede": "Kinds of food, such as everyday or special; the parents' page can narrow its wheel to one.",
+  "dl.catEmpty": "No categories yet",
+  "dl.catEmptyText": "Without them the parents' page shows all its dishes on one wheel.",
+};
