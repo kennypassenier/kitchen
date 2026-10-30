@@ -19,38 +19,78 @@ pub(super) struct Fetched {
     pub(super) body: Vec<u8>,
 }
 
+fn net_fail(e: reqwest::Error) -> Fail {
+    if e.is_timeout() {
+        Fail::Timeout
+    } else {
+        Fail::Unreachable
+    }
+}
+
+/// A client that talks to the vetted address only, follows no redirect itself and sends no referer.
+fn client_for(url: &Url, addr: std::net::SocketAddr) -> Result<reqwest::Client, Fail> {
+    let mut builder = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .no_proxy()
+        .user_agent(AGENT)
+        .timeout(TOTAL)
+        .referer(false);
+    if let Some(domain) = url.domain() {
+        builder = builder.resolve(domain, addr);
+    }
+    builder.build().map_err(|_| Fail::Unreachable)
+}
+
+/// A page must say it is HTML.
+fn require_html(res: &reqwest::Response) -> Result<(), Fail> {
+    let essence = res
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
+    if essence != "text/html" && essence != "application/xhtml+xml" {
+        return Err(Fail::NotHtml);
+    }
+    Ok(())
+}
+
+/// The body, refused as soon as it passes the cap.
+async fn read_body(mut res: reqwest::Response, cap: usize) -> Result<Vec<u8>, Fail> {
+    if res.content_length().is_some_and(|n| n > cap as u64) {
+        return Err(Fail::TooLarge);
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = res.chunk().await.map_err(net_fail)? {
+        if body.len() + chunk.len() > cap {
+            return Err(Fail::TooLarge);
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
 async fn fetch_inner(start: Url, want: Want, cap: usize) -> Result<Fetched, Fail> {
     let mut url = start;
     let mut hops = 0;
     loop {
         let addr = vet(&url).await?;
-        let mut builder = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .no_proxy()
-            .user_agent(AGENT)
-            .timeout(TOTAL)
-            .referer(false);
-        if let Some(domain) = url.domain() {
-            builder = builder.resolve(domain, addr);
-        }
-        let client = builder.build().map_err(|_| Fail::Unreachable)?;
+        let client = client_for(&url, addr)?;
         let accept = if want == Want::Html {
             "text/html,application/xhtml+xml"
         } else {
             "image/jpeg,image/png,image/webp"
         };
-        let mut res = client
+        let res = client
             .get(url.clone())
             .header(header::ACCEPT, accept)
             .send()
             .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    Fail::Timeout
-                } else {
-                    Fail::Unreachable
-                }
-            })?;
+            .map_err(net_fail)?;
         let status = res.status().as_u16();
         let location = res
             .headers()
@@ -68,36 +108,9 @@ async fn fetch_inner(start: Url, want: Want, cap: usize) -> Result<Fetched, Fail
             return Err(Fail::Status(status));
         }
         if want == Want::Html {
-            let essence = res
-                .headers()
-                .get(header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("")
-                .split(';')
-                .next()
-                .unwrap_or("")
-                .trim()
-                .to_ascii_lowercase();
-            if essence != "text/html" && essence != "application/xhtml+xml" {
-                return Err(Fail::NotHtml);
-            }
+            require_html(&res)?;
         }
-        if res.content_length().is_some_and(|n| n > cap as u64) {
-            return Err(Fail::TooLarge);
-        }
-        let mut body = Vec::new();
-        while let Some(chunk) = res.chunk().await.map_err(|e| {
-            if e.is_timeout() {
-                Fail::Timeout
-            } else {
-                Fail::Unreachable
-            }
-        })? {
-            if body.len() + chunk.len() > cap {
-                return Err(Fail::TooLarge);
-            }
-            body.extend_from_slice(&chunk);
-        }
+        let body = read_body(res, cap).await?;
         return Ok(Fetched {
             final_url: url,
             body,
