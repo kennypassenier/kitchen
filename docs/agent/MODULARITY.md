@@ -119,3 +119,23 @@ One commit per file split, so a regression bisects to one move.
 - **`scripts/schedule.test.mjs`** shows the pattern for node tests of pure front-end logic; `timing/plan.js` fits it.
 - **`web/eten/`** (parents' wheel) is a separate small bundle with its own `wheel.js` / `dishwheel.js`; no cross
   imports into `js/` except the one from item.js to `/eten/dishwheel.js`.
+
+## 6. Progress (round 1, 30/10/2026)
+
+| Split | Commit ID | Before → after (lines of the file that held it) |
+|---|---|---|
+| editor `settleFields` uses the same step set as `timesNow`/`paintTimeline` | `[app-seq-4]` | small fix, +7 -4 |
+| shared helpers: `format.js` 40, `raw.js` 30, `ui/cards.js` 75, `ui/form-parts.js` 149, `reason` in `api.js` | `[refactor-helpers-1]` | recipe/editor.js 858 → 729; cook.js 844 → 816; timing.js 752 → 734; settings.js 324 → 318; recipe.js 404 → 389; records.js 723 → 716 |
+| i18n: `en`, `nl`, `en-pages`, `nl-pages` into `i18n/{en,nl}/*.js` (18 parts each, 17-182 lines), `kp-nl` into `i18n/kp-nl/*.js` (11 parts) | `[refactor-i18n-1]` | en.js 485 → 24; nl.js 483 → 24; en-pages.js 776 → 24; nl-pages.js 776 → 24; kp-nl.js 659 → 37 |
+| `parents.rs` → `parents/{mod,wheel,guard,tests}.rs` | `[refactor-rs-parents-1]` | 574 → 162 (mod) |
+| `recipe_parse.rs` → `recipe_parse/{mod,text,ld_json,pasted,tests}.rs` | `[refactor-rs-recipe-parse-1]` | 796 → 295 (largest part) |
+| `import.rs` → `import/{mod,fail,ssrf,fetch,tests}.rs` (SSRF guard in `ssrf.rs`) | `[refactor-rs-import-1]` | 596 → 128 (largest part) |
+| `store.rs` → `store/{mod,data,validate,migrate,seed,ops,drafts}.rs` + `tests/{crud,validate,migrate}.rs` | `[refactor-rs-store-1]` | 1410 → 313 (migrate.rs, the largest part) |
+
+Duplicates removed from section 4: dmy (4 definitions → `dmy` + `dmyDate`), today in Brussels (4), pad/hhmm/iso (4), capitalise (4),
+minutes to words (2), reason/why (4 incl. the log refusal), stamp (moved), card/section/button/link/actionRow builders (7 definitions
+in 4 pages), raw `fetch` with its own login redirect (2 modules, 3 redirects → 1), form primitives (moved). Not done yet: the
+wheel.js `card` (an HTML-string builder with a badge), `main.js`/`sheet.js`/`eten.js` GET fetches (different shapes, not
+wrappers), name/link helpers and `dishHas` alias (they belong to the `records/` split), and the CSS repeated blocks.
+`reason` follows baddays' rule (`Error` → its message), so a non-ApiError in records, the dish editor and the log now shows the
+bare message instead of `Error: message`.
