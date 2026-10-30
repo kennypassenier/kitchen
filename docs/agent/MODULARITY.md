@@ -172,7 +172,7 @@ filters, no energy), recipe editor (add, edit, draft restore, import preview fro
 take, shelf, mini, calendar) are clean. A real pointer drag on the editor timeline lengthens the step before the meeting step by 5 min:
 meeting start 27 → 32 min, total 32 → 37 min, at 1280 and at 390.
 
-### Final numbers (after round 3)
+### Final numbers (after round 3; superseded by round 4 below)
 
 | | Before the audit | After |
 |---|---:|---:|
@@ -195,3 +195,61 @@ Remaining exceptions (not done, each by design or out of scope):
 - The measure tool reports state-footprint faults on the wheel page (card empty/failed shorter than the loaded footprint) and one side-wheel
   alignment fault; identical before the refactor (kp footprint helper / `web/eten/dishwheel.js`, not touched here).
 - Some round 2 splits (editor, records, baddays, timing) had never run in a browser before round 3 (see `[fix-editor-1]`).
+
+### Round 4 (30/10/2026)
+
+Measured first (the same command for before and after: tracked `src/`, `web/`, `scripts/`, `tests/` (not fixtures), `build.rs`; `.rs .js .mjs .css .sh`; functions by brace count, JS also in `web/eten` and `scripts`, nested closures included): **13 files over 250 lines, 53 JS functions over 40 lines (51 in web/js, 2 in web/eten), 18 Rust functions over 40 (12 outside tests)**.
+
+| Split | Commit ID | Before -> after |
+|---|---|---|
+| wheel card states: `--kp-footprint-max: 22rem` on `.dw-card` | `[fix-wheel-1]` | 3 lines; wheel measure faults 5 -> 1 at 1280 and 2 -> 0 at 390 (see "Wheel measure faults") |
+| `css/pages/wheel.css` 366, `recipes.css` 331 -> `wheel/{base,filters,extras}.css`, `recipes/{form,steps,import}.css` | `[refactor-css-2]` | largest 174 / 163 |
+| `src/photos.rs` 315 -> `photos/{mod,check,tests}.rs` | `[refactor-rs-photos-1]` | 163 |
+| `store/migrate.rs` 313 -> `migrate/{mod,to_2,to_3,to_4}.rs`, each migration in named steps (to_4 was 90 lines) | `[refactor-rs-migrate-1]` | 133 |
+| Rust fns: `fetch_inner` 85, `wheel` 68, `both_names` 62, `from_page` 61, `create` 60, `from_text` 55, `iso_minutes` 48, `decode_entities` 45, `main` 112 | `[refactor-rs-fns-1..4]`, `[refactor-rs-ld-json-1]`, `[refactor-rs-main-1]` | `ld_json.rs` 295 -> 150 + `fields.rs` 169 |
+| `recipe_parse/tests.rs` 263 -> `tests/{page,fields,paste}.rs` | `[refactor-rs-parse-tests-1]` | 164 |
+| `api.js` 314 -> 249 + `api/http.js` + `api/recipe-view.js` | `[refactor-api-1]` | 249 |
+| `pages/recipe.js` (mount 316) -> `pages/recipe/{index,frame,card,ingredients,share-sheet}.js`; later `show` / `createLoader` | `[refactor-recipe-2]`, `[refactor-recipe-3]`, `[refactor-fns-9]`, `[refactor-fns-11]` | largest 141 |
+| `pages/settings.js` (mount 250) -> `pages/settings/{index,frame,parts,consts,calm-theme,rows,save}.js` | `[refactor-settings-1]`, `[refactor-fns-10]` | largest 89 |
+| `recipe/log.js` (createLog 209) -> `recipe/log/{index,frame,paint,actions,dates}.js` | `[refactor-log-1]` | largest 86 |
+| `pages/recipes.js` (mount 164) -> `pages/recipes/{index,template,rows}.js` | `[refactor-recipes-1]`, `[refactor-recipes-2]` | 111 |
+| dishes, ingredients, sources, log pages share `records/table-page.js` (page head + table life cycle) | `[refactor-tables-1]` | mounts 132/114/88/81 -> 12-25 lines |
+| timing factories (`createFiller` 144, `createSentence` 119, `createTimer` 107, `createNudge` 65, `buildFrame` 68, `createPlanView` 53) and mount 65 -> module-level functions over a parts object | `[refactor-timing-2]`, `[refactor-timing-3]` | all under 40 |
+| bad-days factories (`createFreezer` 121, `wireFreezerForm` 107, `createMini` 77, `createMonth` 70, `createShelf` 53, mount 81) | `[refactor-baddays-2]` | all under 42 |
+| item page (`facts` 123, `usedBy` 99, `dishRecipes` 70, mount 100) | `[refactor-item-2]`, `[refactor-item-3]` | all under 47 |
+| ingredient and dish pickers (132, 126) | `[refactor-pickers-1]` | `buildBox`, `buildAsks`, `fill`, `extendCombobox`, ... |
+| `recipe/import.js` `openImport` 108 | `[refactor-import-1]` | named steps |
+| recipe editor (`openEditor` 108, `stepFields` 100, `listFields` 70, `timelineFields` 61, `timeFields` 47) | `[refactor-editor-2]` | all under 42 |
+| `recipe/photos.js` (photoField 84, shrink 43) -> `photo-files.js` + `photos.js` | `[refactor-photos-1]` | 130 / 134 |
+| `dishes/editor.js` 312 -> `editor` + `names` + `drawer` + `sides` | `[refactor-dishes-ed-1]` | 183 |
+| `createSheet` 68, `rows` 56, `deleteRecord` 52, `schedule.layout` 46, `createDiscs` 46, wheel `mount` 43 | `[refactor-fns-3..8]` | under 40 |
+| `web/eten/dishwheel.js` 286 -> `dishwheel.js` + `dishwheel-fit.js` (`scripts/check-wheels.mjs` names both as the one component); `mountDishWheel` 132 | `[refactor-dishwheel-1]` | 209 / 117 |
+| `web/eten/wheel.js` 251 -> `wheel.js` + `words.js`; `mountWheel` 157 | `[refactor-eten-1]` | 206 / 53 |
+| `pages/wheel/logic.js` 252 -> `logic.js` + `constraints.js` | `[refactor-wheel-2]` | 165 / 96 |
+| week arithmetic of the log is pure: `scripts/log.test.mjs` (5 cases) | `[test-log-1]` | +45 |
+| **bug found while splitting `createLog`**: `paint()` declared `const today = today()` (temporal dead zone) since `[refactor-helpers-1]`, so a recipe with log lines, or the log's Start button, threw and the recipe page showed its error card | `[fix-log-1]` | 8 lines |
+
+Wheel measure faults (`node scripts/measure.mjs / formal,dark 1280,390`, before the round: 1 alignment fault + 4 state faults at 1280, 2 state faults at 390, in both themes):
+- **State faults (wl-card, wl-fits "card empty / failed shorter than the loaded footprint"): ours, fixed.** `.dw-card` hides the wheels while a plate shows (`.dw-card:not([data-kp-state="ready"]) .kp-card__data { display: none }` in `web/eten/dishwheel.css`, Kenny 24/10/2026 09:32: "the empty card was far too tall"), so the plate (356 / 404 px) is shorter than the loaded wheel card (715 / 428 / 760 px) on purpose. kp's state measure (`measure-states.mjs`, the `readyH` check around l.833) honours `--kp-footprint-max` as the cap on the footprint a component holds, so the card now declares the cap it really keeps (22rem). The look is unchanged. `[fix-wheel-1]`.
+- **Alignment fault (1 at 1280: the side wheel's column starts 64.7 px off the big wheel's column): by Kenny's rule, left as is.** `.dw__wheels { align-items: end }` puts both wheel bottoms on one line (Kenny 24/10/2026 10:27); the side wheel is 20rem against 24rem, so its kicker "The side" sits 4rem (64 px) below the kicker "Tonight's wheel". `measure-align.mjs` section F (l.725-780) compares the first text lines of side-by-side columns and offers no way to declare this. Making both kickers share a top row would change the approved look (the kicker leaves its wheel), so it needs Kenny's word. Not a kp gap, and not edited in kp.
+
+Final numbers (after round 4, same filter as before):
+
+| | Before round 4 | After |
+|---|---:|---:|
+| Source files (src, web, scripts, tests, build.rs; .rs .js .mjs .css .sh) | 222 | 262 |
+| Lines / bytes | 22,575 | 23,633 / 1,084,700 |
+| Files over 250 lines | 13 | **0** (largest: `api.js` 249, `scripts/wheel.test.mjs` 238, `baddays/template.js` 223) |
+| JS functions over 40 lines | 53 | **6** (41-42 lines) |
+| Rust functions over 40 lines | 18 (12 outside tests) | 10 (4 outside tests) |
+| Commits | | 44 (`b4bc69e..HEAD`) |
+
+Tests (once, at the end): `node --test scripts/*.test.mjs` 90 cases in 6 files (cook 22, editor 19, log 5, meet 4, schedule 11, wheel 29), all pass, 0.10 s; `check-words`, `check-forms`, `check-wheels` clean, 0.12 s together; `cargo test` 49 tests, all pass, 28 s including the build.
+
+Browser (Firefox, fresh build, throwaway seeded data dir, once at the end): the smoke over `/`, wheel spin / filters / easy switch, `/recipes` (editor add, edit with 5 step rows, draft restore with `draft.mjs`, import preview from pasted text), `/recipe`, `/cook`, `/timing`, `/bad-days` (freezer add + take, shelf, mini, calendar), `/dishes/<id>`, `/dishes`, `/ingredients/<id>`, `/ingredients`, `/sources`, `/settings`, `/log`, `/eten`: **0 console and page errors**. The real pointer drag on the editor timeline (preceding step +5 min): at 1280 and at 390 the simmer step 15 -> 20 min, the meeting step starts 27 -> 32 min, the total 32 -> 37 min. `node scripts/measure.mjs <page> formal,dark 1280,390` on `/`, `/recipes`, `/recipe?id=r1`, `/cook?id=r1`, `/timing?id=r1`, `/bad-days`, `/settings`, `/log`: **clear everywhere except one finding on `/` at 1280 in both themes (the side-wheel alignment, above)**; the state faults on the wheel page are gone.
+
+Remaining exceptions (by design or too small to be worth a split):
+- Functions of 41-42 lines (the count includes the closing brace and comment lines): `tableCard` (records/table-card.js, one config-to-DOM builder, 42), `openDrawer` (dishes/drawer.js, 41), `createMini` (baddays/mini-recipe.js, 41), recipes `mount` (41), `stepEditor` (recipe/editor/step-row.js, 41), `mountTables` (records/table-page.js, 41).
+- Rust: `main` (76 lines, the start-up sequence with early `ExitCode::FAILURE` returns that cannot be hidden in helpers without changing the control flow), `from_text` (47, one pass over the lines), `fetch_inner` (43, the redirect loop of the SSRF-guarded fetch), `wheel_dish` (41); six long tests whose length is their fixture data.
+- Alignment fault on the side wheel (above): Kenny's "bottoms on one line" rule against measure-align's first-line rule; waiting for his word.
+- The `createImageBitmap` fallback in `recipe/photo-files.js` loads a `blob:` image that Firefox's CSP (`img-src`) blocks, so decoding a picture the first path cannot read logs a console error. Found, not changed (behaviour identical to before the round).
