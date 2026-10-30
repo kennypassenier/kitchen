@@ -8,30 +8,44 @@ import { effective } from "../schedule.js";
 import { timeOverride, timesOf } from "./logic.js";
 import { prepItems } from "./consts.js";
 
+/** A time row: the stepper, the Override switch under it, and a live sentence in the value track. @param {string} label @param {HTMLElement} q @param {HTMLElement} over @param {HTMLElement} hint */
+function timeRow(label, q, over, hint) {
+  const el = row(label, h("div", { class: "rl-time" }, q, over), "");
+  el.append(hint);
+  return el;
+}
+
+/** The two times are computed from the steps (Kenny, 29/10/2026; recipe/schedule.js) and shown live: the figure is the stepper itself, unreachable until the Override switch lets a typed value win. @param {Record<string, any>} r */
+function buildTimes(r) {
+  const was = effective(r);
+  return {
+    minutes: stepper(was.minutes, { max: 1440, unit: "min", label: t("edit.totalMinutes") }),
+    hands: stepper(was.hands_on, { max: 1440, unit: "min", label: t("edit.handsMinutes") }),
+    minutesOver: toggle(t("edit.overrideSwitch"), timeOverride(r.minutes_override, was.total, Number(r.minutes) || 0)),
+    handsOver: toggle(t("edit.overrideSwitch"), timeOverride(r.hands_on_override, was.handsOn, Number(r.hands_on) || 0)),
+    minutesHint: h("p", { class: "kp-formgrid__value", role: "status" }),
+    handsHint: h("p", { class: "kp-formgrid__value", role: "status" }),
+  };
+}
+
+/** @param {Record<string, any>} r the recipe as it was */
+function buildOthers(r) {
+  return {
+    portions: stepper(r.portions ?? 2, { min: 1, max: 24, unit: t("bad.unitMany"), one: t("bad.unitOne"), label: t("bad.colPortions") }),
+    prep: segmented(prepItems(), [r.prep ?? "light"], "single", t("edit.preparing")),
+    safe: toggle(t("edit.safeSwitch"), Boolean(r.safe)),
+    gear: input(r.gear ?? "", "text", { placeholder: t("edit.gearPh") }),
+  };
+}
+
 /**
  * @param {Record<string, any>} r the recipe as it was
  * @param {{ steps: () => Record<string, any>[], trackList: () => Record<string, any>[] }} live the live steps (with text) and the track rows
  */
 export function timeFields(r, live) {
-  // The two times are computed from the steps (Kenny, 29/10/2026; recipe/schedule.js) and shown live: the figure is the
-  // stepper itself, unreachable until the Override switch lets a typed value win.
-  const was = effective(r);
-  const minutes = stepper(was.minutes, { max: 1440, unit: "min", label: t("edit.totalMinutes") });
-  const hands = stepper(was.hands_on, { max: 1440, unit: "min", label: t("edit.handsMinutes") });
-  const minutesOver = toggle(t("edit.overrideSwitch"), timeOverride(r.minutes_override, was.total, Number(r.minutes) || 0));
-  const handsOver = toggle(t("edit.overrideSwitch"), timeOverride(r.hands_on_override, was.handsOn, Number(r.hands_on) || 0));
-  const minutesHint = h("p", { class: "kp-formgrid__value", role: "status" });
-  const handsHint = h("p", { class: "kp-formgrid__value", role: "status" });
-  /** A time row: the stepper, the Override switch under it, and a live sentence in the value track. @param {string} label @param {HTMLElement} q @param {HTMLElement} over @param {HTMLElement} hint */
-  const timeRow = (label, q, over, hint) => {
-    const el = row(label, h("div", { class: "rl-time" }, q, over), "");
-    el.append(hint);
-    return el;
-  };
-  const portions = stepper(r.portions ?? 2, { min: 1, max: 24, unit: t("bad.unitMany"), one: t("bad.unitOne"), label: t("bad.colPortions") });
-  const prep = segmented(prepItems(), [r.prep ?? "light"], "single", t("edit.preparing"));
-  const safe = toggle(t("edit.safeSwitch"), Boolean(r.safe));
-  const gear = input(r.gear ?? "", "text", { placeholder: t("edit.gearPh") });
+  const tm = buildTimes(r);
+  const { minutes, hands, minutesOver, handsOver, minutesHint, handsHint } = tm;
+  const { portions, prep, safe, gear } = buildOthers(r);
   const facts = h(
     "div",
     { class: "kp-formgrid" },
