@@ -43,52 +43,64 @@ function createBand(ctx) {
   return refreshBand;
 }
 
+/** @typedef {Map<string, { el: HTMLElement, detach: () => void }>} DiscMap */
+
+/** The disc card says "ready" while a disc runs, else points at the steps. @param {import("./index.js").CookCtx} ctx @param {DiscMap} discOf */
+function paintDiscCard(ctx, discOf) {
+  const { discCard, steps } = ctx.el;
+  if (discOf.size) setCardState(discCard, "ready");
+  else
+    setCardState(discCard, "empty", {
+      title: t("cook.noTimerTitle"),
+      text: t("cook.noTimerText"),
+      action: h("button", { type: "button", class: "kp-button", onclick: () => steps.focus() }, t("cook.goSteps")),
+    });
+}
+
+/** @param {import("./index.js").CookCtx} ctx @param {DiscMap} discOf @param {{ id: string, name: string, seconds: number, remaining: number, state: string }} tm */
+function addDisc(ctx, discOf, tm) {
+  if (discOf.has(tm.id) || tm.state === "done") return;
+  const el = h("div", { class: "kp-timer-disc", "data-kp-timer-disc": `${Math.max(1, tm.remaining)}s`, "data-kp-timer-disc-name": tm.name, "data-kp-timer-disc-scale": DIAL_MINUTES });
+  ctx.el.discs.append(el);
+  const detach = attachTimerDiscs(el);
+  discOf.set(tm.id, { el, detach });
+  if (tm.state === "running") timerDiscOf(el)?.start();
+  paintDiscCard(ctx, discOf);
+}
+
+/** @param {import("./index.js").CookCtx} ctx @param {DiscMap} discOf @param {string} id */
+function dropDisc(ctx, discOf, id) {
+  const d = discOf.get(id);
+  if (!d) return;
+  d.detach();
+  d.el.remove();
+  discOf.delete(id);
+  paintDiscCard(ctx, discOf);
+}
+
+/** The disc of a timer changes with the timer's own action. @param {DiscMap} discOf @param {string} id @param {string} action */
+function touchDisc(discOf, id, action) {
+  const found = discOf.get(id);
+  const clock = found ? timerDiscOf(found.el) : null;
+  if (action === "pause") clock?.pause();
+  else if (action === "resume") clock?.start();
+  else if (action === "add") clock?.add(60);
+}
+
 /** One disc per running timer; they are detached together when the page is left. @param {import("./index.js").CookCtx} ctx */
 function createDiscs(ctx) {
-  const { discs, discCard, steps } = ctx.el;
-  /** @type {Map<string, { el: HTMLElement, detach: () => void }>} */
+  /** @type {DiscMap} */
   const discOf = new Map();
-  const paintDiscCard = () => {
-    if (discOf.size) setCardState(discCard, "ready");
-    else
-      setCardState(discCard, "empty", {
-        title: t("cook.noTimerTitle"),
-        text: t("cook.noTimerText"),
-        action: h("button", { type: "button", class: "kp-button", onclick: () => steps.focus() }, t("cook.goSteps")),
-      });
-  };
-  /** @param {{ id: string, name: string, seconds: number, remaining: number, state: string }} tm */
-  function addDisc(tm) {
-    if (discOf.has(tm.id) || tm.state === "done") return;
-    const el = h("div", { class: "kp-timer-disc", "data-kp-timer-disc": `${Math.max(1, tm.remaining)}s`, "data-kp-timer-disc-name": tm.name, "data-kp-timer-disc-scale": DIAL_MINUTES });
-    discs.append(el);
-    const detach = attachTimerDiscs(el);
-    discOf.set(tm.id, { el, detach });
-    if (tm.state === "running") timerDiscOf(el)?.start();
-    paintDiscCard();
-  }
-  /** @param {string} id */
-  function dropDisc(id) {
-    const d = discOf.get(id);
-    if (!d) return;
-    d.detach();
-    d.el.remove();
-    discOf.delete(id);
-    paintDiscCard();
-  }
   ctx.cleanups.push(() => {
     for (const d of discOf.values()) d.detach();
     discOf.clear();
   });
-  /** The disc of a timer changes with the timer's own action. @param {string} id @param {string} action */
-  const touchDisc = (id, action) => {
-    const found = discOf.get(id);
-    const clock = found ? timerDiscOf(found.el) : null;
-    if (action === "pause") clock?.pause();
-    else if (action === "resume") clock?.start();
-    else if (action === "add") clock?.add(60);
+  return {
+    addDisc: (/** @type {Parameters<typeof addDisc>[2]} */ tm) => addDisc(ctx, discOf, tm),
+    dropDisc: (/** @type {string} */ id) => dropDisc(ctx, discOf, id),
+    paintDiscCard: () => paintDiscCard(ctx, discOf),
+    touchDisc: (/** @type {string} */ id, /** @type {string} */ action) => touchDisc(discOf, id, action),
   };
-  return { addDisc, dropDisc, paintDiscCard, touchDisc };
 }
 
 /** @param {import("./index.js").CookCtx} ctx */
