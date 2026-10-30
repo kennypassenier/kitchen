@@ -91,8 +91,8 @@ export function createLog(card, { recipeId, retry }) {
 
   const paint = () => {
     if (!words || !kitchen) return;
-    const today = today();
-    const thisMonday = mondayOf(today);
+    const now = today();
+    const thisMonday = mondayOf(now);
     const mondays = Array.from({ length: WEEKS }, (_, i) => plus(thisMonday, (i - WEEKS + 1) * 7));
     grid.setAttribute("aria-label", words.logTitle);
     setHeat(grid, {
@@ -104,7 +104,7 @@ export function createLog(card, { recipeId, retry }) {
         cells: words?.days.map((_, i) => {
           const iso = plus(monday, i);
           const entry = entries.get(iso);
-          if (iso > today) return { tone: /** @type {const} */ ("future"), label: words?.notYet };
+          if (iso > now) return { tone: /** @type {const} */ ("future"), label: words?.notYet };
           if (entry) {
             const felt = entry.feeling ? /** @type {Record<string, string>} */ (words?.felt)[entry.feeling] : "";
             return {
@@ -118,7 +118,7 @@ export function createLog(card, { recipeId, retry }) {
       })),
     });
     note.textContent = entries.size === 0 ? words.quiet : words.legendLine;
-    heading.textContent = view.day === today ? words.logToday(longDate(view.day)) : words.logDay(longDate(view.day));
+    heading.textContent = view.day === now ? words.logToday(longDate(view.day)) : words.logDay(longDate(view.day));
     sentence.textContent = words.logOptional;
     feelingLabel.textContent = words.feelingLabel;
     const entry = entries.get(view.day);
