@@ -14,24 +14,20 @@ import { inRecipe } from "./links.js";
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
 
-/**
- * An ingredient's dishes and recipes: one data table with a search and four filters (the dish's category, on the
- * parents' wheel, safe, has a recipe), and a wheel that picks only among the dishes with it.
- * @param {HTMLElement} pageEl @param {string} id
- */
-export function usedBy(pageEl, id) {
-  const table = tableCard({
-    id: "it-used",
-    title: t("it.usedTitle"),
-    lede: t("it.usedLede"),
-    noun: t("it.usedNoun"),
-    plural: t("it.usedPlural"),
-    columns: [[t("rec.name"), "text"], [t("it.kind"), "text"], [t("rec.category"), "text"], [t("it.parentsWheel"), "text"], [t("it.safe"), "text"], [t("rec.recipe")]],
-    add: t("list.dishes.add"),
-    emptyTitle: t("it.usedEmpty"),
-    emptyText: t("it.usedEmptyText"),
-  });
-  table.addButtons.forEach((b) => b.addEventListener("click", () => openRecordEditor("dishes", null)));
+const TABLE = () => ({
+  id: "it-used",
+  title: t("it.usedTitle"),
+  lede: t("it.usedLede"),
+  noun: t("it.usedNoun"),
+  plural: t("it.usedPlural"),
+  columns: [[t("rec.name"), "text"], [t("it.kind"), "text"], [t("rec.category"), "text"], [t("it.parentsWheel"), "text"], [t("it.safe"), "text"], [t("rec.recipe")]],
+  add: t("list.dishes.add"),
+  emptyTitle: t("it.usedEmpty"),
+  emptyText: t("it.usedEmptyText"),
+});
+
+/** The category select and the three "show only" chips, as two form rows. */
+function buildFilters() {
   const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": t("it.dishCategory") }));
   const flags = h(
     "div",
@@ -40,11 +36,17 @@ export function usedBy(pageEl, id) {
       h("button", { type: "button", class: "kp-segmented__item", "data-value": v, "aria-pressed": "false" }, h("span", { class: "kp-segmented__label" }, text)),
     ),
   );
-  const filters = h("div", { class: "kp-formgrid kitchen-formgrid it-filters" }, h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("rec.category")), h("div", { class: "kp-formgrid__control" }, cat)), h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("it.showOnly")), h("div", { class: "kp-formgrid__control" }, flags)));
-  table.card.querySelector(".kp-lede")?.after(filters);
+  const filters = h(
+    "div",
+    { class: "kp-formgrid kitchen-formgrid it-filters" },
+    h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("rec.category")), h("div", { class: "kp-formgrid__control" }, cat)),
+    h("div", { class: "kp-formgrid__row" }, h("span", { class: "kp-formgrid__label" }, t("it.showOnly")), h("div", { class: "kp-formgrid__control" }, flags)),
+  );
+  return { cat, flags, filters };
+}
 
-  // The one wheel component (web/eten/dishwheel.js): one wheel among the dishes, no side wheel and no answer column; its own
-  // answer card stands under it.
+/** The one wheel component (web/eten/dishwheel.js): one wheel among the dishes, no side wheel and no answer column; its own answer card stands under it. */
+function buildWheelCard() {
   const wheelHost = h("div", {});
   const wheels = mountDishWheel(wheelHost, { sides: false, answer: false, kiosk: true, cards: true, words: { dishLabel: t("it.wheelLabel"), dishEmpty: t("it.wheelEmpty") } });
   const wheelCard = h(
@@ -54,6 +56,50 @@ export function usedBy(pageEl, id) {
     h("p", { class: "kp-card__body" }, t("it.wheelText")),
     wheelHost,
   );
+  return { wheels, wheelCard };
+}
+
+/** One row per dish that has the ingredient: fixed, in a side, or as a line of its recipe (the recipe belongs to the dish). @param {Kitchen} k @param {string} id */
+function usingDishes(k, id) {
+  return k.dishes.filter((d) => dishHas(d, id) || inRecipe(d, id));
+}
+
+/** @param {Item} d @param {string} id */
+const rowData = (d, id) => ({
+  kind: [dishHas(d, id) ? t("it.inDish") : "", inRecipe(d, id) ? t("it.inRecipe") : ""].filter(Boolean).join(", "),
+  item: d,
+  category: d.category ?? null,
+  parents: d.parents === true,
+  safe: defaultRecipe(d)?.safe === true,
+  recipe: defaultRecipe(d),
+});
+
+/** @param {ReturnType<typeof rowData>} x @param {Kitchen} k */
+function usedRow(x, k) {
+  const c = k.dish_categories.find((y) => y.id === x.category);
+  return h(
+    "tr",
+    { "data-kp-row-key": x.item.id },
+    h("td", { "data-label": t("rec.name") }, itemLink("dishes", x.item)),
+    h("td", { "data-label": t("it.kind") }, x.kind),
+    h("td", { "data-label": t("rec.category") }, c ? itemLink("dish_categories", c) : "–"),
+    h("td", { "data-label": t("it.parentsWheel") }, x.parents === null ? "–" : t(x.parents ? "it.yes" : "it.no")),
+    h("td", { "data-label": t("it.safe") }, t(x.safe ? "it.yes" : "it.no")),
+    h("td", { "data-label": t("rec.recipe") }, x.recipe ? h("a", { href: `/recipe?id=${encodeURIComponent(x.recipe.id)}` }, t("it.openRecipe")) : "–"),
+  );
+}
+
+/**
+ * An ingredient's dishes and recipes: one data table with a search and four filters (the dish's category, on the
+ * parents' wheel, safe, has a recipe), and a wheel that picks only among the dishes with it.
+ * @param {HTMLElement} pageEl @param {string} id
+ */
+export function usedBy(pageEl, id) {
+  const table = tableCard(TABLE());
+  table.addButtons.forEach((b) => b.addEventListener("click", () => openRecordEditor("dishes", null)));
+  const { cat, flags, filters } = buildFilters();
+  table.card.querySelector(".kp-lede")?.after(filters);
+  const { wheels, wheelCard } = buildWheelCard();
   pageEl.append(table.card, wheelCard);
   const stops = [attachDataTables(table.card), attachSegmented(filters), attachSelects(filters), () => wheels.destroy()].filter((f) => typeof f === "function");
   const handle = dataTable(table.table);
@@ -64,37 +110,13 @@ export function usedBy(pageEl, id) {
     const k = kitchen;
     if (!k) return;
     const on = new Set(getSegmentedValues(flags));
-    // One row per dish that has it: fixed, in a side, or as a line of its recipe (the recipe belongs to the dish).
-    /** @type {{ kind: string, item: Item, category: string | null, parents: boolean | null, safe: boolean, recipe: Item | null }[]} */
-    const rows = k.dishes
-      .filter((d) => dishHas(d, id) || inRecipe(d, id))
-      .map((d) => ({
-        kind: [dishHas(d, id) ? t("it.inDish") : "", inRecipe(d, id) ? t("it.inRecipe") : ""].filter(Boolean).join(", "),
-        item: d,
-        category: d.category ?? null,
-        parents: d.parents === true,
-        safe: defaultRecipe(d)?.safe === true,
-        recipe: defaultRecipe(d),
-      }))
+    const rows = usingDishes(k, id)
+      .map((d) => rowData(d, id))
       .filter((x) => (!cat.value || x.category === cat.value) && (!on.has("parents") || x.parents === true) && (!on.has("safe") || x.safe) && (!on.has("recipe") || x.recipe));
-    table.body.replaceChildren(
-      ...rows.map((x) => {
-        const c = k.dish_categories.find((y) => y.id === x.category);
-        return h(
-          "tr",
-          { "data-kp-row-key": x.item.id },
-          h("td", { "data-label": t("rec.name") }, itemLink("dishes", x.item)),
-          h("td", { "data-label": t("it.kind") }, x.kind),
-          h("td", { "data-label": t("rec.category") }, c ? itemLink("dish_categories", c) : "–"),
-          h("td", { "data-label": t("it.parentsWheel") }, x.parents === null ? "–" : t(x.parents ? "it.yes" : "it.no")),
-          h("td", { "data-label": t("it.safe") }, t(x.safe ? "it.yes" : "it.no")),
-          h("td", { "data-label": t("rec.recipe") }, x.recipe ? h("a", { href: `/recipe?id=${encodeURIComponent(x.recipe.id)}` }, t("it.openRecipe")) : "–"),
-        );
-      }),
-    );
+    table.body.replaceChildren(...rows.map((x) => usedRow(x, k)));
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
-    wheels.setDishes(k.dishes.filter((d) => dishHas(d, id) || inRecipe(d, id)).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
+    wheels.setDishes(usingDishes(k, id).map((d) => ({ id: d.id, label: LISTS.dishes.name(d) })));
   };
   cat.addEventListener("change", draw);
   flags.addEventListener(SEGMENTED_EVENT, draw);
