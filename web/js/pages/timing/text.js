@@ -1,7 +1,8 @@
 // The sentences of the timing page that name a time or a plan.
 
 import { t } from "../../i18n/index.js";
-import { cap, minutesWords } from "../../format.js";
+import { cap } from "../../format.js";
+import { minutesWords } from "../../i18n/minutes.js";
 import { hm } from "./plan.js";
 
 /** @typedef {import("./plan.js").Plan} Plan */

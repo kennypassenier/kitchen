@@ -1,7 +1,6 @@
-// The small formatters every screen shares: Brussels time and dates, padding, capitals, minutes as words. One copy here
-// instead of one per page (docs/agent/MODULARITY.md, 30/10/2026); pure functions, no DOM.
-
-import { t } from "./i18n/index.js";
+// The small formatters every screen shares: Brussels time and dates, padding, capitals. One copy here
+// instead of one per page (docs/agent/MODULARITY.md, 30/10/2026); pure functions, no DOM, nothing
+// that needs the browser, so node tests can import it (`minutesWords`, which reads the words, is in i18n/minutes.js).
 
 /** The kitchen's time zone: every day and clock time the app shows is Brussels time. */
 export const ZONE = "Europe/Brussels";
@@ -35,6 +34,3 @@ export function stamp(iso) {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso)).filter((x) => x.type !== "literal").map((x) => [x.type, x.value]));
   return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }
-
-/** Minutes in words with the page's own two words: "50 minutes" or "1 h 18 min". @param {number} m @param {string} hmKey @param {string} minKey */
-export const minutesWords = (m, hmKey, minKey) => (m >= 60 ? t(hmKey, Math.floor(m / 60), m % 60) : t(minKey, m));

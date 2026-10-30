@@ -18,7 +18,8 @@ import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
 import { openRecordEditor, detailHref, sideName } from "../records/index.js";
 import { t, nameOf } from "../i18n/index.js";
-import { pad, hhmm, dmyDate, localIso, cap, minutesWords } from "../format.js";
+import { pad, hhmm, dmyDate, localIso, cap } from "../format.js";
+import { minutesWords } from "../i18n/minutes.js";
 
 /**
  * @typedef {object} Dish a dish as the wheel sees it, with what its recipe adds (Kenny, 24/10/2026 09:17, 09:18)
