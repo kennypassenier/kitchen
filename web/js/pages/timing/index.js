@@ -33,19 +33,15 @@ import { createFiller } from "./fill.js";
  * @property {{ draw: () => void, drawSentence: () => void, drawTimerLine: () => void, drawNudge: () => void }} view
  */
 
-/** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} page */
-export function mount(root, { params, navigate }) {
-  const recipeId = params.get("id");
-  document.title = `${t("timing.title")} · Kitchen`;
-  /** @type {(() => void)[]} */
-  const cleanups = [];
+/** @param {HTMLElement} root @param {string | null} recipeId @param {(href: string) => void} navigate @returns {TimingCtx} */
+function makeCtx(root, recipeId, navigate) {
   const state = { eat: DEFAULTS.dinner_time, pace: DEFAULTS.pace, spare: DEFAULTS.spare, /** @type {Set<string>} */ dropped: new Set() };
   /** @type {TimingCtx} */
   const ctx = {
     root,
     recipeId,
     navigate,
-    cleanups,
+    cleanups: [],
     alive: true,
     recipe: null,
     snoozedUntil: null,
@@ -55,10 +51,14 @@ export function mount(root, { params, navigate }) {
     moveDinner: () => {},
     view: { draw: () => {}, drawSentence: () => {}, drawTimerLine: () => {}, drawNudge: () => {} },
   };
-  cleanups.push(() => {
+  ctx.cleanups.push(() => {
     ctx.alive = false;
   });
+  return ctx;
+}
 
+/** Build the parts and join them through `ctx.view`. @param {TimingCtx} ctx */
+function buildParts(ctx) {
   const frame = buildFrame(ctx);
   const sentence = createSentence(ctx);
   ctx.moveDinner = sentence.moveDinner;
@@ -76,26 +76,35 @@ export function mount(root, { params, navigate }) {
     drawTimerLine: timer.drawLine,
     drawNudge: nudge.draw,
   };
+  return { frame, sentence, plan, timer, nudge };
+}
 
-  const filler = createFiller(ctx, { frame, sentence, gantt: plan.gantt });
-  root.addEventListener("kp-card-retry", () => void filler.load(true));
-  plan.gantt?.addEventListener("kp-gantt-retry", () => void filler.load(true));
-  void filler.load(false);
-
-  // The clock is the real one: the late note, the nudge and the disc's drift are looked at every 15 seconds.
+/** The clock is the real one: the late note, the nudge and the disc's drift are looked at every 15 seconds. @param {TimingCtx} ctx @param {ReturnType<typeof buildParts>} parts */
+function startTick(ctx, { frame, sentence, timer, nudge }) {
   const tick = window.setInterval(() => {
     if (!ctx.recipe || ctx.current() === null || frame.planCard.getAttribute("data-kp-state") !== "ready") return;
     sentence.draw();
     timer.draw();
     nudge.draw();
   }, 15000);
-  cleanups.push(() => clearInterval(tick));
-  cleanups.push(() => {
+  ctx.cleanups.push(() => clearInterval(tick));
+  ctx.cleanups.push(() => {
     timer.detach();
     nudge.detach();
   });
+}
 
+/** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} page */
+export function mount(root, { params, navigate }) {
+  document.title = `${t("timing.title")} · Kitchen`;
+  const ctx = makeCtx(root, params.get("id"), navigate);
+  const parts = buildParts(ctx);
+  const filler = createFiller(ctx, { frame: parts.frame, sentence: parts.sentence, gantt: parts.plan.gantt });
+  root.addEventListener("kp-card-retry", () => void filler.load(true));
+  parts.plan.gantt?.addEventListener("kp-gantt-retry", () => void filler.load(true));
+  void filler.load(false);
+  startTick(ctx, parts);
   return () => {
-    for (const off of cleanups) off();
+    for (const off of ctx.cleanups) off();
   };
 }
