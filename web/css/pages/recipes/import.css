@@ -1,0 +1,66 @@
+/* Several ingredients picked at once above the lines (Kenny, 24/10/2026 10:14). */
+.rl-many {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: start;
+}
+
+/* The draft offer above the editor's form (Kenny, 29/10/2026). */
+.rl-draft {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.rl-draft[hidden] {
+  display: none;
+}
+
+/* Import (Kenny, 29/10/2026 14:27): the drawer's fold, the cover offer and an imported line the catalogue did not know. */
+.ri-fold,
+.ri-fold__body,
+.ri-cell,
+.ri-proposal,
+.ri-cover .kp-card__data {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.ri-fold > summary {
+  cursor: pointer;
+}
+
+.ri-fold__body {
+  padding-block-start: var(--kp-space-md, 1rem);
+}
+
+.ri-fold__body p,
+.ri-proposal__text,
+.ri-cover__done {
+  margin: 0;
+}
+
+.ri-proposal {
+  justify-items: start;
+}
+
+.ri-proposal[hidden] {
+  display: none;
+}
+
+.ri-proposal__text {
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+/* The warning above the lines of an import that still have no ingredient (Kenny, 29/10/2026). */
+.ri-unresolved[hidden] {
+  display: none;
+}
+
+.ri-unresolved__list {
+  margin: var(--kp-space-xs, 0.25rem) 0 0;
+  padding-inline-start: 1.25rem;
+  overflow-wrap: anywhere;
+}

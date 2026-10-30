@@ -1,0 +1,100 @@
+/* recipes screen: rules behind the screen's own prefix (rl-). Layout only; every look is the package's. */
+
+.rl-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kitchen-section-gap, calc(var(--kp-space-2xl, 2rem) * 1.5));
+  align-content: start;
+}
+
+.rl-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+/* ---- the editor drawer -------------------------------------------------------------------------------------- */
+
+.rl-editor {
+  --kp-drawer-width: min(54rem, 100vw);
+}
+
+.rl-form {
+  display: grid;
+  gap: var(--kp-space-xl, 2rem);
+  align-content: start;
+}
+
+.rl-formsec {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-formsec h3,
+.rl-formsec__text {
+  margin: 0;
+}
+
+.rl-formsec__text {
+  color: var(--muted-foreground);
+}
+
+.rl-editor__line {
+  margin: 0;
+  margin-inline-end: auto;
+}
+
+/* Repeatable rows: one header line and every row on the same columns. */
+.rl-rows {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.rl-rows__body {
+  display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.rl-row {
+  display: grid;
+  grid-template-columns: var(--rl-cols);
+  gap: var(--kp-space-sm, 0.5rem);
+  align-items: center;
+}
+
+.rl-row--head {
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.rl-rows__empty {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.rl-rows__add {
+  display: grid;
+  grid-template-columns: max-content;
+}
+
+.rl-lists,
+.rl-step__body,
+.rl-list {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-list h4,
+.rl-list p {
+  margin: 0;
+}
+
+.rl-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--kp-space-sm, 0.5rem);
+}
