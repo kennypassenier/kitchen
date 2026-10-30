@@ -81,62 +81,74 @@ export function select(options, value, label) {
   return /** @type {HTMLSelectElement} */ (el);
 }
 
+/** The package's behaviour on a line made after the first attach. @param {HTMLElement} line */
+function attachLine(line) {
+  attachSelects(line);
+  attachQuantities(line);
+  attachSwitches(line);
+}
+
+/** @typedef {{ line: HTMLElement, cells: { get: () => any }[] }} RowEntry */
+/** @typedef {{ grid: HTMLElement, head: HTMLElement, body: HTMLElement, empty: HTMLElement, addButton: HTMLElement, lines: RowEntry[], columns: { make: (value: any) => { el: HTMLElement, get: () => any } }[], noun: string }} RowsState */
+
+/** The header and the empty note follow the number of lines; each Remove says which line it removes. @param {RowsState} s */
+function syncRows(s) {
+  s.head.hidden = s.lines.length === 0;
+  s.empty.hidden = s.lines.length > 0;
+  s.lines.forEach(({ line }, i) => line.querySelector(".rl-row__remove")?.setAttribute("aria-label", t(`edit.removeNoun.${s.noun}`, i + 1)));
+}
+
+/** @param {RowsState} s @param {any} item */
+function pushRow(s, item) {
+  const cells = s.columns.map((c) => c.make(item));
+  const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost rl-row__remove" }, t("photo.remove"));
+  const line = h("div", { class: "rl-row" }, ...cells.map((c) => c.el), remove);
+  const entry = { line, cells };
+  remove.addEventListener("click", () => {
+    s.lines = s.lines.filter((l) => l !== entry);
+    line.remove();
+    syncRows(s);
+    s.grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
+    s.addButton.focus();
+  });
+  s.lines.push(entry);
+  s.body.append(line);
+  syncRows(s);
+  s.grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
+  return line;
+}
+
 /**
  * A repeatable list on shared columns: a header line, one row per item, and an Add button that says what it adds.
  * @param {{ columns: { label: string, width: string, make: (value: any) => { el: HTMLElement, get: () => any } }[], items: any[], add: string, noun: string, blank: () => any }} spec
  */
 export function rows({ columns, items, add, noun, blank }) {
-  const grid = h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` });
-  const head = h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, t("photo.remove")));
-  const body = h("div", { class: "rl-rows__body" });
-  /** @type {{ line: HTMLElement, cells: { get: () => any }[] }[]} */
-  let lines = [];
-  const addButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, add);
-  const empty = h("p", { class: "rl-rows__empty" }, t(`edit.none.${noun}`));
-
-  const sync = () => {
-    head.hidden = lines.length === 0;
-    empty.hidden = lines.length > 0;
-    lines.forEach(({ line }, i) => line.querySelector(".rl-row__remove")?.setAttribute("aria-label", t(`edit.removeNoun.${noun}`, i + 1)));
+  /** @type {RowsState} */
+  const s = {
+    grid: h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` }),
+    head: h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, t("photo.remove"))),
+    body: h("div", { class: "rl-rows__body" }),
+    empty: h("p", { class: "rl-rows__empty" }, t(`edit.none.${noun}`)),
+    addButton: h("button", { type: "button", class: "kp-button kp-button--sm" }, add),
+    lines: [],
+    columns,
+    noun,
   };
-  /** @param {any} item */
-  const push = (item) => {
-    const cells = columns.map((c) => c.make(item));
-    const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost rl-row__remove" }, t("photo.remove"));
-    const line = h("div", { class: "rl-row" }, ...cells.map((c) => c.el), remove);
-    const entry = { line, cells };
-    remove.addEventListener("click", () => {
-      lines = lines.filter((l) => l !== entry);
-      line.remove();
-      sync();
-      grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
-      addButton.focus();
-    });
-    lines.push(entry);
-    body.append(line);
-    sync();
-    grid.dispatchEvent(new CustomEvent("rl-rows-change", { bubbles: true }));
-    return line;
-  };
-  for (const item of items) push(item);
-  addButton.addEventListener("click", () => {
-    const line = push(blank());
-    attachSelects(line);
-    attachQuantities(line);
-    attachSwitches(line);
+  for (const item of items) pushRow(s, item);
+  s.addButton.addEventListener("click", () => {
+    const line = pushRow(s, blank());
+    attachLine(line);
     line.querySelector("input, textarea, select")?.focus();
   });
-  grid.append(head, body, empty, h("div", { class: "rl-rows__add" }, addButton));
-  sync();
+  s.grid.append(s.head, s.body, s.empty, h("div", { class: "rl-rows__add" }, s.addButton));
+  syncRows(s);
   return {
-    el: grid,
-    get: () => lines.map((l) => l.cells.map((c) => c.get())),
+    el: s.grid,
+    get: () => s.lines.map((l) => l.cells.map((c) => c.get())),
     /** Add a line from outside (several ingredients picked at once). @param {any} item */
     add: (item) => {
-      const line = push(item);
-      attachSelects(line);
-      attachQuantities(line);
-      attachSwitches(line);
+      const line = pushRow(s, item);
+      attachLine(line);
       return line;
     },
   };
