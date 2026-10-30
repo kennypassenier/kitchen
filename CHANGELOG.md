@@ -63,6 +63,7 @@ carries a **Migration** section saying what an operator must do.
   and a discarded or expired draft takes the photos only it refers to with it.
 
 ### Fixed
+- Photo upload: when the browser cannot decode a picture directly, the fallback now reads it through a data: URL instead of a blob: URL, which the Content-Security-Policy blocks (`web/js/recipe/photo-decode.js`). The policy is unchanged.
 - Dagelijkse Kost imports read all steps: that site lists only two in its
   recipe data, so the page's own instruction list is used when it is longer.
 - The step and recipe photo galleries keep their height while loading, empty

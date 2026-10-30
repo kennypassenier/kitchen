@@ -10,6 +10,7 @@
 
 import { kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";
+import { decode } from "./photo-decode.js";
 import { sendRaw, deleteRaw } from "../raw.js";
 
 /** The long side, in pixels, a photo is made smaller to. */
@@ -25,25 +26,6 @@ export const photoUrl = (id) => `/data/photos/${encodeURIComponent(id)}`;
 
 /** @param {HTMLCanvasElement} canvas @param {string} type @param {number} quality @returns {Promise<Blob | null>} */
 const encode = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-
-/** The picture decoded, honouring its orientation. @param {File} file @returns {Promise<ImageBitmap | HTMLImageElement>} */
-async function decode(file) {
-  try {
-    return await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch {
-    const url = URL.createObjectURL(file);
-    try {
-      return await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(t("photo.unreadable")));
-        img.src = url;
-      });
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  }
-}
 
 /** The canvas as WebP (JPEG as the fallback) under SEND_BYTES, at the first quality that fits, or null. @param {HTMLCanvasElement} canvas @returns {Promise<Blob | null>} */
 async function encodeUnder(canvas) {
@@ -61,7 +43,7 @@ async function encodeUnder(canvas) {
  * @param {File} file @returns {Promise<Blob>}
  */
 export async function shrink(file) {
-  const source = await decode(file);
+  const source = await decode(file, t("photo.unreadable"));
   const width = "naturalWidth" in source ? source.naturalWidth : source.width;
   const height = "naturalHeight" in source ? source.naturalHeight : source.height;
   let scale = Math.min(1, MAX_SIDE / Math.max(width, height));
