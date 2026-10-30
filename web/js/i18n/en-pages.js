@@ -651,7 +651,6 @@ export const EN_PAGES = {
   "cook.howOnIt": (how) => `${how}, you are on it`,
   "cook.howToDo": (how) => `${how}, still to do`,
   "cook.howToDoAt": (how, time, wait) => `${how}, planned for ${time} after a wait of ${wait} min`,
-  "cook.until": (say, time) => `${say}, until ${time}`,
   "cook.nOfMDone": (n, m) => `${n} of ${m} done`,
   "cook.logged": "Logged. Enjoy your dinner.",
   "cook.loggedText": "It is in your log from today.",

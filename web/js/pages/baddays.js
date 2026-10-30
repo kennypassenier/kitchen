@@ -617,10 +617,8 @@ export function mount(root, { navigate }) {
   const DISH_WRONG = t("bad.dishWrong");
   const DATE_WRONG = t("bad.dateWrong");
   form.addEventListener("submit", (event) => {
-    // The package's form fires its valid event and leaves the browser's own submit running, which reloaded the page
-    // (a GET to /bad-days?dish=…) before the save went out: since 1.0.0 nothing was ever added (found 24/10/2026).
-    // kp-themes 11.3.0 stops a valid submit itself; this stays as a harmless guard for an invalid one (29/10/2026 audit).
-    event.preventDefault();
+    // (kp-themes 11.3.0 stops the browser's own submit of a valid form itself; Kitchen's own preventDefault that stood here
+    // since 24/10/2026, when the page reloaded before the save went out, is gone with it.)
     const dish = dishField.value.trim();
     const dishEn = dishEnField.value.trim();
     const picked = datePicker(picker)?.get() ?? null;

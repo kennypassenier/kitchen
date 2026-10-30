@@ -44,6 +44,15 @@ carries a **Migration** section saying what an operator must do.
   so dark is measured here too.
 
 ### Changed
+- chassis 3.14.0 with kp-themes 11.3.0; tokio 1.53.3 to 1.54.1 (RUSTSEC-2026-0386), nothing else in `Cargo.lock`
+  moved but chassis itself.
+- Workarounds of Kitchen's own that kp-themes 11.3.0 made redundant are gone: the page's `preventDefault` on the
+  bad-days form, the cook-mode timeline's own CSS minimum width and sideways scroll (the gantt keeps its minimum
+  width and scrolls inside its own frame), the lane stretch for the time a running step has left (the gantt draws
+  it from `plannedEnd`), the read of the remembered progress (`getStepsPassed`) and the 180 degree turn of the
+  wheel's left-half names (the wheel reads upright itself). `scripts/check-forms.mjs` fails when a form that posts
+  natively lacks `data-kp-form-native-submit`; it runs with the two older checks from
+  `.claude/hooks/gates.project.sh`. No form of Kitchen needed the attribute: all eight save with `fetch`.
 - An imported ingredient line the catalogue does not know is no longer dropped
   on Save: the editor warns, each line can be added as a new ingredient or
   discarded, and Save waits until none is left.

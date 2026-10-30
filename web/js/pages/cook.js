@@ -21,7 +21,7 @@
 import { h, $ } from "../dom.js";
 import { loadKitchen, onKitchen, recipeById, create, ingredientName } from "../api.js";
 import { attachChecklists, setChecklistItems, setChecklistState, getChecklistItems } from "/static/kp/js/checklist.js";
-import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep, getStepIndex } from "/static/kp/js/focus-steps.js";
+import { attachFocusSteps, setFocusSteps, setFocusStepsState, goToStep, getStepIndex, getStepsPassed } from "/static/kp/js/focus-steps.js";
 import { attachTimers, setTimersState, getTimers, restoreTimers, stopTimer } from "/static/kp/js/timer.js";
 import { attachTimerDiscs, timerDiscOf } from "/static/kp/js/timer-disc.js";
 import { attachAttention, setAttention } from "/static/kp/js/attention.js";
@@ -543,16 +543,14 @@ export function mount(root, { params, navigate }) {
   let finished = false;
 
   /**
-   * Where the cook is, as focus-steps keeps it: the step in hand and the steps passed (with tracks it stores the passed
-   * ones; one track is a plain sequence, so every step before the one in hand is passed).
+   * Where the cook is, as focus-steps tells it: the step in hand and the steps passed (`getStepsPassed`, kp-themes 11.3.0;
+   * before it this read the remembered progress, kp-gaps wish "focus-steps: no getter for the steps passed").
    * @returns {{ active: number, done: Set<number> }}
    */
   function progressNow() {
     if (finished) return { active: -1, done: new Set(shown.map((_, i) => i)) };
-    const saved = memoryFor(steps, "focus-steps")?.read("progress", null);
-    const active = Math.max(0, Math.min(shown.length - 1, Number(saved?.index) || 0));
-    const done = Array.isArray(saved?.done) ? new Set(/** @type {number[]} */ (saved.done)) : new Set(shown.map((_, i) => i).filter((i) => i < active));
-    return { active, done };
+    const active = Math.max(0, Math.min(shown.length - 1, getStepIndex(steps) || 0));
+    return { active, done: new Set(getStepsPassed(steps).indexes) };
   }
 
   /** The recipe's rows (recipe/schedule.js: one per track that has a step here, else one for the whole recipe; a step with no track is in every row). */
@@ -587,8 +585,6 @@ export function mount(root, { params, navigate }) {
     const cursor = new Map(lanes.map((l) => [l.id, first]));
     /** @type {import("../recipe/timeline.js").TimelineRun[]} */
     const runs = [];
-    /** @type {import("../recipe/timeline.js").TimelineZone[]} */
-    const left = [];
     const clock = (/** @type {number} */ ms) => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
     let last = now;
     /** @type {Map<string, number>} where each step starts in this plan, for the steps that run alongside it */
@@ -600,7 +596,7 @@ export function mount(root, { params, navigate }) {
       const ahead = Math.max(...rows.map((r) => cursor.get(r) ?? first));
       const say = sentence(s.say || String(s.text));
       const how = t("cook.how", mins, s.active);
-      /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string }[]} */
+      /** @type {{ start: number, end: number, state: "ok" | "running" | "planned", words: string, plannedEnd?: number }[]} */
       const parts = [];
       let next;
       if (done.has(i)) {
@@ -611,9 +607,9 @@ export function mount(root, { params, navigate }) {
       } else if (i === active) {
         const start = m?.start ?? now;
         const planned = start + mins * MIN;
-        parts.push({ start, end: now, state: "running", words: t("cook.howOnIt", how) });
-        // What is left of its time is a thin band in the row (the package's lane stretch); past its time the rest of the plan begins from this moment.
-        if (planned > now) for (const row of rows) left.push({ id: `${row}:${s.id}`, lane: row, from: now, to: planned, label: t("cook.until", say, clock(planned)), tone: "info" });
+        // What is left of its time is drawn by the package after now (`plannedEnd`, kp-themes 11.3.0, replacing Kitchen's own lane
+        // stretch); past its time the rest of the plan begins from this moment.
+        parts.push({ start, end: now, state: "running", words: t("cook.howOnIt", how), plannedEnd: planned });
         next = Math.max(now, planned);
       } else {
         // A step that runs alongside another (`with`) is planned from where that one is planned; it does not push its rows back.
@@ -641,6 +637,7 @@ export function mount(root, { params, navigate }) {
             state: part.state,
             series: lanes.find((l) => l.id === row)?.series,
             detail: `${say}, ${part.words}`,
+            plannedEnd: part.plannedEnd,
           }),
         );
       }
@@ -648,7 +645,6 @@ export function mount(root, { params, navigate }) {
     drawTimeline(line.el, {
       lanes: lanes.map((l) => ({ ...l, sub: t("cook.nOfMDone", shown.filter((s, i) => rowsOf(s).includes(l.id) && done.has(i)).length, shown.filter((s) => rowsOf(s).includes(l.id)).length) })),
       runs,
-      zones: left,
       from: first - MIN,
       to: last + 3 * MIN,
     });
