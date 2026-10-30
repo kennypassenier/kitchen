@@ -6,6 +6,7 @@ import { setSegmentedCounts, setSegmentedItems, setSegmentedTri, getSegmentedTri
 import { t } from "../../i18n/index.js";
 import { cap } from "../../format.js";
 import * as L from "./logic.js";
+import * as C from "./constraints.js";
 import { mealLabels, bandLabels } from "./labels.js";
 import { catName, constraints, onWheel } from "./model.js";
 
@@ -18,7 +19,7 @@ function paintIngredientChips(ctx) {
     ctx.chipKeys.ing = shown.join();
     setSegmentedItems(el.groups.ing, shown.map((v) => ({ value: v, label: cap(v), count: counts[v] })));
     M.ing = getSegmentedTri(el.groups.ing);
-    M.order = L.dropGone(M.order, "ing", shown);
+    M.order = C.dropGone(M.order, "ing", shown);
   }
   setSegmentedCounts(el.groups.meal, L.countOf(dishes, "meal", Object.keys(mealLabels())));
   setSegmentedCounts(el.groups.time, L.countOf(dishes, "time", Object.keys(bandLabels())));
@@ -34,7 +35,7 @@ function paintCategoryChips(ctx) {
     ctx.chipKeys.cat = cats.join();
     setSegmentedItems(el.groups.cat, cats.map((v) => ({ value: v, label: catName(ctx, v), count: counts[v] })));
     M.cat = getSegmentedTri(el.groups.cat);
-    M.order = L.dropGone(M.order, "cat", cats);
+    M.order = C.dropGone(M.order, "cat", cats);
   }
   setSegmentedCounts(el.groups.cat, counts);
 }
@@ -57,7 +58,7 @@ export function paintChips(ctx) {
 /** Take what the person pressed into the model. @param {import("./index.js").WheelCtx} ctx @param {L.Group} group */
 function readChips(ctx, group) {
   const now = getSegmentedTri(ctx.el.groups[group]);
-  ctx.M.order = L.orderAfterChips(ctx.M.order, group, ctx.M[group], now);
+  ctx.M.order = C.orderAfterChips(ctx.M.order, group, ctx.M[group], now);
   ctx.M[group] = now;
   ctx.view.paintAll();
 }

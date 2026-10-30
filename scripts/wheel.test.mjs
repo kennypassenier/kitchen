@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as L from "../web/js/pages/wheel/logic.js";
+import * as C from "../web/js/pages/wheel/constraints.js";
 
 const dish = (id, extra = {}) => ({ id, label: id, short: id, meals: ["dinner"], minutes: 30, ing: [], days: 5, safe: false, freezer: 0, prep: "full", recipe: true, cookId: id, others: [], category: null, sides: [], ...extra });
 const words = {
@@ -11,7 +12,7 @@ const words = {
   with: (n) => `with ${n}`, without: (n) => `without ${n}`, not: (n) => `not ${n}`, resting: (n) => `resting ${n}`,
   notCounting: (n) => `no ${n.toLowerCase()}`, noEnergy: "no energy",
 };
-const labels = (m) => L.constraintsOf(m, words).map((c) => c.label);
+const labels = (m) => C.constraintsOf(m, words).map((c) => c.label);
 
 test("time bands: up to 20 quick, up to 45 mid, longer long", () => {
   assert.deepEqual([0, 20, 21, 45, 46].map(L.band), ["quick", "quick", "mid", "mid", "long"]);
@@ -139,14 +140,14 @@ test("the easy switch alone is the only thing holding back when nothing else doe
   assert.deepEqual(labels(m), []);
   m.easy = true;
   assert.deepEqual(labels(m), ["no energy"]);
-  L.constraintsOf(m, words)[0].release();
+  C.constraintsOf(m, words)[0].release();
   assert.equal(m.easy, false);
 });
 
 test("releasing a constraint takes it off the model it was made on", () => {
   const m = L.newModel();
   m.meal.include = ["lunch", "dinner"];
-  L.constraintsOf(m, words).find((c) => c.key === "meal:lunch").release();
+  C.constraintsOf(m, words).find((c) => c.key === "meal:lunch").release();
   assert.deepEqual(m.meal.include, ["dinner"]);
 });
 
@@ -155,42 +156,42 @@ test("the constraint to let go first is the one that frees the most dishes, the 
   const m = L.newModel();
   m.meal.include = ["breakfast"]; // frees all three
   m.ing.include = ["egg"]; // letting go the ingredient alone frees nothing
-  assert.equal(L.pickToLoosen(m, words, dishes).key, "meal:breakfast");
-  assert.equal(L.pickToLoosen(L.newModel(), words, dishes), null);
+  assert.equal(C.pickToLoosen(m, words, dishes).key, "meal:breakfast");
+  assert.equal(C.pickToLoosen(L.newModel(), words, dishes), null);
   const tie = L.newModel();
   tie.meal.include = ["breakfast"]; tie.time.include = ["quick"]; // letting go either one still leaves nothing
-  assert.equal(L.pickToLoosen(tie, words, dishes).key, "time:quick");
+  assert.equal(C.pickToLoosen(tie, words, dishes).key, "time:quick");
 });
 
 test("loosening works on a copy, the model keeps its constraints", () => {
   const m = L.newModel();
   m.meal.include = ["breakfast"];
-  L.pickToLoosen(m, words, [dish("a")]);
+  C.pickToLoosen(m, words, [dish("a")]);
   assert.deepEqual(m.meal.include, ["breakfast"]);
-  const c = L.copyOf(m);
+  const c = C.copyOf(m);
   c.meal.include.push("lunch"); c.kinds.delete("safe");
   assert.deepEqual(m.meal.include, ["breakfast"]);
   assert.equal(m.kinds.has("safe"), true);
 });
 
 test("constraint order: a new one goes last, a released one leaves", () => {
-  let order = L.tracked([], "meal:a", true);
-  order = L.tracked(order, "time:b", true);
-  order = L.tracked(order, "meal:a", true);
+  let order = C.tracked([], "meal:a", true);
+  order = C.tracked(order, "time:b", true);
+  order = C.tracked(order, "meal:a", true);
   assert.deepEqual(order, ["time:b", "meal:a"]);
-  assert.deepEqual(L.tracked(order, "time:b", false), ["meal:a"]);
+  assert.deepEqual(C.tracked(order, "time:b", false), ["meal:a"]);
 });
 
 test("a chip group that changed updates the order: added values last, values gone from both states out", () => {
   const prev = { include: ["a"], exclude: ["b"] };
   const now = { include: ["a", "c"], exclude: [] };
-  assert.deepEqual(L.orderAfterChips(["meal:a", "meal:b", "time:x"], "meal", prev, now), ["meal:a", "time:x", "meal:c"]);
+  assert.deepEqual(C.orderAfterChips(["meal:a", "meal:b", "time:x"], "meal", prev, now), ["meal:a", "time:x", "meal:c"]);
   // a value that moved from include to exclude stays tracked where it was, it only goes last again
-  assert.deepEqual(L.orderAfterChips(["meal:a", "meal:z"], "meal", { include: ["a"], exclude: [] }, { include: [], exclude: ["a"] }), ["meal:z", "meal:a"]);
+  assert.deepEqual(C.orderAfterChips(["meal:a", "meal:z"], "meal", { include: ["a"], exclude: [] }, { include: [], exclude: ["a"] }), ["meal:z", "meal:a"]);
 });
 
 test("a chip whose value is gone drops its constraints from the order", () => {
-  assert.deepEqual(L.dropGone(["ing:egg", "ing:ham", "meal:egg", "ing:fish"], "ing", ["egg", "fish"]), ["ing:egg", "meal:egg", "ing:fish"]);
+  assert.deepEqual(C.dropGone(["ing:egg", "ing:ham", "meal:egg", "ing:fish"], "ing", ["egg", "fish"]), ["ing:egg", "meal:egg", "ing:fish"]);
 });
 
 test("filter keys are the chips only", () => {

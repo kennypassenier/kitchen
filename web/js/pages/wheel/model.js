@@ -4,6 +4,7 @@
 import { daysSinceCooked, defaultRecipe, recipeLabel } from "../../api.js";
 import { nameOf, t } from "../../i18n/index.js";
 import * as L from "./logic.js";
+import * as C from "./constraints.js";
 import { constraintWords } from "./labels.js";
 
 /** @typedef {import("./logic.js").Dish} Dish */
@@ -40,7 +41,7 @@ export const bigger = (ctx, d) => L.isBigger(d, odds(ctx));
 /** @param {import("./index.js").WheelCtx} ctx */
 const wordsOf = (ctx) => constraintWords((id) => byId(ctx, id)?.label, (v) => catName(ctx, v));
 /** @param {import("./index.js").WheelCtx} ctx @param {Model} m */
-export const constraints = (ctx, m) => L.constraintsOf(m, wordsOf(ctx));
+export const constraints = (ctx, m) => C.constraintsOf(m, wordsOf(ctx));
 /** @param {import("./index.js").WheelCtx} ctx @param {Model} m */
 export const filterCount = (ctx, m) => constraints(ctx, m).filter((c) => L.isFilterKey(c.key)).length;
 /** @param {import("./index.js").WheelCtx} ctx @param {Model} m */
@@ -49,6 +50,6 @@ export function blockText(ctx, m) {
   return all.length ? t("wheel.noFitAll", all.map((c) => c.label).join(", ")) : t("wheel.noneLeft");
 }
 /** Note that a constraint was set (goes last) or let go. @param {import("./index.js").WheelCtx} ctx @param {string} key @param {boolean} on */
-export const track = (ctx, key, on) => (ctx.M.order = L.tracked(ctx.M.order, key, on));
+export const track = (ctx, key, on) => (ctx.M.order = C.tracked(ctx.M.order, key, on));
 /** @param {import("./index.js").WheelCtx} ctx */
-export const pickToLoosen = (ctx) => L.pickToLoosen(ctx.M, wordsOf(ctx), ctx.dishes);
+export const pickToLoosen = (ctx) => C.pickToLoosen(ctx.M, wordsOf(ctx), ctx.dishes);
