@@ -18,57 +18,36 @@ import { attachDisabledReasons } from "/static/kp/js/reason.js";
 import { setCalm, isCalm } from "/static/kp/js/calm.js";
 import { openRecordEditor, detailHref, sideName } from "../records/index.js";
 import { t, nameOf } from "../i18n/index.js";
-import { pad, hhmm, dmyDate, localIso, cap } from "../format.js";
+import { dmyDate, localIso, cap } from "../format.js";
+import * as L from "./wheel/logic.js";
 import { minutesWords } from "../i18n/minutes.js";
 
-/**
- * @typedef {object} Dish a dish as the wheel sees it, with what its recipe adds (Kenny, 24/10/2026 09:17, 09:18)
- * @property {string} id @property {string} label the full name @property {string} short the slice label
- * @property {string[]} meals @property {number} minutes @property {string[]} ing
- * @property {number} days days since last cooked (Infinity: never)
- * @property {boolean} safe @property {number} freezer portions in the freezer
- * @property {string} prep `none` | `light` | `full`
- * @property {boolean} recipe the dish has a recipe @property {string | null} category @property {any[]} sides
- * @property {string | null} cookId its default recipe @property {{ id: string, label: string }[]} others its other recipes
- */
-/** @typedef {{ include: string[], exclude: string[] }} Tri */
-/**
- * @typedef {object} Model what the person asked for, in memory only
- * @property {Tri} meal @property {Tri} time @property {Tri} ing @property {Tri} cat the dish categories @property {boolean} easy
- * @property {Set<string>} kinds @property {Set<string>} resting recipe ids set aside @property {string[]} order the order constraints were set in
- */
+/** @typedef {import("./wheel/logic.js").Dish} Dish */
+/** @typedef {import("./wheel/logic.js").Model} Model */
 
 const mealLabels = () => /** @type {Record<string, string>} */ ({ breakfast: t("wheel.mealBreakfast"), lunch: t("wheel.mealLunch"), dinner: t("wheel.mealDinner") });
 const bandLabels = () => /** @type {Record<string, string>} */ ({ quick: t("wheel.bandQuick"), mid: t("wheel.bandMid"), long: t("wheel.bandLong") });
 const kindLabels = () => /** @type {Record<string, string>} */ ({ safe: t("wheel.kindSafe"), freezer: t("wheel.kindFreezer"), noprep: t("wheel.kindNoprep") });
-/** The ingredient chips before the dishes have loaded; once they have, the chips are the ingredients the dishes use. */
-const FIRST_INGREDIENTS = ["chicken", "beef", "egg", "cheese", "tomato", "potato"];
-/** A dish not cooked for this many days gets a bigger slice (when the odds are not equal). */
-const LONG_DAYS = 21;
 const loadingWords = () => t("wheel.loading");
 
-const daysAgo = (/** @type {number} */ n) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
-};
 const minutesText = (/** @type {number} */ m) => minutesWords(m, "wheel.hm", "wheel.min");
-const norm = (/** @type {unknown} */ s) => String(s ?? "").trim().toLowerCase();
-const band = (/** @type {number} */ m) => (m <= 20 ? "quick" : m <= 45 ? "mid" : "long");
-const isKind = (/** @type {Dish} */ d, /** @type {string} */ k) => (k === "safe" ? d.safe : k === "freezer" ? d.freezer > 0 : d.prep === "none");
-const emptyTri = () => ({ include: [], exclude: [] });
-
-/** @param {Dish[]} dishes @param {string} group @param {string[]} values */
-function countOf(dishes, group, values) {
-  /** @type {Record<string, number>} */
-  const out = {};
-  for (const v of values) {
-    out[v] = dishes.filter((d) => (group === "meal" ? d.meals.includes(v) : group === "time" ? band(d.minutes) === v : group === "cat" ? d.category === v : d.ing.includes(v))).length;
-  }
-  return out;
-}
-
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} ctx */
+
+/** The words the constraints are named with. @param {(id: string) => string | undefined} dishLabel @param {(v: string) => string} catName @returns {import("./wheel/logic.js").Words} */
+const constraintWords = (dishLabel, catName) => ({
+  meal: (v) => mealLabels()[v] ?? v,
+  time: (v) => bandLabels()[v] ?? v,
+  cat: catName,
+  dish: (id) => dishLabel(id) ?? t("wheel.aDish"),
+  kind: (k) => kindLabels()[k],
+  with: (n) => t("wheel.with", n),
+  without: (n) => t("wheel.without", n),
+  not: (n) => t("wheel.not", n),
+  resting: (n) => t("wheel.restingLabel", n),
+  notCounting: (n) => t("wheel.notCounting", n.toLowerCase()),
+  noEnergy: t("wheel.noEnergyLabel"),
+});
+
 export function mount(root, { navigate }) {
   document.title = `${t("wheel.title")} · Kitchen`;
 
@@ -83,7 +62,7 @@ export function mount(root, { navigate }) {
   /** @type {Map<string, any>} recipe id -> its active resting item */
   let restItems = new Map();
   /** @type {Model} */
-  const M = { meal: emptyTri(), time: emptyTri(), ing: emptyTri(), cat: emptyTri(), easy: false, kinds: new Set(Object.keys(kindLabels())), resting: new Set(), order: [] };
+  const M = L.newModel();
   /** @type {(() => void)[]} */
   const undo = [];
   let writing = false;
@@ -91,42 +70,16 @@ export function mount(root, { navigate }) {
   let calmByUs = false;
 
   const odds = () => String(kitchen?.settings?.odds ?? "equal");
-  const dinnerTime = () => {
-    const t = String(kitchen?.settings?.dinner_time ?? "");
-    return /^\d{1,2}:\d{2}$/.test(t) ? `${pad(Number(t.split(":")[0]))}:${t.split(":")[1]}` : "18:30";
-  };
+  const dinnerTime = () => L.dinnerTimeOf(kitchen?.settings?.dinner_time);
 
   function derive() {
     const k = kitchen;
-    const today = localIso(new Date());
     const freezer = (k?.freezer ?? []).filter((f) => Number(f.portions) > 0);
-    restItems = new Map();
-    for (const r of k?.resting ?? []) if (String(r.until) >= today && r.dish_id) restItems.set(r.dish_id, r);
+    restItems = L.restingByDish(k?.resting ?? []);
     M.resting = new Set(restItems.keys());
-    // The wheel picks from the dishes (Kenny, 24/10/2026 09:17): every dish is on it, whatever its parents' mark. A
-    // dish's own recipe (09:18) gives what the filters and the answer need; a dish without one has no time, meal or
-    // main ingredients yet, and only a filter that asks for those leaves it out.
     dishes = (k?.dishes ?? []).map((d) => {
-      // The default recipe speaks for the dish (Kenny, 24/10/2026 09:27: a dish may have several).
       const r = defaultRecipe(d);
-      const label = nameOf(d).text;
-      return {
-        id: d.id,
-        label,
-        short: label,
-        meals: r?.meals ?? [],
-        minutes: Number(r?.minutes) || 0,
-        ing: r?.ing ?? [],
-        days: k ? daysSinceCooked(k, d.id) : Infinity,
-        safe: !!r?.safe,
-        freezer: freezer.filter((f) => f.dish_id === d.id || [d.name?.nl, d.name?.en].some((n) => n && [f.dish?.nl, f.dish?.en, typeof f.dish === "string" ? f.dish : ""].some((x) => x && norm(x) === norm(n)))).reduce((n, f) => n + Number(f.portions), 0),
-        prep: r?.prep ?? "full",
-        recipe: !!r,
-        cookId: r?.id ?? null,
-        others: (d.recipes ?? []).filter((/** @type {any} */ x) => x.id !== r?.id).map((/** @type {any} */ x) => ({ id: x.id, label: recipeLabel(x, (d.recipes ?? []).indexOf(x)) })),
-        category: d.category ?? null,
-        sides: d.sides ?? [],
-      };
+      return L.dishFrom(d, r, { label: nameOf(d).text, days: k ? daysSinceCooked(k, d.id) : Infinity, freezer, recipeLabelOf: recipeLabel });
     });
   }
   const byId = (/** @type {string} */ id) => dishes.find((d) => d.id === id);
@@ -137,105 +90,19 @@ export function mount(root, { navigate }) {
   };
 
   // ---- what fits ------------------------------------------------------------------------------------------------------
-  /** @param {Dish} d @param {Model} m @param {{ filters?: boolean, resting?: boolean, easy?: boolean }} [skip] */
-  function fits(d, m, skip = {}) {
-    if (!skip.filters) {
-      if (m.meal.include.length && !m.meal.include.some((x) => d.meals.includes(x))) return false;
-      if (m.meal.exclude.some((x) => d.meals.includes(x))) return false;
-      if (m.time.include.length && !m.time.include.includes(band(d.minutes))) return false;
-      if (m.time.exclude.includes(band(d.minutes))) return false;
-      if (!m.ing.include.every((x) => d.ing.includes(x))) return false;
-      if (m.ing.exclude.some((x) => d.ing.includes(x))) return false;
-      if (m.cat.include.length && !m.cat.include.includes(String(d.category))) return false;
-      if (m.cat.exclude.includes(String(d.category))) return false;
-    }
-    if (!skip.resting && m.resting.has(d.id)) return false;
-    if (!skip.easy && m.easy && ![...m.kinds].some((k) => isKind(d, k))) return false;
-    return true;
-  }
-  const onWheel = (/** @type {Model} */ m) => dishes.filter((d) => fits(d, m));
-
-  /** The size of a dish's slice: equal by default; the settings may ask for long-not-eaten or freezer first. @param {Dish} d */
-  function weight(d) {
-    const mode = odds();
-    if (mode === "equal") return 1;
-    let w = Number.isFinite(d.days) ? Math.min(5, Math.max(0.6, 0.6 + d.days / 8)) : 5;
-    if (mode === "freezer" && d.freezer > 0) w *= 3;
-    return Math.round(w * 10) / 10;
-  }
-  const bigger = (/** @type {Dish} */ d) => odds() !== "equal" && d.days >= LONG_DAYS;
-
-  /** @param {Model} m */
-  const copyOf = (m) => ({
-    meal: structuredClone(m.meal),
-    time: structuredClone(m.time),
-    ing: structuredClone(m.ing),
-    cat: structuredClone(m.cat),
-    easy: m.easy,
-    kinds: new Set(m.kinds),
-    resting: new Set(m.resting),
-    order: [...m.order],
-  });
-
-  /**
-   * Everything that holds dishes back, each with how to let it go (on the model it is given).
-   * @param {Model} m
-   * @returns {{ key: string, label: string, release: () => void }[]}
-   */
-  function constraints(m) {
-    /** @type {{ key: string, label: string, release: () => void }[]} */
-    const out = [];
-    /** @param {"meal" | "time" | "ing" | "cat"} group @param {(v: string) => string} name */
-    const tri = (group, name) => {
-      for (const state of /** @type {const} */ (["include", "exclude"])) {
-        for (const value of m[group][state]) {
-          const n = name(value);
-          const label = group === "ing" ? (state === "include" ? t("wheel.with", n) : t("wheel.without", n)) : state === "include" ? n : t("wheel.not", n);
-          out.push({ key: `${group}:${value}`, label, release: () => (m[group][state] = m[group][state].filter((x) => x !== value)) });
-        }
-      }
-    };
-    tri("meal", (v) => mealLabels()[v] ?? v);
-    tri("time", (v) => bandLabels()[v] ?? v);
-    tri("ing", (v) => v);
-    tri("cat", (v) => catName(v));
-    for (const id of m.resting) out.push({ key: `rest:${id}`, label: t("wheel.restingLabel", byId(id)?.label ?? t("wheel.aDish")), release: () => m.resting.delete(id) });
-    if (m.easy) {
-      for (const k of Object.keys(kindLabels())) {
-        if (!m.kinds.has(k)) out.push({ key: `kind:${k}`, label: t("wheel.notCounting", kindLabels()[k].toLowerCase()), release: () => m.kinds.add(k) });
-      }
-    }
-    if (m.easy && !out.length) out.push({ key: "easy", label: t("wheel.noEnergyLabel"), release: () => (m.easy = false) });
-    return out;
-  }
-  const filterCount = (/** @type {Model} */ m) => constraints(m).filter((c) => /^(meal|time|ing|cat):/.test(c.key)).length;
+  const onWheel = (/** @type {Model} */ m) => dishes.filter((d) => L.fits(d, m));
+  const weight = (/** @type {Dish} */ d) => L.weightOf(d, odds());
+  const bigger = (/** @type {Dish} */ d) => L.isBigger(d, odds());
+  const words = constraintWords((id) => byId(id)?.label, (v) => catName(v));
+  const constraints = (/** @type {Model} */ m) => L.constraintsOf(m, words);
+  const filterCount = (/** @type {Model} */ m) => constraints(m).filter((c) => L.isFilterKey(c.key)).length;
   const blockText = (/** @type {Model} */ m) => {
     const all = constraints(m);
     return all.length ? t("wheel.noFitAll", all.map((c) => c.label).join(", ")) : t("wheel.noneLeft");
   };
   /** @param {string} key @param {boolean} on */
-  function track(key, on) {
-    M.order = M.order.filter((k) => k !== key);
-    if (on) M.order.push(key);
-  }
-
-  /** The one thing that frees the most dishes when let go (the later one on a tie). */
-  function pickToLoosen() {
-    const all = constraints(M);
-    if (!all.length) return null;
-    let pick = all[all.length - 1];
-    let best = -1;
-    for (const c of all) {
-      const copy = copyOf(M);
-      constraints(copy).find((x) => x.key === c.key)?.release();
-      const n = onWheel(copy).length;
-      if (n >= best) {
-        best = n;
-        pick = c;
-      }
-    }
-    return pick;
-  }
+  const track = (key, on) => (M.order = L.tracked(M.order, key, on));
+  const pickToLoosen = () => L.pickToLoosen(M, words, dishes);
 
   // ---- the markup, whole, from the first frame ---------------------------------------------------------------------------
   const chip = (/** @type {string} */ value, /** @type {string} */ label) =>
@@ -288,7 +155,7 @@ export function mount(root, { navigate }) {
           <div class="kp-formgrid__row">
             <p class="kp-formgrid__label wl-filters__name" id="wl-f-ing-l">${t("wheel.fIng")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
-              ${chips("wl-f-ing", "wl-f-ing-l", FIRST_INGREDIENTS.map((v) => chip(v, cap(v))).join(""))}
+              ${chips("wl-f-ing", "wl-f-ing-l", L.FIRST_INGREDIENTS.map((v) => chip(v, cap(v))).join(""))}
             </div>
           </div>
           <div class="kp-formgrid__row">
@@ -449,23 +316,19 @@ export function mount(root, { navigate }) {
 
     /** The line that counts back from dinner. @param {Dish} d */
     const timingOf = (d) => {
-      const [hh, mm] = dinnerTime().split(":").map(Number);
       const now = new Date();
-      const nowMin = now.getHours() * 60 + now.getMinutes();
-      const start = hh * 60 + mm - d.minutes;
-      return start >= nowMin
-        ? t("wheel.startAt", hhmm(start), dinnerTime(), minutesText(d.minutes))
-        : t("wheel.tooSoon", dinnerTime(), hhmm(nowMin + d.minutes));
+      const plan = L.startPlan(dinnerTime(), d.minutes, now.getHours() * 60 + now.getMinutes());
+      return plan.ok ? t("wheel.startAt", plan.start, dinnerTime(), minutesText(d.minutes)) : t("wheel.tooSoon", dinnerTime(), plan.ready);
     };
-    const lastCooked = (/** @type {Dish} */ d) =>
-      !Number.isFinite(d.days)
-        ? t("wheel.notCooked")
-        : t("wheel.lastCooked", d.days === 0 ? t("wheel.today") : d.days === 1 ? t("wheel.yesterday") : t("wheel.daysAgo", dmyDate(daysAgo(d.days)), d.days));
+    const lastCooked = (/** @type {Dish} */ d) => {
+      const kind = L.lastCookedKind(d.days);
+      return kind === "never" ? t("wheel.notCooked") : t("wheel.lastCooked", kind === "today" ? t("wheel.today") : kind === "yesterday" ? t("wheel.yesterday") : t("wheel.daysAgo", L.lastCookedDate(d.days), d.days));
+    };
     const oddsLine = () =>
       ({
         equal: t("wheel.oddsEqual"),
-        recency: t("wheel.oddsRecency", LONG_DAYS),
-        freezer: t("wheel.oddsFreezer", LONG_DAYS),
+        recency: t("wheel.oddsRecency", L.LONG_DAYS),
+        freezer: t("wheel.oddsFreezer", L.LONG_DAYS),
       })[/** @type {"equal"} */ (odds())] ?? "";
 
     const paintAnswer = () => {
@@ -511,8 +374,7 @@ export function mount(root, { navigate }) {
       setReason(part.yes, !d || !idle, why(t("wheel.spinFirst")));
       setReason(part.again, !idle || items.length < 2, why(t("wheel.nothingToSpinWhy")));
       setReason(part.skip, !d || !idle, why(t("wheel.spinFirstSkip")));
-      const until = new Date();
-      until.setDate(until.getDate() + 7);
+      const until = L.restUntil();
       part["skip-says"].textContent = t("wheel.skipSays", dmyDate(until));
       const rest = [...restItems.values()];
       part.rest.textContent = rest.length ? t("wheel.restingLabelList") : t("wheel.nothingResting");
@@ -540,7 +402,7 @@ export function mount(root, { navigate }) {
       part.list.replaceChildren(
         ...items.map((id) => {
           const d = /** @type {Dish} */ (byId(id));
-          const meta = `${d.recipe ? `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)}` : t("wheel.noRecipeBadge")} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", dmyDate(daysAgo(d.days))) : t("wheel.notCookedShort")}`;
+          const meta = `${d.recipe ? `${d.meals.map((m) => mealLabels()[m] ?? cap(m)).join(", ")} · ${minutesText(d.minutes)}` : t("wheel.noRecipeBadge")} · ${Number.isFinite(d.days) ? t("wheel.lastCookedShort", L.lastCookedDate(d.days)) : t("wheel.notCookedShort")}`;
           return h("li", { class: "wl-fit" }, h("span", { class: "wl-fit__text" }, h("b", null, d.label), h("span", null, meta)), h("span", { class: "wl-fit__tags" }, bigger(d) ? badgeOf(t("wheel.biggerSlice"), "warning") : null));
         }),
       );
@@ -628,8 +490,7 @@ export function mount(root, { navigate }) {
       if (!chosen || writing) return;
       const d = byId(chosen);
       if (!d) return;
-      const until = new Date();
-      until.setDate(until.getDate() + 7);
+      const until = L.restUntil();
       writing = true;
       paintAnswer();
       try {
@@ -691,11 +552,11 @@ export function mount(root, { navigate }) {
   }
 
   function clearFilters() {
-    M.meal = emptyTri();
-    M.time = emptyTri();
-    M.ing = emptyTri();
-    M.cat = emptyTri();
-    M.order = M.order.filter((k) => !/^(meal|time|ing|cat):/.test(k));
+    M.meal = L.emptyTri();
+    M.time = L.emptyTri();
+    M.ing = L.emptyTri();
+    M.cat = L.emptyTri();
+    M.order = M.order.filter((k) => !L.isFilterKey(k));
     paintChips();
     filtersLive.textContent = t("wheel.allLetGo");
   }
@@ -715,7 +576,7 @@ export function mount(root, { navigate }) {
   }
 
   // ---- the filter chips -------------------------------------------------------------------------------------------------
-  let ingKey = FIRST_INGREDIENTS.join();
+  let ingKey = L.FIRST_INGREDIENTS.join();
   let ingCounts = /** @type {Record<string, number>} */ ({});
   let catKey = "";
   function paintCounts() {
@@ -724,28 +585,25 @@ export function mount(root, { navigate }) {
     if (status === "error") return;
     if (status === "ready") {
       // The ingredient chips are the ingredients the dishes use, most used first.
-      const all = new Map();
-      for (const d of dishes) for (const i of d.ing) all.set(i, (all.get(i) ?? 0) + 1);
-      const names = [...all.keys()].sort((a, b) => all.get(b) - all.get(a) || a.localeCompare(b));
-      const shown = names.length ? names : FIRST_INGREDIENTS;
-      ingCounts = countOf(dishes, "ing", shown);
+      const shown = L.ingredientChips(dishes);
+      ingCounts = L.countOf(dishes, "ing", shown);
       if (shown.join() !== ingKey) {
         ingKey = shown.join();
         setSegmentedItems(groups.ing, shown.map((v) => ({ value: v, label: cap(v), count: ingCounts[v] })));
         M.ing = getSegmentedTri(groups.ing);
-        M.order = M.order.filter((k) => !k.startsWith("ing:") || shown.includes(k.slice(4)));
+        M.order = L.dropGone(M.order, "ing", shown);
       }
-      setSegmentedCounts(groups.meal, countOf(dishes, "meal", Object.keys(mealLabels())));
-      setSegmentedCounts(groups.time, countOf(dishes, "time", Object.keys(bandLabels())));
+      setSegmentedCounts(groups.meal, L.countOf(dishes, "meal", Object.keys(mealLabels())));
+      setSegmentedCounts(groups.time, L.countOf(dishes, "time", Object.keys(bandLabels())));
       setSegmentedCounts(groups.ing, ingCounts);
       // The category chips are the dish categories the dishes use, in their order (Kenny, 24/10/2026 09:17).
-      const cats = [...(kitchen?.dish_categories ?? [])].sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9)).map((c) => String(c.id)).filter((id) => dishes.some((d) => d.category === id));
-      const catCounts = countOf(dishes, "cat", cats);
+      const cats = L.categoryChips(kitchen?.dish_categories ?? [], dishes);
+      const catCounts = L.countOf(dishes, "cat", cats);
       if (cats.join() !== catKey) {
         catKey = cats.join();
         setSegmentedItems(groups.cat, cats.map((v) => ({ value: v, label: catName(v), count: catCounts[v] })));
         M.cat = getSegmentedTri(groups.cat);
-        M.order = M.order.filter((k) => !k.startsWith("cat:") || cats.includes(k.slice(4)));
+        M.order = L.dropGone(M.order, "cat", cats);
       }
       setSegmentedCounts(groups.cat, catCounts);
     }
@@ -760,8 +618,7 @@ export function mount(root, { navigate }) {
   /** @param {"meal" | "time" | "ing" | "cat"} group */
   function readChips(group) {
     const now = getSegmentedTri(groups[group]);
-    for (const state of /** @type {const} */ (["include", "exclude"])) for (const v of now[state]) if (!M[group][state].includes(v)) track(`${group}:${v}`, true);
-    for (const state of /** @type {const} */ (["include", "exclude"])) for (const v of M[group][state]) if (!now.include.includes(v) && !now.exclude.includes(v)) track(`${group}:${v}`, false);
+    M.order = L.orderAfterChips(M.order, group, M[group], now);
     M[group] = now;
     paintAll();
   }
@@ -773,7 +630,7 @@ export function mount(root, { navigate }) {
   clearBtn.addEventListener("click", clearFilters);
 
   function describeFilters() {
-    const all = constraints(M).filter((c) => /^(meal|time|ing|cat):/.test(c.key));
+    const all = constraints(M).filter((c) => L.isFilterKey(c.key));
     clearBtn.disabled = status !== "ready" || !all.length;
     clearBtn.setAttribute("data-kp-disabled-reason", status !== "ready" ? t("wheel.dishesLoading") : t("wheel.nothingFiltered"));
     if (status === "loading") filtersLive.textContent = t("wheel.loadingDot");
@@ -789,7 +646,7 @@ export function mount(root, { navigate }) {
     switchEl.checked = M.easy;
     for (const b of kindButtons) {
       const tg = toggle(b);
-      if (ready) tg?.setCount(dishes.filter((d) => isKind(d, b.dataset.kpToggleValue ?? "")).length);
+      if (ready) tg?.setCount(dishes.filter((d) => L.isKind(d, b.dataset.kpToggleValue ?? "")).length);
       tg?.set(M.kinds.has(b.dataset.kpToggleValue ?? ""), { silent: true });
       /** @type {HTMLButtonElement} */ (b).disabled = !ready || !M.easy;
       b.setAttribute("data-kp-disabled-reason", ready ? t("wheel.turnOnFirst") : t("wheel.dishesLoading"));
