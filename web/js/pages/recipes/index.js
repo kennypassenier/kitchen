@@ -20,19 +20,9 @@ import { rowsFor } from "./rows.js";
 /** The main ingredients the recipes already name, for the editor's suggestions. */
 const mainOptions = () => [...new Set((kitchenNow()?.recipes ?? []).flatMap((r) => r.ing ?? []))];
 
-/** @param {HTMLElement} root */
-export function mount(root) {
-  document.title = `${t("nav.recipes")} · Kitchen`;
-  let alive = true;
-  const { add, importer, table, body, empty, editor, page } = buildPage();
-  root.replaceChildren(page, editor);
+/** The Add, Import and Copy buttons open the editor drawer. @param {ReturnType<typeof buildPage>} ui */
+function wireOpeners({ add, importer, empty, editor }) {
   const dialog = /** @type {HTMLDialogElement} */ (editor);
-
-  const detach = attachDataTables(page);
-  const handle = dataTable(table);
-  handle?.busy({ text: t("recs.loading"), overlay: true });
-  handle?.state("loading");
-
   /** @param {Record<string, any> | null} recipe */
   const openFor = (recipe) => openEditor(dialog, { recipe, mainOptions: mainOptions() });
   /** An editable copy of a recipe, in the same dish (Kenny, 29/10/2026). @param {Record<string, any>} recipe */
@@ -40,10 +30,25 @@ export function mount(root) {
   add.addEventListener("click", () => openFor(null));
   importer.addEventListener("click", () => openImport(dialog, { mainOptions: mainOptions() }));
   empty.querySelector("[data-rl-add]")?.addEventListener("click", () => openFor(null));
+  return { edit: openFor, copy: openCopy };
+}
+
+/** @param {HTMLElement} root */
+export function mount(root) {
+  document.title = `${t("nav.recipes")} · Kitchen`;
+  let alive = true;
+  const ui = buildPage();
+  const { table, body, editor, page } = ui;
+  root.replaceChildren(page, editor);
+  const detach = attachDataTables(page);
+  const handle = dataTable(table);
+  handle?.busy({ text: t("recs.loading"), overlay: true });
+  handle?.state("loading");
+  const on = wireOpeners(ui);
 
   /** @param {Kitchen} k */
   function show(k) {
-    body.replaceChildren(...rowsFor(k, { edit: openFor, copy: openCopy }));
+    body.replaceChildren(...rowsFor(k, on));
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
   }
@@ -64,7 +69,6 @@ export function mount(root) {
   table.addEventListener("kp-datatable-retry", () => void load(true));
   const stop = onKitchen((k) => alive && show(k));
   void load();
-
   return () => {
     alive = false;
     stop();
