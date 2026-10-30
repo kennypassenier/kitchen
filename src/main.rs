@@ -71,14 +71,10 @@ async fn main() -> std::process::ExitCode {
             }
         };
         // Drafts nobody reopened for a week go, with the photos only they refer to (Kenny, 29/10/2026).
+        // The count is logged from the start hook: the kit's logging comes up after this point, so a line written here is lost
+        // (found 29/10/2026).
         let pruned = store.prune_drafts(chassis::shell::time::now_epoch()).await;
-        if pruned > 0 {
-            tracing::info!(
-                pruned,
-                days = store::DRAFT_DAYS,
-                "old recipe drafts dropped"
-            );
-        }
+        app.on_start(move || report_pruned(pruned));
         app.dashboard_routes(routes::router(store.clone(), &dir))
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);
@@ -109,6 +105,17 @@ async fn main() -> std::process::ExitCode {
     app.webapp(web);
     register_pages(&mut app);
     app.run().await
+}
+
+/// Say how many old drafts the start dropped; silent when none went.
+fn report_pruned(pruned: usize) {
+    if pruned > 0 {
+        tracing::info!(
+            pruned,
+            days = store::DRAFT_DAYS,
+            "old recipe drafts dropped"
+        );
+    }
 }
 
 /// The host the parents' wheel is kept to and the clients it answers, from the environment.
