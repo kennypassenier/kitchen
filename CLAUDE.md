@@ -16,6 +16,7 @@ Rules that keep breaking:
   measure-gaps from kp-themes `research/_review/`): zero findings.
 - No test runs without Kenny's ok; a commit runs fmt and clippy only.
 - Choices for Kenny go in one form, never a question in prose.
+- Modular code, one responsibility per file, aim at 400 lines / 20 KB at most: see `docs/agent/MODULARITY.md` (standing rule 30/10/2026 plus the split plan).
 
 Commits carry an ID in brackets (`[app-wheel-1]`, `[meta]`); hooks:
 `git config core.hooksPath .githooks`.
