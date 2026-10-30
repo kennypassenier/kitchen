@@ -567,6 +567,12 @@ export const NL_PAGES = {
   "edit.secListsText": "De lijsten die de receptpagina en de kookmodus lezen.",
   "edit.secSteps": "Stappen",
   "edit.secStepsText": "In de volgorde van het koken; elke stap kan een timer starten.",
+  "edit.secTimeline": "Tijdlijn",
+  "edit.secTimelineText": "Sleep een stap om hem te verplaatsen, sleep hem naar een ander onderdeel om dingen tegelijk te doen, sleep aan de rand om de duur te veranderen.",
+  "edit.timelineLabel": "Tijdlijn van de stappen",
+  "edit.timelineAll": "Alle stappen",
+  "edit.timelineEmpty": "Nog geen stappen",
+  "edit.timelineEmptyText": "Voeg hieronder een stap toe en hij staat hier.",
   "edit.close": "Sluiten zonder te bewaren",
   // cook mode
   "cook.title": "Koken",

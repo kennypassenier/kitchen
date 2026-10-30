@@ -60,7 +60,7 @@ A step:
 | `note` | string | A line under the step |
 | `note_tone` | `""` \| `warning` | The note's tone |
 | `mini` | boolean | Kept in the mini version |
-| `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the timeline (a later kp-themes component), optional. Cook mode plans from the real now, so it counts the offset from the moment cooking began (the first step's real start): a step not yet reached is planned at that moment plus `start`, never earlier than now, and when that leaves a gap after the previous step the timeline says so ("planned for 18:45 after a wait of 12 min") |
+| `start` | number \| null | Minutes from the recipe's start at which the step begins; `null` or absent = right after the previous step of its track. Set by the editor's timeline when a step is dragged to a place the flow would not put it (Kenny, 30/10/2026, see "The timeline" below), optional. Cook mode plans from the real now, so it counts the offset from the moment cooking began (the first step's real start): a step not yet reached is planned at that moment plus `start`, never earlier than now, and when that leaves a gap after the previous step the timeline says so ("planned for 18:45 after a wait of 12 min") |
 | `with` | string \| null | A step id: this step starts together with that one ("runs alongside"); it does not push its own track's next step back. `null` or absent = no partner. A dangling id is ignored |
 | `photos` | string[] | Photo ids in show order (at most 8 in the editor): shown under the step on the recipe page and large in cook mode while the step is in hand. Missing = none |
 
@@ -74,6 +74,21 @@ the `active` steps' intervals. The editor writes the effective values into `minu
 (computed, or the typed override), so every reader keeps reading those two; a recipe whose steps have no minutes yet
 keeps the figures it has. No store change: all four fields are optional, format stays 5. Test:
 `node --test scripts/schedule.test.mjs`.
+
+### The timeline (`web/js/recipe/sequence.js`, the editor's "Timeline" section)
+
+Kenny, 30/10/2026: a draggable timeline, the kit's `sequencer` (kp-themes 11.3.0). It is a second view of four step
+fields; nothing is stored of its own, so the format stays 5. The sequencer holds absolute minutes, so each step is
+mapped to an item: `id` = step `id`; `lane` = `track` (a step with no track, or a track that is gone, is in the lane
+"Where the tracks meet", the only lane of a recipe without tracks); `start` = where `schedule.js` places the step;
+`duration` = `mins` as written (the slow-day pace is a cook-mode matter); `with` = `with`. When an edit is dropped
+(`kp-sequencer-change`) the fields are written back: lane to `track` (the meeting lane to `null`), `duration` to
+`mins`, `with` to `with`, and `start` only for a step the flow of the list would put somewhere else, so a recipe nobody
+dragged keeps `start` empty. Within each track the list is put in the order of the starts (the other tracks' order is
+not touched); then `start` is checked once more on that order, so what the timeline shows is what `schedule.js`
+computes (the total and hands-on time are read from there, updating when a drag is dropped, not during it). A step
+with no text is not an item. The sequencer refuses an overlap inside a lane (`overlap` default), so parallel work
+needs a second track. Cook mode keeps its own run timeline (a gantt on the real clock).
 
 ### Photos
 

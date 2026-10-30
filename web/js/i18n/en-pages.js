@@ -567,6 +567,12 @@ export const EN_PAGES = {
   "edit.secListsText": "The lists the recipe page and cook mode read.",
   "edit.secSteps": "Steps",
   "edit.secStepsText": "In cooking order; each step can start a timer.",
+  "edit.secTimeline": "Timeline",
+  "edit.secTimelineText": "Drag a step to move it, drag it to another track to run things at the same time, drag its edge to change how long it takes.",
+  "edit.timelineLabel": "Timeline of the steps",
+  "edit.timelineAll": "All steps",
+  "edit.timelineEmpty": "No steps yet",
+  "edit.timelineEmptyText": "Add a step below and it is laid out here.",
   "edit.close": "Close without saving",
   // cook mode
   "cook.title": "Cook",

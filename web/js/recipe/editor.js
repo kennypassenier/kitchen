@@ -10,7 +10,8 @@
 
 import { attachSegmented, getSegmentedValues } from "/static/kp/js/segmented.js";
 import { attachSelects } from "/static/kp/js/combobox.js";
-import { attachComboboxes, combobox } from "/static/kp/js/combobox.js";
+import { attachComboboxes, combobox, drawnSelect } from "/static/kp/js/combobox.js";
+import { attachSequencers, setSequencerItems, setSequencerState, SEQUENCER_CHANGE_EVENT } from "/static/kp/js/sequencer.js";
 import { attachQuantities, getQuantity, setQuantity } from "/static/kp/js/quantity.js";
 import { attachSwitches } from "/static/kp/js/forms.js";
 import { attachAutosize } from "/static/kp/js/autosize.js";
@@ -25,6 +26,7 @@ import { photoField, photoTracker, photosOf } from "./photos.js";
 import { coverCard } from "./cover.js";
 import { wordsFor } from "./words.js";
 import { effective } from "./schedule.js";
+import { toItems, fromItems } from "./sequence.js";
 import { t, lang } from "../i18n/index.js";
 
 /** Meals and preparation, as the data names them. */
@@ -365,7 +367,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     const timerSecs = input(s.timer?.seconds ?? "", "number", { "aria-label": t("edit.timerSeconds"), min: "1", step: "1", placeholder: "600" });
     const note = input(s.note ?? "", "text", { placeholder: t("edit.notePh") });
     const warn = toggle(t("edit.warnSwitch"), s.note_tone === "warning");
-    // Where it falls in time (recipe/schedule.js): both optional, the draggable timeline will set them too.
+    // Where it falls in time (recipe/schedule.js): both optional; the draggable timeline writes them too.
     const start = input(typeof s.start === "number" ? String(s.start) : "", "number", { min: "0", step: "1", inputmode: "numeric", placeholder: t("edit.startPh") });
     const partner = select([["", t("edit.withNone")]], s.with ?? "", t("edit.with"));
     const uses = rows({
@@ -412,12 +414,25 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
       id: String(s.id),
       track,
       partner,
+      mins,
+      start,
       text,
       head,
       up,
       down,
       del,
       camera,
+      /**
+       * The fields the timeline owns, written from it (Kenny, 30/10/2026): the sequencer is the other view of these four.
+       * @param {{ track: string | null, mins: number, start: number | null, with: string | null }} p
+       */
+      set: (p) => {
+        track.value = p.track ?? "";
+        setQuantity(mins, p.mins);
+        /** @type {HTMLInputElement} */ (start).value = p.start === null || p.start === undefined ? "" : String(p.start);
+        partner.value = p.with ?? "";
+        for (const sel of [track, partner]) drawnSelect(sel)?.refresh();
+      },
       /** The chips under the text say what the fold holds. */
       paint: () => {
         const m = getQuantity(mins);
@@ -560,6 +575,57 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     minutesHint.textContent = on(minutesOver) ? t("edit.totalTyped", now.total) : t("edit.totalComputed", now.total);
     handsHint.textContent = on(handsOver) ? t("edit.handsTyped", now.handsOn) : t("edit.handsComputed", now.handsOn);
   };
+
+  // ---- the timeline -------------------------------------------------------------------------------------------
+  // The steps as clips on lanes, one lane per track (Kenny, 30/10/2026: a draggable timeline, "like a video editor"): drag to
+  // move, drag between lanes to run things in parallel, drag an edge to change how long a step takes. It is the kit's
+  // sequencer (kp-themes 11.3.0); recipe/sequence.js maps the step fields to its items and back, and the list above stays the
+  // other view: a change in either one is written to the same four fields (track, mins, start, with) and shown in the other.
+  const seqHost = h("section", { class: "kp-gantt kp-sequencer rl-timeline", "data-kp-sequencer": true, "data-kp-sequencer-unit": "minute", "data-kp-sequencer-snap": "1", "aria-label": t("edit.timelineLabel") });
+  const namedTracks = () => tracks.get().map(([tk]) => tk).filter((tk) => tk.name);
+  let syncing = false;
+  let paintQueued = false;
+  let seqState = "";
+  const paintTimeline = () => {
+    if (syncing) return;
+    const number = new Map(stepList.map((e, i) => [e.id, i + 1]));
+    const { items, lanes } = toItems(stepList.map((e) => e.get()).filter((x) => x.text), namedTracks(), {
+      meet: t("edit.tracksMeet"),
+      all: t("edit.timelineAll"),
+      unnamed: t("edit.unnamedTrack"),
+      label: (st, n) => `${number.get(st.id) ?? n}. ${st.text}`,
+    });
+    setSequencerItems(seqHost, items, lanes);
+    const state = items.length ? "ready" : "empty";
+    if (state !== seqState) {
+      seqState = state;
+      setSequencerState(seqHost, state, t("edit.timelineEmpty"), { text: t("edit.timelineEmptyText") });
+    }
+  };
+  /** Several events in a row (a typed number, a removed step) paint the timeline once. */
+  const queuePaint = (/** @type {Event} */ ev) => {
+    if (paintQueued || seqHost.contains(/** @type {Node} */ (ev.target))) return;
+    paintQueued = true;
+    queueMicrotask(() => {
+      paintQueued = false;
+      paintTimeline();
+    });
+  };
+  // An edit dropped on the timeline: write it to the step fields, put the list in the order of the starts, and let the
+  // normal form events carry it on (the two times, the draft). The timeline is then painted again from the fields.
+  seqHost.addEventListener(SEQUENCER_CHANGE_EVENT, (ev) => {
+    syncing = true;
+    try {
+      const after = fromItems(stepList.map((e) => e.get()), namedTracks(), /** @type {CustomEvent} */ (ev).detail.items);
+      const byId = new Map(stepList.map((e) => [e.id, e]));
+      for (const st of after) /** @type {any} */ (byId.get(st.id))?.set(st);
+      stepList = after.map((st) => /** @type {any} */ (byId.get(st.id)));
+      renumber();
+    } finally {
+      syncing = false;
+    }
+    paintTimeline();
+  });
   const stepsSection = h("div", { class: "rl-steps-wrap" }, h("div", { class: "kp-formgrid" }, row(t("edit.quickLabel"), quick, t("edit.quickHint"))), stepsBox, stepsEmpty);
 
   // ---- the drawer ---------------------------------------------------------------------------------------------
@@ -573,6 +639,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     sec(t("edit.secTime"), t("edit.secTimeText"), facts),
     sec(t("edit.secNotes"), t("edit.secNotesText"), notes),
     sec(t("edit.secLists"), t("edit.secListsText"), lists),
+    sec(t("edit.secTimeline"), t("edit.secTimelineText"), seqHost),
     sec(t("edit.secSteps"), t("edit.secStepsText"), stepsSection),
   );
   const line = h("p", { class: "rl-editor__line", role: "status" });
@@ -614,6 +681,13 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
     attachFlashButtons(root);
   }
   attachControls(dialog);
+  // The timeline: one sequencer per opening, detached when the drawer closes or is opened again on a restored draft.
+  /** @type {any} */ (dialog).__rlSeq?.();
+  const detachSeq = attachSequencers(form);
+  /** @type {any} */ (dialog).__rlSeq = detachSeq;
+  dialog.addEventListener("close", detachSeq, { once: true });
+  for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, queuePaint);
+  paintTimeline();
   for (const type of ["input", "change", "kp-quantity-change", "rl-rows-change"]) form.addEventListener(type, refreshTimes);
   refreshTimes();
   for (const type of ["input", "change", "kp-combobox-change", "rl-rows-change"]) form.addEventListener(type, () => setTimeout(paintUnresolved, 0));

@@ -1,7 +1,7 @@
 // Where each step of a recipe falls in time (Kenny, 29/10/2026: steps get `start` and `with`, the recipe's total and
 // hands-on time become computed). One pure module, no DOM, no i18n, no api: the editor shows the computed figures, the
-// timing page counts a plan back from dinner and cook mode draws its lanes from it, and a later draggable timeline
-// (a kp-themes component) reads and writes the same two fields.
+// timing page counts a plan back from dinner and cook mode draws its lanes from it, and the editor's draggable timeline
+// (recipe/sequence.js, the kit's sequencer) reads and writes the same fields.
 //
 // The model, minutes from the recipe's start:
 //   - a recipe has tracks ("Pasta", "Sauce"); a step is on one track, or on none (or on a track that is gone): that step

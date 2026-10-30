@@ -7,6 +7,14 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 ### Added
+- A draggable timeline in the recipe editor (own section "Timeline"): the steps as clips on one lane per track, like
+  a video editor. Drag a step to move it, drag it to another track to run it at the same time, drag its edge to
+  change how long it takes; Enter picks a step up for the keyboard, a zoom control and a sideways scroll inside its
+  own box serve a phone. The kit's new `sequencer` (chassis 3.14.0, kp-themes 11.3.0). The quick-add step list stays
+  the other view: every change in either one is written to the same step fields (`track`, `mins`, `start`, `with`)
+  and shown in the other, the total and hands-on time update when a drag is dropped, and the draft keeps saving.
+  Within a track the list follows the order of the starts. No format change. Cook mode keeps its own run timeline
+  (the real clock, steps done, the step in hand), which the sequencer is not.
 - Recipe sources (`/sources`, Dutch "Receptbronnen"): the websites whose recipe
   pages the import reads well, as a list of your own with Add, Edit, Delete,
   search, a language filter and an own page per source. Every site link opens
@@ -47,6 +55,7 @@ carries a **Migration** section saying what an operator must do.
   recipe data, so the page's own instruction list is used when it is longer.
 - The step and recipe photo galleries keep their height while loading, empty
   or failed instead of collapsing.
+
 
 ## [4.1.0] - 2026-10-24
 
