@@ -6,77 +6,65 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+Everything since 4.1.0, released together as 5.0.0 (Kenny, 31/10/2026).
+
 ### Added
-- The other language of a recipe step's text and note, and of an ingredient line's note, is optional (Kenny, 30/10/2026,
-  "Optioneel"). The editor has a clearly labelled field for it ("Text in Dutch (optional)" / "Tekst in het Engels
-  (optioneel)") inside the step's "More" fold, and a second field under an ingredient line's note. Without a translation
-  Kitchen shows the one text it has in both languages (an import stays untranslated and saves without a second
-  language); with one, the recipe page, cook mode, the timing page, the bad-days recipe and the print sheet show the
-  language in use. No format change: a text is a plain string or `{nl, en}` with both halves (`web/js/recipe/bilingual.js`).
-- The parents' page (eten.kp-soft.dev) has the kit's theme picker top right, in Dutch; the choice is kept in that browser
-  and applied before the first paint (Kenny, 24/10/2026 09:29).
-- A draggable timeline in the recipe editor (own section "Timeline"): the steps as clips on one lane per track, like
-  a video editor. Drag a step to move it, drag it to another track to run it at the same time, drag its edge to
-  change how long it takes; Enter picks a step up for the keyboard, a zoom control and a sideways scroll inside its
-  own box serve a phone. The kit's new `sequencer` (chassis 3.14.0, kp-themes 11.3.0). The quick-add step list stays
-  the other view: every change in either one is written to the same step fields (`track`, `mins`, `start`, `with`)
-  and shown in the other, the total and hands-on time update when a drag is dropped, and the draft keeps saving.
-  Within a track the list follows the order of the starts. No format change. Cook mode keeps its own run timeline
-  (the real clock, steps done, the step in hand), which the sequencer is not.
-- A step in the "Where the tracks meet" lane now moves along by itself when a step before it gets longer or moves, so it
-  never overlaps one and the total stays right without dragging (`web/js/recipe/meet.js`). A step dragged later keeps
-  its later start.
-- Recipe sources (`/sources`, Dutch "Receptbronnen"): the websites whose recipe
-  pages the import reads well, as a list of your own with Add, Edit, Delete,
-  search, a language filter and an own page per source. Every site link opens
-  in a new tab; "Import from this site" opens the import drawer with a pointer
-  to it, and the drawer links to the page ("Which sites work?"). New optional
-  `recipe_sources` collection (format stays 5; `POST /data/recipe_sources`
-  accepts only http(s) addresses, a language and a note in both languages or
-  none). A new kitchen, and a file from before the list, starts with six sites
-  proven by one real import each: Dagelijkse Kost, 24Kitchen, Leuke recepten,
-  BBC Good Food, Simply Recipes and RecipeTin Eats.
-- Import a recipe (Recipes page and a dish's Recipes card): a web address or
-  pasted text becomes an unsaved draft in the recipe editor. Kitchen reads the
-  page's recipe data (JSON-LD), splits amounts, units and names, matches
-  ingredients to the catalogue (unknown ones offer "Add as a new ingredient"),
-  proposes step minutes from the text and asks "Use this photo as the cover?"
-  before any picture is fetched. The fetch refuses private, loopback and
-  link-local destinations, pins the checked address, follows at most 3
-  redirects and stops at 10 s and 2 MB (`docs/agent/DATA.md`).
-- A recipe has an optional `source` (the import stores the page's address): a
-  link on the recipe page, editable or clearable in the editor; the server
-  accepts only an http(s) address or nothing. No format change.
-- A remark in brackets or after a comma in an imported ingredient line is kept
-  as the line's note (editable, shown under the name on the recipe page).
-- Cook mode honours a step's fixed `start`: counted from the moment cooking
-  began and shown as a planned wait in the timeline.
-- `scripts/measure.mjs` runs kp's measures with the theme set in localStorage,
-  so dark is measured here too.
+- **Import a recipe from a website** (Recipes page and a dish's Recipes card): a web address or pasted text becomes an
+  unsaved draft in the recipe editor. Kitchen reads the page's recipe data (JSON-LD), splits amounts, units and names,
+  matches ingredients to the catalogue, proposes step minutes from the text and asks "Use this photo as the cover?"
+  before any picture is fetched. A remark in brackets or after a comma in an ingredient line becomes that line's note.
+  An ingredient the catalogue does not know is never dropped: the editor lists it and Save waits until each one is
+  added as a new ingredient or discarded. The fetch refuses private, loopback and link-local destinations, pins the
+  checked address, follows at most 3 redirects and stops at 10 s and 2 MB (`docs/agent/DATA.md`). Dagelijkse Kost pages
+  read all their steps (the site lists only two in its recipe data, so the page's own list is used).
+- **Recipe sources** (`/sources`, "Receptbronnen"): the websites whose recipes import well, as your own list with Add,
+  Edit, Delete, search, a language filter and a page per source. Site links open in a new tab; "Import from this site"
+  opens the import drawer. A new kitchen, and a file from before the list, starts with six sites proven by one real
+  import each: Dagelijkse Kost, 24Kitchen, Leuke recepten, BBC Good Food, Simply Recipes and RecipeTin Eats.
+- A recipe keeps the address it was imported from (`source`): a link on the recipe page, editable in the editor.
+- **Draggable timeline in the recipe editor**: the steps as clips on one lane per track, like a video editor. Drag a
+  step to move it, drag it to another track to run it at the same time, drag its edge to change how long it takes;
+  keyboard, zoom and a sideways scroll serve a phone. The step list and the timeline stay in step both ways. A step in
+  the "Where the tracks meet" lane moves along by itself when a step before it gets longer or moves, so it never
+  overlaps one; a step dragged later keeps its later start.
+- **Computed recipe times**: steps get an optional `start` and `with` (runs alongside another step); the total and the
+  hands-on time are counted from the steps, with an Override switch. Timing and cook mode use the same calculation.
+- **Quick-add steps**: one field, Enter adds the step and is ready for the next; each step is one line with its chips,
+  a "More" fold for the rest, Alt+Up / Alt+Down to reorder, and a camera button with the step's photo strip under it.
+- **The dish in the recipe editor**: the first field picks the dish (or makes a new one with both names); choosing
+  another dish moves the recipe there.
+- **Drafts**: the recipe editor saves a draft about 1 s after each change and offers it again when it reopens.
+  Drafts older than 7 days are dropped at start (the log says how many), and a discarded or expired draft takes the
+  photos only it uses with it.
+- **Duplicate** a dish or a recipe: an editable copy with new ids, opened in its editor; nothing is made until Save.
+- **Cook it** (the wheel, a dish, a recipe, bad days) starts cook mode at step 1; a badge says when the screen stays on.
+  Cook mode honours a step's fixed start and shows it as a planned wait.
+- **Step texts and notes in two languages, the second one optional** (Kenny, 30/10/2026, "Optioneel"): a clearly
+  labelled field for the other language; without a translation Kitchen shows the one text it has in both languages.
+- **Theme picker on the parents' page** (eten.kp-soft.dev), top right, in Dutch, kept in that browser and applied
+  before the first paint.
 
 ### Changed
-- chassis 3.14.0 with kp-themes 11.3.0; tokio 1.53.3 to 1.54.1 (RUSTSEC-2026-0386), nothing else in `Cargo.lock`
-  moved but chassis itself.
-- Workarounds of Kitchen's own that kp-themes 11.3.0 made redundant are gone: the page's `preventDefault` on the
-  bad-days form, the cook-mode timeline's own CSS minimum width and sideways scroll (the gantt keeps its minimum
-  width and scrolls inside its own frame), the lane stretch for the time a running step has left (the gantt draws
-  it from `plannedEnd`), the read of the remembered progress (`getStepsPassed`) and the 180 degree turn of the
-  wheel's left-half names (the wheel reads upright itself). `scripts/check-forms.mjs` fails when a form that posts
-  natively lacks `data-kp-form-native-submit`; it runs with the two older checks from
-  `.claude/hooks/gates.project.sh`. No form of Kitchen needed the attribute: all eight save with `fetch`.
-- An imported ingredient line the catalogue does not know is no longer dropped
-  on Save: the editor warns, each line can be added as a new ingredient or
-  discarded, and Save waits until none is left.
-- Recipe drafts are dropped after 7 days (checked when the kitchen starts),
-  and a discarded or expired draft takes the photos only it refers to with it.
+- chassis 3.14.0 with kp-themes 11.3.0; tokio 1.54.1 (RUSTSEC-2026-0386). Kitchen's own workarounds that kp-themes
+  11.3.0 made redundant are gone; the wheel's names read upright on its left half.
+- **The code is split into small single-purpose modules** (Kenny's standing rule of 30/10/2026): no source file over
+  250 lines (18 files were over 400), shared helpers instead of copies, and tests for the editor, cook mode, the wheel,
+  the timeline, the schedule, the log and the two-language texts (`docs/agent/MODULARITY.md`). No behaviour changes.
+- `scripts/check-forms.mjs` runs with the word and wheel checks at every commit.
 
 ### Fixed
-- Photo upload: when the browser cannot decode a picture directly, the fallback now reads it through a data: URL instead of a blob: URL, which the Content-Security-Policy blocks (`web/js/recipe/photo-decode.js`). The policy is unchanged.
-- Dagelijkse Kost imports read all steps: that site lists only two in its
-  recipe data, so the page's own instruction list is used when it is longer.
-- The step and recipe photo galleries keep their height while loading, empty
-  or failed instead of collapsing.
+- Photo upload: when the browser cannot decode a picture directly, the fallback reads it through a data: URL, which the
+  Content-Security-Policy allows (it is unchanged).
+- The step and recipe photo galleries and the wheel card keep their size while loading, empty or failed.
+- Counting back from dinner no longer pulls a track earlier for a step that runs alongside.
+- The dish picker keeps a new dish through blur and a restored draft; a new recipe starts with computed times.
+- On a phone, step buttons wrap cleanly and photo tiles have one size.
 
+### Migration
+- None by hand. The store format stays 5: the new `recipe_sources` and `drafts` lists and the new step and recipe
+  fields are optional, so a 4.1.0 file opens unchanged and gets the six sources on first start. Going back to 4.1.0
+  needs the backup taken before the update (4.1.0 does not know the new lists and two-language step texts).
+- 5.0.0 is a major because it moves to the next chassis-rs major (see Changed once it is in).
 
 ## [4.1.0] - 2026-10-24
 
