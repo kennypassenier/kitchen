@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-10-31
+
 Everything since 4.1.0, released together as 5.0.0 (Kenny, 31/10/2026).
 
 ### Added
