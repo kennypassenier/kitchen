@@ -1,11 +1,6 @@
 // The drawer both dish editors open in: head, the form, Cancel and Save with the flash, and the package's behaviour.
 
-import { attachSegmented } from "/static/kp/js/segmented.js";
-import { attachSelects } from "/static/kp/js/combobox.js";
-import { attachQuantities } from "/static/kp/js/quantity.js";
-import { attachSwitches } from "/static/kp/js/forms.js";
-import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
-import { closeDialog } from "/static/kp/js/motion.js";
+import { attachSegmented, attachSelects, attachQuantities, attachSwitches, attachFlashButtons, runFlashButton, closeDialog } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 

@@ -1,9 +1,6 @@
 // Part 2: the freezer table: rows, Take one portion with Undo, Edit and Delete.
 
-import { dataTable } from "/static/kp/js/datatable.js";
-import { agoMoment } from "/static/kp/js/freshness.js";
-import { undoToast } from "/static/kp/js/undo-toast.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { dataTable, agoMoment, undoToast, toast } from "/static/kp/dist/kp-themes.min.js";
 import { kitchenNow, takePortions, reason } from "../../api.js";
 import { h, $ } from "../../dom.js";
 import { openRecordEditor, deleteRecord, itemLink } from "../../records/index.js";

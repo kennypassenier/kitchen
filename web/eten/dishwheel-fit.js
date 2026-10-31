@@ -2,7 +2,7 @@
 // a rewind. Part of the one wheel component (dishwheel.js; scripts/check-wheels.mjs lets both files drive kp's wheel).
 // Nothing runs on import except one document-level font listener.
 
-import { setWheelItems } from "/static/kp/js/wheel.js";
+import { setWheelItems } from "/static/kp/dist/kp-themes.min.js";
 
 /** The last items given to a wheel element, for the redraw. @type {WeakMap<HTMLElement, object[]>} */
 const LAST = new WeakMap();

@@ -1,7 +1,7 @@
 // The plan as lanes on the package's timeline (recipe/timeline.js, shared with cook mode).
 
 import { h, $ } from "../../dom.js";
-import { setCardState } from "/static/kp/js/card-state.js";
+import { setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { mountTimeline, drawTimeline } from "../../recipe/timeline.js";
 import { t } from "../../i18n/index.js";
 import { cap } from "../../format.js";

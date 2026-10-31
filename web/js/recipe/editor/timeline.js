@@ -1,6 +1,6 @@
 // The timeline: the steps as clips on lanes, the other view of the step list.
 
-import { setSequencerItems, setSequencerState, SEQUENCER_CHANGE_EVENT } from "/static/kp/js/sequencer.js";
+import { setSequencerItems, setSequencerState, SEQUENCER_CHANGE_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { toItems, fromItems } from "../sequence.js";

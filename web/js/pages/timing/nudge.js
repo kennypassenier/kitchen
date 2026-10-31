@@ -1,8 +1,7 @@
 // The nudge: the attention band that says when to start, what to do when the start has passed, and "not yet".
 
 import { h, $ } from "../../dom.js";
-import { setAttention, attachAttention } from "/static/kp/js/attention.js";
-import { attachSnoozes, setSnoozedUntil } from "/static/kp/js/snooze.js";
+import { setAttention, attachAttention, attachSnoozes, setSnoozedUntil } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { ZONE } from "../../format.js";
 import { button } from "../../ui/cards.js";
@@ -17,7 +16,7 @@ const trackName = (ctx, id) => /** @type {Item[]} */ (ctx.recipe?.tracks ?? []).
 /** Open the cook mode of the recipe. @param {import("./index.js").TimingCtx} ctx */
 const cookIt = (ctx) => () => ctx.navigate(`/cook?id=${encodeURIComponent(String(ctx.recipe?.id))}`);
 
-/** The tracks left out, with the button that puts them back. @param {import("./index.js").TimingCtx} ctx @returns {import("/static/kp/js/attention.js").AttentionItem[]} */
+/** The tracks left out, with the button that puts them back. @param {import("./index.js").TimingCtx} ctx @returns {import("/static/kp/dist/kp-themes.min.js").AttentionItem[]} */
 function droppedItems(ctx) {
   const { state } = ctx;
   if (state.dropped.size === 0) return [];
@@ -104,7 +103,7 @@ function emptyParts() {
   };
 }
 
-/** What the nudge says now. @param {import("./index.js").TimingCtx} ctx @returns {import("/static/kp/js/attention.js").AttentionItem[]} */
+/** What the nudge says now. @param {import("./index.js").TimingCtx} ctx @returns {import("/static/kp/dist/kp-themes.min.js").AttentionItem[]} */
 function nudgeItems(ctx) {
   const p = ctx.current();
   if (!p || !ctx.recipe) return [];
@@ -134,7 +133,7 @@ function buildSnooze(ctx, s) {
   if (ctx.snoozedUntil !== null) setSnoozedUntil(el, new Date(ctx.snoozedUntil).toISOString());
 }
 
-/** Show the picker while the nudge can wait, drop it when it cannot. @param {import("./index.js").TimingCtx} ctx @param {NudgeParts} s @param {import("./plan.js").Plan} p @param {import("/static/kp/js/attention.js").AttentionItem[]} list */
+/** Show the picker while the nudge can wait, drop it when it cannot. @param {import("./index.js").TimingCtx} ctx @param {NudgeParts} s @param {import("./plan.js").Plan} p @param {import("/static/kp/dist/kp-themes.min.js").AttentionItem[]} list */
 function syncSnooze(ctx, s, p, list) {
   const early = p.start - Date.now() > 10 * MIN;
   // Not yet is for a nudge that can wait: not past the start, and only while there is a nudge to put off.

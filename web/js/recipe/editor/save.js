@@ -1,10 +1,6 @@
 // Reading the form back into a recipe, and Save.
 
-import { combobox } from "/static/kp/js/combobox.js";
-import { getQuantity } from "/static/kp/js/quantity.js";
-import { getSegmentedValues } from "/static/kp/js/segmented.js";
-import { runFlashButton } from "/static/kp/js/flash.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { combobox, getQuantity, getSegmentedValues, runFlashButton, toast } from "/static/kp/dist/kp-themes.min.js";
 import { create, replace, kitchenNow, ApiError } from "../../api.js";
 import { t, lang } from "../../i18n/index.js";
 import { on } from "../../ui/form-parts.js";

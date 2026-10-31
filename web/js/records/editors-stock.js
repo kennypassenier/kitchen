@@ -1,7 +1,6 @@
 // The editors of the two things kept at home: a freezer item and a zero-prep shelf food (opened in the shared drawer).
 
-import { getQuantity } from "/static/kp/js/quantity.js";
-import { getSegmentedValues } from "/static/kp/js/segmented.js";
+import { getQuantity, getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { t, textOf } from "../i18n/index.js";
 import { row, stepper, select } from "../ui/form-parts.js";
 import { today, brusselsDay } from "../format.js";

@@ -1,6 +1,6 @@
 // The time, portions and preparation section. The two times are computed from the steps and shown live.
 
-import { getQuantity, setQuantity } from "/static/kp/js/quantity.js";
+import { getQuantity, setQuantity } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { row, input, stepper, toggle, on, segmented } from "../../ui/form-parts.js";

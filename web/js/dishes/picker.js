@@ -4,7 +4,7 @@
 // right there. The new dish is NOT made here: the picker holds it, and the editor makes it together with the recipe on
 // Save (api.js create("recipes", { new_dish })), so cancelling the editor leaves no dish behind.
 
-import { attachComboboxes, combobox } from "/static/kp/js/combobox.js";
+import { attachComboboxes, combobox } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { kitchenNow, onKitchen } from "../api.js";
 import { nameOf, t, lang } from "../i18n/index.js";

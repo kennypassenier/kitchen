@@ -1,7 +1,7 @@
 // The two device-level rows: calm mode and the theme. The package keeps both per device; this only says what they are now.
 
 import { $ } from "../../dom.js";
-import { PICK_EVENT, THEMES } from "/static/kp/js/theme-picker.js";
+import { PICK_EVENT, THEMES } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 
 /** The reading under a row. @param {HTMLElement} root @param {string} key */

@@ -1,9 +1,7 @@
 // An ingredient's page: the dishes and recipes that use it, with filters and a wheel.
 
-import { attachDataTables, dataTable } from "/static/kp/js/datatable.js";
+import { attachDataTables, dataTable, attachSegmented, getSegmentedValues, SEGMENTED_EVENT, attachSelects } from "/static/kp/dist/kp-themes.min.js";
 import { mountDishWheel } from "/eten/dishwheel.js";
-import { attachSegmented, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
-import { attachSelects } from "/static/kp/js/combobox.js";
 import { defaultRecipe } from "../../api.js";
 import { h } from "../../dom.js";
 import { LISTS, itemLink, openRecordEditor, tableCard, dishHas } from "../../records/index.js";

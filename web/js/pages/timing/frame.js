@@ -1,8 +1,7 @@
 // The page frame: every card in its loading state from the first frame, the sections around them and the recipe picker.
 
 import { h, $ } from "../../dom.js";
-import { setCardState, attachCardStates } from "/static/kp/js/card-state.js";
-import { attachComboboxes } from "/static/kp/js/combobox.js";
+import { setCardState, attachCardStates, attachComboboxes } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf, headedCard } from "../../ui/cards.js";
 

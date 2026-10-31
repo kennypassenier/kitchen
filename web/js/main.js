@@ -5,11 +5,7 @@
 // The bar renders from the kit's page registry (`GET /api/kit/pages`), so it
 // never carries a second hand-written list.
 
-import { attachNavToggles, attachNavMenus, attachSkipLinks } from "/static/kp/js/components.js";
-import { applyStoredCalm } from "/static/kp/js/calm.js";
-import { attachThemePickers, themeMenuMarkup } from "/static/kp/js/theme-picker.js";
-import { attachSegmented, setSegmentedValues, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { attachNavToggles, attachNavMenus, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup, attachSegmented, setSegmentedValues, SEGMENTED_EVENT, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { onKitchen, patchSettings, loadKitchen } from "./api.js";

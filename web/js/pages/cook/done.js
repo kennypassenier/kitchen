@@ -2,8 +2,7 @@
 
 import { h } from "../../dom.js";
 import { create } from "../../api.js";
-import { statePlate } from "/static/kp/js/state-plate.js";
-import { motionAllowed } from "/static/kp/js/calm.js";
+import { statePlate, motionAllowed } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { today } from "../../format.js";
 import { actionRow } from "../../ui/cards.js";

@@ -1,7 +1,6 @@
 // Safe dishes (a recipe's `safe` flag), the recipe editor/import openers and the zero-prep shelf's "I ate this".
 
-import { undoToast } from "/static/kp/js/undo-toast.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { undoToast, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, remove, kitchenNow, reason } from "../api.js";
 import { t, textOf } from "../i18n/index.js";

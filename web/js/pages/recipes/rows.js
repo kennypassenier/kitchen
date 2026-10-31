@@ -2,8 +2,7 @@
 
 import { remove, ApiError } from "../../api.js";
 import { h } from "../../dom.js";
-import { openConfirmation } from "/static/kp/js/components.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { openConfirmation, toast } from "/static/kp/dist/kp-themes.min.js";
 import { deletePhoto, photosOf } from "../../recipe/photos.js";
 import { dmy } from "../../format.js";
 import { t } from "../../i18n/index.js";

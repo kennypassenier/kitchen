@@ -3,7 +3,7 @@
 // with Kitchen's English /parents. The package's own words on this page (the wheels, the loading and failed notes)
 // are set to Dutch here, before anything is drawn.
 
-import { setStrings } from "/static/kp/js/strings.js";
+import { setStrings } from "/static/kp/dist/kp-themes.min.js";
 import { mountWheel } from "./wheel.js";
 import { mountThemePicker } from "./theme.js";
 

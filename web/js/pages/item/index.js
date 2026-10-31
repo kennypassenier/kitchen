@@ -7,7 +7,7 @@
 // loading and failed states; an item that does not exist (any more) is an empty plate with the way back.
 
 
-import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
+import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { loadKitchen, onKitchen } from "../../api.js";
 import { h } from "../../dom.js";
 import { LISTS, DETAIL_BASE, missingBadge, openRecordEditor, openRecipeImport, duplicateDish, deleteRecord } from "../../records/index.js";

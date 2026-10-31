@@ -1,8 +1,7 @@
 // "No energy today": the switch, the kinds it counts as easy and the line that says what is on the wheel now. Calm mode comes
 // on with the switch, is not remembered, and goes off again only if the switch turned it on.
 
-import { toggle } from "/static/kp/js/toggle.js";
-import { setCalm, isCalm } from "/static/kp/js/calm.js";
+import { toggle, setCalm, isCalm } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { track, onWheel } from "./model.js";
 import { isKind, KINDS } from "./logic.js";

@@ -4,15 +4,15 @@
 // changes, and the package's calls that paint lanes, bars, marks, stretches and the legend. A page builds its lanes and
 // runs and hands them to drawTimeline(); the package does the rest (axis, line for now, states, hover cards, keys).
 
-import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/js/gantt.js";
+import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/dist/kp-themes.min.js";
 
 export { setGanttState as setTimelineState };
 
-/** @typedef {import("/static/kp/js/gantt.js").GanttRun} TimelineRun */
-/** @typedef {import("/static/kp/js/gantt.js").GanttLane} TimelineLane */
-/** @typedef {import("/static/kp/js/gantt.js").GanttPoint} TimelinePoint */
-/** @typedef {import("/static/kp/js/gantt.js").GanttKind} TimelineKind */
-/** @typedef {import("/static/kp/js/gantt.js").GanttZone} TimelineZone */
+/** @typedef {import("/static/kp/dist/kp-themes.min.js").GanttRun} TimelineRun */
+/** @typedef {import("/static/kp/dist/kp-themes.min.js").GanttLane} TimelineLane */
+/** @typedef {import("/static/kp/dist/kp-themes.min.js").GanttPoint} TimelinePoint */
+/** @typedef {import("/static/kp/dist/kp-themes.min.js").GanttKind} TimelineKind */
+/** @typedef {import("/static/kp/dist/kp-themes.min.js").GanttZone} TimelineZone */
 
 /**
  * Put the timeline into `slot` (already in the page), attached and in its loading frame with the lane names and the axis

@@ -1,6 +1,6 @@
 // Part 5: when things went in, the freezer's days on the package's calendar.
 
-import { setCalendarState, setCalendarDays, setCalendarLegend, calendarMonth, dayKey } from "/static/kp/js/calendar.js";
+import { setCalendarState, setCalendarDays, setCalendarLegend, calendarMonth, dayKey } from "/static/kp/dist/kp-themes.min.js";
 import { $ } from "../../dom.js";
 import { t, textOf } from "../../i18n/index.js";
 import { frozenAt } from "./helpers.js";
@@ -21,7 +21,7 @@ function monthDays(k) {
     const key = dayKey(frozenAt(f));
     (byDay[key] ??= { dishes: [] }).dishes.push(textOf(f.dish));
   }
-  /** @type {Record<string, import("/static/kp/js/calendar.js").CalendarDay>} */
+  /** @type {Record<string, import("/static/kp/dist/kp-themes.min.js").CalendarDay>} */
   const out = {};
   for (const [key, { dishes }] of Object.entries(byDay)) {
     out[key] = {

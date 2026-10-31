@@ -1,7 +1,7 @@
 // The calm switch: the package's own switch plus one line that says what calm does right now.
 
 import { h } from "../../dom.js";
-import { isCalm, calmScope } from "/static/kp/js/calm.js";
+import { isCalm, calmScope } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { section } from "./parts.js";
 

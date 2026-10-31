@@ -2,7 +2,7 @@
 // whole-screen plate for a recipe that cannot be shown, and the page header.
 
 import { h } from "../../dom.js";
-import { statePlate } from "/static/kp/js/state-plate.js";
+import { statePlate } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf } from "../../ui/cards.js";
 

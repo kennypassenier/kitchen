@@ -1,6 +1,6 @@
 // The editors of the named things: an ingredient and a recipe source (opened in the shared drawer).
 
-import { getSegmentedValues } from "/static/kp/js/segmented.js";
+import { getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { kitchenNow } from "../api.js";
 import { t, lang, nameOf } from "../i18n/index.js";
 import { row, input, select } from "../ui/form-parts.js";

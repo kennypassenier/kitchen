@@ -1,6 +1,6 @@
 // The log's elements, put into the card's data area.
 
-import { attachHeats } from "/static/kp/js/heat.js";
+import { attachHeats } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 
 /** @param {HTMLElement} data */

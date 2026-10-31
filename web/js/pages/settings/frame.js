@@ -1,7 +1,7 @@
 // The settings screen's controls and its two cards, in their loading state from the first frame, grids already in place.
 
 import { h, $ } from "../../dom.js";
-import { themeMenuMarkup } from "/static/kp/js/theme-picker.js";
+import { themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf } from "../../ui/cards.js";
 import { SPARES, SOUND_KEYS, ODDS_KEYS, DEFAULTS, soundName, oddsName } from "./consts.js";

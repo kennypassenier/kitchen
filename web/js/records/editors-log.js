@@ -1,6 +1,6 @@
 // The editors of what happened in the kitchen: a dish set aside ("resting") and a line of what was eaten.
 
-import { getSegmentedValues } from "/static/kp/js/segmented.js";
+import { getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { kitchenNow } from "../api.js";
 import { t, nameOf, textOf } from "../i18n/index.js";
 import { row, input, select } from "../ui/form-parts.js";

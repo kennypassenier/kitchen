@@ -2,7 +2,7 @@
 // order they pressed it in), the clear button and the line that says what is filtered.
 
 import { loadKitchen } from "../../api.js";
-import { setSegmentedCounts, setSegmentedItems, setSegmentedTri, getSegmentedTri, SEGMENTED_EVENT } from "/static/kp/js/segmented.js";
+import { setSegmentedCounts, setSegmentedItems, setSegmentedTri, getSegmentedTri, SEGMENTED_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { cap } from "../../format.js";
 import * as L from "./logic.js";

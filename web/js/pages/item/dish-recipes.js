@@ -1,8 +1,6 @@
 // The recipes card on a dish's page.
 
-import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
-import { toast } from "/static/kp/js/overlays.js";
-import { openConfirmation } from "/static/kp/js/components.js";
+import { attachCardStates, setCardState, toast, openConfirmation } from "/static/kp/dist/kp-themes.min.js";
 import { makeDefaultRecipe, recipeLabel, remove, ApiError } from "../../api.js";
 import { h } from "../../dom.js";
 import { openRecipeEditor, openRecipeImport, duplicateRecipe, BLANK_RECIPE } from "../../records/index.js";
