@@ -3,6 +3,9 @@
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
 ES modules on kp-themes, which comes only through chassis-rs (`/static/kp/`, Kenny 19/10/2026). Owner Kenny; chat Dutch, code and docs English.
 
+State (31/10/2026): 5.0.0 released and signed (chassis 4.0.0, kp-themes 12.0.0); live is still 4.1.0,
+the deploy waits on the homelab thread (docs/OPEN.md).
+
 Read first: README.md, docs/OPEN.md, docs/DECISIONS.md. Data shapes:
 docs/agent/DATA.md. Screen designs (approved, implement exactly):
 kp-themes `research/audhd-recepten/` with `grid-fix/` winning.
