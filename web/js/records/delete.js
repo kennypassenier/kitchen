@@ -1,8 +1,6 @@
 // Delete (with what is lost and what still uses an item), duplicate, and the Edit/Delete buttons of a row.
 
-import { openConfirmation } from "/static/kp/js/components.js";
-import { toast } from "/static/kp/js/overlays.js";
-import { undoToast } from "/static/kp/js/undo-toast.js";
+import { openConfirmation, toast, undoToast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, remove, kitchenNow, ingredientName, reason } from "../api.js";
 import { t, nameOf, textOf } from "../i18n/index.js";

@@ -6,8 +6,7 @@
 // The picker's words are set here, not taken from Kitchen's kp-nl.js: that file sits under /js/, behind the login, and
 // this page may load only /eten/ and /static/.
 
-import { setStrings } from "/static/kp/js/strings.js";
-import { attachThemePickers, themeMenuMarkup } from "/static/kp/js/theme-picker.js";
+import { setStrings, attachThemePickers, themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
 
 const LABEL = "Thema";
 

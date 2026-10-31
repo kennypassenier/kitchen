@@ -1,8 +1,7 @@
 // The shared drawer and the form pieces the record editors are made of (Kenny, 24/10/2026 05:07, 05:08: full CRUD
 // everywhere; the editors are the dishes' drawer on `.kp-formgrid`).
 
-import { attachDatePickers, datePicker } from "/static/kp/js/datepicker.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { attachDatePickers, datePicker, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, kitchenNow, reason } from "../api.js";
 import { t, nameOf } from "../i18n/index.js";

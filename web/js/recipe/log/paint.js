@@ -1,7 +1,6 @@
 // Drawing the log: the weeks as a heat grid, the heading of the chosen day and the buttons that fit it.
 
-import { setHeat } from "/static/kp/js/heat.js";
-import { attachSegmented, setSegmentedValues } from "/static/kp/js/segmented.js";
+import { setHeat, attachSegmented, setSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { today, dmy } from "../../format.js";
 import { h } from "../../dom.js";
 import { plus, shownMondays } from "./dates.js";

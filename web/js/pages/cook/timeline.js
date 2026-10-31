@@ -3,7 +3,7 @@
 // follows the real progress: what is still to do is planned from this moment (logic.js), so a step ended early or late shifts
 // the rest. Its 10 s ticker is torn down with the page.
 
-import { getStepIndex, getStepsPassed } from "/static/kp/js/focus-steps.js";
+import { getStepIndex, getStepsPassed } from "/static/kp/dist/kp-themes.min.js";
 import { mountTimeline, drawTimeline, setTimelineState } from "../../recipe/timeline.js";
 import { lanesOf as scheduleLanes } from "../../recipe/schedule.js";
 import { t } from "../../i18n/index.js";

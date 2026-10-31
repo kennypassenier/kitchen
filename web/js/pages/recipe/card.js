@@ -1,9 +1,7 @@
 // The recipe card: title and effort, the summary, the facts, the Begin cooking button, the portions and the ingredients.
 
 import { h } from "../../dom.js";
-import { attachLedes } from "/static/kp/js/lede.js";
-import { attachQuantities } from "/static/kp/js/quantity.js";
-import { attachFlashButtons, runFlashButton } from "/static/kp/js/flash.js";
+import { attachLedes, attachQuantities, attachFlashButtons, runFlashButton } from "/static/kp/dist/kp-themes.min.js";
 import { minutesText } from "../../recipe/amounts.js";
 import { dmy } from "../../format.js";
 import { dataOf } from "../../ui/cards.js";

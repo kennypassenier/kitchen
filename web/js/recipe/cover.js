@@ -4,7 +4,7 @@
 // makes it smaller and sends it through the ordinary photo upload (recipe/photos.js `uploadPhoto`), and the id it gets
 // is the recipe's photo. No third-party image ever reaches the browser, so the site learns nothing about who reads it.
 
-import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
+import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { uploadPhoto, showPhotos } from "./photos.js";
 import { t } from "../i18n/index.js";

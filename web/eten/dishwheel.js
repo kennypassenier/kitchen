@@ -24,7 +24,7 @@
 // Nothing runs on import except one document-level font listener (dishwheel-fit.js, the label fitting and the stop
 // without a rewind; split from this file on 30/10/2026 for size, the two files are the one component).
 
-import { attachWheels, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_EVENT } from "/static/kp/js/wheel.js";
+import { attachWheels, spinWheel, WHEEL_SPIN_EVENT, WHEEL_RESULT_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { give, forget, watchShown, monotoneEase } from "./dishwheel-fit.js";
 
 /**

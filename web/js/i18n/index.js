@@ -9,7 +9,7 @@
 // before the kitchen has loaded. English is the default. The parents' page on eten.kp-soft.dev stays Dutch.
 
 import { pick } from "../recipe/bilingual.js";
-import { setStrings, DEFAULT_STRINGS } from "/static/kp/js/strings.js";
+import { setStrings, DEFAULT_STRINGS } from "/static/kp/dist/kp-themes.min.js";
 import { EN as EN_CORE } from "./en.js";
 import { NL as NL_CORE } from "./nl.js";
 import { EN_PAGES } from "./en-pages.js";

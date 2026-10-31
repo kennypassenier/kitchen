@@ -2,10 +2,7 @@
 // photos, the timers restored from the memory and the plan. The state of each component is set to ready as it is given.
 
 import { h } from "../../dom.js";
-import { setChecklistItems, setChecklistState } from "/static/kp/js/checklist.js";
-import { setFocusSteps, setFocusStepsState, getStepIndex } from "/static/kp/js/focus-steps.js";
-import { setTimersState, getTimers, restoreTimers } from "/static/kp/js/timer.js";
-import { setCardState } from "/static/kp/js/card-state.js";
+import { setChecklistItems, setChecklistState, setFocusSteps, setFocusStepsState, getStepIndex, setTimersState, getTimers, restoreTimers, setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { showPhotos } from "../../recipe/photos.js";
 import { t, lang } from "../../i18n/index.js";
 import { localStep } from "../../recipe/bilingual.js";

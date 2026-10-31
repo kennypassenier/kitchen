@@ -1,5 +1,5 @@
 // There is ONE wheel component (web/eten/dishwheel.js, Kenny, 24/10/2026 10:27: "the wheel must work the same everywhere"). This
-// fails when any other file under web/ imports kp's wheel module ("/static/kp/js/wheel.js") or calls setWheelItems / spinWheel
+// fails when any other file under web/ imports kp's wheel module ("/static/kp/dist/kp-themes.min.js") or calls setWheelItems / spinWheel
 // itself, because a second place that drives a wheel is how two wheels come to behave differently. Run: node scripts/check-wheels.mjs
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";

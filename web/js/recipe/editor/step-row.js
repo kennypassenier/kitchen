@@ -1,9 +1,7 @@
 // One step row of the editor: the instruction, chips for what the fold holds, and the fold with every other field.
 // `list` gives the rows of all steps (a row reads its neighbours for the partner list and the chips).
 
-import { drawnSelect } from "/static/kp/js/combobox.js";
-import { getQuantity, setQuantity } from "/static/kp/js/quantity.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { drawnSelect, getQuantity, setQuantity, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { row, input, area, stepper, toggle, on, select, rows, textCell } from "../../ui/form-parts.js";

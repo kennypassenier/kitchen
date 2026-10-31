@@ -4,7 +4,7 @@
 // key not here stays English: the package's developer diagnostics (console warnings) and the components Kitchen does
 // not draw. A function keeps the parameters of the English one.
 
-import { DEFAULT_STRINGS } from "/static/kp/js/strings.js";
+import { DEFAULT_STRINGS } from "/static/kp/dist/kp-themes.min.js";
 import { KP_NL_BASICS } from "./kp-nl/basics.js";
 import { KP_NL_TABLES } from "./kp-nl/tables.js";
 import { KP_NL_FORMS } from "./kp-nl/forms.js";

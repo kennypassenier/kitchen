@@ -4,9 +4,7 @@
 // until Save, and Cancel clears the draft like any other. The reading of lines (amount, unit, name, minutes) is in
 // import-lines.js; the cover photo is offered in the editor (cover.js).
 
-import { closeDialog } from "/static/kp/js/motion.js";
-import { attachAutosize } from "/static/kp/js/autosize.js";
-import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
+import { closeDialog, attachAutosize, attachCardStates, setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { importRecipe, kitchenNow, readDraft, saveDraft, ApiError } from "../api.js";
 import { openEditor } from "./editor/index.js";

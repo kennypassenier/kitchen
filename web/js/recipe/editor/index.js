@@ -11,8 +11,7 @@
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): this file opens the drawer and joins the parts; each part is a function
 // that builds its fields and hands them back (details, times, lists, steps, timeline), with the pure logic in logic.js.
 
-import { attachSequencers } from "/static/kp/js/sequencer.js";
-import { closeDialog } from "/static/kp/js/motion.js";
+import { attachSequencers, closeDialog } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { photoTracker, photosOf } from "../photos.js";

@@ -2,8 +2,7 @@
 // skip it). Markup first, then the behaviour.
 
 import { h, $ } from "../../dom.js";
-import { getChecklistItems } from "/static/kp/js/checklist.js";
-import { motionAllowed } from "/static/kp/js/calm.js";
+import { getChecklistItems, motionAllowed } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { actionRow } from "../../ui/cards.js";
 import { section } from "./parts.js";

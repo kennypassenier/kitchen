@@ -1,8 +1,6 @@
 // Part 3: the zero-prep shelf, by how much energy a food asks for; "I ate this" logs it with Undo.
 
-import { setCardState } from "/static/kp/js/card-state.js";
-import { setSegmentedCounts, setSegmentedValues } from "/static/kp/js/segmented.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { setCardState, setSegmentedCounts, setSegmentedValues, toast } from "/static/kp/dist/kp-themes.min.js";
 import { kitchenNow, reason } from "../../api.js";
 import { h, $ } from "../../dom.js";
 import { openRecordEditor, deleteRecord, itemLink, ateShelf } from "../../records/index.js";

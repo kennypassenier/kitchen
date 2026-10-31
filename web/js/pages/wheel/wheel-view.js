@@ -3,7 +3,7 @@
 // turning) and gives the dishes to the component again only when the list or the slice sizes changed.
 
 import { mountDishWheel } from "/eten/dishwheel.js";
-import { attachDisabledReasons } from "/static/kp/js/reason.js";
+import { attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
 import { sideName } from "../../records/index.js";
 import { t } from "../../i18n/index.js";
 import { answerHtml } from "./answer-html.js";

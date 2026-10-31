@@ -8,8 +8,7 @@
 // shows is what the printer gets. The frame is its own document, so the app
 // around it never prints.
 
-import { setChecklistItems } from "/static/kp/js/checklist.js";
-import { preparePrint } from "/static/kp/js/print.js";
+import { setChecklistItems, preparePrint } from "/static/kp/dist/kp-themes.min.js";
 import { amountOf } from "./amounts.js";
 import { pick } from "./bilingual.js";
 import { ingredientName } from "../api.js";

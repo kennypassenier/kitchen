@@ -13,10 +13,7 @@
 // (scripts/wheel.test.mjs covers it); model.js binds it to the ctx.
 
 import { loadKitchen, kitchenNow, onKitchen } from "../../api.js";
-import { attachCardStates, setCardState } from "/static/kp/js/card-state.js";
-import { attachSegmented, setSegmentedCounts } from "/static/kp/js/segmented.js";
-import { attachToggles } from "/static/kp/js/toggle.js";
-import { attachDisabledReasons } from "/static/kp/js/reason.js";
+import { attachCardStates, setCardState, attachSegmented, setSegmentedCounts, attachToggles, attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { newModel, FIRST_INGREDIENTS } from "./logic.js";
 import { pageHtml } from "./template.js";

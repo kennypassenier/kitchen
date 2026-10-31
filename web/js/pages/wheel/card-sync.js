@@ -2,8 +2,7 @@
 // ready. The two cards (the wheel and the list) share this; each keeps the key of what it last drew so nothing flickers.
 
 import { h } from "../../dom.js";
-import { setCardState, CARD_RETRY_EVENT } from "/static/kp/js/card-state.js";
-import { attachArt } from "/static/kp/js/art.js";
+import { setCardState, CARD_RETRY_EVENT, attachArt } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { loadingWords } from "./labels.js";
 import { blockText, filterCount } from "./model.js";

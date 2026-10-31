@@ -8,8 +8,7 @@
 // input, where an ingredient stands once (Kenny, 24/10/2026 05:27: unique within one side, free across sides).
 // A new ingredient gets both names here (the typed text fills the language Kitchen is shown in).
 
-import { attachComboboxes, attachSelects, combobox } from "/static/kp/js/combobox.js";
-import { toast } from "/static/kp/js/overlays.js";
+import { attachComboboxes, attachSelects, combobox, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, kitchenNow, onKitchen, ingredientName, ApiError } from "../api.js";
 import { t, lang as shownLang } from "../i18n/index.js";

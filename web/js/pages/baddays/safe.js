@@ -1,6 +1,6 @@
 // Part 1: the safe dishes, the ones that always work.
 
-import { setCardState } from "/static/kp/js/card-state.js";
+import { setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { h, $ } from "../../dom.js";
 import { openSafePicker, openRecipeEditor, unmarkSafe } from "../../records/index.js";
 import { t } from "../../i18n/index.js";

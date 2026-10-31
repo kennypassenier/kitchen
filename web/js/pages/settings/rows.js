@@ -1,8 +1,6 @@
 // The six saved settings: how each is read from its control, written to it, said and patched.
 
-import { setSegmentedValues } from "/static/kp/js/segmented.js";
-import { setTime } from "/static/kp/js/timefield.js";
-import { drawnSelect } from "/static/kp/js/combobox.js";
+import { setSegmentedValues, setTime, drawnSelect } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { DEFAULTS, SOUND_KEYS, ODDS_KEYS, soundName, spareWords } from "./consts.js";
 
