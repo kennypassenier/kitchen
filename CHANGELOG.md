@@ -45,7 +45,14 @@ Everything since 4.1.0, released together as 5.0.0 (Kenny, 31/10/2026).
   before the first paint.
 
 ### Changed
-- chassis 3.14.0 with kp-themes 11.3.0; tokio 1.54.1 (RUSTSEC-2026-0386). Kitchen's own workarounds that kp-themes
+- chassis 4.0.0 with kp-themes 12.0.0: kp-themes now loads as one bundle (`/static/kp/dist/kp-themes.min.js`) instead of
+  a tree of module files, so a page makes far fewer requests (the kit measured 451 requests and 2076 KB cold on the
+  front page before, 155 and 1831 KB after) and static files are served gzip. Kitchen's own scripts import only that
+  bundle.
+- Kitchen's home page is now installable as an app (manifest, offline page and a service worker that never serves a
+  stale page, icons in `web/pwa/`); the parents' page keeps its own manifest and icons. Notifications to kyu would
+  need a token (not used here).
+- tokio 1.54.1 (RUSTSEC-2026-0386). Kitchen's own workarounds that kp-themes
   11.3.0 made redundant are gone; the wheel's names read upright on its left half.
 - **The code is split into small single-purpose modules** (Kenny's standing rule of 30/10/2026): no source file over
   250 lines (18 files were over 400), shared helpers instead of copies, and tests for the editor, cook mode, the wheel,
@@ -64,7 +71,13 @@ Everything since 4.1.0, released together as 5.0.0 (Kenny, 31/10/2026).
 - None by hand. The store format stays 5: the new `recipe_sources` and `drafts` lists and the new step and recipe
   fields are optional, so a 4.1.0 file opens unchanged and gets the six sources on first start. Going back to 4.1.0
   needs the backup taken before the update (4.1.0 does not know the new lists and two-language step texts).
-- 5.0.0 is a major because it moves to the next chassis-rs major (see Changed once it is in).
+- 5.0.0 is a major because it moves to the next chassis-rs major (chassis 4.0.0). What an operator does:
+  - Behind the home route (Traefik), add Traefik's address to `KITCHEN_TRUSTED_PROXIES` (10.10.10.4), so
+    `KITCHEN_TRUSTED_ADMINS` also works on the hostname.
+  - `KITCHEN_NOTIFY_TOKEN` is needed only when `KITCHEN_NOTIFY_URL` points at a kyu topic. Kitchen sets neither, so
+    nothing to do.
+  - No other knob, environment variable or on-disk change: the store format stays 5. The kit's own file moves to
+    schema 2 on first start, so an older build refuses it (going back needs the backup taken before the update).
 
 ## [4.1.0] - 2026-10-24
 
