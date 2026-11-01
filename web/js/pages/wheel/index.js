@@ -13,7 +13,7 @@
 // (scripts/wheel.test.mjs covers it); model.js binds it to the ctx.
 
 import { loadKitchen, kitchenNow, onKitchen } from "../../api.js";
-import { attachCardStates, setCardState, attachSegmented, setSegmentedCounts, attachToggles, attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState, attachSegmented, setSegmentedCounts, attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { newModel, FIRST_INGREDIENTS } from "./logic.js";
 import { pageHtml } from "./template.js";
@@ -37,7 +37,7 @@ import { createListView } from "./list-view.js";
  * @property {boolean} writing a write is in flight
  * @property {boolean} calmByUs calm mode was switched on by the "No energy today" switch (so switching off puts it back only then)
  * @property {{ ing: string, cat: string }} chipKeys the lists the ingredient and category chips were last given
- * @property {{ cardMain: HTMLElement, cardList: HTMLElement, groups: Record<"meal" | "time" | "ing" | "cat", HTMLElement>, clearBtn: HTMLButtonElement, filtersLive: HTMLElement, easyLive: HTMLElement, switchEl: HTMLInputElement, kindsEl: HTMLElement, kindButtons: HTMLElement[] }} el
+ * @property {{ cardMain: HTMLElement, cardList: HTMLElement, groups: Record<"meal" | "time" | "ing" | "cat", HTMLElement>, clearBtn: HTMLButtonElement, filtersLive: HTMLElement, easyLive: HTMLElement, switchEl: HTMLInputElement, kindsEl: HTMLElement }} el
  * @property {{ paintAll: () => void }} view
  */
 
@@ -55,14 +55,13 @@ function pickElements(ctx) {
     easyLive: q("wl-easy-live"),
     switchEl: /** @type {HTMLInputElement} */ (q("wl-easy-switch")),
     kindsEl,
-    kindButtons: /** @type {HTMLElement[]} */ ([...kindsEl.querySelectorAll("[data-kp-toggle]")]),
   };
 }
 
 /** The package's own attach calls, once, on this screen's markup, and the chips drawn loading. @param {WheelCtx} ctx */
 function attachPackage(ctx) {
   const { root, cleanups, el } = ctx;
-  cleanups.push(attachCardStates(root), attachSegmented(root), attachToggles(el.kindsEl), attachDisabledReasons(root));
+  cleanups.push(attachCardStates(root), attachSegmented(root), attachDisabledReasons(root));
   for (const g of Object.values(el.groups)) if (ctx.status === "loading") g.setAttribute("aria-busy", "true");
   for (const g of Object.values(el.groups)) setSegmentedCounts(g, Object.fromEntries([...g.querySelectorAll("[data-value]")].map((b) => [/** @type {HTMLElement} */ (b).dataset.value ?? "", null])));
 }

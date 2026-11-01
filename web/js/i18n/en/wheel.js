@@ -36,7 +36,6 @@ export const EN_WHEEL = {
   "wheel.whatItDoes": "What it does",
   "wheel.easySays": "On: the wheel only holds dishes you can manage today. Nothing is deleted; switch it off and everything is back. Calm mode comes on with it and goes off again.",
   "wheel.whatCounts": "What counts as easy",
-  "wheel.turnOnFirst": "Turn on No energy today first",
   "wheel.rightNow": "Right now",
   "wheel.tonightsWheel": "Tonight’s wheel",
   "wheel.answerLabel": "The wheel’s answer",

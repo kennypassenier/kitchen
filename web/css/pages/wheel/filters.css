@@ -109,8 +109,9 @@
     min-inline-size: 0;
   }
 
-  /* The time ranges are long words: one chip a row, never cut. */
-  #wl-f-time > .kp-segmented__item {
+  /* The time ranges and the easy kinds are long words: one chip a row, never cut. */
+  #wl-f-time > .kp-segmented__item,
+  #wl-easy-kinds > .kp-segmented__item {
     flex-basis: 100%;
   }
 

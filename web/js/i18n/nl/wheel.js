@@ -36,7 +36,6 @@ export const NL_WHEEL = {
   "wheel.whatItDoes": "Wat het doet",
   "wheel.easySays": "Aan: het wiel houdt alleen gerechten die je vandaag aankan. Er wordt niets verwijderd; zet je het uit, dan is alles terug. De rustige stand gaat er samen mee aan en weer uit.",
   "wheel.whatCounts": "Wat telt als makkelijk",
-  "wheel.turnOnFirst": "Zet eerst Geen energie vandaag aan",
   "wheel.rightNow": "Nu",
   "wheel.tonightsWheel": "Het wiel van vanavond",
   "wheel.answerLabel": "Het antwoord van het wiel",

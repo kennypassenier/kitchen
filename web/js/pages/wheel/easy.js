@@ -1,7 +1,7 @@
 // "No energy today": the switch, the kinds it counts as easy and the line that says what is on the wheel now. Calm mode comes
 // on with the switch, is not remembered, and goes off again only if the switch turned it on.
 
-import { toggle, setCalm, isCalm } from "/static/kp/dist/kp-themes.min.js";
+import { setCalm, isCalm, setSegmentedCounts, setSegmentedValues, SEGMENTED_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { track, onWheel } from "./model.js";
 import { isKind, KINDS } from "./logic.js";
@@ -12,13 +12,11 @@ export function paintEasy(ctx) {
   const ready = status === "ready";
   el.switchEl.disabled = !ready;
   el.switchEl.checked = M.easy;
-  for (const b of el.kindButtons) {
-    const tg = toggle(b);
-    if (ready) tg?.setCount(ctx.dishes.filter((d) => isKind(d, b.dataset.kpToggleValue ?? "")).length);
-    tg?.set(M.kinds.has(b.dataset.kpToggleValue ?? ""), { silent: true });
-    /** @type {HTMLButtonElement} */ (b).disabled = !ready || !M.easy;
-    b.setAttribute("data-kp-disabled-reason", ready ? t("wheel.turnOnFirst") : t("wheel.dishesLoading"));
-  }
+  if (ready) setSegmentedCounts(el.kindsEl, Object.fromEntries(KINDS.map((k) => [k, ctx.dishes.filter((d) => isKind(d, k)).length])));
+  setSegmentedValues(el.kindsEl, M.kinds);
+  // The group, not each chip, is off until the switch is on: a wrapper per chip would take them out of the group.
+  // The line "Right now" (aria-describedby) says why.
+  el.kindsEl.setAttribute("aria-disabled", String(!ready || !M.easy));
   const n = onWheel(ctx, M).length;
   el.easyLive.textContent = status === "loading" ? t("wheel.loadingDot") : status === "error" ? t("wheel.failedDot") : M.easy ? t("wheel.easyOn", n) : t("wheel.easyOff");
 }
@@ -43,11 +41,11 @@ export function wireEasy(ctx) {
     ctx.view.paintAll();
   };
   const onKinds = (/** @type {Event} */ event) => {
-    ctx.M.kinds = new Set(/** @type {CustomEvent} */ (event).detail.pressedKeys);
+    ctx.M.kinds = new Set(/** @type {CustomEvent} */ (event).detail.values);
     for (const k of KINDS) track(ctx, `kind:${k}`, !ctx.M.kinds.has(k));
     ctx.view.paintAll();
   };
   switchEl.addEventListener("change", onSwitch);
-  kindsEl.addEventListener("kp-toggle-changed", onKinds);
-  ctx.cleanups.push(() => switchEl.removeEventListener("change", onSwitch), () => kindsEl.removeEventListener("kp-toggle-changed", onKinds));
+  kindsEl.addEventListener(SEGMENTED_EVENT, onKinds);
+  ctx.cleanups.push(() => switchEl.removeEventListener("change", onSwitch), () => kindsEl.removeEventListener(SEGMENTED_EVENT, onKinds));
 }

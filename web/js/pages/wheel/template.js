@@ -57,12 +57,12 @@ function filtersSection(status) {
       </section>`;
 }
 
-/** The kinds the "No energy today" switch counts, as pressed toggles. */
-function kindToggles() {
+/** The kinds the "No energy today" switch counts, as the same chips the filters use (several on at once, all on to start). */
+function kindChips() {
   return Object.entries(kindLabels())
     .map(
       ([v, l]) =>
-        `<button type="button" class="kp-button" data-kp-toggle data-kp-look="chip" data-kp-pressed-mark="check" aria-pressed="true" data-kp-toggle-value="${v}" data-kp-count="loading" disabled data-kp-disabled-reason="${t("wheel.turnOnFirst")}">${l}</button>`,
+        `<button type="button" class="kp-segmented__item" data-value="${v}" aria-pressed="true"><span class="kp-segmented__label">${l}</span></button>`,
     )
     .join("");
 }
@@ -88,8 +88,8 @@ function easySection() {
           <div class="kp-formgrid__row">
             <p class="kp-formgrid__label wl-filters__name" id="wl-easy-kinds-l">${t("wheel.whatCounts")}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
-              <div class="kp-toggles" role="group" aria-labelledby="wl-easy-kinds-l" id="wl-easy-kinds" data-kp-toggle-group="easy" data-kp-toggle-mode="multi">
-                ${kindToggles()}
+              <div class="kp-segmented kp-segmented--chips" role="group" aria-labelledby="wl-easy-kinds-l" id="wl-easy-kinds" aria-disabled="true" aria-describedby="wl-easy-live" data-kp-segmented="multi" data-kp-segmented-collapse="false">
+                ${kindChips()}
               </div>
             </div>
           </div>
