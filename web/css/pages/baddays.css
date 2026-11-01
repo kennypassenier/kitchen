@@ -39,11 +39,29 @@
 
 /* ---- 1 · safe dishes: the stage keeps the room the tiles fill, so a state takes the same place. */
 #bd-safe-card {
-  --kp-card-stage-min: 21rem;
+  /* One tile row and its buttons; a state (loading, empty, failed) takes the same room. */
+  --kp-card-stage-min: 10rem;
 }
 
 .bd-safe .kp-action {
   min-block-size: 7rem;
+}
+
+/* The tiles and their buttons share one grid (Kenny, 01/11/2026 20:21, "Vaste kolommen"): every tile is two rows tall, the
+   tile on the first and Edit / "Not safe any more" on the second, as subgrid rows of the list. Tiles on a row of the
+   list are equally tall, their buttons sit on one line and start at the tile's edge, so every tile's buttons align. */
+.bd-safe {
+  row-gap: var(--kp-space-md, 1rem);
+}
+
+.bd-safe > .bd-safe__item {
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: var(--kp-space-xs, 0.25rem);
+}
+
+.bd-safe__item > .kp-row-actions {
+  justify-content: start;
 }
 
 .bd-card .kp-action__meta {
