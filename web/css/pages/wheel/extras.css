@@ -51,8 +51,8 @@
   padding-block-start: 5px;
 }
 
-.wl-result__side:empty {
-  display: none;
+.wl-result__side {
+  min-block-size: 1lh;
 }
 
 .wl-result__others:empty {

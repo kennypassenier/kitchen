@@ -81,6 +81,9 @@ function paintButtons(ctx, vs, d) {
   const idle = loaded && !spinning && !ctx.writing;
   const why = (/** @type {string} */ idleWhy) => (!loaded ? t("wheel.dishesLoading") : spinning ? t("wheel.wheelTurning") : ctx.writing ? t("wheel.saving") : idleWhy);
   setReason(part.yes, !d || !idle, why(t("wheel.spinFirst")));
+  // "Yes, cook this" is the primary action only once the wheel has given an answer (Kenny, 01/11/2026 20:21, "Na antwoord");
+  // before that it is a quiet button in the same place and size, so nothing moves when it turns primary.
+  part.yes.classList.toggle("kp-button--primary", Boolean(d) && !spinning);
   setReason(part.again, !idle || items.length < 2, why(t("wheel.nothingToSpinWhy")));
   setReason(part.skip, !d || !idle, why(t("wheel.spinFirstSkip")));
   part["skip-says"].textContent = t("wheel.skipSays", dmyDate(L.restUntil()));

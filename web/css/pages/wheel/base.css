@@ -107,9 +107,17 @@
   min-block-size: 3.25rem;
 }
 
+/* Two lines each (three for the timing on a phone, where "no recipe yet" runs longer), and one for the side, empty or not:
+   the actions under them stay where they are when the wheel gives its answer (Kenny, 01/11/2026 20:21, "Na antwoord"). */
 .wl-result__why,
 .wl-result__timing {
-  min-block-size: 2.75em;
+  min-block-size: 2lh;
+}
+
+@media (max-width: 40rem) {
+  .wl-result__timing {
+    min-block-size: 3lh;
+  }
 }
 
 .wl-result__timing {

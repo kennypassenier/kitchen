@@ -19,7 +19,7 @@ export const answerHtml = () => `
             <p class="wl-result__why" data-wl="why"></p>
             <p class="wl-result__timing" data-wl="timing"></p>
             <p class="wl-result__others" data-wl="others"></p>
-            <div class="wl-actions">${action("yes", " kp-button--primary", t("wheel.spinFirst"), t("wheel.yes"), `<p>${t("wheel.yesSays")}</p>`)}${action("again", "", t("wheel.dishesLoading"), t("wheel.again"), `<p>${t("wheel.againSays")}</p>`)}${action("skip", "", t("wheel.spinFirstSkip"), t("wheel.skip"), '<p data-wl="skip-says"></p>')}
+            <div class="wl-actions">${action("yes", "", t("wheel.spinFirst"), t("wheel.yes"), `<p>${t("wheel.yesSays")}</p>`)}${action("again", "", t("wheel.dishesLoading"), t("wheel.again"), `<p>${t("wheel.againSays")}</p>`)}${action("skip", "", t("wheel.spinFirstSkip"), t("wheel.skip"), '<p data-wl="skip-says"></p>')}
             </div>
             <div class="wl-resting">
               <p class="wl-resting__label" data-wl="rest"></p>
