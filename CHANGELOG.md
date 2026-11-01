@@ -16,6 +16,8 @@ carries a **Migration** section saying what an operator must do.
   bar's Back) asks Keep as draft / Discard, closing the tab asks the browser's question, and a Back button in the browser
   keeps the work as a draft. Recipes (Add, Edit, Duplicate), a dish's Recipes card, bad days and an import result all open
   the page; Save returns to where you came from, else the recipe page. The recipe drawer is gone.
+- **Edit in the recipe page's header** (Kenny 01/11/2026): the recipe page has an Edit button beside the effort badge; it opens the
+  editor page and Save comes back to the recipe.
 - The unsaved bar and the contents list speak Dutch in the Dutch interface (`web/js/i18n/kp-nl/unsaved.js`).
 
 ## [5.0.0] - 2026-10-31

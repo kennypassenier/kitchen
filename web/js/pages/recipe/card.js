@@ -7,7 +7,8 @@ import { dmy } from "../../format.js";
 import { dataOf } from "../../ui/cards.js";
 import { showPhotos } from "../../recipe/photos.js";
 import { STEP_WORDS, sourceRow } from "../../recipe/page-parts.js";
-import { lang } from "../../i18n/index.js";
+import { lang, t } from "../../i18n/index.js";
+import { editHref, recipeHref } from "../../recipe/edit-route.js";
 import { buildIngredients, paintAmounts } from "./ingredients.js";
 
 /** The summary, folded after a hundred characters. @param {import("./index.js").RecipeCtx} ctx @param {Record<string, any>} r @param {string} total */
@@ -69,6 +70,9 @@ function lastNote(ctx, r, k) {
   return h("div", { class: "kp-alert kp-alert--info" }, h("div", { class: "kp-alert__body" }, h("b", null, last ? `${words.lastTime} · ${dmy(last.date)}` : words.lastTime), ` ${r.last_note}`));
 }
 
+/** Edit, in the page's header (Kenny, 01/11/2026): the editor page, and Save comes back here. @param {string} id @param {string} name */
+const editLink = (id, name) => h("a", { class: "kp-button", href: editHref({ id }, recipeHref(id)), "aria-label": t("rec.editName", name) }, t("common.edit"));
+
 /** The whole recipe block of the card: title row, photo, the main column and the portions side. @param {import("./index.js").RecipeCtx} ctx @param {Record<string, any>} r @param {import("../../api.js").Kitchen} k @param {{ begin: HTMLElement, quantity: HTMLElement, list: HTMLElement }} parts */
 function recipeBlock(ctx, r, k, { begin, quantity, list }) {
   const { words } = ctx;
@@ -80,7 +84,7 @@ function recipeBlock(ctx, r, k, { begin, quantity, list }) {
     "div",
     { class: "rp-recipe" },
     // The title row spans both columns, so the two columns under it start on one line.
-    h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("span", { class: "kp-badge" }, words.effortBadge(effort))),
+    h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("div", { class: "rp-recipe__tools" }, h("span", { class: "kp-badge" }, words.effortBadge(effort)), editLink(ctx.id, r.name))),
     r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[lang()].photo)) : null,
     h("div", { class: "rp-recipe__main" }, ledeOf(ctx, r, total), factsOf(ctx, r, total, effort), beginBlock(ctx, begin, things), lastNote(ctx, r, k)),
     h("div", { class: "rp-recipe__side" }, h("div", { class: "rp-portions" }, h("h3", { class: "kp-fw-semibold" }, words.portions), quantity), list),

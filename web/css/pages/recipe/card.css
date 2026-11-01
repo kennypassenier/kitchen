@@ -40,8 +40,19 @@
   margin: 0;
 }
 
-.rp-recipe__head .kp-badge {
-  justify-self: start;
+.rp-recipe__tools {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 1rem);
+  align-items: center;
+  justify-content: end;
+}
+
+@media (max-width: 40rem) {
+  .rp-recipe__tools {
+    justify-content: start;
+  }
 }
 
 .rp-facts {
