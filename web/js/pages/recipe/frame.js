@@ -3,6 +3,7 @@
 
 import { h } from "../../dom.js";
 import { stage, dataOf, cardSection } from "../../ui/cards.js";
+import { popoverButton } from "../../ui/popover.js";
 import { t } from "../../i18n/index.js";
 
 /** The code that opens cook mode on a phone and its one sentence: they live in the "Send to phone" popover (card.js). */
@@ -19,12 +20,14 @@ function sheetSection() {
   const printTitle = h("h3", { class: "kp-fw-semibold" });
   const printText = h("p");
   const printOptions = h("div", { class: "kp-formgrid" });
+  // The four options sit in a small popover beside the print button (Kenny, 01/11/2026 20:21); the preview stays.
+  const options = popoverButton({ label: "", content: [printOptions], plate: "rp-options" });
   const printButton = h("button", { type: "button", class: "kp-button kp-button--primary" });
   const printLine = h("p", { class: "rp-line" });
   dataOf(paper.el).append(
-    h("div", { class: "rp-print" }, frame, h("div", { class: "rp-print__words" }, printTitle, printText, printOptions, h("div", { class: "rp-print__go" }, printButton), printLine)),
+    h("div", { class: "rp-print" }, frame, h("div", { class: "rp-print__words" }, printTitle, printText, h("div", { class: "rp-print__go" }, printButton, options.wrap), printLine)),
   );
-  return { paper, frame, printTitle, printText, printOptions, printButton, printLine };
+  return { paper, frame, printTitle, printText, printOptions, printButton, printLine, optionsLabel: options.setLabel, optionsPlate: options.plate };
 }
 
 /** The steps with their photos; there only when a step has a photo. */
@@ -59,6 +62,8 @@ export function paintWords(f, words) {
   f.printTitle.textContent = words.printTitle;
   f.printText.textContent = words.printText;
   f.printButton.textContent = words.printButton;
+  f.optionsLabel(words.printOptionsButton);
+  f.optionsPlate.setAttribute("aria-label", words.printOptionsButton);
   f.printLine.textContent = words.printLine;
   f.logSec.title.textContent = words.logTitle;
   f.logSec.lede.textContent = words.logLede;

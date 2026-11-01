@@ -37,8 +37,25 @@
   margin: 0;
 }
 
+/* The print button and, beside it, the options popover's button. */
 .rp-print__go {
   display: grid;
-  grid-template-columns: max-content;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: start;
+  align-items: center;
+  gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 1rem);
+}
+
+@media (max-width: 24rem) {
+  .rp-print__go {
+    grid-auto-flow: row;
+  }
+}
+
+/* The four options on the plate: one column, each row a name over its choice and what it does. */
+.rp-options {
+  inline-size: min(22rem, calc(100vw - 2rem));
+  max-inline-size: none;
 }
 
