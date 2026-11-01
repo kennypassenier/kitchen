@@ -163,3 +163,10 @@
 .ck-cook .kp-focus-steps__wake {
   display: none;
 }
+
+/* Read aloud is a thumb target in a kitchen, wet hands included (ux-review fix-cook-readaloud-1): the kit's small button
+   takes the kit's touch-target height (--kp-touch-target, 2.75rem = 44 px) with a fine pointer too; a coarse pointer
+   already gets it. The knob is the kit's own, so the head row sizes itself and nothing moves after the first frame. */
+.ck-cook .kp-focus-steps__speak {
+  --kp-button-height-sm: var(--kp-touch-target, 2.75rem);
+}
