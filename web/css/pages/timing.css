@@ -1,7 +1,6 @@
 /* timing screen: every rule sits behind the tm- prefix. Everything with a kp- class is the package's; these rules
    only lay the sections out and frame the readouts. */
 
-.tm-intro,
 .tm-sec,
 .tm-sec__head {
   display: grid;
@@ -14,25 +13,73 @@
   gap: var(--kp-space-md, 1rem);
 }
 
-.tm-intro :is(h1, p),
 .tm-sec__head :is(h2, p) {
   margin: 0;
 }
 
-.tm-intro p,
 .tm-sec__head p {
   max-inline-size: 80ch;
   color: var(--muted-foreground);
+}
+
+/* The page header holds the one recipe picker (Kenny, 01/11/2026 20:21, "Eén kiezer"): the title and its sentence on
+   the left, the picker on the right in a fixed column (label over the field, its line and the link to the recipe under it);
+   on a phone the picker takes the full width under the title. */
+.tm-head__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+  align-items: start;
+  gap: var(--kp-space-md, 1rem) var(--kp-space-xl, 2rem);
+}
+
+.tm-head__titles {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  min-inline-size: 0;
+}
+
+.tm-picker.kp-page-header__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label label" "box box" "said actions";
+  align-items: center;
+  gap: var(--kp-space-xs, 0.25rem) var(--kp-space-sm, 0.5rem);
+  justify-content: stretch;
+  min-inline-size: 0;
+}
+
+.tm-picker__label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.tm-picker__box {
+  grid-area: box;
+  inline-size: 100%;
+}
+
+.tm-picker__said {
+  grid-area: said;
+  min-block-size: 2lh;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+}
+
+.tm-picker__actions {
+  grid-area: actions;
+}
+
+@media (max-width: 40rem) {
+  .tm-head__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Every card keeps one footprint in all four states: the stage is as tall as the data it replaces. */
 .tm-card {
   --kp-card-stage-min: 12rem;
   min-inline-size: 0;
-}
-
-.tm-card--pick {
-  --kp-card-stage-min: 7rem;
 }
 
 .tm-card--none {

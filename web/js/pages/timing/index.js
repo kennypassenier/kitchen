@@ -16,11 +16,13 @@ import { createPlanView } from "./plan-view.js";
 import { createTimer } from "./timer.js";
 import { createNudge } from "./nudge.js";
 import { createFiller } from "./fill.js";
+import { tonightRecipeId } from "../../tonight.js";
 
 /**
  * @typedef {object} TimingCtx
  * @property {HTMLElement} root
- * @property {string | null} recipeId
+ * @property {string | null} recipeId the recipe of the link, else tonight's wheel answer
+ * @property {boolean} fromWheel the recipe is tonight's wheel answer, not the link's
  * @property {(href: string) => void} navigate
  * @property {(() => void)[]} cleanups
  * @property {boolean} alive
@@ -33,13 +35,14 @@ import { createFiller } from "./fill.js";
  * @property {{ draw: () => void, drawSentence: () => void, drawTimerLine: () => void, drawNudge: () => void }} view
  */
 
-/** @param {HTMLElement} root @param {string | null} recipeId @param {(href: string) => void} navigate @returns {TimingCtx} */
-function makeCtx(root, recipeId, navigate) {
+/** @param {HTMLElement} root @param {string | null} recipeId @param {(href: string) => void} navigate @param {boolean} fromWheel @returns {TimingCtx} */
+function makeCtx(root, recipeId, navigate, fromWheel) {
   const state = { eat: DEFAULTS.dinner_time, pace: DEFAULTS.pace, spare: DEFAULTS.spare, /** @type {Set<string>} */ dropped: new Set() };
   /** @type {TimingCtx} */
   const ctx = {
     root,
     recipeId,
+    fromWheel,
     navigate,
     cleanups: [],
     alive: true,
@@ -97,7 +100,10 @@ function startTick(ctx, { frame, sentence, timer, nudge }) {
 /** @param {HTMLElement} root @param {{ params: URLSearchParams, navigate: (href: string) => void }} page */
 export function mount(root, { params, navigate }) {
   document.title = `${t("timing.title")} · Kitchen`;
-  const ctx = makeCtx(root, params.get("id"), navigate);
+  // The link's recipe, else tonight's wheel answer (Kenny, 01/11/2026 20:21, "Eén kiezer"; js/tonight.js).
+  const linked = params.get("id");
+  const tonight = linked ? null : tonightRecipeId();
+  const ctx = makeCtx(root, linked ?? tonight, navigate, Boolean(tonight));
   const parts = buildParts(ctx);
   const filler = createFiller(ctx, { frame: parts.frame, sentence: parts.sentence, gantt: parts.plan.gantt });
   root.addEventListener("kp-card-retry", () => void filler.load(true));

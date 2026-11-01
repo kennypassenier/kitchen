@@ -21,17 +21,18 @@ import { words } from "./text.js";
 /** The recipes that can be counted back, A to Z. @param {import("../../api.js").Kitchen} k */
 const countable = (k) => k.recipes.filter(hasTimes).sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-/** The plate of a recipe that cannot be counted back, with the one action that helps. @param {string} title @param {string} text @param {HTMLElement} action */
+/** The plate of a recipe that cannot be counted back, with the one action that helps (if any). @param {string} title @param {string} text @param {HTMLElement} [action] */
 const plate = (title, text, action) => ({ title, text, action });
 
-/** @param {FillDeps} d */
-const focusPicker = (d) => /** @type {HTMLInputElement | null} */ ($("#tm-recipe", d.ctx.root))?.focus();
+/** The picker's field and its line. @param {FillDeps} d */
+const pickerParts = (d) => ({ input: /** @type {HTMLInputElement} */ ($("#tm-recipe", d.ctx.root)), said: /** @type {HTMLElement} */ ($("#tm-pick-said", d.ctx.root)) });
 
 /** @param {FillDeps} d @param {unknown} e */
-function failed({ frame, gantt }, e) {
+function failed(d, e) {
+  const { frame, gantt } = d;
   const text = e instanceof Error ? e.message : t("timing.noAnswer");
   const options = (/** @type {string} */ title) => ({ title, text: `${text} ${t("timing.stillThere")}` });
-  setCardState(frame.pickCard, "error", options(t("timing.recipesFailed")));
+  pickerParts(d).said.textContent = t("timing.recipesFailed");
   setCardState(frame.nonePlate, "error", options(t("timing.recipesFailed")));
   for (const c of [frame.sentenceCard, frame.timerCard, frame.nudgeCard]) setCardState(c, "error", options(t("timing.stepsFailed")));
   // The timeline shows its own failed plate (with Retry) inside the plan card, as the package's timeline does.
@@ -53,6 +54,7 @@ function fillPicker({ ctx, frame }, list) {
   const options = [...listEl.querySelectorAll("li[data-kp-option]")].reverse();
   listEl.prepend(...options);
   const handle = combobox(box);
+  /** @type {HTMLInputElement} */ ($("#tm-recipe", root)).disabled = false;
   handle?.refresh();
   const said = /** @type {HTMLElement} */ ($("#tm-pick-said", root));
   const actions = /** @type {HTMLElement} */ ($("#tm-pick-actions", root));
@@ -70,18 +72,19 @@ function sayRecipe({ ctx }, { handle, said, actions }) {
   if (ctx.recipe && hasTimes(ctx.recipe)) {
     handle?.set([String(ctx.recipe.id)]);
     const lanes = /** @type {Item[]} */ (ctx.recipe.tracks ?? []).length;
-    said.textContent = t("timing.said", timedSteps(ctx.recipe).length, lanes, words(Number(ctx.recipe.minutes) || 0));
+    const line = t("timing.said", timedSteps(ctx.recipe).length, lanes, words(Number(ctx.recipe.minutes) || 0));
+    said.textContent = ctx.fromWheel ? t("timing.fromWheel", line) : line;
     actions.append(h("a", { class: "kp-button kp-button--sm", href: `/recipe?id=${encodeURIComponent(String(ctx.recipe.id))}` }, t("timing.openRecipe")));
   } else {
     said.textContent = ctx.recipeId ? t("timing.thatNoTimes") : t("timing.chooseToCount");
   }
 }
 
-/** The one action that helps a recipe that cannot be counted back. @param {FillDeps} d */
+/** The one action that helps a recipe that cannot be counted back: open it to give its steps times. A recipe that is not
+ * in the kitchen has no action; the picker in the header is the way on. @param {FillDeps} d */
 function helpAction(d) {
   const recipe = d.ctx.recipe;
-  if (recipe) return h("a", { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(recipe.id))}` }, t("timing.openRecipe"));
-  return h("button", { type: "button", class: "kp-button kp-button--primary", onclick: () => focusPicker(d) }, t("timing.chooseRecipe"));
+  return recipe ? h("a", { class: "kp-button kp-button--primary", href: `/recipe?id=${encodeURIComponent(String(recipe.id))}` }, t("timing.openRecipe")) : undefined;
 }
 
 /** The recipe of the link is missing or has no step times: every card says so, with the one action that helps. @param {FillDeps} d */
@@ -123,9 +126,12 @@ function fillSentenceCard({ ctx }, recipe) {
 }
 
 /** No recipe has step times yet: the picker and the plate say so. @param {FillDeps} d */
-function showNoTimes({ frame }) {
+function showNoTimes(d) {
+  const { frame } = d;
   const open = () => h("a", { class: "kp-button kp-button--primary", href: "/recipes" }, t("timing.openRecipes"));
-  setCardState(frame.pickCard, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText"), open()));
+  const { input, said } = pickerParts(d);
+  input.disabled = true;
+  said.textContent = t("timing.noTimesTitle");
   setCardState(frame.nonePlate, "empty", plate(t("timing.noTimesTitle"), t("timing.noTimesText2"), open()));
 }
 
@@ -135,10 +141,10 @@ function fill(d, k) {
   const list = countable(k);
   const picker = fillPicker(d, list);
   if (list.length === 0) return showNoTimes(d);
-  setCardState(frame.pickCard, "ready");
   sayRecipe(d, picker);
   if (!ctx.recipeId) {
-    setCardState(frame.nonePlate, "empty", plate(t("timing.pickRecipe"), t("timing.chooseAbove"), h("button", { type: "button", class: "kp-button kp-button--primary", onclick: () => focusPicker(d) }, t("timing.chooseRecipe"))));
+    // No recipe yet: the plate says where the picker is; it has no button of its own (Kenny, 01/11/2026 "Eén kiezer").
+    setCardState(frame.nonePlate, "empty", plate(t("timing.pickRecipe"), t("timing.chooseAbove")));
     return;
   }
   // The recipe of the link: missing, without step times, or ready.

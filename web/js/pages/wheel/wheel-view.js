@@ -11,6 +11,7 @@ import { paintAnswer } from "./answer.js";
 import { createCardSync } from "./card-sync.js";
 import { byId, onWheel, weight } from "./model.js";
 import { setAside, bringBack } from "./actions.js";
+import { rememberTonight } from "../../tonight.js";
 
 /** The dish's sides by name, each one entry of the small wheel (records/lists.js sideName). @param {import("./logic.js").Dish} d */
 const sidesOf = (d) => d.sides.map((s) => sideName(s)).filter(Boolean);
@@ -33,7 +34,10 @@ function onWheelChange(ctx, vs, repaint, say, change) {
       vs.spinning = false;
       vs.chosen = change.dish?.id ?? null;
       repaint();
-      say(t("wheel.wheelChose", byId(ctx, /** @type {string} */ (vs.chosen))?.label));
+      const d = byId(ctx, /** @type {string} */ (vs.chosen));
+      say(t("wheel.wheelChose", d?.label));
+      // "When do I start?" opens on tonight's answer (Kenny, 01/11/2026 20:21, "Eén kiezer").
+      if (d) rememberTonight(d);
     }
     part.sideline.textContent = change.side ? t("wheel.withSide", change.side) : change.sides.length > 1 ? t("wheel.sideTurning") : "";
   }

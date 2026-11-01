@@ -1,4 +1,6 @@
-// The page frame: every card in its loading state from the first frame, the sections around them and the recipe picker.
+// The page frame: every card in its loading state from the first frame, the sections around them, and the one recipe
+// picker, which stands in the page header (Kenny, 01/11/2026 20:21, "Eén kiezer": one picker, preselected from tonight's
+// wheel answer; the empty state no longer has a button of its own that only scrolled back up to it).
 
 import { h, $ } from "../../dom.js";
 import { setCardState, attachCardStates, attachComboboxes } from "/static/kp/dist/kp-themes.min.js";
@@ -14,7 +16,6 @@ const section = (id, title, text, body) => sectionOf(SEC, id, title, text, body)
 /** Every card of the screen, in its loading state. */
 function buildCards() {
   return {
-    pickCard: card({ id: "tm-pick-card", title: t("timing.pickTitle"), text: t("timing.pickText"), loading: t("timing.loadingRecipes"), mod: "pick" }),
     sentenceCard: card({ id: "tm-sentence-card", title: t("timing.sentenceTitle"), text: "", loading: t("timing.loadingSteps"), mod: "sentence" }),
     planCard: card({ id: "tm-plan-card", title: t("timing.planTitle"), text: "", loading: t("timing.loadingPlan"), mod: "plan" }),
     timerCard: card({ id: "tm-timer-card", title: t("timing.timerTitle"), text: "", loading: t("timing.loadingTimer"), mod: "timer" }),
@@ -23,12 +24,23 @@ function buildCards() {
   };
 }
 
-/** The sections: the intro, the picker, then the recipe's four cards or the plate that asks for a recipe. @param {ReturnType<typeof buildCards>} c @param {string | null} recipeId */
+/** The page header: the title and its sentence, and on the right the one recipe picker with the line that says what it holds. */
+function headerOf() {
+  return h(
+    "header",
+    { class: "kp-page-header tm-head" },
+    h(
+      "div",
+      { class: "kp-page-header__inner tm-head__inner" },
+      h("div", { class: "tm-head__titles" }, h("h1", { class: "kp-page-header__title" }, t("timing.title")), h("p", { class: "kp-page-header__description" }, t("timing.intro"))),
+      pickerBlock(),
+    ),
+  );
+}
+
+/** The sections: the header with the picker, then the recipe's four cards or the plate that asks for a recipe. @param {ReturnType<typeof buildCards>} c @param {string | null} recipeId */
 function sectionsOf(c, recipeId) {
-  const sections = [
-    h("header", { class: "tm-intro" }, h("h1", null, t("timing.title")), h("p", null, t("timing.intro"))),
-    section("tm-pick", t("timing.secPick"), t("timing.secPickText"), c.pickCard),
-  ];
+  const sections = [headerOf()];
   if (recipeId) {
     sections.push(
       section("tm-sentence", t("timing.secSentence"), t("timing.secSentenceText"), c.sentenceCard),
@@ -42,29 +54,22 @@ function sectionsOf(c, recipeId) {
   return sections;
 }
 
-/** The recipe picker's form row. */
-function pickerRow() {
+/** The recipe picker: its label, the kit's combobox (disabled until the recipes are read), the line that says what it holds
+ * and the link to the recipe. One grid: label over the field, the line and the link on one row under it. */
+function pickerBlock() {
   return h(
     "div",
-    { class: "kp-formgrid", "data-kp-formgrid-lines": "lines" },
+    { class: "kp-page-header__actions tm-picker" },
+    h("label", { class: "tm-picker__label", for: "tm-recipe" }, t("timing.recipe")),
     h(
       "div",
-      { class: "kp-formgrid__row" },
-      h("label", { class: "kp-formgrid__label", for: "tm-recipe" }, t("timing.recipe")),
-      h(
-        "div",
-        { class: "kp-formgrid__control" },
-        h(
-          "div",
-          { class: "kp-combobox", "data-kp-combobox": "", "data-kp-match": "substring" },
-          h("input", { class: "kp-combobox__input", type: "text", role: "combobox", id: "tm-recipe", "aria-expanded": "false", "aria-controls": "tm-recipe-list", placeholder: t("timing.searchRecipes") }),
-          h("ul", { class: "kp-combobox__list", id: "tm-recipe-list", role: "listbox", hidden: true }),
-          h("p", { class: "kp-combobox__status", "data-kp-combobox-status": "", role: "status", "aria-live": "polite" }),
-        ),
-      ),
-      h("p", { class: "kp-formgrid__value", id: "tm-pick-said", role: "status" }, t("timing.loadingRecipesDot")),
-      h("div", { class: "kp-formgrid__actions", id: "tm-pick-actions" }),
+      { class: "kp-combobox tm-picker__box", "data-kp-combobox": "", "data-kp-match": "substring" },
+      h("input", { class: "kp-combobox__input", type: "text", role: "combobox", id: "tm-recipe", "aria-expanded": "false", "aria-controls": "tm-recipe-list", placeholder: t("timing.searchRecipes"), disabled: true, "aria-describedby": "tm-pick-said" }),
+      h("ul", { class: "kp-combobox__list", id: "tm-recipe-list", role: "listbox", hidden: true }),
+      h("p", { class: "kp-combobox__status", "data-kp-combobox-status": "", role: "status", "aria-live": "polite" }),
     ),
+    h("p", { class: "tm-picker__said", id: "tm-pick-said", role: "status" }, t("timing.loadingRecipesDot")),
+    h("div", { class: "tm-picker__actions", id: "tm-pick-actions" }),
   );
 }
 
@@ -74,9 +79,8 @@ export function buildFrame({ root, recipeId, cleanups }) {
   root.replaceChildren(...sectionsOf(cards, recipeId));
   for (const c of root.querySelectorAll(".kp-card")) setCardState(/** @type {HTMLElement} */ (c), "loading");
   cleanups.push(attachCardStates(root));
-  const pickData = /** @type {HTMLElement} */ ($("#tm-pick-card-data", root));
-  pickData.append(pickerRow());
-  const box = /** @type {HTMLElement} */ ($(".kp-combobox", pickData));
-  cleanups.push(attachComboboxes(pickData));
+  const picker = /** @type {HTMLElement} */ ($(".tm-picker", root));
+  const box = /** @type {HTMLElement} */ ($(".kp-combobox", picker));
+  cleanups.push(attachComboboxes(picker));
   return { ...cards, box };
 }
