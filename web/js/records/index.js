@@ -5,7 +5,8 @@ export { externalLink, hostOf, energies, feelings, LISTS, detailHref, DETAIL_BAS
 export { drawer } from "./drawer.js";
 export { openRecordEditor } from "./editors.js";
 export { openSafePicker, unmarkSafe, ateShelf } from "./safe.js";
-export { usersOf, deleteRecord, duplicateRecipe, duplicateDish, rowActions } from "./delete.js";
+export { deleteRecord, duplicateRecipe, duplicateDish, rowActions } from "./delete.js";
+export { usersOf, usageWords, inUseReason, markInUse } from "./in-use.js";
 export { tableCard } from "./table-card.js";
 export { deleteWithUndo, UNDO_MS } from "./undo-delete.js";
 export { deleteRecipe } from "./recipe-delete.js";

@@ -1,7 +1,7 @@
 // The shell the table screens share (/dishes, /ingredients, /sources, /log): a page header, and the data tables' life
 // cycle: loading state, the one kitchen read, filling the rows, the retry, the kitchen's change events and the clean-up.
 
-import { attachDataTables, dataTable } from "/static/kp/dist/kp-themes.min.js";
+import { attachDataTables, attachDisabledReasons, dataTable } from "/static/kp/dist/kp-themes.min.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
 
@@ -36,9 +36,14 @@ export function mountTables({ root, page, cards, busyText, busyAtOnce = false, f
   };
   if (busyAtOnce) busy();
 
+  /** The kit's reason on every Delete that is off (records/in-use.js); new rows, new reasons. */
+  let reasons = () => {};
+
   /** @param {import("../api.js").Kitchen} k */
   function show(k) {
     fill(k);
+    reasons();
+    reasons = attachDisabledReasons(page);
     for (const handle of handles) {
       handle?.refresh({ keepPage: true });
       handle?.state("ready");
@@ -61,6 +66,7 @@ export function mountTables({ root, page, cards, busyText, busyAtOnce = false, f
   return () => {
     alive = false;
     stop();
+    reasons();
     detach();
   };
 }

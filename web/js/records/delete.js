@@ -2,11 +2,12 @@
 
 import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
-import { replace, remove, restore, kitchenNow, ingredientName } from "../api.js";
-import { t, nameOf } from "../i18n/index.js";
+import { replace, remove, restore, kitchenNow } from "../api.js";
+import { t } from "../i18n/index.js";
 import { openDishEditor, ordered } from "../dishes/editor.js";
 import { copyDish } from "../recipe/duplicate.js";
-import { LISTS, dishHas } from "./lists.js";
+import { LISTS } from "./lists.js";
+import { inUse, markInUse } from "./in-use.js";
 import { drawer } from "./drawer.js";
 import { openRecordEditor } from "./editors.js";
 import { copyToEditor } from "../recipe/edit-nav.js";
@@ -17,28 +18,6 @@ import { closeUp, makeRoom } from "./order.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
-
-// ---- delete --------------------------------------------------------------------------------------------------------
-
-/** What still points at an item, by name: a category's dishes, an ingredient's dishes and recipes, an ingredient category's ingredients. @param {List} list @param {Item} item */
-export function usersOf(list, item) {
-  const k = kitchenNow();
-  if (list === "dish_categories") return (k?.dishes ?? []).filter((d) => d.category === item.id).map((d) => nameOf(d).text);
-  if (list === "ingredient_categories") return (k?.ingredients ?? []).filter((i) => i.category === item.id).map((i) => ingredientName(i.id));
-  if (list === "ingredients")
-    return [
-      ...(k?.dishes ?? []).filter((d) => dishHas(d, item.id)).map((d) => t("rec.userDish", nameOf(d).text)),
-      ...(k?.recipes ?? []).filter((r) => (r.ingredients ?? []).some((/** @type {Item} */ l) => l.ingredient === item.id)).map((r) => t("rec.userRecipe", r.name)),
-    ];
-  return [];
-}
-
-/** Is `item` still in use so it cannot go? Returns the sentence that says so, naming every user. @param {List} list @param {Item} item */
-function inUse(list, item) {
-  const users = usersOf(list, item);
-  if (!users.length) return null;
-  return t(`list.${list}.inUse`, LISTS[list].name(item), users.length, users.join(", "));
-}
 
 /** Whether a list keeps its items in a numbered order (the two category lists). @param {List} list */
 const numbered = (list) => list === "dish_categories" || list === "ingredient_categories";
@@ -100,8 +79,7 @@ export function rowActions(list, item) {
   const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", name) }, t("common.delete"));
   edit.addEventListener("click", () => openRecordEditor(list, item));
   del.addEventListener("click", () => deleteRecord(del, list, item));
-  const blocked = inUse(list, item);
-  if (blocked) del.setAttribute("title", blocked);
+  markInUse(del, list, item);
   if (list !== "dishes") return h("div", { class: "kp-row-actions" }, edit, del);
   const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", name) }, t("common.duplicate"));
   copy.addEventListener("click", () => duplicateDish(item));

@@ -7,10 +7,10 @@
 // loading and failed states; an item that does not exist (any more) is an empty plate with the way back.
 
 
-import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, attachDisabledReasons, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { loadKitchen, onKitchen } from "../../api.js";
 import { h } from "../../dom.js";
-import { LISTS, DETAIL_BASE, missingBadge, openRecordEditor, duplicateDish, deleteRecord } from "../../records/index.js";
+import { LISTS, DETAIL_BASE, missingBadge, openRecordEditor, duplicateDish, deleteRecord, markInUse } from "../../records/index.js";
 import { t } from "../../i18n/index.js";
 import { importHref } from "../../recipe/import-plan.js";
 import { facts } from "./facts.js";
@@ -70,7 +70,7 @@ function setActions({ edit, copy, del, fromSite }, on) {
   }
 }
 
-/** @typedef {{ list: Exclude<List, "recipes">, id: string, meta: (typeof LISTS)[keyof typeof LISTS], p: ReturnType<typeof buildPage>, cur: { item: Item | null }, extra: ReturnType<typeof usedBy> | null, recipesCard: ReturnType<typeof dishRecipes> | null }} ItemView */
+/** @typedef {{ list: Exclude<List, "recipes">, id: string, meta: (typeof LISTS)[keyof typeof LISTS], p: ReturnType<typeof buildPage>, cur: { item: Item | null }, extra: ReturnType<typeof usedBy> | null, recipesCard: ReturnType<typeof dishRecipes> | null, reasons: (() => void)[] }} ItemView */
 
 /** The item is not (any more) in the kitchen: an empty plate with the way back. @param {ItemView} v */
 function showMissing({ meta, p }) {
@@ -91,6 +91,9 @@ function showItem(v, k) {
   document.title = `${name} · Kitchen`;
   p.kv.replaceChildren(...facts(list, item, k).map(([key, value]) => h("div", { class: "kp-kv__row" }, h("dt", null, key), h("dd", null, value))));
   setActions(p, true);
+  // An item still in use keeps its Delete off, with the reason (Kenny, 01/11/2026 20:21, "Knop uit").
+  markInUse(p.del, list, item);
+  v.reasons.push(attachDisabledReasons(p.pageEl));
   v.recipesCard?.show(k, item);
   setCardState(p.card, "ready");
   v.extra?.show(k);
@@ -115,7 +118,7 @@ export function mount(root, { params, navigate }) {
   const stopCard = attachCardStates(p.card);
   const id = params.get("id") ?? "";
   /** @type {ItemView} */
-  const v = { list, id, meta: LISTS[list], p, cur: { item: null }, extra: list === "ingredients" ? usedBy(p.pageEl, id) : null, recipesCard: list === "dishes" ? dishRecipes(p.pageEl) : null };
+  const v = { list, id, meta: LISTS[list], p, cur: { item: null }, extra: list === "ingredients" ? usedBy(p.pageEl, id) : null, recipesCard: list === "dishes" ? dishRecipes(p.pageEl) : null, reasons: [] };
   setActions(p, false);
   wireButtons(list, p, v.cur, navigate);
 
@@ -139,6 +142,7 @@ export function mount(root, { params, navigate }) {
   return () => {
     alive = false;
     stop();
+    for (const r of v.reasons) r();
     stopCard();
     v.extra?.stop();
     v.recipesCard?.stop();

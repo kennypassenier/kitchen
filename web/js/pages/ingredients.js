@@ -6,7 +6,7 @@
 
 import { h } from "../dom.js";
 import { names, ordered } from "../dishes/editor.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, missingBadge } from "../records/index.js";
+import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, usageWords, missingBadge } from "../records/index.js";
 import { pageHead, mountTables } from "../records/table-page.js";
 import { t } from "../i18n/index.js";
 
@@ -50,7 +50,7 @@ function ingredientRow(i, catList) {
     h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("ingredients", i, n.nl) : missingBadge("ingredients", i) ?? "–"),
     h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("ingredients", i, n.en) : missingBadge("ingredients", i) ?? "–"),
     h("td", { "data-label": t("rec.category") }, cat ? itemLink("ingredient_categories", cat) : "–"),
-    h("td", { "data-label": t("ig.usedBy"), class: "kp-numeric", "data-kp-sort-value": String(used) }, t("ig.used", used)),
+    h("td", { "data-label": t("ig.usedBy"), class: "kp-numeric", "data-kp-sort-value": String(used) }, usageWords("ingredients", i) ?? t("ig.used", 0)),
     h("td", { "data-label": t("lg.actions") }, rowActions("ingredients", i)),
   );
 }
