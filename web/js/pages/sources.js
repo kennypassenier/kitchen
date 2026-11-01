@@ -6,7 +6,9 @@
 // language, and its loading, empty and failed states; every site link opens in a new tab.
 
 import { h } from "../dom.js";
-import { tableCard, itemLink, openRecordEditor, openRecipeImport, deleteRecord } from "../records/index.js";
+import { tableCard, itemLink, openRecordEditor, deleteRecord } from "../records/index.js";
+import { go } from "../go.js";
+import { importHref } from "../recipe/import-plan.js";
 import { pageHead, mountTables } from "../records/table-page.js";
 import { dmy } from "../format.js";
 import { externalLink, hostOf } from "../links.js";
@@ -29,13 +31,13 @@ function buildCard() {
 
 /** Import from this site, Edit and Delete. @param {Record<string, any>} s */
 function actions(s) {
-  const go = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `${t("src.import")}: ${s.name}` }, t("src.import"));
+  const fromSite = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": `${t("src.import")}: ${s.name}` }, t("src.import"));
   const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", s.name) }, t("common.edit"));
   const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", s.name) }, t("common.delete"));
-  go.addEventListener("click", () => openRecipeImport(null, s));
+  fromSite.addEventListener("click", () => go(importHref({ site: s.id })));
   edit.addEventListener("click", () => openRecordEditor("recipe_sources", s));
   del.addEventListener("click", () => deleteRecord(del, "recipe_sources", s));
-  return h("div", { class: "kp-row-actions" }, go, edit, del);
+  return h("div", { class: "kp-row-actions" }, fromSite, edit, del);
 }
 
 /** @param {Record<string, any>} s */
@@ -60,7 +62,7 @@ export function mount(root) {
   const list = buildCard();
   const page = h("div", { class: "dl-page" }, pageHead({ title: t("nav.sources"), lede: t("src.lede"), actions: [importer] }), list.card);
   for (const b of list.addButtons) b.addEventListener("click", () => openRecordEditor("recipe_sources", null));
-  importer.addEventListener("click", () => openRecipeImport());
+  importer.addEventListener("click", () => go(importHref()));
   return mountTables({
     root,
     page,

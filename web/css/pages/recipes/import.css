@@ -16,7 +16,24 @@
   display: none;
 }
 
-/* Import (Kenny, 29/10/2026 14:27): the drawer's fold, the cover offer and an imported line the catalogue did not know. */
+/* The import field at the top of the Recipes page (Kenny, 01/11/2026): one card, the field and its button on a form-grid row,
+   the pasted-text fold under it. */
+.rl-import .kp-card__data,
+.rl-import__form {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.ri-context {
+  margin: 0;
+}
+
+.ri-context[hidden] {
+  display: none;
+}
+
+/* Import (Kenny, 29/10/2026 14:27): the fold, the cover offer and an imported line the catalogue did not know. */
 .ri-fold,
 .ri-fold__body,
 .ri-cell,
@@ -63,4 +80,11 @@
   margin: var(--kp-space-xs, 0.25rem) 0 0;
   padding-inline-start: 1.25rem;
   overflow-wrap: anywhere;
+}
+
+/* The link field and its message (the package's field error) stack in the control track. */
+.ri-control {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  min-inline-size: 0;
 }

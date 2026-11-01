@@ -18,6 +18,12 @@ carries a **Migration** section saying what an operator must do.
   the page; Save returns to where you came from, else the recipe page. The recipe drawer is gone.
 - **Edit in the recipe page's header** (Kenny 01/11/2026): the recipe page has an Edit button beside the effort badge; it opens the
   editor page and Save comes back to the recipe.
+- **Import from a link, at the top of the Recipes page** (Kenny 01/11/2026): "Paste a link" and an Import button sit on a row
+  of the form grid above the table, with "Which sites work?" beside them and the pasted-text fallback in a fold
+  ("Paste the recipe text instead"). The result opens the editor page as an unsaved draft, with the unmatched-lines
+  warning and the cover-photo question as before. "Import from this site" (sources) and a dish's Import button open
+  the Recipes page with the field focused and a line naming the site or the dish (`/recipes?import=1&site=` / `&dish=`).
+  The import drawer is gone.
 - The unsaved bar and the contents list speak Dutch in the Dutch interface (`web/js/i18n/kp-nl/unsaved.js`).
 
 ## [5.0.0] - 2026-10-31

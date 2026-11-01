@@ -3,7 +3,9 @@
 import { attachCardStates, setCardState, toast, openConfirmation } from "/static/kp/dist/kp-themes.min.js";
 import { makeDefaultRecipe, recipeLabel, remove, ApiError } from "../../api.js";
 import { h } from "../../dom.js";
-import { openRecipeImport, duplicateRecipe } from "../../records/index.js";
+import { duplicateRecipe } from "../../records/index.js";
+import { go } from "../../go.js";
+import { importHref } from "../../recipe/import-plan.js";
 import { editRecipe, newRecipe } from "../../recipe/edit-nav.js";
 import { t } from "../../i18n/index.js";
 
@@ -86,7 +88,7 @@ export function dishRecipes(pageEl) {
     newRecipe({ dishId: dish.id });
   });
   importer.addEventListener("click", () => {
-    if (dish) openRecipeImport(dish.id);
+    if (dish) go(importHref({ dish: dish.id }));
   });
   return {
     /** @param {Kitchen} k @param {Item} d */

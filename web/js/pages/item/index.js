@@ -10,8 +10,9 @@
 import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { loadKitchen, onKitchen } from "../../api.js";
 import { h } from "../../dom.js";
-import { LISTS, DETAIL_BASE, missingBadge, openRecordEditor, openRecipeImport, duplicateDish, deleteRecord } from "../../records/index.js";
+import { LISTS, DETAIL_BASE, missingBadge, openRecordEditor, duplicateDish, deleteRecord } from "../../records/index.js";
 import { t } from "../../i18n/index.js";
+import { importHref } from "../../recipe/import-plan.js";
 import { facts } from "./facts.js";
 import { dishRecipes } from "./dish-recipes.js";
 import { usedBy } from "./used-by.js";
@@ -56,7 +57,7 @@ function wireButtons(list, p, cur, navigate) {
   const { edit, copy, del, fromSite } = p;
   const off = (/** @type {HTMLElement} */ b) => b.getAttribute("aria-disabled") === "true";
   edit.addEventListener("click", () => cur.item && !off(edit) && openRecordEditor(list, cur.item));
-  fromSite?.addEventListener("click", () => cur.item && openRecipeImport(null, cur.item));
+  fromSite?.addEventListener("click", () => cur.item && navigate(importHref({ site: cur.item.id })));
   copy?.addEventListener("click", () => cur.item && !off(copy) && duplicateDish(cur.item));
   del.addEventListener("click", () => cur.item && !off(del) && deleteRecord(del, list, cur.item, { after: () => navigate(LISTS[list].home[0]) }));
 }

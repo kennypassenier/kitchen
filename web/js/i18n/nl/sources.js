@@ -44,5 +44,5 @@ export const NL_SOURCES = {
   "src.fix": "Vul het in en druk opnieuw op Opslaan.",
   "imp.which": "Welke sites werken?",
   "imp.whichHint": "Een lijst met sites die met een echte import gecontroleerd zijn.",
-  "imp.siteHint": "Kopieer het adres van een van de recepten en plak het hieronder.",
+  "imp.siteHint": "Kopieer het adres van een van de recepten en plak het in het veld.",
 };

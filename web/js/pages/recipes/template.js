@@ -1,8 +1,9 @@
-// The recipes screen's static parts: the page header, the table with its slots, the list card.
+// The recipes screen's static parts: the page header, the import field, the table with its slots, the list card.
 
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { prepLabels } from "./rows.js";
+import { buildImportField } from "./import-field.js";
 
 /** The package draws this slot as its state plate (centred, the table's full height); the page only supplies the words. */
 function emptySlot() {
@@ -49,10 +50,10 @@ function tableOf() {
   return { table, body, empty };
 }
 
-/** The whole page (not yet in the document) with the nodes the behaviour needs. */
-export function buildPage() {
+/** The whole page (not yet in the document) with the nodes the behaviour needs. @param {{ dishId: string | null }} ask the dish an import started from */
+export function buildPage({ dishId }) {
   const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("list.recipes.add"));
-  const importer = h("button", { type: "button", class: "kp-button" }, t("imp.button"));
+  const field = buildImportField({ dishId });
   const head = h(
     "header",
     { class: "kp-page-header" },
@@ -60,7 +61,7 @@ export function buildPage() {
       "div",
       { class: "kp-page-header__inner" },
       h("div", null, h("h1", { class: "kp-page-header__title" }, t("nav.recipes")), h("p", { class: "kp-page-header__description" }, t("recs.intro"))),
-      h("div", { class: "kp-page-header__actions" }, importer, add),
+      h("div", { class: "kp-page-header__actions" }, add),
     ),
   );
   const { table, body, empty } = tableOf();
@@ -71,6 +72,6 @@ export function buildPage() {
     h("p", { class: "kp-lede" }, t("recs.lede")),
     table,
   );
-  const page = h("div", { class: "rl-page" }, head, list);
-  return { add, importer, table, body, empty, page };
+  const page = h("div", { class: "rl-page" }, head, field.card, list);
+  return { add, field, table, body, empty, page };
 }

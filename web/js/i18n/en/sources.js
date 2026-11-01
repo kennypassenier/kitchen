@@ -44,5 +44,5 @@ export const EN_SOURCES = {
   "src.fix": "Fill it in and press Save again.",
   "imp.which": "Which sites work?",
   "imp.whichHint": "A list of sites that were checked with a real import.",
-  "imp.siteHint": "Copy the address of one of its recipes and paste it below.",
+  "imp.siteHint": "Copy the address of one of its recipes and paste it in the field.",
 };

@@ -1,11 +1,11 @@
-// Open the editor page from anywhere (a table row, a card, an import result). The shell routes on `popstate`
-// (main.js), so a pushed address plus that event is the same navigation a link makes; no page needs the shell's context.
+// Open the editor page from anywhere (a table row, a card, an import result), through go.js.
 
 import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { reason } from "../api.js";
 import { t } from "../i18n/index.js";
 import { copyRecipe } from "./duplicate.js";
 import { putHandoff } from "./edit-handoff.js";
+import { go } from "../go.js";
 import { editHref, here } from "./edit-route.js";
 
 /**
@@ -13,8 +13,7 @@ import { editHref, here } from "./edit-route.js";
  * @param {Parameters<typeof editHref>[0]} spec
  */
 export function goEdit(spec) {
-  history.pushState(null, "", editHref(spec, here(location)));
-  dispatchEvent(new PopStateEvent("popstate"));
+  go(editHref(spec, here(location)));
 }
 
 /** @param {{ id: string }} recipe */

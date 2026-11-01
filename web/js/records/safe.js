@@ -1,4 +1,4 @@
-// Safe dishes (a recipe's `safe` flag), the import opener and the zero-prep shelf's "I ate this".
+// Safe dishes (a recipe's `safe` flag) and the zero-prep shelf's "I ate this".
 
 import { undoToast, toast, closeDialog } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
@@ -8,17 +8,11 @@ import { row, select } from "../ui/form-parts.js";
 import { today, dmy } from "../format.js";
 import { openDrawer, sec } from "../dishes/editor.js";
 import { newRecipe } from "../recipe/edit-nav.js";
-import { openImport } from "../recipe/import.js";
 import { drawer } from "./drawer.js";
 
 /** @typedef {import("./lists.js").Item} Item */
 
 // ---- safe dishes: a recipe's `safe` flag ----------------------------------------------------------------------------
-
-/** Open the import drawer; a recipe imported from a dish's page goes into that dish (Kenny, 29/10/2026 14:27). `site` is a recipe source the drawer points at. @param {string | null} [dishId] @param {Item | null} [site] */
-export function openRecipeImport(dishId = null, site = null) {
-  openImport(drawer(), { dishId, site });
-}
 
 /** Mark one of the recipes as a safe dish, or write a new one. */
 export function openSafePicker() {
