@@ -2,14 +2,10 @@
 // "No energy today" section. Every card starts in its loading state unless the kitchen is already there.
 
 import { t } from "../../i18n/index.js";
-import { cap } from "../../format.js";
-import { FIRST_INGREDIENTS } from "./logic.js";
-import { mealLabels, bandLabels, kindLabels, loadingWords } from "./labels.js";
+import { kindLabels, loadingWords } from "./labels.js";
 
-const chip = (/** @type {string} */ value, /** @type {string} */ label) =>
-  `<button type="button" class="kp-segmented__item" data-value="${value}"><span class="kp-segmented__label">${label}</span></button>`;
-const chips = (/** @type {string} */ id, /** @type {string} */ labelId, /** @type {string} */ items) =>
-  `<div class="kp-segmented kp-segmented--chips" data-kp-segmented="tri" data-kp-segmented-summary aria-labelledby="${labelId}" id="${id}">${items}</div>`;
+/** A group of filter chips; chip-menus.js draws a small menu button per choice into it. @param {string} id @param {string} labelId */
+const chips = (id, labelId) => `<div class="wl-chips" role="group" aria-labelledby="${labelId}" id="${id}"></div>`;
 
 /** @param {string} status @param {string} id @param {string} title @param {string} badge @param {string} body @param {string} [extra] */
 const card = (status, id, title, badge, body, extra = "") => `
@@ -29,23 +25,21 @@ const head = (id, title, text) => `
           <p>${text}</p>
         </div>`;
 
-/** One filter row: its name and its chips. @param {string} key @param {string} name @param {string} items */
-const filterRow = (key, name, items) => `
+/** One filter row: its name and its chips. @param {string} key @param {string} name */
+const filterRow = (key, name) => `
           <div class="kp-formgrid__row">
             <p class="kp-formgrid__label wl-filters__name" id="wl-f-${key}-l">${name}</p>
             <div class="kp-formgrid__control wl-filters__row" data-kp-formgrid-span="wide">
-              ${chips(`wl-f-${key}`, `wl-f-${key}-l`, items)}
+              ${chips(`wl-f-${key}`, `wl-f-${key}-l`)}
             </div>
           </div>`;
 
 /** @param {string} status */
 function filtersSection(status) {
-  const meals = Object.entries(mealLabels()).map(([v, l]) => chip(v, l)).join("");
-  const bands = Object.entries(bandLabels()).map(([v, l]) => chip(v, cap(l))).join("");
-  const ings = FIRST_INGREDIENTS.map((v) => chip(v, cap(v))).join("");
   return `
       <section class="wl-sec" id="wl-filters-sec" aria-labelledby="wl-h-filters">${head("wl-h-filters", t("wheel.secFilters"), t("wheel.secFiltersText"))}
-        <div class="kp-formgrid wl-filters" id="wl-filters">${filterRow("meal", t("wheel.fMeal"), meals)}${filterRow("time", t("wheel.fTime"), bands)}${filterRow("ing", t("wheel.fIng"), ings)}${filterRow("cat", t("wheel.fCat"), "")}
+        <div class="kp-formgrid wl-filters" id="wl-filters">
+          <p class="wl-filters__help" data-kp-formgrid-span="full">${t("wheel.filterHelp")}</p>${filterRow("meal", t("wheel.fMeal"))}${filterRow("time", t("wheel.fTime"))}${filterRow("ing", t("wheel.fIng"))}${filterRow("cat", t("wheel.fCat"))}
           <div class="kp-formgrid__row wl-filters__foot">
             <div class="kp-formgrid__control wl-filters__foot-cell" data-kp-formgrid-span="wide">
               <button type="button" class="kp-button kp-button--sm" id="wl-f-clear" disabled data-kp-disabled-reason="${t("wheel.nothingFiltered")}" title="${t("wheel.clearTitle")}">${t("wheel.clearAll")}</button>

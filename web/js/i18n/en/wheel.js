@@ -11,7 +11,7 @@ export const EN_WHEEL = {
   "wheel.cardBody": "Spin once; if the answer does not feel right, spin again or set that dish aside.",
   "wheel.dinnerAt": (time) => `Dinner is at ${time}.`,
   "wheel.secFilters": "Filters: want, not, or either way",
-  "wheel.secFiltersText": "Press a chip once to require it, twice to leave it out and a third time to let it go; the wheel and the list below only hold what fits.",
+  "wheel.secFiltersText": "Narrow the wheel by meal, time, ingredient and category; the wheel and the list below only hold what fits.",
   "wheel.fMeal": "Meal",
   "wheel.fTime": "Time",
   "wheel.fIng": "Ingredients",
@@ -127,4 +127,13 @@ export const EN_WHEEL = {
   "wheel.easyOff": "No energy today is off: the wheel holds every dish.",
   // The empty side wheel says it inside its disc (Kenny, 01/11/2026 20:21, "Tekst in rad").
   "wheel.noSide": "No side for this dish",
+  // The filter chips' small menus (Kenny, 01/11/2026 20:21, "Klein menu").
+  "wheel.filterHelp": "Press a choice to open its menu: Want keeps only the dishes with it, Not leaves them out, Either way lets it go.",
+  "wheel.triWant": "Want",
+  "wheel.triNot": "Not",
+  "wheel.triEither": "Either way",
+  "wheel.triWantHint": "Only dishes with this",
+  "wheel.triNotHint": "No dishes with this",
+  "wheel.triEitherHint": "This does not narrow the wheel",
+  "wheel.chipSays": (name, state, count) => `${name}: ${state}${count == null ? "" : `, ${count} ${count === 1 ? "dish" : "dishes"}`}`,
 };

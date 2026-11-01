@@ -1,7 +1,7 @@
 // The wheel, "What do we eat?" (route "/"): the kitchen's dishes on one wheel, the answer with when to start, the three-way
 // filters, "No energy today" and the dishes that fit. Everything drawn is the package's: the one wheel component
 // (web/eten/dishwheel.js, Kenny, 24/10/2026 10:27: the same wheel everywhere; this page gives it the dishes and fills its
-// answer column) over js/wheel.js, js/segmented.js (three-way chips), js/toggle.js, js/card-state.js (loading, empty and failed
+// answer column) over js/wheel.js, js/menu-button.js (each filter chip a small Want / Not / Either way menu), js/segmented.js, js/toggle.js, js/card-state.js (loading, empty and failed
 // states), js/art.js, js/reason.js, js/calm.js, the kp-switch and the form grid. Data comes from api.js only.
 //
 // What a person did that is kept: a dish set aside ("Not this one, not again this week") is a `resting` item with an `until`
@@ -13,12 +13,12 @@
 // (scripts/wheel.test.mjs covers it); model.js binds it to the ctx.
 
 import { loadKitchen, kitchenNow, onKitchen } from "../../api.js";
-import { attachCardStates, setCardState, attachSegmented, setSegmentedCounts, attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState, attachSegmented, attachDisabledReasons } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { newModel, FIRST_INGREDIENTS } from "./logic.js";
 import { pageHtml } from "./template.js";
 import { derive, dinnerTime } from "./model.js";
-import { paintCounts, describeFilters, wireFilters } from "./filters.js";
+import { paintCounts, describeFilters, wireFilters, drawChips } from "./filters.js";
 import { paintEasy, wireEasy, releaseCalm } from "./easy.js";
 import { createWheelView } from "./wheel-view.js";
 import { createListView } from "./list-view.js";
@@ -63,7 +63,7 @@ function attachPackage(ctx) {
   const { root, cleanups, el } = ctx;
   cleanups.push(attachCardStates(root), attachSegmented(root), attachDisabledReasons(root));
   for (const g of Object.values(el.groups)) if (ctx.status === "loading") g.setAttribute("aria-busy", "true");
-  for (const g of Object.values(el.groups)) setSegmentedCounts(g, Object.fromEntries([...g.querySelectorAll("[data-value]")].map((b) => [/** @type {HTMLElement} */ (b).dataset.value ?? "", null])));
+  drawChips(ctx);
 }
 
 /** The first load when the kitchen is not there yet. @param {WheelCtx} ctx */

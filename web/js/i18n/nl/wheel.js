@@ -11,7 +11,7 @@ export const NL_WHEEL = {
   "wheel.cardBody": "Draai één keer. Voelt het antwoord niet goed, draai dan nog eens of zet dat gerecht opzij.",
   "wheel.dinnerAt": (time) => `Er wordt gegeten om ${time}.`,
   "wheel.secFilters": "Filters: wel, niet of maakt niet uit",
-  "wheel.secFiltersText": "Druk één keer op een chip om het te willen, twee keer om het uit te sluiten en een derde keer om los te laten. Het wiel en de lijst eronder tonen alleen wat past.",
+  "wheel.secFiltersText": "Beperk het wiel op maaltijd, tijd, ingrediënt en categorie; het wiel en de lijst hieronder houden alleen wat past.",
   "wheel.fMeal": "Maaltijd",
   "wheel.fTime": "Tijd",
   "wheel.fIng": "Ingrediënten",
@@ -127,4 +127,13 @@ export const NL_WHEEL = {
   "wheel.easyOff": "Geen energie vandaag staat uit: het wiel houdt elk gerecht.",
   // The empty side wheel says it inside its disc (Kenny, 01/11/2026 20:21, "Tekst in rad").
   "wheel.noSide": "Geen bijgerecht bij dit gerecht",
+  // The filter chips' small menus (Kenny, 01/11/2026 20:21, "Klein menu").
+  "wheel.filterHelp": "Druk op een keuze om haar menu te openen: Wel houdt alleen de gerechten ermee, Niet laat ze weg, Maakt niet uit laat haar los.",
+  "wheel.triWant": "Wel",
+  "wheel.triNot": "Niet",
+  "wheel.triEither": "Maakt niet uit",
+  "wheel.triWantHint": "Alleen gerechten hiermee",
+  "wheel.triNotHint": "Geen gerechten hiermee",
+  "wheel.triEitherHint": "Dit beperkt het wiel niet",
+  "wheel.chipSays": (name, state, count) => `${name}: ${state}${count == null ? "" : `, ${count} ${count === 1 ? "gerecht" : "gerechten"}`}`,
 };

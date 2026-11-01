@@ -1,13 +1,15 @@
-// The filter chips: the counts and the chip lists the data makes, reading what the person pressed into the model (and the
-// order they pressed it in), the clear button and the line that says what is filtered.
+// The filter chips: the counts and the chip lists the data makes, reading what the person picked in a chip's menu into the
+// model (and the order they set it in), the clear button and the line that says what is filtered. Each chip is a small
+// menu with Want / Not / Either way (Kenny, 01/11/2026 20:21, "Klein menu"; chip-menus.js draws them, tri.js maps them).
 
 import { loadKitchen } from "../../api.js";
-import { setSegmentedCounts, setSegmentedItems, setSegmentedTri, getSegmentedTri, SEGMENTED_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { cap } from "../../format.js";
 import * as L from "./logic.js";
 import * as C from "./constraints.js";
 import { mealLabels, bandLabels } from "./labels.js";
+import { setChips, paintChips as paintChipStates, setChipCounts, onChipPick } from "./chip-menus.js";
+import { withState, keepOnly } from "./tri.js";
 import { catName, constraints, onWheel } from "./model.js";
 
 /** The ingredient chips are the ingredients the dishes use, most used first. @param {import("./index.js").WheelCtx} ctx */
@@ -17,13 +19,13 @@ function paintIngredientChips(ctx) {
   const counts = L.countOf(dishes, "ing", shown);
   if (shown.join() !== ctx.chipKeys.ing) {
     ctx.chipKeys.ing = shown.join();
-    setSegmentedItems(el.groups.ing, shown.map((v) => ({ value: v, label: cap(v), count: counts[v] })));
-    M.ing = getSegmentedTri(el.groups.ing);
+    M.ing = keepOnly(M.ing, shown);
     M.order = C.dropGone(M.order, "ing", shown);
+    setChips(el.groups.ing, shown.map((v) => ({ value: v, label: cap(v) })), M.ing);
   }
-  setSegmentedCounts(el.groups.meal, L.countOf(dishes, "meal", Object.keys(mealLabels())));
-  setSegmentedCounts(el.groups.time, L.countOf(dishes, "time", Object.keys(bandLabels())));
-  setSegmentedCounts(el.groups.ing, counts);
+  setChipCounts(el.groups.meal, L.countOf(dishes, "meal", Object.keys(mealLabels())), M.meal);
+  setChipCounts(el.groups.time, L.countOf(dishes, "time", Object.keys(bandLabels())), M.time);
+  setChipCounts(el.groups.ing, counts, M.ing);
 }
 
 /** The category chips are the dish categories the dishes use, in their order (Kenny, 24/10/2026 09:17). @param {import("./index.js").WheelCtx} ctx */
@@ -33,11 +35,11 @@ function paintCategoryChips(ctx) {
   const counts = L.countOf(dishes, "cat", cats);
   if (cats.join() !== ctx.chipKeys.cat) {
     ctx.chipKeys.cat = cats.join();
-    setSegmentedItems(el.groups.cat, cats.map((v) => ({ value: v, label: catName(ctx, v), count: counts[v] })));
-    M.cat = getSegmentedTri(el.groups.cat);
+    M.cat = keepOnly(M.cat, cats);
     M.order = C.dropGone(M.order, "cat", cats);
+    setChips(el.groups.cat, cats.map((v) => ({ value: v, label: catName(ctx, v) })), M.cat);
   }
-  setSegmentedCounts(el.groups.cat, counts);
+  setChipCounts(el.groups.cat, counts, M.cat);
 }
 
 /** @param {import("./index.js").WheelCtx} ctx */
@@ -49,17 +51,27 @@ export function paintCounts(ctx) {
   paintCategoryChips(ctx);
 }
 
-/** Show the model's chips on the components and paint everything again. @param {import("./index.js").WheelCtx} ctx */
+/** The chips of the four groups, drawn once from the template's words (the ingredient and category chips follow the data). @param {import("./index.js").WheelCtx} ctx */
+export function drawChips(ctx) {
+  const { el, M } = ctx;
+  setChips(el.groups.meal, Object.entries(mealLabels()).map(([value, label]) => ({ value, label })), M.meal);
+  setChips(el.groups.time, Object.entries(bandLabels()).map(([value, label]) => ({ value, label: cap(label) })), M.time);
+  setChips(el.groups.ing, L.FIRST_INGREDIENTS.map((v) => ({ value: v, label: cap(v) })), M.ing);
+  setChips(el.groups.cat, [], M.cat);
+}
+
+/** Show the model's answers on the chips and paint everything again. @param {import("./index.js").WheelCtx} ctx */
 export function paintChips(ctx) {
-  for (const g of L.GROUPS) setSegmentedTri(ctx.el.groups[g], ctx.M[g]);
+  for (const g of L.GROUPS) paintChipStates(ctx.el.groups[g], ctx.M[g]);
   ctx.view.paintAll();
 }
 
-/** Take what the person pressed into the model. @param {import("./index.js").WheelCtx} ctx @param {L.Group} group */
-function readChips(ctx, group) {
-  const now = getSegmentedTri(ctx.el.groups[group]);
+/** Take a chip's answer into the model. @param {import("./index.js").WheelCtx} ctx @param {L.Group} group @param {string} value @param {import("./tri.js").TriState} state */
+function readChip(ctx, group, value, state) {
+  const now = withState(ctx.M[group], value, state);
   ctx.M.order = C.orderAfterChips(ctx.M.order, group, ctx.M[group], now);
   ctx.M[group] = now;
+  paintChipStates(ctx.el.groups[group], now);
   ctx.view.paintAll();
 }
 
@@ -85,11 +97,7 @@ export function describeFilters(ctx) {
 
 /** @param {import("./index.js").WheelCtx} ctx */
 export function wireFilters(ctx) {
-  for (const group of L.GROUPS) {
-    const on = () => readChips(ctx, group);
-    ctx.el.groups[group].addEventListener(SEGMENTED_EVENT, on);
-    ctx.cleanups.push(() => ctx.el.groups[group].removeEventListener(SEGMENTED_EVENT, on));
-  }
+  for (const group of L.GROUPS) ctx.cleanups.push(onChipPick(ctx.el.groups[group], (value, state) => readChip(ctx, group, value, state)));
   ctx.el.clearBtn.addEventListener("click", () => clearFilters(ctx));
 }
 

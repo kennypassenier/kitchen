@@ -21,8 +21,78 @@
   font-weight: 600;
 }
 
-.wl-filters__row > .kp-segmented {
+/* The help line, once, at the top of the filter card (Kenny, 01/11/2026 20:21, "Klein menu"). */
+.wl-filters__help {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+/* A group's chips: each the kit's menu button, in columns of one width so marks, names and counts line up row to row. */
+.wl-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--kp-space-xs, 0.375rem);
   inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.wl-chips[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.wl-chip.kp-menu-button {
+  display: grid;
+  justify-self: stretch;
+  inline-size: auto;
+  min-inline-size: 0;
+}
+
+.wl-chip > .wl-chip__btn.kp-button {
+  justify-self: stretch;
+}
+
+/* A chip: its mark, its name, its answer in words and its count, on one line in fixed columns. */
+.wl-chip__btn.kp-button {
+  display: grid;
+  grid-template-columns: 1.25em minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--kp-space-xs, 0.375rem);
+  inline-size: 100%;
+  text-align: start;
+}
+
+.wl-chip__label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.wl-chip__mark,
+.wl-chip__state {
+  font-weight: 700;
+}
+
+.wl-chip__count[hidden] {
+  display: none;
+}
+
+/* Want and Not stand out by their border and their words, never by colour alone. */
+.wl-chip__btn[data-state="want"] {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.wl-chip__btn[data-state="not"] {
+  border-style: dashed;
+}
+
+.wl-chip__btn[data-state="not"] .wl-chip__label {
+  text-decoration: line-through;
+}
+
+/* The answer that is now, marked in its menu as well as checked for a reader. */
+.wl-chip .kp-menu__item[aria-checked="true"] .kp-menu__label::after {
+  content: " ✓";
 }
 
 .wl-filters__foot-cell {
@@ -98,24 +168,21 @@
   }
 }
 
-/* On a phone the chips wrap; two equal chips a row keep every chip, its word and its count on the same edges row after row. */
+/* On a phone the easy kinds wrap: one chip a row, never cut; the filter chips take the full width, one a row. */
 @media (max-width: 36rem) {
+  .wl-chips {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .wl-filters__row > .kp-segmented--chips {
     display: flex;
   }
 
   .wl-filters__row > .kp-segmented--chips > .kp-segmented__item {
-    flex: 0 0 calc((100% - var(--kp-chip-gap, 0.375rem)) / 2);
+    flex: 0 0 100%;
     min-inline-size: 0;
   }
 
-  /* The time ranges and the easy kinds are long words: one chip a row, never cut. */
-  #wl-f-time > .kp-segmented__item,
-  #wl-easy-kinds > .kp-segmented__item {
-    flex-basis: 100%;
-  }
-
-  /* The word takes what is left, so the counts end on one edge. */
   .wl-filters__row > .kp-segmented--chips .kp-segmented__label {
     flex: 1 1 auto;
     min-inline-size: 0;
