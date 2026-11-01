@@ -11,6 +11,8 @@ export const NL_BADDAYS = {
   "bad.safeTitle": "Je veilige gerechten",
   "bad.safeMenu": "Recepten die nog geen veilig gerecht zijn",
   "bad.allSafeWhy": "Elk recept is al een veilig gerecht, dus er is niets toe te voegen. Schrijf hieronder een nieuw recept.",
+  "bad.fromDishHint": "Kies een van je gerechten en beide namen vullen zich hieronder in. Of laat het leeg en typ de naam in beide talen.",
+  "bad.fromDishNone": "Een ander gerecht: ik typ de namen",
   "bad.addSafe": "Veilig gerecht toevoegen",
   "bad.safeBody": "Kies er een en het avondeten is beslist. Elk is een recept dat je als veilige favoriet markeerde.",
   "bad.safeLabel": "Veilige gerechten",

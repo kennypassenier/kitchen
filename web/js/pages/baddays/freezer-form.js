@@ -6,6 +6,7 @@ import { h, $ } from "../../dom.js";
 import { t, nameOf, textOf } from "../../i18n/index.js";
 import { dmy, today } from "../../format.js";
 import { DAY } from "./helpers.js";
+import { afterPick } from "./freezer-names.js";
 
 /** @param {HTMLElement} page */
 function formParts(page) {
@@ -31,22 +32,30 @@ function formParts(page) {
 
 /** @typedef {ReturnType<typeof formParts>} FormParts */
 
-/** The kitchen's dishes as the choices of "which dish it is"; picking one with the name field still empty fills it in. @param {import("./index.js").BadDaysCtx} ctx @param {FormParts} f */
+/** The kitchen's dishes as the choices of "From the dish", the first row of the form: picking one fills both names from it. @param {import("./index.js").BadDaysCtx} ctx @param {FormParts} f */
 function wireDishPicker(ctx, f) {
   const { fromField, dishField, dishEnField } = f;
   const fillDishes = () => {
     const was = fromField.value;
     fromField.replaceChildren(
-      h("option", { value: "" }, t("rec.noDish")),
+      h("option", { value: "" }, t("bad.fromDishNone")),
       ...[...(kitchenNow()?.dishes ?? [])].map((d) => [d.id, nameOf(d).text]).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => h("option", { value: id }, n)),
     );
     fromField.value = was;
     drawnSelect(fromField)?.refresh();
   };
+  /** What the last dish filled in, so "another dish" only empties names it wrote. @type {import("./freezer-names.js").Names | null} */
+  let filled = null;
   fromField.addEventListener("change", () => {
-    const d = kitchenNow()?.dishes.find((x) => x.id === fromField.value);
-    if (d && !dishField.value.trim()) dishField.value = String(d.name?.nl ?? "");
-    if (d && !dishEnField.value.trim()) dishEnField.value = String(d.name?.en ?? "");
+    const dish = kitchenNow()?.dishes.find((x) => x.id === fromField.value) ?? null;
+    const next = afterPick({ dish, filled, current: { nl: dishField.value, en: dishEnField.value } });
+    filled = next.filled;
+    dishField.value = next.names.nl;
+    dishEnField.value = next.names.en;
+    // The names are valid now: clear what an earlier submit said was wrong.
+    for (const field of [dishField, dishEnField]) field.setCustomValidity("");
+    mark(f.dishRow, f.dishNote, null, t("bad.dishHint"));
+    mark(f.dishEnRow, f.dishEnNote, null, t("bad.dishEnHint"));
   });
   ctx.stops.push(onKitchen(() => ctx.alive && fillDishes()));
   fillDishes();
@@ -132,8 +141,10 @@ function wireSave(f, setToday) {
       toast(t("bad.added", dish), { ms: 4000 });
       f.dishField.value = "";
       f.dishEnField.value = "";
+      f.fromField.value = "";
+      drawnSelect(f.fromField)?.refresh();
       setToday();
-      f.dishField.focus();
+      f.fromField.focus();
     } catch (e) {
       toast(t("bad.addFailed", dish, reason(e)), { live: "assertive", sticky: true });
     } finally {

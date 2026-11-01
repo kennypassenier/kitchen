@@ -89,6 +89,13 @@ export const sections = () => `
       <form class="bd-add__form" data-kp-form data-bd-add-form novalidate aria-labelledby="h-freezer-add">
         <div class="kp-form__summary" data-kp-form-summary tabindex="-1" hidden></div>
         <div class="kp-formgrid" data-kp-formgrid-lines="lines">
+        <div class="kp-formgrid__row">
+          <label class="kp-formgrid__label" for="bd-add-from">${t("rec.dishLink")}</label>
+          <div class="kp-formgrid__control">
+            <select class="kp-field__input" id="bd-add-from" data-bd-from><option value="">${t("bad.fromDishNone")}</option></select>
+          </div>
+          <p class="kp-formgrid__value">${t("bad.fromDishHint")}</p>
+        </div>
         <div class="kp-formgrid__row" data-bd-dish-row>
           <label class="kp-formgrid__label" for="bd-add-dish">${t("bad.dishNl")}</label>
           <div class="kp-formgrid__control">
@@ -104,13 +111,6 @@ export const sections = () => `
               aria-describedby="bd-add-dish-en-note" />
           </div>
           <p class="kp-formgrid__value" id="bd-add-dish-en-note" role="status" aria-live="polite" data-bd-dish-en-note>${t("bad.dishEnHint")}</p>
-        </div>
-        <div class="kp-formgrid__row">
-          <label class="kp-formgrid__label" for="bd-add-from">${t("rec.dishLink")}</label>
-          <div class="kp-formgrid__control">
-            <select class="kp-field__input" id="bd-add-from" data-bd-from><option value="">${t("rec.noDish")}</option></select>
-          </div>
-          <p class="kp-formgrid__value">${t("rec.dishLinkHint")}</p>
         </div>
         <div class="kp-formgrid__row">
           <label class="kp-formgrid__label" for="bd-add-portions">${t("bad.colPortions")}</label>

@@ -11,6 +11,8 @@ export const EN_BADDAYS = {
   "bad.safeTitle": "Your safe dishes",
   "bad.safeMenu": "Recipes that are not a safe dish yet",
   "bad.allSafeWhy": "Every recipe is a safe dish already, so there is nothing to add. Write a new recipe below.",
+  "bad.fromDishHint": "Pick one of your dishes and both names fill in below. Or leave it and type the name in both languages.",
+  "bad.fromDishNone": "Another dish: I type its names",
   "bad.addSafe": "Add a safe dish",
   "bad.safeBody": "Pick one and that is dinner decided. Each one is a recipe you marked as a safe favourite.",
   "bad.safeLabel": "Safe dishes",
