@@ -1,45 +1,34 @@
-/* ---- 2 · the QR code ------------------------------------------------------------------------------------------ */
+/* ---- 2 · the "Send to phone" popover: the code and one sentence under it ------------------------------------------- */
 
-.rp-share__grid {
-  inline-size: 100%;
-  max-inline-size: 60rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--kp-space-lg, 1.5rem);
-  align-items: start;
+.rp-phone {
+  inline-size: min(18rem, calc(100vw - 2rem));
+  justify-items: start;
 }
 
-@media (min-width: 48rem) {
-  .rp-share__grid {
-    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
-    gap: var(--kp-space-xl, 2rem);
+/* Wide, the button sits at the card's right edge: the plate hangs from the button's end edge and grows toward the page.
+   On a phone the tools start at the left edge (card.css), so the plate keeps the kit's own place, from the start edge. */
+@media (min-width: 40.01rem) {
+  .rp-phone {
+    position-area: block-end span-inline-start;
   }
 }
 
-.rp-share__grid > * {
-  min-inline-size: 0;
-}
-
-.rp-share__code,
-.rp-share__words {
-  display: grid;
-  gap: var(--kp-space-sm, 0.5rem);
-  align-content: start;
-}
-
-.rp-share__code h3,
-.rp-share__words h3 {
+.rp-phone__text {
   margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-sm, 0.8125rem);
+  text-align: start;
 }
 
-.rp-steps {
-  display: grid;
-  gap: var(--kp-space-sm, 0.5rem);
-  margin: 0;
-  padding-inline-start: 1.5rem;
-}
+/* On a phone the tools start at the left edge and the button comes first, so the plate (anchored from its start edge)
+   stays inside the window. */
+@media (max-width: 40rem) {
+  .rp-recipe__tools {
+    display: flex;
+    flex-wrap: wrap;
+  }
 
-.rp-steps li::marker {
-  font-weight: 600;
+  .rp-recipe__tools .app-popover-wrap {
+    order: -1;
+  }
 }
-

@@ -5,6 +5,7 @@ import { attachLedes, attachQuantities, attachFlashButtons, runFlashButton } fro
 import { minutesText } from "../../recipe/amounts.js";
 import { dmy } from "../../format.js";
 import { dataOf } from "../../ui/cards.js";
+import { popoverButton } from "../../ui/popover.js";
 import { showPhotos } from "../../recipe/photos.js";
 import { STEP_WORDS, sourceRow } from "../../recipe/page-parts.js";
 import { lang, t } from "../../i18n/index.js";
@@ -73,6 +74,10 @@ function lastNote(ctx, r, k) {
 /** Edit, in the page's header (Kenny, 01/11/2026): the editor page, and Save comes back here. @param {string} id @param {string} name */
 const editLink = (id, name) => h("a", { class: "kp-button", href: editHref({ id }, recipeHref(id)), "aria-label": t("rec.editName", name) }, t("common.edit"));
 
+/** "Send to phone": a button whose popover holds the code that opens cook mode there (Kenny, 01/11/2026 20:21). @param {import("./index.js").RecipeCtx} ctx */
+const phoneButton = (ctx) =>
+  popoverButton({ label: ctx.words.phoneButton, name: ctx.words.shareTitle, content: [ctx.el.code, ctx.el.phoneText], plate: "rp-phone" }).wrap;
+
 /** The whole recipe block of the card: title row, photo, the main column and the portions side. @param {import("./index.js").RecipeCtx} ctx @param {Record<string, any>} r @param {import("../../api.js").Kitchen} k @param {{ begin: HTMLElement, quantity: HTMLElement, list: HTMLElement }} parts */
 function recipeBlock(ctx, r, k, { begin, quantity, list }) {
   const { words } = ctx;
@@ -84,7 +89,7 @@ function recipeBlock(ctx, r, k, { begin, quantity, list }) {
     "div",
     { class: "rp-recipe" },
     // The title row spans both columns, so the two columns under it start on one line.
-    h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("div", { class: "rp-recipe__tools" }, h("span", { class: "kp-badge" }, words.effortBadge(effort)), editLink(ctx.id, r.name))),
+    h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("div", { class: "rp-recipe__tools" }, h("span", { class: "kp-badge" }, words.effortBadge(effort)), phoneButton(ctx), editLink(ctx.id, r.name))),
     r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[lang()].photo)) : null,
     h("div", { class: "rp-recipe__main" }, ledeOf(ctx, r, total), factsOf(ctx, r, total, effort), beginBlock(ctx, begin, things), lastNote(ctx, r, k)),
     h("div", { class: "rp-recipe__side" }, h("div", { class: "rp-portions" }, h("h3", { class: "kp-fw-semibold" }, words.portions), quantity), list),

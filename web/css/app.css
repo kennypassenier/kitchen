@@ -65,3 +65,27 @@ html .kp-formgrid.kp-formgrid {
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--kp-space-sm, 0.5rem);
 }
+
+/* A small popover opened by a button (ui/popover.js): the kit's plate, sized to what it holds and never wider than the window. */
+.app-popover-wrap {
+  display: inline-block;
+  min-inline-size: 0;
+}
+
+/* Only while open: a display set on the closed plate would override the browser's `display: none` for a popover. */
+.app-popover:popover-open {
+  display: grid;
+}
+
+/* Fixed, not the kit's absolute: an absolute plate is placed inside the initial containing block (the first screenful from
+   the top of the page), so a button further down the page got a plate pinned to that block's bottom (measured in Firefox
+   153, kp-gaps/chassis-rs.md). A fixed plate is placed in the viewport and follows its anchor. */
+.app-popover {
+  position: fixed;
+  position-try-fallbacks: flip-block;
+  box-sizing: border-box;
+  gap: var(--kp-space-sm, 0.5rem);
+  inline-size: max-content;
+  max-inline-size: min(24rem, calc(100vw - 2rem));
+  padding: var(--kp-space-md, 1rem);
+}

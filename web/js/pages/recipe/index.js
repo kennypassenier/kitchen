@@ -38,8 +38,8 @@ import { createShare, drawPrintOptions } from "./share-sheet.js";
 
 /** The lower sections show once there is a recipe to show. @param {RecipeCtx} ctx @param {boolean} on */
 function lower(ctx, on) {
-  const { share, paper, logSec, stepCard } = ctx.el;
-  for (const el of [share.el, paper.el, logSec.el]) el.hidden = !on;
+  const { paper, logSec, stepCard } = ctx.el;
+  for (const el of [paper.el, logSec.el]) el.hidden = !on;
   if (!on) stepCard.el.hidden = true;
 }
 
