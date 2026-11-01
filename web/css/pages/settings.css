@@ -40,6 +40,13 @@
   --kp-formgrid-control: 18rem;
 }
 
+/* A row whose value cell holds a second line (the "Use default puts back ..." hint) would be centred as one block and hang
+   what the setting says now under the title; it keeps its cells on the title's line instead. The kit centres the other
+   rows on their two-line name. */
+.st-card .kp-formgrid .kp-formgrid__row.kp-formgrid__row:has(> .st-value > .st-hint) {
+  align-items: first baseline;
+}
+
 .st-name {
   display: grid;
   gap: var(--kp-space-xs, 0.25rem);
