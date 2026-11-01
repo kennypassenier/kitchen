@@ -30,6 +30,11 @@ Only pin + sync + checks should remain:
      drop `web/js/pages/settings/theme-button.js` and re-measure the `/settings` theme button at 1280 and 390 px.
    - The new chassis-rs also advertises the maskable and monochrome icons already in `web/pwa/` (kit manifest); check
      `/manifest.webmanifest` lists them.
+6a. At 12.2.0 re-measure long wheel names (e.g. "Kippenwaterzooi") at 360 and 390 px on `/`, `/eten` and an ingredient page:
+   kp-themes main fa356ec67 breaks a long name without a space with a hyphen (9.1 to 12.9 px at 360 px). Kitchen has no
+   long-name workaround of its own today (`web/eten/dishwheel*` only redraws and stops without rewind), so nothing to drop;
+   just confirm the names read. Keep the in-use reason-tooltip workaround (`web/js/records/in-use.js`) until kp-themes ships
+   its card-layout tooltip fix (on hold for Kenny's release decision).
 7. Re-check Kitchen's imports against the new bundle with `/tmp/claude-1000/-home-kenny-Projects/cf5bc211-3b73-5e5c-b494-895e05e608c8/scratchpad/kp-names.mjs`.
 8. Then the release gate: the full suite (cargo test, node tests, check scripts), Firefox smoke at 1280 and 390 (EN and NL), measure-align and
    measure-gaps clear; only then the release decision.
