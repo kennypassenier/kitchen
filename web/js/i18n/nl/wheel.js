@@ -125,4 +125,6 @@ export const NL_WHEEL = {
   "wheel.filterFit": (all, n, m) => `${all}: ${n} van ${m} gerechten passen.`,
   "wheel.easyOn": (n) => `Geen energie vandaag staat aan: ${n === 1 ? "1 gerecht staat" : `${n} gerechten staan`} op het wiel.`,
   "wheel.easyOff": "Geen energie vandaag staat uit: het wiel houdt elk gerecht.",
+  // The empty side wheel says it inside its disc (Kenny, 01/11/2026 20:21, "Tekst in rad").
+  "wheel.noSide": "Geen bijgerecht bij dit gerecht",
 };

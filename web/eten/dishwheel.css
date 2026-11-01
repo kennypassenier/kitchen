@@ -68,6 +68,42 @@
 
 .dw__wheel--side {
   --kp-wheel-size: min(20rem, 100%);
+  /* The note stands on the disc (the same grid cell), so the empty wheel keeps its footprint (Kenny, 01/11/2026 "Tekst in rad"). */
+  grid-template-areas: "kicker" "disc";
+}
+
+.dw__wheel--side > .dw__kicker {
+  grid-area: kicker;
+}
+
+.dw__wheel--side > .kp-wheel,
+.dw__wheel--side > .dw__note {
+  grid-area: disc;
+}
+
+/* The sentence of an empty side wheel, inside its disc: centred in the ring, as wide as the disc's inner part, in the
+   page's own muted text. The hub (its plate and its Spin, which can do nothing on an empty wheel) gives it the room. */
+.dw__note {
+  z-index: 1;
+  place-self: center;
+  max-inline-size: min(14rem, 70%);
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--kp-text-md, 1rem);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
+}
+
+.dw__note[hidden] {
+  display: none;
+}
+
+.dw__wheel--side > .kp-wheel[data-kp-wheel-empty] .kp-wheel__spin,
+.dw__wheel--side > .kp-wheel[data-kp-wheel-empty] .kp-wheel__stage::before {
+  visibility: hidden;
 }
 
 .dw__wheel > .kp-wheel {

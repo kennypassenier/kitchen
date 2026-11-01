@@ -45,7 +45,7 @@ function mountWheel(ctx, cardEl, vs, onChange) {
   data.innerHTML = '\n        <div class="wl-screen" data-wl="screen"></div>';
   const screen = /** @type {HTMLElement} */ (data.querySelector('[data-wl="screen"]'));
   const wheels = mountDishWheel(screen, {
-    words: { dishKicker: t("wheel.tonightsWheel"), sideKicker: t("wheel.sideKicker"), sideFirst: t("wheel.sideFirst"), nothing: () => "", oneSide: (_d, side) => t("wheel.withSide", side) },
+    words: { dishKicker: t("wheel.tonightsWheel"), sideKicker: t("wheel.sideKicker"), sideFirst: t("wheel.sideFirst"), nothing: () => t("wheel.noSide"), oneSide: (_d, side) => t("wheel.withSide", side) },
     onChange,
   });
   /** @type {HTMLElement} */ (wheels.answer).innerHTML = answerHtml();

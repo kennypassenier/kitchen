@@ -88,6 +88,7 @@ function markup(id, words, { sides, answer, kiosk, cards }) {
         ? `<div class="dw__wheel dw__wheel--side">
       ${words.sideKicker ? `<p class="dw__kicker" id="${id}-sk">${esc(words.sideKicker)}</p>` : ""}
       <div class="kp-wheel" data-dw-side ${wheelAttrs} data-kp-wheel-empty="${esc(words.sideFirst ?? "")}" ${named(words.sideKicker, `${id}-sk`, words.sideKicker)}></div>
+      <p class="dw__note" data-dw-note aria-hidden="true">${esc(words.sideFirst ?? "")}</p>
     </div>`
         : ""
     }
@@ -95,7 +96,7 @@ function markup(id, words, { sides, answer, kiosk, cards }) {
     ${answer ? '<div class="dw__answer" data-dw-answer></div>' : ""}`;
 }
 
-/** @typedef {{ big: HTMLElement, small: HTMLElement | null, words: DishWords, onChange: ((change: DishChange) => void) | undefined, dishes: Map<string, DishItem>, dish: DishItem | null }} WheelState dish is the dish the big wheel stands on */
+/** @typedef {{ big: HTMLElement, small: HTMLElement | null, note: HTMLElement | null, words: DishWords, onChange: ((change: DishChange) => void) | undefined, dishes: Map<string, DishItem>, dish: DishItem | null }} WheelState dish is the dish the big wheel stands on */
 
 /** @param {WheelState} s @param {DishChange["phase"]} phase @param {string | null} [side] */
 function emit(s, phase, side = null) {
@@ -103,11 +104,25 @@ function emit(s, phase, side = null) {
   s.onChange?.({ phase, dish: s.dish, sides: list, side: side ?? (list.length === 1 ? list[0] : null) });
 }
 
-/** The small wheel empty, saying why. @param {WheelState} s @param {string | undefined} text */
+/** The small wheel empty, saying why: the sentence stands inside the empty disc itself, so the wheel keeps its size and
+ * says it where the eye already is (Kenny, 01/11/2026 20:21, "Tekst in rad"). The kit's own result line says the same to a
+ * reader, so the note is hidden from assistive technology. @param {WheelState} s @param {string | undefined} text */
 function clearSide(s, text) {
   if (!s.small) return;
-  s.small.setAttribute("data-kp-wheel-empty", text ?? s.words.sideFirst ?? "");
+  const says = text ?? s.words.sideFirst ?? "";
+  s.small.setAttribute("data-kp-wheel-empty", says);
+  if (s.note) {
+    s.note.textContent = says;
+    s.note.hidden = !says;
+  }
   give(s.small, []);
+}
+
+/** The small wheel holds sides: the note leaves the disc. @param {WheelState} s @param {object[]} items */
+function fillSide(s, items) {
+  if (!s.small) return;
+  if (s.note) s.note.hidden = true;
+  give(s.small, items);
 }
 
 /** The big wheel stopped: the small one is filled with the dish's sides and spins, or says why not. @param {WheelState} s @param {Event} e */
@@ -123,7 +138,7 @@ function onResult(s, e) {
     return emit(s, "dish");
   }
   const tag = words.sideTag?.(dish.label);
-  give(small, list.map((label, i) => ({ id: String(i), label, ...(tag ? { tag } : {}) })));
+  fillSide(s, list.map((label, i) => ({ id: String(i), label, ...(tag ? { tag } : {}) })));
   emit(s, "dish");
   void spinWheel(small);
 }
@@ -175,10 +190,11 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
   host.innerHTML = markup(`dw${++counter}`, words, { sides, answer, kiosk, cards });
   const big = /** @type {HTMLElement} */ (host.querySelector("[data-dw-dish]"));
   const small = /** @type {HTMLElement | null} */ (host.querySelector("[data-dw-side]"));
+  const note = /** @type {HTMLElement | null} */ (host.querySelector("[data-dw-note]"));
   const answerBox = /** @type {HTMLElement | null} */ (host.querySelector("[data-dw-answer]"));
   const stopAttach = attachWheels(host);
   /** @type {WheelState} */
-  const s = { big, small, words, onChange, dishes: new Map(), dish: null };
+  const s = { big, small, note, words, onChange, dishes: new Map(), dish: null };
   const unwire = wire(s);
   const watch = watchShown(small ? [big, small] : [big]);
   return {

@@ -20,7 +20,8 @@ export const WORDS = {
     emptyText: "Kenny zet gerechten op dit wiel vanuit Kitchen; daarna staan ze hier.",
     count: (/** @type {number} */ n) => `${n} ${n === 1 ? "gerecht" : "gerechten"}`,
     sideFirst: "Draai eerst het grote wiel; dan kiest dit wiel het bijgerecht.",
-    nothing: (/** @type {string} */ dish) => `${dish}: hier valt niets te kiezen.`,
+    // Said inside the empty side wheel (Kenny, 01/11/2026 20:21, "Tekst in rad"), the same words as Kitchen's own wheel.
+    nothing: (/** @type {string} */ _dish) => "Geen bijgerecht bij dit gerecht",
     tagChoice: (/** @type {string[]} */ sides) => `Met een keuze: ${join(sides.map(lower), "of")}`,
     tagSame: "Altijd op dezelfde manier",
     tagWith: (/** @type {string} */ dish) => `Bij ${dish}`,
@@ -42,7 +43,7 @@ export const WORDS = {
     emptyText: "Open the dishes, add one with a Dutch and an English name and switch on “On the parents' wheel”.",
     count: (/** @type {number} */ n) => `${n} ${n === 1 ? "dish" : "dishes"}`,
     sideFirst: "Spin the big wheel first; then this wheel picks the side.",
-    nothing: (/** @type {string} */ dish) => `${dish}: nothing to choose here.`,
+    nothing: (/** @type {string} */ _dish) => "No side for this dish",
     tagChoice: (/** @type {string[]} */ sides) => `With a choice of ${join(sides.map(lower), "or")}`,
     tagSame: "Always the same way",
     tagWith: (/** @type {string} */ dish) => `With ${dish}`,

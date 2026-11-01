@@ -125,4 +125,6 @@ export const EN_WHEEL = {
   "wheel.filterFit": (all, n, m) => `${all}: ${n} of ${m} dishes fit.`,
   "wheel.easyOn": (n) => `No energy today is on: ${n === 1 ? "1 dish is" : `${n} dishes are`} on the wheel.`,
   "wheel.easyOff": "No energy today is off: the wheel holds every dish.",
+  // The empty side wheel says it inside its disc (Kenny, 01/11/2026 20:21, "Tekst in rad").
+  "wheel.noSide": "No side for this dish",
 };
