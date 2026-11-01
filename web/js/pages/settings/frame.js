@@ -1,10 +1,10 @@
 // The settings screen's controls and its two cards, in their loading state from the first frame, grids already in place.
 
 import { h, $ } from "../../dom.js";
-import { themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf } from "../../ui/cards.js";
 import { SPARES, SOUND_KEYS, ODDS_KEYS, DEFAULTS, soundName, oddsName } from "./consts.js";
+import { themeButtonHost } from "./theme-button.js";
 import { row, segmented, card, reset, resetText } from "./parts.js";
 
 /** The calm switch, the theme menu and the language choice. */
@@ -13,8 +13,7 @@ function calmControls() {
     h("input", { class: "kp-switch__input", type: "checkbox", role: "switch", id: "st-calm-switch", "data-kp-calm-switch": "" })
   );
   const calmControl = h("label", { class: "kp-switch" }, calmInput, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, t("set.useCalm")));
-  const themeHost = h("div", { id: "st-theme-host" });
-  themeHost.innerHTML = themeMenuMarkup({ id: "st-theme-menu", label: t("shell.theme") });
+  const themeHost = themeButtonHost();
   const langGroup = segmented(t("shell.language"), [["nl", "NL"], ["en", "EN"]], "st-lang");
   for (const item of langGroup.querySelectorAll(".kp-segmented__item")) item.setAttribute("aria-label", item.getAttribute("data-value") === "nl" ? "Nederlands" : "English");
   return { calmInput, calmControl, themeHost, langGroup };

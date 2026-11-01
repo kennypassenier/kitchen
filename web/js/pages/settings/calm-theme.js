@@ -1,8 +1,9 @@
 // The two device-level rows: calm mode and the theme. The package keeps both per device; this only says what they are now.
 
 import { $ } from "../../dom.js";
-import { PICK_EVENT, THEMES } from "/static/kp/dist/kp-themes.min.js";
+import { PICK_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
+import { themeLabel, paintThemeName } from "./theme-button.js";
 
 /** The reading under a row. @param {HTMLElement} root @param {string} key */
 export const saidOf = (root, key) => /** @type {HTMLElement} */ ($(`#st-${key}-said`, root));
@@ -32,11 +33,16 @@ export function watchCalmAndTheme(root, el) {
   doc.addEventListener("kp-calm-change", calm);
   el.calmInput.addEventListener("change", calm);
   calm();
-  const themeLabel = (/** @type {string} */ name) => THEMES.find((th) => th.name === name)?.label ?? name;
   const paintTheme = (/** @type {string} */ name) => {
     saidOf(root, "theme").textContent = t("set.themeOn", themeLabel(name));
+    paintThemeName(el.themeHost, name);
   };
   paintTheme(doc.getAttribute("data-theme") ?? "formal");
-  el.themeHost.addEventListener(PICK_EVENT, (event) => paintTheme(/** @type {CustomEvent} */ (event).detail.theme));
-  return () => doc.removeEventListener("kp-calm-change", calm);
+  // On the document: the header's menu changes the theme too, and the pick event bubbles.
+  const picked = (/** @type {Event} */ event) => paintTheme(/** @type {CustomEvent} */ (event).detail.theme);
+  doc.addEventListener(PICK_EVENT, picked);
+  return () => {
+    doc.removeEventListener("kp-calm-change", calm);
+    doc.removeEventListener(PICK_EVENT, picked);
+  };
 }
