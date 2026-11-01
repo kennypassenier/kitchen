@@ -34,6 +34,8 @@ function showEmpty(card, s, w, again) {
     s.view.started = true;
     again();
   });
+  // Nothing of the form shows through the plate: the toolbar's labels leaked above it (ux-review fix-log-ghost-1).
+  s.el.root.hidden = true;
   s.el.grid.hidden = true;
   setCardState(card, "empty", { title: w.logEmptyTitle, text: w.logEmptyText, action: start });
 }
@@ -49,6 +51,7 @@ function showLog(card, data, s, recipeId, k, w) {
   if (first) drawFeelings(s);
   if (s.entries.size === 0 && !s.view.started) return showEmpty(card, s, w, () => showLog(card, data, s, recipeId, k, w));
   s.view.started = true;
+  s.el.root.hidden = false;
   s.el.grid.hidden = false;
   paint(s);
   setCardState(card, "ready");
@@ -70,6 +73,7 @@ export function createLog(card, { recipeId, retry }) {
     loading(w) {
       s.words = w;
       setCardState(card, "loading", { words: w.logLoading });
+      s.el.root.hidden = false;
       s.el.grid.hidden = false;
       // The grid itself loads with the package's busy card over its weeks, not as a blank (kp measure-states, 24/10/2026).
       setHeat(s.el.grid, { state: "loading", message: w.logLoading, skeleton: { rows: WEEKS, columns: 7 } });

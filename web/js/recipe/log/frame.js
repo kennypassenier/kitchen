@@ -14,26 +14,24 @@ export function buildLogDom(data) {
   const add = h("button", { type: "button", class: "kp-button kp-button--primary", "data-kp-flash-button": true });
   const change = h("button", { type: "button", class: "kp-button", "data-kp-flash-button": true });
   const drop = h("button", { type: "button", class: "kp-button kp-button--ghost" });
-  data.replaceChildren(
+  const root = h("div", { class: "rp-log" });
+  root.append(
     h(
       "div",
-      { class: "rp-log" },
+      { class: "rp-log__add" },
+      heading,
+      sentence,
       h(
         "div",
-        { class: "rp-log__add" },
-        heading,
-        sentence,
-        h(
-          "div",
-          { class: "kp-formgrid", "aria-labelledby": "rp-log-day" },
-          h("div", { class: "kp-formgrid__row" }, feelingLabel, h("div", { class: "kp-formgrid__control" }, feel)),
-          h("div", { class: "kp-formgrid__row kp-formgrid__row--buttons" }, h("div", { class: "kp-formgrid__control" }, h("div", { class: "kp-formgrid__buttons" }, add, change, drop))),
-        ),
+        { class: "kp-formgrid", "aria-labelledby": "rp-log-day" },
+        h("div", { class: "kp-formgrid__row" }, feelingLabel, h("div", { class: "kp-formgrid__control" }, feel)),
+        h("div", { class: "kp-formgrid__row kp-formgrid__row--buttons" }, h("div", { class: "kp-formgrid__control" }, h("div", { class: "kp-formgrid__buttons" }, add, change, drop))),
       ),
-      grid,
-      note,
     ),
+    grid,
+    note,
   );
+  data.replaceChildren(root);
   attachHeats(data);
-  return { grid, note, heading, sentence, feelingLabel, feel, add, change, drop };
+  return { root, grid, note, heading, sentence, feelingLabel, feel, add, change, drop };
 }

@@ -10,6 +10,10 @@
   align-content: start;
 }
 
+.rp-log[hidden] {
+  display: none;
+}
+
 .rp-log__add {
   display: grid;
   gap: var(--kp-space-sm, 0.5rem);
