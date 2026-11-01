@@ -79,13 +79,13 @@
 }
 
 /* The inline add row of a table card (js/records/add-row.js; Kenny 01/11/2026 20:21): the fields side by side with
-   their labels above, Add at the end on the fields' bottom line, the refusal on a line of its own under them. Two
+   their labels above, Add at the end under a label-high line ("Enter adds"), so every column starts on one line; the kit's summary spans the row. Two
    names share the room evenly; the log's row gives the date one fixed step, the dish and the note the most room. On a
    phone the fields stack and Add fills the width. Every look is the kit's (kp-field, kp-button, kp-field__error). */
 .dl-addrow {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  align-items: end;
+  align-items: start;
   gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 0.75rem);
   margin-block: var(--kp-space-md, 0.75rem) var(--kp-space-lg, 1rem);
   min-inline-size: 0;
@@ -96,8 +96,16 @@
   margin: 0;
 }
 
-.dl-addrow__error {
+.dl-addrow__summary {
   grid-column: 1 / -1;
+  margin: 0;
+}
+
+.dl-addrow__summary[hidden] {
+  display: none;
+}
+
+.dl-addrow__go {
   margin: 0;
 }
 

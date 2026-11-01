@@ -46,12 +46,16 @@ export function logEntry() {
       f.felt.value = "none";
       f.note.value = "";
     },
+    check: () => {
+      const line = logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
+      return "error" in line ? { field: line.field === "what" ? f.what : f.day.el, message: `${t(line.error)} ${t(line.remedy)}` } : null;
+    },
     add: async () => {
       const line = logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
-      if ("error" in line) return { error: `${t(line.error)} ${t(line.remedy)}`, field: line.field === "what" ? f.what : f.day.el };
+      if ("error" in line) throw new Error(t(line.error));
       const made = await create("log", line);
       return t("rec.loggedLine", logWhat(made), dmy(made.date));
     },
   });
-  return { el: row.el, focus: row.focus, start: f.day.start, refresh: () => refreshOptions(f.what) };
+  return { el: row.el, focus: row.focus, stop: row.stop, start: f.day.start, refresh: () => refreshOptions(f.what) };
 }

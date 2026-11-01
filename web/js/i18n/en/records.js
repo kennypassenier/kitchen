@@ -28,6 +28,7 @@ export const EN_RECORDS = {
   "rec.isSafe": (n) => `${n} is a safe dish`,
   "rec.notSafe": (n) => `${n} is not a safe dish any more. The recipe stays.`,
   "rec.notBack": (w) => `Could not put it back. ${w}`,
+  "rec.enterAdds": "Enter adds",
   "rec.addInRow": "Add",
   "rec.notAdded": (w) => `Not added: ${w}`,
   "rec.orderNotSaved": (w) => `The order of the list was not saved, so a number may be skipped. ${w}`,

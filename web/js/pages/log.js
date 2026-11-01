@@ -62,5 +62,8 @@ export function mount(root) {
   });
   // The page is in the document now: the add row's date picker can attach.
   entry.start();
-  return stop;
+  return () => {
+    stop();
+    entry.stop();
+  };
 }

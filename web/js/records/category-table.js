@@ -98,11 +98,9 @@ function categoryEntry(list) {
       nl.value = "";
       en.value = "";
     },
+    check: () => (!nl.value.trim() ? { field: nl, message: t("ip.needNl") } : !en.value.trim() ? { field: en, message: t("ip.needEn") } : null),
     add: async () => {
-      const name = { nl: nl.value.trim(), en: en.value.trim() };
-      if (!name.nl) return { error: t("ip.needNl"), field: nl };
-      if (!name.en) return { error: t("ip.needEn"), field: en };
-      const made = await create(list, { name, order: nextOrder(kitchenNow()?.[list] ?? []) });
+      const made = await create(list, { name: { nl: nl.value.trim(), en: en.value.trim() }, order: nextOrder(kitchenNow()?.[list] ?? []) });
       return t("rec.addedName", nameOf(made).text);
     },
   });
@@ -128,6 +126,7 @@ export function categoryCard(list, w) {
     reorder: true,
   });
   for (const b of card.addButtons) b.addEventListener("click", entry.focus);
+  const stopEntry = entry.stop;
   /** The row keys of the last fill, back to the ids. @type {Map<string, string>} */
   let ids = new Map();
   card.table.addEventListener("kp-datatable-edit", (e) => onEdit(list, ids, /** @type {CustomEvent} */ (e)));
@@ -143,6 +142,8 @@ export function categoryCard(list, w) {
     },
     /** After the table's first fill: open the cell `?edit=<id>` asks for. */
     openAsked: () => openAsked(card.table, ids),
+    /** Take the add row's form wiring away. */
+    stop: stopEntry,
   };
 }
 

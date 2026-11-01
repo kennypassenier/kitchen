@@ -65,7 +65,7 @@ export function mount(root) {
   const page = h("div", { class: "dl-page" }, pageHead({ title: t("nav.ingredients"), lede: t("ig.lede") }), ings.card, cats.card);
   for (const b of ings.addButtons) b.addEventListener("click", () => openRecordEditor("ingredients", null));
   let first = true;
-  return mountTables({
+  const stop = mountTables({
     root,
     page,
     cards: [ings, cats],
@@ -78,4 +78,8 @@ export function mount(root) {
       first = false;
     },
   });
+  return () => {
+    stop();
+    cats.stop();
+  };
 }

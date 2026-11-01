@@ -1,11 +1,12 @@
 // An inline add row at the top of a table card (Kenny, 01/11/2026 20:21: "Invoerrij" for What I ate, "In de tabel" for
 // the categories): the few fields a new line needs side by side, each with its own visible label, and one Add. Enter in
-// any field adds, as a form submit does; a refusal is said under the row and the field to fix gets the focus; after an
-// Add the fields empty (the page says which keep their value) and the focus goes back to the first one, so the next
-// line can be typed at once. The kit has no add row for its data table (kp-gaps/kitchen.md); the row is built from the
-// kit's field, label, button and error parts on a grid of its own (css/pages/dishes.css, `dl-addrow`).
+// any field adds, as a form submit does. The row is the kit's form (data-kp-form, attachForms): a field that is wrong gets
+// its message under it and in the form's summary, the submit is busy while the line is saved, and a refused save is said
+// in the summary. After an Add the fields empty (the page says which keep their value) and the focus goes back to the
+// first one, so the next line can be typed at once. The kit has no add row for its data table (kp-gaps/kitchen.md); the
+// row is the kit's field, label, button and form parts on a grid of its own (css/pages/dishes.css, `dl-addrow`).
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { attachForms, toast, VALID_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 
@@ -16,31 +17,18 @@ import { t } from "../i18n/index.js";
  * @property {"wide" | "short"} [size] wide takes the spare room (a note, a name), short a fixed step (a date)
  */
 
-/** What an Add answers: the toast's sentence, or what is wrong and which field to fix. @typedef {string | { error: string, field?: HTMLElement }} AddAnswer */
-
 /** The focusable part of a field (a date picker's input, a select). @param {HTMLElement} control */
-const focusable = (control) => /** @type {HTMLElement} */ (control.matches("input, select, textarea") ? control : (control.querySelector("input, select, textarea") ?? control));
+const focusable = (control) => /** @type {HTMLInputElement} */ (control.matches("input, select, textarea") ? control : (control.querySelector("input, select, textarea") ?? control));
 
-/** One labelled field of the row. @param {AddField} f */
+/** One labelled field of the row, with the kit's error line under it. @param {AddField} f */
 function fieldCell(f) {
   const target = focusable(f.control);
   const label = h("label", { class: "kp-field__label", for: target.id }, f.label);
-  return h("div", { class: `kp-field dl-addrow__field${f.size ? ` dl-addrow__field--${f.size}` : ""}` }, label, f.control);
+  const error = h("span", { class: "kp-field__error", "data-kp-field-error": true, hidden: true });
+  return h("div", { class: `kp-field dl-addrow__field${f.size ? ` dl-addrow__field--${f.size}` : ""}` }, label, f.control, error);
 }
 
-/** Show or clear the row's refusal; the field it names is marked and focused. @param {{ error: HTMLElement, fields: AddField[] }} r @param {string} text @param {HTMLElement} [field] */
-function say(r, text, field) {
-  r.error.textContent = text;
-  r.error.hidden = !text;
-  for (const f of r.fields) focusable(f.control).removeAttribute("aria-invalid");
-  if (field) {
-    const target = focusable(field);
-    target.setAttribute("aria-invalid", "true");
-    target.focus();
-  }
-}
-
-/** Enter in a select or the date field adds too (a text input does by itself); Enter that the kit used (a date panel) does not. @param {HTMLFormElement} form */
+/** Enter in a select or the date field adds too; Enter that the kit used (a date panel) does not. @param {HTMLFormElement} form */
 function enterAdds(form) {
   form.addEventListener("keydown", (event) => {
     const target = /** @type {HTMLElement} */ (event.target);
@@ -52,34 +40,44 @@ function enterAdds(form) {
 }
 
 /**
- * Build the add row.
- * @param {{ label: string, fields: AddField[], submit: string, add: () => Promise<AddAnswer>, reset: () => void }} spec
- * @returns {{ el: HTMLFormElement, focus: () => void }}
+ * Build the add row. `check` runs on every submit and names the field that is wrong; `add` saves the line and answers
+ * the toast's sentence; `reset` empties what should empty. `stop` takes the kit's form wiring away.
+ * @param {{ label: string, fields: AddField[], submit: string, check: () => { field: HTMLElement, message: string } | null, add: () => Promise<string>, reset: () => void }} spec
+ * @returns {{ el: HTMLElement, focus: () => void, stop: () => void }}
  */
-export function addRow({ label, fields, submit, add, reset }) {
-  const button = h("button", { type: "submit", class: "kp-button kp-button--primary dl-addrow__add" }, submit);
-  const error = h("p", { class: "kp-field__error dl-addrow__error", role: "alert", hidden: true });
-  const form = /** @type {HTMLFormElement} */ (h("form", { class: "dl-addrow", novalidate: true, "aria-label": label }, ...fields.map(fieldCell), button, error));
-  const r = { error, fields };
+export function addRow({ label, fields, submit, check, add, reset }) {
+  const summary = h("div", { class: "kp-form__summary dl-addrow__summary", "data-kp-form-summary": true, tabindex: "-1", hidden: true });
+  const button = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true }, submit);
+  // The button's column has a first line like the fields' labels, so it starts where they start: it says Enter adds.
+  const go = h("div", { class: "kp-field dl-addrow__go" }, h("span", { class: "kp-field__label", "aria-hidden": "true" }, t("rec.enterAdds")), button);
+  const form = /** @type {HTMLFormElement} */ (h("form", { class: "kp-form dl-addrow", "data-kp-form": true, novalidate: true, "aria-label": label }, summary, ...fields.map(fieldCell), go));
   const focus = () => focusable(fields[0].control).focus();
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (button.getAttribute("aria-busy") === "true") return;
-    button.setAttribute("aria-busy", "true");
+  // Runs before the kit's own listener: the page's rules become the fields' validity, which the kit then reports.
+  form.addEventListener("submit", () => {
+    for (const f of fields) focusable(f.control).setCustomValidity("");
+    const bad = check();
+    if (bad) focusable(bad.field).setCustomValidity(bad.message);
+  });
+  form.addEventListener(VALID_EVENT, async (event) => {
+    const { done } = /** @type {CustomEvent<{ done: () => void }>} */ (event).detail;
     try {
-      const answer = await add();
-      if (typeof answer === "string") {
-        say(r, "");
-        reset();
-        toast(answer);
-        focus();
-      } else say(r, answer.error, answer.field);
+      const said = await add();
+      summary.hidden = true;
+      reset();
+      toast(said);
+      focus();
     } catch (e) {
-      say(r, t("rec.notAdded", e instanceof Error ? e.message : String(e)));
+      summary.textContent = t("rec.notAdded", e instanceof Error ? e.message : String(e));
+      summary.hidden = false;
+      summary.focus();
     } finally {
-      button.removeAttribute("aria-busy");
+      done();
     }
   });
+  for (const f of fields) focusable(f.control).addEventListener("input", () => focusable(f.control).setCustomValidity(""));
   enterAdds(form);
-  return { el: form, focus };
+  // attachForms wires the forms below the node it is given, so the row stands in a box of its own.
+  const box = h("div", { class: "dl-addrow-box" }, form);
+  const stop = attachForms(box, { wrapper: ".kp-field", validateOn: "submit", revalidateOn: "none" });
+  return { el: box, focus, stop };
 }
