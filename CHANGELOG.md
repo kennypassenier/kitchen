@@ -6,6 +6,10 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+Four UX rounds (Kenny, 01/11/2026): the bar and its More menu, Calm settings, the recipe page's popovers, bad days, recipes
+and their rows, delete with Undo everywhere, inline add rows, the recipe editor as a page, import from a link, one
+full-screen cook stage and the wheel's filter menus. Kenny's own list is below; nothing here is released yet.
+
 ### Changed
 - **The bar keeps five places and a More menu** (Kenny 01/11/2026): What do we eat?, When do I start?, Bad days, Recipes and
   What I ate stay in the bar; Dishes, Ingredients, Parents' wheel, Recipe sources, Storage and Calm settings sit under
@@ -62,6 +66,14 @@ carries a **Migration** section saying what an operator must do.
   the same size, on `/`, `/eten` and `/parents`.
 - **When do I start?** has one recipe picker, in the page header, and opens on tonight's wheel answer (kept in this
   browser for the day); the empty state no longer has a button of its own.
+
+### Fixed
+- **Calm settings** rows whose value cell has a hint keep what the setting says on the line of its name (they hung 9 to
+  19 px under it); the Dutch calendar on Bad days no longer scrolls a 390 px phone sideways (its nav folds below 26rem).
+
+### Internal
+- The unused safe-dish picker and its words are gone; the recipe editor page's Save and heading helpers, the recipes
+  table's life and the page registrations moved into small modules (no behaviour change).
 
 ## [5.0.0] - 2026-10-31
 
