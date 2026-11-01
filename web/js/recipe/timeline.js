@@ -16,14 +16,16 @@ export { setGanttState as setTimelineState };
 
 /**
  * Put the timeline into `slot` (already in the page), attached and in its loading frame with the lane names and the axis
- * beside the busy card. `redraw` is called when the width changes enough to move the bar labels.
+ * beside the busy card. `redraw` is called when the width changes enough to move the bar labels. `scroll` is the kit's
+ * `data-kp-gantt-scroll`: "auto" keeps a readable plot and scrolls sideways inside its frame on a phone; "off" fits the
+ * plot to the width it is given (cook mode, ux-review cook-timeline "Passend maken", Kenny 01/11/2026).
  * @param {HTMLElement} slot
- * @param {{ label: string, loading: string, legend?: "off" | "on", strings?: Record<string, string>, redraw?: () => void }} o
+ * @param {{ label: string, loading: string, legend?: "off" | "on", scroll?: "auto" | "off", strings?: Record<string, string>, redraw?: () => void }} o
  * @returns {{ el: HTMLElement, detach: () => void }}
  */
-export function mountTimeline(slot, { label, loading, legend = "off", strings = {}, redraw }) {
+export function mountTimeline(slot, { label, loading, legend = "off", scroll = "auto", strings = {}, redraw }) {
   const safe = label.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
+  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" data-kp-gantt-scroll="${scroll === "off" ? "off" : "auto"}" data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
   const el = /** @type {HTMLElement} */ (slot.firstElementChild);
   const off = attachGantts(slot, { strings: { ganttLoading: loading, ...strings } });
   setGanttState(el, "loading");

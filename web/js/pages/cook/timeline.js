@@ -69,6 +69,9 @@ export function createTimeline(ctx) {
   line = mountTimeline(ctx.el.timelineSlot, {
     label: t("cook.ganttLabel"),
     loading: t("cook.loadingSteps"),
+    // Fitted to the sheet's width on a phone (Kenny, 01/11/2026 "Passend maken"): no bar runs out of a scrolled frame; a
+    // label with no room beside its bar is left out by the kit (never cut) and stays in the bar's name and hover card.
+    scroll: "off",
     strings: { ganttOk: t("cook.ganttOk"), ganttRunning: t("cook.ganttNow"), ganttPlanned: t("cook.ganttPlanned") },
     redraw: () => paint(),
   });
