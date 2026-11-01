@@ -94,7 +94,7 @@
 /* Back and Next share the row in two equal thumb-sized columns. */
 .ck-cook .kp-focus-steps__nav > * {
   flex: 1 1 0;
-  /* 56 px: the kit's touch target (44 px) and a quarter again, for a thumb in a kitchen. */
+  /* 55 px: the kit's touch target (44 px) and a quarter again, for a thumb in a kitchen. */
   min-block-size: calc(var(--kp-touch-target, 2.75rem) * 1.25);
 }
 
