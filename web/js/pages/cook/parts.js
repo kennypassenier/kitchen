@@ -21,11 +21,12 @@ export function plateScreen(ctx, title, text, label, href) {
   );
 }
 
-/** The page header: the title, its sentence and the actions the recipe fills in later. */
-export function buildHeader() {
+/** The stage's head: the title, its sentence (on a wide screen), the "Screen stays on" badge and the actions the stage
+ * fills (Gather first, More). @param {HTMLElement} wakeBadge */
+export function buildHeader(wakeBadge) {
   const title = h("h1", { class: "kp-page-header__title" }, t("cook.title"));
-  const lead = h("p", { class: "kp-page-header__description" }, t("cook.lead"));
-  const actions = h("div", { class: "kp-page-header__actions" });
-  const header = h("header", { class: "kp-page-header" }, h("div", { class: "kp-page-header__inner" }, h("div", null, title, lead), actions));
+  const lead = h("p", { class: "kp-page-header__description ck-lead" }, t("cook.lead"));
+  const actions = h("div", { class: "kp-page-header__actions ck-actions" }, wakeBadge);
+  const header = h("header", { class: "kp-page-header ck-header" }, h("div", { class: "kp-page-header__inner" }, h("div", { class: "ck-titles" }, title, lead), actions));
   return { header, title, lead, actions };
 }

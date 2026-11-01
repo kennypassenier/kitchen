@@ -3,9 +3,6 @@
 .ck-sec,
 .ck-begin,
 .ck-mise,
-.ck-cook,
-.ck-cook__main,
-.ck-cook__side,
 .ck-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -13,7 +10,8 @@
 }
 
 .ck-sec[hidden],
-.ck-mise[hidden] {
+.ck-mise[hidden],
+.ck-wake[hidden] {
   display: none;
 }
 
@@ -25,14 +23,11 @@
   gap: var(--kp-space-xs, 0.25rem);
 }
 
-.ck-head :is(h2, p),
-.ck-part,
-.ck-part-note {
+.ck-head :is(h2, p) {
   margin: 0;
 }
 
-.ck-head p,
-.ck-part-note {
+.ck-head p {
   color: var(--muted-foreground);
 }
 
@@ -46,44 +41,6 @@
 
 .ck-mise {
   gap: var(--kp-space-md, 1rem);
-}
-
-/* ---- Cook mode ----------------------------------------------------------------------------------- */
-.ck-cook {
-  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
-  gap: var(--kp-space-lg, 1.5rem);
-  align-items: stretch;
-}
-
-.ck-cook__main,
-.ck-cook__side {
-  align-content: start;
-  gap: var(--kp-space-md, 1rem);
-}
-
-/* Both columns open with a part heading on one line; the steps take the height that is left. */
-.ck-cook__main {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
-.ck-cook .kp-focus-steps {
-  min-block-size: 30rem;
-}
-
-.ck-cook .kp-timers {
-  /* The list holds its height; its empty, loading and failed plates take what the row of cards leaves. */
-  min-block-size: 16rem;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.ck-part {
-  font-size: var(--kp-text-lg, 1.125rem);
-}
-
-@media (max-width: 56rem) {
-  .ck-cook {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* ---- The timeline (the package's gantt, full width; kp-themes 11.3.0 keeps its minimum width and scrolls inside its own frame on a phone) -------- */
@@ -147,17 +104,6 @@
   min-block-size: 0;
 }
 
-/* The Steps heading and the "Screen stays on" badge share one line; the badge shows only while the screen is held. */
-.ck-part-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
-  gap: var(--kp-space-sm, 0.5rem);
-  align-items: center;
-}
-
-.ck-wake[hidden] {
-  display: none;
-}
 
 /* The package's own screen line says the same thing, in every state; the badge replaces it. */
 .ck-cook .kp-focus-steps__wake {

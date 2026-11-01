@@ -3,6 +3,11 @@
 
 export const EN_COOK = {
   // cook mode
+  "cook.more": "More",
+  "cook.moreTitle": "More for this recipe",
+  "cook.moreText": "Everything that is not the step in hand: gathering first, the timeline, the timer discs and calm mode.",
+  "cook.moreClose": "Close and go back to the step",
+  "cook.gather": "Gather first",
   "cook.title": "Cook",
   "cook.mode": "Cook mode",
   "cook.notHere": "This recipe is not here",
@@ -32,10 +37,7 @@ export const EN_COOK = {
   "cook.steps": "Steps",
   "cook.noTimer": "No timer running. Start one from a step.",
   "cook.kitchenTimers": "Kitchen timers",
-  "cook.secCook": "Cook mode: one step at a time",
-  "cook.secCookText": "One step large on the counter, with what it needs and a timer button; started timers keep running beside it whichever step you are on.",
   "cook.timersRunning": "Timers running",
-  "cook.timersNote": "Every timer you start stays here, and its disc below follows it.",
   "cook.timeline": "The timeline",
   "cook.timelineText": "Every track is a row; solid bars are done, the striped one is now, the outlined ones are still to come.",
   "cook.discsLabel": "Timer discs",

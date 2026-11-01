@@ -6,6 +6,7 @@ import { getChecklistItems, motionAllowed } from "/static/kp/dist/kp-themes.min.
 import { t } from "../../i18n/index.js";
 import { actionRow } from "../../ui/cards.js";
 import { section } from "./parts.js";
+import { closeMore } from "./more.js";
 
 /** The checklist and the buttons under it. */
 function buildMise() {
@@ -62,7 +63,7 @@ export function buildBegin() {
 
 /** @param {import("./index.js").CookCtx} ctx */
 export function wireBegin(ctx) {
-  const { mise, miseOpen, startBtn, skipBtn, beginBtn, readout, cook, steps } = ctx.el;
+  const { mise, miseOpen, startBtn, skipBtn, beginBtn, readout, cook } = ctx.el;
   const paintStart = () => {
     const items = getChecklistItems(mise);
     const left = items.filter((i) => !i.checked).length;
@@ -79,11 +80,12 @@ export function wireBegin(ctx) {
   beginBtn.addEventListener("click", openMise);
   for (const type of ["kp-checklist-change", "kp-checklist-undo", "kp-checklist-clear", "kp-checklist-render"]) mise.addEventListener(type, paintStart);
 
+  // Begin closes the More sheet onto the stage, where step 1 is waiting.
   const begin = () => {
     ctx.memo.started = true;
     ctx.keep();
-    cook.scrollIntoView({ block: "start", behavior: motionAllowed(cook) ? "smooth" : "auto" });
-    steps.focus({ preventScroll: true });
+    ctx.view.paintStage();
+    void closeMore(ctx).then(() => cook.scrollIntoView({ block: "nearest", behavior: motionAllowed(cook) ? "smooth" : "auto" }));
   };
   startBtn.addEventListener("click", () => {
     if (startBtn.getAttribute("aria-disabled") !== "true") begin();

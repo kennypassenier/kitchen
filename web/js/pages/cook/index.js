@@ -1,9 +1,10 @@
 // Cook mode: /cook?id=<recipe id>[&mini=1].
 //
-// One screen in the approved order: the Begin card, which opens the mise-en-place checklist; cook mode (one step at a time,
-// the recipe's parallel tracks as lanes, the running timers beside it, an attention band when one ends); the timeline; the
-// timer discs; the calm switch; and, when the last step is done, the offer to log tonight's dinner. Everything is the
-// package's own component with its standard behaviour; this file gives them the recipe.
+// A full-viewport stage (Kenny, 01/11/2026 20:21, "Volledig scherm"): the step in hand large, Back and Next pinned at the
+// bottom, the running timers pinned at the top, an attention band when one ends, and, when the last step is done, the offer
+// to log tonight's dinner. Everything else (Begin with the mise en place, the explanations, the timeline, the timer discs,
+// the calm switch, the links) is in one More sheet (more.js). stage-state.js decides what the stage shows per state.
+// Everything is the package's own component with its standard behaviour; this file gives them the recipe.
 //
 // The place in the recipe (active step, every track, the steps done) is kept by focus-steps itself (data-kp-remember). The
 // page keeps only what the package does not cover (memo.js): the running timers, whether Begin was pressed and when each
@@ -15,6 +16,7 @@
 // functions in `ctx.cleanups`. logic.js is the pure part (scripts/cook.test.mjs).
 
 import { attachChecklists, setChecklistState, attachFocusSteps, setFocusStepsState, attachTimers, setTimersState, attachAttention, attachCardStates, attachCalm, memoryFor } from "/static/kp/dist/kp-themes.min.js";
+import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { buildHeader, plateScreen } from "./parts.js";
 import { openMemo, storeKeyOf } from "./memo.js";
@@ -25,6 +27,8 @@ import { buildDone, wireDone } from "./done.js";
 import { createTimers } from "./timers.js";
 import { createTimeline } from "./timeline.js";
 import { paintPhotos } from "./fill.js";
+import { buildMore, wireMore } from "./more.js";
+import { wireStage } from "./stage-view.js";
 import { startLoading } from "./load.js";
 
 /**
@@ -44,7 +48,7 @@ import { startLoading } from "./load.js";
  * @property {boolean} finished the last step is done
  * @property {boolean} logging a dinner is being logged
  * @property {Record<string, any>} el the elements of every section
- * @property {{ paintTimeline: () => void, paintPhotos: () => void, refreshBand: () => void, paintStart: () => void, addDisc: (tm: any) => void, paintDiscCard: () => void }} view
+ * @property {{ paintTimeline: () => void, paintPhotos: () => void, refreshBand: () => void, paintStart: () => void, addDisc: (tm: any) => void, paintDiscCard: () => void, paintStage: () => void }} view
  */
 
 /** "Yes, cook this" and every "Cook it" arrive with `fresh=1` (Kenny, 29/10/2026): cooking starts at step 1 with no old
@@ -67,18 +71,23 @@ function newCtx(root, { params, navigate }) {
   /** @type {CookCtx} */
   const ctx = {
     root, recipeId, mini, storeKey, navigate, cleanups: [], alive: true, seq: 0, memo, keep, recipe: null, shown: [], finished: false, logging: false, el: {},
-    view: { paintTimeline: () => {}, paintPhotos: () => {}, refreshBand: () => {}, paintStart: () => {}, addDisc: () => {}, paintDiscCard: () => {} },
+    view: { paintTimeline: () => {}, paintPhotos: () => {}, refreshBand: () => {}, paintStart: () => {}, addDisc: () => {}, paintDiscCard: () => {}, paintStage: () => {} },
   };
   return { ctx, fresh };
 }
 
-/** Build every section's markup, loading from the first frame, and put it on the page. @param {CookCtx} ctx */
+/** Build the stage and the More sheet, loading from the first frame, and put them on the page. @param {CookCtx} ctx */
 function buildScreen(ctx) {
-  const head = buildHeader();
   const stage = buildStage(ctx);
-  Object.assign(ctx.el, head, stage, buildBegin(), buildCalm(), buildDone());
-  const e = ctx.el;
-  ctx.root.replaceChildren(e.header, e.beginSection, e.cook, e.timelineSection, e.discSection, e.calmSection, e.doneSection);
+  const head = buildHeader(stage.wakeBadge);
+  const begin = buildBegin();
+  const calm = buildCalm();
+  const done = buildDone();
+  const more = buildMore([begin.beginSection, stage.timelineSection, stage.discSection, calm.calmSection]);
+  head.actions.append(more.gatherBtn, more.moreBtn);
+  const screen = h("div", { class: "ck-screen" }, head.header, stage.pinned, stage.cook, done.doneSection);
+  Object.assign(ctx.el, head, stage, begin, calm, done, more, { screen });
+  ctx.root.replaceChildren(screen, more.sheet);
 }
 
 /** Give the package its components and take them off again with the page. @param {CookCtx} ctx @param {boolean} fresh */
@@ -110,6 +119,8 @@ export function mount(root, page) {
   wireBegin(ctx);
   Object.assign(ctx.view, createTimers(ctx));
   wireDone(ctx);
+  wireMore(ctx);
+  wireStage(ctx);
   startLoading(ctx);
 
   return () => {

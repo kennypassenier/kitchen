@@ -1,4 +1,4 @@
-// The cook mode, timeline and timer-disc sections: the markup only, loading from the first frame. The behaviour is in
+// The stage (timers, band, steps), and the timeline and timer-disc sections of the More sheet: the markup only, loading from the first frame. The behaviour is in
 // timers.js (band, discs), timeline.js and fill.js.
 
 import { h } from "../../dom.js";
@@ -14,6 +14,9 @@ function buildSteps(storeKey) {
     "data-kp-focus-steps": "",
     "data-kp-focus-steps-timers": "ck-timers",
     "data-kp-focus-steps-wake": "true",
+    // The tracks stay the step's own tabs, as short rows above it: one tap switches track (cook.css keeps them one line).
+    "data-kp-lanes": "top",
+    "data-kp-lane-detail": "compact",
     "data-kp-track-attention": "off",
     "data-kp-state": "loading",
     "data-kp-focus-steps-empty": t("cook.noSteps"),
@@ -36,7 +39,9 @@ function buildTimers() {
   });
 }
 
-/** The steps, their photos, the running timers and the band that says a timer ended. @param {import("./index.js").CookCtx} ctx */
+/** The stage (Kenny, 01/11/2026 20:21, "Volledig scherm"): the running timers pinned at the top (shown only while one
+ * exists, stage-state.js), the band that says a timer ended, and the step in hand with its photos; the kit's Back and Next
+ * stand at the bottom of the steps and are pinned to the screen's bottom edge (cook.css). @param {import("./index.js").CookCtx} ctx */
 function buildCookSection(ctx) {
   const band = h("div", { class: "kp-attention", "aria-label": t("cook.needsYou") });
   const steps = buildSteps(ctx.storeKey);
@@ -50,18 +55,9 @@ function buildCookSection(ctx) {
   steps.addEventListener("kp-focus-steps-wake", (e) => {
     wakeBadge.hidden = /** @type {CustomEvent} */ (e).detail?.state !== "on";
   });
-  const cook = section(
-    "ck-cook",
-    t("cook.secCook"),
-    t("cook.secCookText"),
-    h(
-      "div",
-      { class: "ck-cook" },
-      h("div", { class: "ck-cook__main" }, h("div", { class: "ck-part-row" }, h("h3", { class: "ck-part" }, t("cook.steps")), wakeBadge), band, steps, stepPhotos),
-      h("div", { class: "ck-cook__side" }, h("h3", { class: "ck-part" }, t("cook.timersRunning")), h("p", { class: "ck-part-note" }, t("cook.timersNote")), timers),
-    ),
-  );
-  return { band, steps, stepPhotos, timers, cook };
+  const pinned = h("div", { class: "ck-pinned", role: "region", "aria-label": t("cook.timersRunning"), hidden: true }, timers);
+  const cook = h("div", { class: "ck-cook", id: "ck-cook" }, band, steps, stepPhotos);
+  return { band, steps, stepPhotos, timers, wakeBadge, pinned, cook };
 }
 
 /** The timeline's slot, which the timeline fills once it is attached. */

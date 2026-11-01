@@ -25,14 +25,14 @@ export function paintPhotos(ctx) {
   else stepPhotos.append(showPhotos(null, ids, t("edit.stepPhoto")));
 }
 
-/** The title, the sentence and the two links of the header. @param {import("./index.js").CookCtx} ctx @param {Record<string, any>} r */
+/** The title and the sentence of the head; the two links stand at the top of the More sheet. @param {import("./index.js").CookCtx} ctx @param {Record<string, any>} r */
 function fillHeader(ctx, r) {
-  const { title, lead, actions } = ctx.el;
+  const { title, lead, moreLinks } = ctx.el;
   document.title = `${t("cook.cookName", r.name)} · Kitchen`;
   title.textContent = t("cook.cookColon", r.name);
   lead.textContent = ctx.mini ? t("cook.leadMini") : t("cook.lead");
   const base = `/cook?id=${encodeURIComponent(r.id)}`;
-  actions.replaceChildren(
+  moreLinks.replaceChildren(
     link(`/recipe?id=${encodeURIComponent(r.id)}`, t("cook.backToRecipe")),
     ctx.mini ? link(base, t("cook.fullVersion")) : link(`${base}&mini=1`, t("cook.miniVersion")),
   );
@@ -84,4 +84,5 @@ export function fill(ctx, r) {
   ctx.view.refreshBand();
   ctx.finished = false;
   ctx.view.paintTimeline();
+  ctx.view.paintStage();
 }

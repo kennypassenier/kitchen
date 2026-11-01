@@ -1,0 +1,221 @@
+/* cook screen, the full-viewport stage and its More sheet (Kenny, 01/11/2026 20:21, "Volledig scherm"); split from
+   cook.css for size. Everything with a kp- class is the package; these ck- rules only lay out. */
+
+/* ---- The stage (Kenny, 01/11/2026 20:21, "Volledig scherm") ------------------------------------------------------------
+   One grid from where the stage starts to the bottom of the viewport (--ck-above is measured by stage-view.js): the head,
+   the timers bar (only while a timer exists), the step in hand taking every row that is left, and the dinner card at the
+   end. The kit's steps fill their row; their Back and Next are the last row of the component and stick to the screen's
+   bottom edge when a long step or the photos make the stage taller than the screen; the timers stick to the top. */
+.ck-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: var(--kp-space-md, 1rem);
+  min-block-size: calc(100dvh - var(--ck-above, 8rem) - var(--kp-space-md, 1rem));
+  min-inline-size: 0;
+}
+
+/* Each part has its own row, so a hidden timers bar or dinner card never moves the step to another row. */
+.ck-header {
+  grid-row: 1;
+  margin: 0;
+}
+
+.ck-screen > .ck-cook {
+  grid-row: 3;
+}
+
+.ck-screen > .ck-sec {
+  grid-row: 4;
+}
+
+.ck-titles {
+  display: grid;
+  gap: var(--kp-space-xs, 0.25rem);
+  justify-items: start;
+  min-inline-size: 0;
+}
+
+.ck-actions [hidden] {
+  display: none;
+}
+
+.ck-pinned {
+  grid-row: 2;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  min-inline-size: 0;
+  padding-block: var(--kp-space-xs, 0.25rem);
+  background: var(--background);
+}
+
+.ck-pinned[hidden] {
+  display: none;
+}
+
+.ck-cook {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.ck-cook > .kp-attention {
+  grid-row: 1;
+}
+
+.ck-cook > .kp-focus-steps {
+  grid-row: 2;
+}
+
+.ck-cook > .ck-photos {
+  grid-row: 3;
+}
+
+/* The steps fill the stage's height; the kit's own minimum stays the floor on a short screen. */
+.ck-cook .kp-focus-steps {
+  --kp-focus-steps-height: 100%;
+  --kp-focus-steps-pad: var(--kp-space-xs, 0.25rem) 0 0;
+  min-block-size: max(var(--kp-focus-steps-min, 24rem), 100%);
+  /* The step text is the stage's subject: a size up from the kit's reading size. */
+  --kp-focus-steps-text: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem);
+}
+
+.ck-cook .kp-focus-steps__nav {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 1;
+  padding-block: var(--kp-space-sm, 0.5rem);
+  background: var(--background);
+}
+
+/* Back and Next share the row in two equal thumb-sized columns. */
+.ck-cook .kp-focus-steps__nav > * {
+  flex: 1 1 0;
+  /* 56 px: the kit's touch target (44 px) and a quarter again, for a thumb in a kitchen. */
+  min-block-size: calc(var(--kp-touch-target, 2.75rem) * 1.25);
+}
+
+/* The tracks are the step's own tabs: on the stage they stand as one strip across the top of the step, one equal column
+   per track with its name and clock over its bar, so a tap switches track and the step keeps the screen. What a track is
+   doing stays in the tab's name for a reader and in the full timeline in the More sheet. */
+.ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane-list {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane.kp-button {
+  grid-column: auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'name time' 'state state' 'bar bar';
+  grid-template-rows: auto auto auto;
+  padding: var(--kp-space-xs, 0.25rem) var(--kp-space-sm, 0.5rem);
+}
+
+.ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane-name {
+  font-size: var(--kp-text-md, 1rem);
+}
+
+/* The count and Read aloud share one line again; the step gets the room. */
+.ck-cook .kp-focus-steps[data-kp-focus-tracked][data-kp-lanes-at='top'] .kp-focus-steps__head {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* The running timers, pinned: one compact row per timer (name and state, the time, its buttons) over its thin bar. */
+.ck-pinned .kp-timers__list {
+  --kp-timer-min: 22rem;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.ck-pinned .kp-timer {
+  --kp-timer-size: 1.75rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'head time actions' 'bar bar bar';
+  align-items: center;
+  column-gap: var(--kp-space-md, 1rem);
+  padding: var(--kp-space-xs, 0.25rem) var(--kp-space-sm, 0.5rem);
+}
+
+.ck-pinned .kp-timer__head {
+  grid-area: head;
+  flex-direction: column;
+  align-items: start;
+  gap: 0;
+}
+
+.ck-pinned .kp-timer__state {
+  align-items: start;
+}
+
+.ck-pinned .kp-timer__time {
+  grid-area: time;
+}
+
+.ck-pinned .kp-timer__bar {
+  grid-area: bar;
+}
+
+.ck-pinned .kp-timer__actions {
+  grid-area: actions;
+}
+
+/* On a phone the sentence under the title gives its line to the step; the More sheet says what the stage is. */
+@media (max-width: 40rem) {
+  .ck-lead,
+  .ck-cook .kp-focus-steps__lanes-title,
+  .ck-cook .kp-focus-steps__lanes-done,
+  .ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane-state {
+    display: none;
+  }
+
+  /* A track's tab on a phone: its name, then its clock (when a timer runs), then its bar. */
+  .ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane.kp-button {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'name' 'time' 'bar';
+  }
+
+  .ck-cook .kp-focus-steps[data-kp-lanes-at='top'] .kp-focus-steps__lane-time {
+    justify-self: start;
+    font-size: var(--kp-text-lg, 1.125rem);
+  }
+
+  /* A timer on a phone: the name and the time on one line, its buttons under them. */
+  .ck-pinned .kp-timer {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'head time' 'actions actions' 'bar bar';
+    row-gap: var(--kp-space-xs, 0.25rem);
+  }
+}
+
+/* ---- The More sheet (the kit's drawer) ------------------------------------------------------------------------------ */
+.ck-more {
+  --kp-drawer-width: min(44rem, 100vw);
+}
+
+.ck-more__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--kp-space-xl, 2rem);
+}
+
+.ck-more__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kp-space-sm, 0.5rem);
+}
+
+.ck-more__links:empty {
+  display: none;
+}
+
+/* The head's actions: the "Screen stays on" badge first, then Gather first and More, on one line on every width. */
+.ck-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kp-space-sm, 0.5rem);
+}

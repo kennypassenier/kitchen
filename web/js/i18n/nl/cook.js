@@ -3,6 +3,11 @@
 
 export const NL_COOK = {
   // cook mode
+  "cook.more": "Meer",
+  "cook.moreTitle": "Meer bij dit recept",
+  "cook.moreText": "Alles wat niet de stap van nu is: eerst klaarzetten, de tijdlijn, de timerschijven en de rustige stand.",
+  "cook.moreClose": "Sluiten en terug naar de stap",
+  "cook.gather": "Eerst klaarzetten",
   "cook.title": "Koken",
   "cook.mode": "Kookmodus",
   "cook.notHere": "Dit recept is er niet",
@@ -32,10 +37,7 @@ export const NL_COOK = {
   "cook.steps": "Stappen",
   "cook.noTimer": "Geen timer actief. Start er een bij een stap.",
   "cook.kitchenTimers": "Keukentimers",
-  "cook.secCook": "Kookmodus: één stap per keer",
-  "cook.secCookText": "Eén stap groot op het aanrecht, met wat hij nodig heeft en een timerknop. Gestarte timers blijven ernaast lopen, welke stap je ook doet.",
   "cook.timersRunning": "Timers die lopen",
-  "cook.timersNote": "Elke timer die je start, blijft hier staan en zijn schijf hieronder volgt hem.",
   "cook.timeline": "De tijdlijn",
   "cook.timelineText": "Elk onderdeel is een rij. Volle balken zijn klaar, de gestreepte is nu, de omlijnde komen nog.",
   "cook.discsLabel": "Timerschijven",
