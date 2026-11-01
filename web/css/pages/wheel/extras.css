@@ -67,7 +67,9 @@
 }
 
 /* "What do we eat?" is wider than the other pages so the big wheel, the small wheel and the answer all fit side by side
-   at 1280 (Kenny, 24/10/2026 10:28); the parents' page too. Only these pages: the shell of every other page keeps its width. */
+   at 1280 (Kenny, 24/10/2026 10:28); the parents' page too. Only these pages: every other page sits in the kit's page container
+   (`.kp-page`, 80 % wide). The wide shell has the old 1rem margins and no side padding, as before the container. */
 .app-shell:has(> .wl-page, > .pr-page) {
-  inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 96rem);
+  max-inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 96rem);
+  padding-inline: 0;
 }

@@ -13,8 +13,8 @@
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--kitchen-section-gap);
-  inline-size: min(100% - 2 * var(--kp-space-4, 1rem), 76rem);
-  margin-inline: auto;
+  /* The width is the kit's page container (`.kp-page` on the element: 80 % of the window, never under 64rem, centred, with
+     its own side padding), like Kenny's other apps (ux-review fix-page-width-1); this rule adds only the vertical room. */
   padding-block: var(--kp-space-6, 1.5rem) var(--kp-space-10, 3rem);
 }
 
