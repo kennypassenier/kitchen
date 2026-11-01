@@ -4,7 +4,7 @@
 export { externalLink, hostOf, energies, feelings, LISTS, detailHref, DETAIL_BASE, logWhat, sideName, dishHas, missingBadge, itemLink } from "./lists.js";
 export { drawer } from "./drawer.js";
 export { openRecordEditor } from "./editors.js";
-export { openSafePicker, unmarkSafe, ateShelf } from "./safe.js";
+export { unmarkSafe, ateShelf } from "./safe.js";
 export { deleteRecord, duplicateRecipe, duplicateDish, rowActions } from "./delete.js";
 export { usersOf, usageWords, inUseReason, markInUse } from "./in-use.js";
 export { tableCard } from "./table-card.js";
