@@ -21,6 +21,7 @@ mod drafts;
 mod migrate;
 mod ops;
 mod seed;
+mod undo;
 mod validate;
 
 use data::FORMAT;
@@ -35,6 +36,8 @@ pub struct Store {
     /// Where the photo files live (`<state dir>/photos`); none for an in-memory store.
     photos: Option<PathBuf>,
     data: RwLock<Data>,
+    /// What was deleted lately, so Undo can put it back (undo.rs).
+    removed: undo::Removals,
 }
 
 impl Store {
@@ -73,6 +76,7 @@ impl Store {
             path,
             photos: Some(dir.join("photos")),
             data: RwLock::new(data),
+            removed: undo::Removals::default(),
         })
     }
 
@@ -83,6 +87,7 @@ impl Store {
             path: PathBuf::new(),
             photos: None,
             data: RwLock::new(data),
+            removed: undo::Removals::default(),
         }
     }
 

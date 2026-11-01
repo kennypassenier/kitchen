@@ -103,6 +103,7 @@ impl Store {
         .await
     }
 
+    /// Remove an item; it stays restorable for a while (`undo::UNDO_KEEP`).
     pub async fn delete(&self, coll: &str, id: &str) -> Result<Value, Refused> {
         let gone = self
             .change(|d| {
@@ -113,12 +114,17 @@ impl Store {
                     .iter()
                     .position(|v| v.get("id").and_then(Value::as_str) == Some(id))
                     .ok_or(Refused::NotFound)?;
-                Ok(c.remove(at))
+                Ok((at, c.remove(at)))
             })
             .await?;
-        // A discarded draft takes the photos only it referred to along (Kenny, 29/10/2026).
+        let (at, gone) = gone;
+        // A discarded draft takes the photos only it referred to along (Kenny, 29/10/2026); anything else can be put
+        // back for a while (undo.rs).
         if coll == "drafts" {
             self.release_photos(std::slice::from_ref(&gone)).await;
+        } else {
+            self.removed
+                .keep(coll, at, gone.clone(), std::time::Instant::now());
         }
         Ok(gone)
     }

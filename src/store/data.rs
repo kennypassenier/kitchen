@@ -105,6 +105,10 @@ pub enum Refused {
     BadSource(String),
     /// A recipe source that misses its name, address or language (the sentence a page shows).
     BadRecipeSource(String),
+    /// Undo came after the deleted item's window closed (or after a restart).
+    UndoClosed,
+    /// Undo found an item with that id in the list again.
+    Exists,
     Disk(String),
 }
 
@@ -132,6 +136,11 @@ impl std::fmt::Display for Refused {
                 "{field} must be a web address starting with http:// or https://, or empty"
             ),
             Refused::BadRecipeSource(why) => write!(f, "{why}"),
+            Refused::UndoClosed => write!(
+                f,
+                "that delete can no longer be undone: too much time has passed"
+            ),
+            Refused::Exists => write!(f, "that item is already back"),
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }

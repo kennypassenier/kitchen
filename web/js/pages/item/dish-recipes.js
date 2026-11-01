@@ -1,9 +1,9 @@
 // The recipes card on a dish's page.
 
-import { attachCardStates, setCardState, toast, openConfirmation } from "/static/kp/dist/kp-themes.min.js";
-import { makeDefaultRecipe, recipeLabel, remove, ApiError } from "../../api.js";
+import { attachCardStates, setCardState, toast } from "/static/kp/dist/kp-themes.min.js";
+import { makeDefaultRecipe, recipeLabel } from "../../api.js";
 import { h } from "../../dom.js";
-import { duplicateRecipe } from "../../records/index.js";
+import { duplicateRecipe, deleteRecipe } from "../../records/index.js";
 import { go } from "../../go.js";
 import { importHref } from "../../recipe/import-plan.js";
 import { editRecipe, newRecipe } from "../../recipe/edit-nav.js";
@@ -12,17 +12,6 @@ import { t } from "../../i18n/index.js";
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
 
-/** Delete asks for the label; the recipe's photos are the editor's business. @param {HTMLElement} del @param {Item} r @param {Item} view @param {string} label */
-function askDelete(del, r, view, label) {
-  openConfirmation(del, {
-    phrase: t("rec.deleteAsk", view.name),
-    typeName: label,
-    acceptLabel: t("list.recipes.delete"),
-    loses: [t("it.recipeLoses")],
-    onAccept: () => void remove("recipes", r.id).then(() => toast(t("rec.deleted", view.name)), (e) => toast(t("rec.notDeleted", e instanceof ApiError ? e.message : String(e)), { live: "assertive", sticky: true })),
-  });
-}
-
 /** Edit, Duplicate and Delete for one recipe. @param {Item} r @param {Item} view @param {string} label */
 function recipeButtons(r, view, label) {
   const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", label) }, t("common.edit"));
@@ -30,7 +19,8 @@ function recipeButtons(r, view, label) {
   const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", label) }, t("common.duplicate"));
   copy.addEventListener("click", () => duplicateRecipe(view));
   const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", label) }, t("common.delete"));
-  del.addEventListener("click", () => askDelete(del, r, view, label));
+  // Delete at once with Undo; the photos go only when the Undo window closed (Kenny, 01/11/2026 20:21).
+  del.addEventListener("click", () => void deleteRecipe(r.id, view.name));
   return [edit, copy, del];
 }
 

@@ -1,7 +1,7 @@
 // The dishes screen, `/dishes` (Kenny, 22/10/2026): what lands on a plate, the dishes the parents' wheel picks from.
 // Two cards, each the package's data table with its own loading, empty and failed states: the dishes, each with its
 // own sides (Kenny, 24/10/2026 05:03), and the categories ("Everyday", "Special", …). Add and Edit open the drawer
-// (js/dishes/editor.js); Delete asks for the typed name. A category a dish still uses cannot be deleted, so no dish
+// (js/dishes/editor.js); Delete works at once with Undo (records/undo-delete.js). A category a dish still uses cannot be deleted, so no dish
 // ever points at nothing.
 
 import { ingredientName } from "../api.js";

@@ -3,8 +3,8 @@
 // detail page, its editor and how it is deleted, so the screens that show an item (/bad-days, /dishes, /log, the
 // wheel's resting list, the detail page) all offer the same four actions in the same words.
 //
-// The editors are the dishes' drawer (js/dishes/editor.js) on `.kp-formgrid`; a delete that loses something a person
-// typed asks for the typed name (the package's confirmation), a log line or a resting mark is taken back with Undo.
+// The editors are the dishes' drawer (js/dishes/editor.js) on `.kp-formgrid`; every delete goes at once with a 10 s Undo
+// (records/undo-delete.js, Kenny 01/11/2026 20:21).
 // docs/agent/CRUD.md lists what each screen offers.
 
 // Per-list registry: names, detail pages and the name/link helpers every screen shares.

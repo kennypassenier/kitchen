@@ -161,26 +161,22 @@ export async function remove(list, id) {
   return gone;
 }
 
-// Drafts (Kenny, 29/10/2026): the recipe editor autosaves its form into the kitchen's database, one per key (a recipe's id,
-// or `new:<dish id>`), so a closed tab or a dropped connection loses nothing. The server keeps one per key (src/store.rs);
-// the shared copy is not told, so no page redraws on every autosave.
-
-/** The draft saved under `key`, or null. @param {string} key @returns {Promise<Item | null>} */
-export async function readDraft(key) {
-  const all = await call("GET", "/data/drafts");
-  return (Array.isArray(all) ? all : []).find((/** @type {Item} */ d) => d.key === key) ?? null;
+/**
+ * Undo of a delete (Kenny, 01/11/2026 20:21): the server puts the removed item back at its place under the same id,
+ * within its undo window (src/store/undo.rs); `at` is where the shared copy held it. Resolves to the item.
+ * @param {string} list @param {string} id @param {number} at
+ */
+export async function restore(list, id, at) {
+  const item = await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`);
+  if (copy) {
+    const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
+    if (!arr.some((x) => x.id === id)) arr.splice(Math.min(Math.max(0, at), arr.length), 0, item);
+    tell();
+  }
+  return item;
 }
 
-/** Save (or replace) the draft under `key`. @param {string} key @param {Item} data */
-export async function saveDraft(key, data) {
-  return call("POST", "/data/drafts", { key, data });
-}
-
-/** Delete the draft under `key`, if there is one. @param {string} key */
-export async function deleteDraft(key) {
-  const draft = await readDraft(key);
-  if (draft) await call("DELETE", `/data/drafts/${encodeURIComponent(draft.id)}`);
-}
+export { readDraft, saveDraft, deleteDraft } from "./api/drafts.js";
 
 /** A recipe read from a web page (`{ url }`) or pasted text (`{ text }`), normalised; a refusal's message is its code (src/import.rs). @param {{ url?: string, text?: string }} body */
 export const importRecipe = (body) => call("POST", "/data/import", body);

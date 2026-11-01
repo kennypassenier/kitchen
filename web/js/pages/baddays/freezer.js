@@ -57,7 +57,7 @@ function renderFreezer({ ctx, freezerTable, rows }, k) {
   }
 }
 
-/** Edit and Delete of a freezer row: the shared drawer and the typed-name confirmation (js/records/). @param {Event} event */
+/** Edit and Delete of a freezer row: the shared drawer, and Delete at once with Undo (js/records/). @param {Event} event */
 function onEditOrDelete(event) {
   const el = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest("[data-bd-edit], [data-bd-delete]")) : null;
   if (!el) return;

@@ -9,6 +9,7 @@
 //! | `POST /data/{list}` | add an item; the answer carries its new `id` |
 //! | `PUT /data/{list}/{id}` | replace the item |
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
+//! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
 //! | `GET`/`PATCH /data/settings` | the settings; PATCH merges, `null` removes a key |
 //! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
@@ -36,6 +37,7 @@ pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
         .route("/data/kitchen", get(kitchen))
         .route("/data/settings", get(settings).patch(patch_settings))
         .route("/data/freezer/{id}/take", post(take))
+        .route("/data/restore/{list}/{id}", post(restore))
         .route("/data/{list}", get(list).post(create))
         .route("/data/{list}/{id}", put(replace).delete(delete))
         .with_state(store)
@@ -51,7 +53,8 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
         Err(e) => {
             let code = match e {
                 Refused::NotFound | Refused::UnknownCollection(_) => StatusCode::NOT_FOUND,
-                Refused::NoPortionsLeft => StatusCode::CONFLICT,
+                Refused::NoPortionsLeft | Refused::Exists => StatusCode::CONFLICT,
+                Refused::UndoClosed => StatusCode::GONE,
                 Refused::Disk(_) => StatusCode::INTERNAL_SERVER_ERROR,
                 Refused::NotAnObject
                 | Refused::IdMismatch
@@ -87,6 +90,10 @@ async fn replace(
 
 async fn delete(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
     answer(s.delete(&list, &id).await)
+}
+
+async fn restore(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
+    answer(s.restore(&list, &id).await)
 }
 
 async fn take(State(s): Shared, Path(id): Path<String>, Json(body): Json<Value>) -> Response {

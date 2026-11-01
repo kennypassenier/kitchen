@@ -1,33 +1,24 @@
-// Delete (with what is lost and what still uses an item), duplicate, and the Edit/Delete buttons of a row.
+// Delete (at once, with Undo; refused while something still uses the item), duplicate, and the Edit/Delete buttons of a row.
 
-import { openConfirmation, toast, undoToast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
-import { create, replace, remove, kitchenNow, ingredientName, reason } from "../api.js";
-import { t, nameOf, textOf } from "../i18n/index.js";
+import { replace, remove, restore, kitchenNow, ingredientName } from "../api.js";
+import { t, nameOf } from "../i18n/index.js";
 import { openDishEditor, ordered } from "../dishes/editor.js";
 import { copyDish } from "../recipe/duplicate.js";
 import { LISTS, dishHas } from "./lists.js";
 import { drawer } from "./drawer.js";
 import { openRecordEditor } from "./editors.js";
 import { copyToEditor } from "../recipe/edit-nav.js";
+import { deleteWithUndo } from "./undo-delete.js";
+import { releaseDishPhotos } from "./recipe-delete.js";
+import { placeOf } from "./undo-logic.js";
+import { closeUp, makeRoom } from "./order.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
 
 // ---- delete --------------------------------------------------------------------------------------------------------
-
-/** What deleting an item loses, in one line per thing. @param {List} list @param {Item} item */
-function loses(list, item) {
-  const k = kitchenNow();
-  switch (list) {
-    case "freezer":
-      return [t("rec.losesFreezer", textOf(item.dish), item.portions)];
-    case "shelf":
-      return [t("rec.losesShelf", (k?.log ?? []).filter((e) => e.shelf_id === item.id).length)];
-    default:
-      return [t(`list.${list}.loses`)];
-  }
-}
 
 /** What still points at an item, by name: a category's dishes, an ingredient's dishes and recipes, an ingredient category's ingredients. @param {List} list @param {Item} item */
 export function usersOf(list, item) {
@@ -49,64 +40,46 @@ function inUse(list, item) {
   return t(`list.${list}.inUse`, LISTS[list].name(item), users.length, users.join(", "));
 }
 
-/** A log line or a resting mark goes at once, with an Undo that puts it back. @param {List} list @param {Item} item @param {string} name @param {(() => void) | undefined} after */
-function deleteAtOnce(list, item, name, after) {
-  void remove(list, item.id).then(
-    () => {
-      after?.();
-      const { id, created, updated, ...rest } = item;
-      undoToast(t("rec.deletedDot", name), {
-        mode: "revert",
-        ms: 10_000,
-        clock: "ring",
-        undo: async () => {
-          try {
-            await create(list, rest);
-          } catch (e) {
-            toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
-          }
-        },
-      });
-    },
-    (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
-  );
-}
+/** Whether a list keeps its items in a numbered order (the two category lists). @param {List} list */
+const numbered = (list) => list === "dish_categories" || list === "ingredient_categories";
 
-/** A deleted category leaves no gap: the others close up to 1, 2, 3, …. @param {List} list */
-async function closeUp(list) {
-  if (list !== "dish_categories" && list !== "ingredient_categories") return;
-  const rest = ordered(kitchenNow()?.[list] ?? []);
-  for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
+/** Save the given items' new `order`, one after the other; a refusal says so (the list then shows a gap, no loss). @param {List} list @param {Item[]} changes */
+async function saveOrders(list, changes) {
+  try {
+    for (const x of changes) await replace(list, x);
+  } catch (e) {
+    toast(t("rec.orderNotSaved", e instanceof Error ? e.message : String(e)), { live: "assertive", sticky: true });
+  }
 }
 
 /**
- * Delete an item: a log line or a resting mark at once with Undo, anything a person typed more of after the typed
- * name. `after` runs once it is gone (a detail page goes back to its list).
- * @param {HTMLElement} anchor @param {List} list @param {Item} item @param {{ after?: () => void }} [o]
+ * Delete an item at once with Undo (Kenny, 01/11/2026 20:21: no typed name for anything that can come back, and
+ * everything in these lists can). The server keeps the removed item for its undo window (src/store/undo.rs) and puts the
+ * same item back at its place; a category list closes up after the delete and makes room again on Undo; a dish's
+ * recipe photos are deleted only when the window closed. `after` runs once it is gone (a detail page goes back to its
+ * list). An item still in use is refused with the sentence that names its users.
+ * @param {HTMLElement} _anchor @param {List} list @param {Item} item @param {{ after?: () => void }} [o]
  */
-export function deleteRecord(anchor, list, item, { after } = {}) {
-  const name = LISTS[list].name(item);
+export function deleteRecord(_anchor, list, item, { after } = {}) {
   const blocked = inUse(list, item);
   if (blocked) {
     toast(blocked, { live: "assertive" });
     return;
   }
-  if (list === "log" || list === "resting") return deleteAtOnce(list, item, name, after);
-  openConfirmation(anchor, {
-    phrase: t("rec.deleteAsk", name),
-    typeName: name,
-    acceptLabel: t(`list.${list}.delete`),
-    loses: loses(list, item),
-    onAccept: () =>
-      void remove(list, item.id)
-        .then(() => closeUp(list))
-        .then(
-          () => {
-            toast(t("rec.deleted", name));
-            after?.();
-          },
-          (e) => toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true }),
-        ),
+  const at = placeOf(/** @type {Item[]} */ (kitchenNow()?.[list] ?? []), item.id);
+  const rest = () => /** @type {Item[]} */ (kitchenNow()?.[list] ?? []);
+  void deleteWithUndo({
+    name: LISTS[list].name(item),
+    remove: async () => {
+      await remove(list, item.id);
+      after?.();
+      if (numbered(list)) await saveOrders(list, closeUp(rest()));
+    },
+    restore: async () => {
+      const back = await restore(list, item.id, at);
+      if (numbered(list)) await saveOrders(list, makeRoom(rest(), back));
+    },
+    settle: list === "dishes" ? () => releaseDishPhotos(item) : undefined,
   });
 }
 
