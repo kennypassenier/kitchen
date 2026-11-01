@@ -5,11 +5,11 @@
 // The bar renders from the kit's page registry (`GET /api/kit/pages`), so it
 // never carries a second hand-written list.
 
-import { attachNavToggles, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup, attachSegmented, setSegmentedValues, SEGMENTED_EVENT, toast } from "/static/kp/dist/kp-themes.min.js";
+import { attachNavToggles, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
-import { onKitchen, patchSettings, loadKitchen } from "./api.js";
+import { onKitchen, loadKitchen } from "./api.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
 /** @typedef {(root: HTMLElement, ctx: Ctx) => (void | (() => void))} Mount */
@@ -127,35 +127,19 @@ function failed(e) {
   );
 }
 
-// The language toggle, left of the theme picker (Kenny, 24/10/2026 05:12): the package's segmented choice of two. It
-// writes the kitchen's `settings.lang`, so the choice follows Kenny between devices; the kitchen's value wins on load.
-const langToggle = h(
-  "div",
-  { class: "kp-segmented kp-segmented--chips app-lang", "data-kp-segmented": "single", role: "radiogroup", "aria-label": t("shell.language") },
-  ...[["nl", "NL", "Nederlands"], ["en", "EN", "English"]].map(([value, short, long]) =>
-    h("button", { type: "button", class: "kp-segmented__item", role: "radio", "data-value": value, "aria-checked": String(value === lang()), title: long, "aria-label": long }, h("span", { class: "kp-segmented__label" }, short)),
-  ),
-);
+// The theme picker, right of the bar. The language is chosen once, in Calm settings (Kenny, 01/11/2026 20:21); it writes
+// the kitchen's `settings.lang`, so the choice follows Kenny between devices, and the kitchen's value wins on load.
 const theme = h("span", { class: "app-theme" });
 theme.innerHTML = themeMenuMarkup({ id: "app-theme-menu", label: t("shell.theme") });
-tools.replaceChildren(langToggle, theme);
+tools.replaceChildren(theme);
 attachThemePickers(tools);
-attachSegmented(langToggle);
-langToggle.addEventListener(SEGMENTED_EVENT, (event) => {
-  const next = /** @type {CustomEvent} */ (event).detail?.value === "nl" ? "nl" : "en";
-  if (next === lang()) return;
-  useLang(next);
-  patchSettings({ lang: next }).catch((e) => toast(`${t("shell.langNotKept")} ${e instanceof Error ? e.message : e}`, { live: "assertive" }));
-});
 onKitchen((k) => {
   const kept = k.settings?.lang === "nl" ? "nl" : "en";
   if (kept !== lang()) useLang(kept);
 });
-// A new language draws the bar and the page again, in place: nothing typed is kept in a page that is redrawn, so the
-// toggle is the only thing that does this.
-onLang((l) => {
-  setSegmentedValues(langToggle, [l]);
-  langToggle.setAttribute("aria-label", t("shell.language"));
+// A new language draws the bar and the page again, in place: nothing typed is kept in a page that is redrawn, so a
+// language change in Calm settings is the only thing that does this.
+onLang(() => {
   void bar.draw();
   void render();
 });

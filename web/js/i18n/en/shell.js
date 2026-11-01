@@ -5,7 +5,6 @@ export const EN_SHELL = {
   // the shell and words every screen uses
   "shell.language": "Language",
   "shell.theme": "Theme",
-  "shell.langNotKept": "The language changed here but was not saved:",
   "shell.notFoundTitle": "This page does not exist",
   "shell.notFoundText": "The address may be old. The wheel is always one press away.",
   "shell.openWheel": "Open the wheel",
