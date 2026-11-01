@@ -123,5 +123,9 @@ export const NL_EDITOR = {
   "edit.timelineAll": "Alle stappen",
   "edit.timelineEmpty": "Nog geen stappen",
   "edit.timelineEmptyText": "Voeg hieronder een stap toe en hij staat hier.",
-  "edit.close": "Sluiten zonder te bewaren",
+  "edit.close": "Sluiten",
+  "edit.leaveAsk": "De wijzigingen bewaren als concept?",
+  "edit.leaveText": "Je hebt dit recept gewijzigd en niet bewaard. Als concept wordt het de volgende keer in de editor weer aangeboden.",
+  "edit.leaveKeep": "Als concept bewaren",
+  "edit.leaveDiscard": "Weggooien",
 };

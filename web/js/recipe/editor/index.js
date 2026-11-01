@@ -11,7 +11,7 @@
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): this file opens the drawer and joins the parts; each part is a function
 // that builds its fields and hands them back (details, times, lists, steps, timeline), with the pure logic in logic.js.
 
-import { attachSequencers, closeDialog } from "/static/kp/dist/kp-themes.min.js";
+import { attachSequencers } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { photoTracker, photosOf } from "../photos.js";
@@ -24,6 +24,7 @@ import { timelineFields } from "./timeline.js";
 import { attachControls } from "./controls.js";
 import { wireForm } from "./wiring.js";
 import { createDraft, watchDraft, offerEarlierDraft } from "./draft.js";
+import { wireLeaving } from "./leaving.js";
 import { createCollector, wireSubmit } from "./save.js";
 
 export { newId } from "./ids.js";
@@ -94,27 +95,6 @@ function fillDrawer(dialog, p, r, { editing, copyOf, imported, cover }) {
   return { form, save, cancel, offer };
 }
 
-/** Cancel, the close button and Escape leave without saving: the photos this session sent are not wanted any more, nor is the draft. @param {HTMLDialogElement} dialog @param {ReturnType<typeof buildParts>} p @param {HTMLElement} cancel */
-function wireLeaving(dialog, { tracker, draft }, cancel) {
-  const close = () => void closeDialog(dialog);
-  const leave = () => {
-    void tracker.discard();
-    void draft.drop();
-    close();
-  };
-  cancel.addEventListener("click", leave);
-  dialog.querySelector("[data-close]")?.addEventListener("click", leave);
-  // One Escape handler per opening: an editor re-opened on a restored draft replaces the one before it.
-  const again = /** @type {any} */ (dialog);
-  again.__rlAbort?.abort();
-  again.__rlAbort = new AbortController();
-  dialog.addEventListener("cancel", (e) => {
-    e.preventDefault();
-    leave();
-  }, { once: true, signal: again.__rlAbort.signal });
-  return close;
-}
-
 /**
  * Open the editor for a recipe, or for a new one. `restore` is a draft's form state (Kenny, 29/10/2026): the editor then
  * opens with it instead of the saved recipe.
@@ -134,7 +114,7 @@ export function openEditor(dialog, { recipe, mainOptions, preset = {}, restore =
   dialog.addEventListener("close", detachSeq, { once: true });
   wireForm({ form, steps: p.steps, timeline: p.timeline, times: p.times, lists: p.lists });
   watchDraft(form, p.draft);
-  const close = wireLeaving(dialog, p, cancel);
+  const close = wireLeaving(dialog, p, () => JSON.stringify(p.collector.collect(true)), cancel);
   wireSubmit({ form, save, recipe, editing, collector: p.collector, details: p.details, lists: p.lists, tracker: p.tracker, draft: p.draft, close });
   p.draft.setOpening(JSON.stringify(p.collector.collect(true)));
   if (!dialog.open) dialog.showModal();

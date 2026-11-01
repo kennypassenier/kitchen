@@ -123,5 +123,9 @@ export const EN_EDITOR = {
   "edit.timelineAll": "All steps",
   "edit.timelineEmpty": "No steps yet",
   "edit.timelineEmptyText": "Add a step below and it is laid out here.",
-  "edit.close": "Close without saving",
+  "edit.close": "Close",
+  "edit.leaveAsk": "Keep your changes as a draft?",
+  "edit.leaveText": "You changed this recipe and did not save it. As a draft it is offered again the next time you open the editor.",
+  "edit.leaveKeep": "Keep as draft",
+  "edit.leaveDiscard": "Discard",
 };

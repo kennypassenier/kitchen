@@ -1,5 +1,5 @@
-// The draft: saved in the database about a second after the last change (Kenny, 29/10/2026). Deleted on Save and on
-// Cancel / Discard; what stays is what a closed tab or a dropped connection left.
+// The draft: saved in the database about a second after the last change (Kenny, 29/10/2026). Deleted on Save and on an
+// explicit Discard (never by closing: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
 
 import { saveDraft, deleteDraft, readDraft } from "../../api.js";
 import { h } from "../../dom.js";
@@ -35,6 +35,12 @@ export function createDraft({ draftKey, collect }) {
     queue: () => {
       clearTimeout(timer);
       timer = window.setTimeout(() => (chain = chain.then(write)), DRAFT_MS);
+    },
+    /** Write the draft now (a close must not lose the last second of typing). */
+    flush: async () => {
+      clearTimeout(timer);
+      chain = chain.then(write);
+      await chain;
     },
     drop: async () => {
       gone = true;
