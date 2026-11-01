@@ -7,6 +7,7 @@ import { row, input, select } from "../ui/form-parts.js";
 import { today, dmy } from "../format.js";
 import { dish, feelings, logWhat } from "./lists.js";
 import { dateField, choiceOf, dishOptions, openForm } from "./drawer.js";
+import { logLine } from "./log-line.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
@@ -33,7 +34,7 @@ export function openRestingEditor(list, item, v) {
 }
 
 /** The dishes and the shelf foods one can have eaten, as `d:<id>` / `s:<id>` options. */
-function eatenOptions() {
+export function eatenOptions() {
   const shelf = [...(kitchenNow()?.shelf ?? [])].sort((a, b) => textOf(a.title).localeCompare(textOf(b.title)));
   return [...dishOptions().map(([id, n]) => /** @type {[string, string]} */ ([`d:${id}`, t("rec.optDish", n)])), ...shelf.map((s) => /** @type {[string, string]} */ ([`s:${s.id}`, t("rec.optShelf", textOf(s.title))]))];
 }
@@ -49,18 +50,8 @@ function logFields(v) {
 
 /** Read the log form, or say what is wrong. @param {ReturnType<typeof logFields>} f */
 function logBody({ what, day, felt, note }) {
-  const [kind, id] = [what.value.slice(0, 1), what.value.slice(2)];
-  const d = day.get();
-  if (!id) return { error: t("rec.errWhat"), remedy: t("rec.fixWhat") };
-  if (!d || d > today()) return { error: t("rec.errDay2"), remedy: t("rec.fixDay") };
-  const feeling = getSegmentedValues(felt)[0] ?? "none";
-  return {
-    dish_id: kind === "d" ? id : null,
-    shelf_id: kind === "s" ? id : null,
-    date: d,
-    feeling: feeling === "none" ? null : feeling,
-    note: /** @type {HTMLInputElement} */ (note).value.trim(),
-  };
+  const line = logLine({ what: what.value, day: day.get(), feeling: getSegmentedValues(felt)[0] ?? "none", note: /** @type {HTMLInputElement} */ (note).value }, today());
+  return "error" in line ? { error: t(line.error), remedy: t(line.remedy) } : line;
 }
 
 /** @param {List} list @param {Item | null} item @param {Item} v */

@@ -10,8 +10,9 @@ export const EN_LOG = {
   "lg.shelf": "Zero-prep shelf",
   "lg.lede": "Every day a recipe was cooked or a food from the zero-prep shelf was eaten. The wheel reads it for “days since last cooked”; nothing here counts or judges.",
   "lg.title": "The log",
-  "lg.cardLede": "Cook mode and the recipe page add a line when you cook; the bad-days shelf adds one when you press I ate this.",
+  "lg.cardLede": "Cook mode and the recipe page add a line when you cook; the bad-days shelf adds one when you press I ate this. Anything else you type in the row on top: Enter adds it.",
   "lg.emptyTitle": "Nothing logged yet",
   "lg.emptyText": "A line appears when you finish cooking a recipe or eat something from the zero-prep shelf.",
+  "lg.choose": "Choose what you ate",
   "lg.reading": "Reading the log",
 };

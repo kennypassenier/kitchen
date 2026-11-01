@@ -10,8 +10,9 @@ export const NL_LOG = {
   "lg.shelf": "Plank zonder koken",
   "lg.lede": "Elke dag dat een recept gekookt is of iets van de plank zonder koken gegeten is. Het wiel leest het voor “dagen sinds laatst gekookt”; hier wordt niets geteld of beoordeeld.",
   "lg.title": "Het logboek",
-  "lg.cardLede": "De kookmodus en de receptpagina voegen een regel toe als je kookt; de plank op slechte dagen voegt er een toe als je op Ik at dit drukt.",
+  "lg.cardLede": "De kookmodus en de receptpagina voegen een regel toe als je kookt; de plank op slechte dagen voegt er een toe als je op Ik at dit drukt. Al de rest typ je in de rij bovenaan: Enter voegt het toe.",
   "lg.emptyTitle": "Nog niets genoteerd",
   "lg.emptyText": "Er verschijnt een regel als je een recept klaar hebt gekookt of iets van de plank zonder koken eet.",
+  "lg.choose": "Kies wat je at",
   "lg.reading": "Het logboek wordt gelezen",
 };

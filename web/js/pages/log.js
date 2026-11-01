@@ -1,17 +1,19 @@
 // What I ate (/log): every line of the kitchen's log, the recipes that were cooked and the shelf foods that were eaten
 // (Kenny, 24/10/2026 05:07), newest first. One card with the package's data table and its loading, empty and failed
-// states; Add, Edit and Delete as on /dishes (js/records/), and each line opens its own page.
+// states; a new line is typed in the add row on top (records/log-entry.js, Kenny 01/11/2026 20:21), Edit and Delete as on
+// /dishes (js/records/), and each line opens its own page.
 
 import { h } from "../dom.js";
-import { tableCard, rowActions, itemLink, openRecordEditor, logWhat, feelings } from "../records/index.js";
+import { tableCard, rowActions, itemLink, logWhat, feelings } from "../records/index.js";
+import { logEntry } from "../records/log-entry.js";
 import { pageHead, mountTables } from "../records/table-page.js";
 import { dmy } from "../format.js";
 import { t } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
 
-/** The log table card. */
-function buildCard() {
+/** The log table card, with the add row on top. @param {HTMLElement} entry */
+function buildCard(entry) {
   return tableCard({
     id: "lg-log",
     title: t("lg.title"),
@@ -22,6 +24,7 @@ function buildCard() {
     add: t("list.log.add"),
     emptyTitle: t("lg.emptyTitle"),
     emptyText: t("lg.emptyText"),
+    entry,
   });
 }
 
@@ -42,10 +45,11 @@ function logRow(e) {
 /** @param {HTMLElement} root */
 export function mount(root) {
   document.title = `${t("nav.log")} · Kitchen`;
-  const log = buildCard();
+  const entry = logEntry();
+  const log = buildCard(entry.el);
   const page = h("div", { class: "dl-page" }, pageHead({ title: t("nav.log"), lede: t("lg.lede") }), log.card);
-  for (const b of log.addButtons) b.addEventListener("click", () => openRecordEditor("log", null));
-  return mountTables({
+  for (const b of log.addButtons) b.addEventListener("click", entry.focus);
+  const stop = mountTables({
     root,
     page,
     cards: [log],
@@ -53,6 +57,10 @@ export function mount(root) {
     fill: (k) => {
       const lines = [...k.log].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.created ?? "").localeCompare(String(a.created ?? "")));
       log.body.replaceChildren(...lines.map(logRow));
+      entry.refresh();
     },
   });
+  // The page is in the document now: the add row's date picker can attach.
+  entry.start();
+  return stop;
 }

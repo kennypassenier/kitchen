@@ -62,3 +62,14 @@ test("placeOf finds where an item stood, -1 when absent", () => {
   assert.equal(placeOf(cats(1, 2), "c2"), 1);
   assert.equal(placeOf([], "x"), -1);
 });
+
+test("logLine reads a dish or a shelf food, a day not after today, and an optional feeling and note", async () => {
+  const { logLine } = await import("../web/js/records/log-line.js");
+  const today = "2026-11-01";
+  assert.deepEqual(logLine({ what: "d:x", day: "2026-10-31", feeling: "easy", note: " soft " }, today), { dish_id: "x", shelf_id: null, date: "2026-10-31", feeling: "easy", note: "soft" });
+  assert.deepEqual(logLine({ what: "s:y", day: today, feeling: "none", note: "" }, today), { dish_id: null, shelf_id: "y", date: today, feeling: null, note: "" });
+  assert.equal(logLine({ what: "", day: today, feeling: "none", note: "" }, today).field, "what");
+  assert.equal(logLine({ what: "q:z", day: today, feeling: "none", note: "" }, today).field, "what");
+  assert.equal(logLine({ what: "d:x", day: null, feeling: "none", note: "" }, today).field, "day");
+  assert.equal(logLine({ what: "d:x", day: "2026-11-02", feeling: "fine", note: "" }, today).field, "day");
+});
