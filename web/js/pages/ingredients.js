@@ -5,8 +5,9 @@
 // be deleted; the refusal names what uses it.
 
 import { h } from "../dom.js";
-import { names, ordered } from "../dishes/editor.js";
+import { names } from "../dishes/editor.js";
 import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, usageWords, missingBadge } from "../records/index.js";
+import { categoryCard } from "../records/category-table.js";
 import { pageHead, mountTables } from "../records/table-page.js";
 import { t } from "../i18n/index.js";
 
@@ -25,16 +26,18 @@ function buildCards() {
     emptyTitle: t("ig.empty"),
     emptyText: t("ig.emptyText"),
   });
-  const cats = tableCard({
+  const cats = categoryCard("ingredient_categories", {
     id: "ig-cats",
     title: t("ig.catTitle"),
     lede: t("ig.catLede"),
-    noun: t("list.ingredient_categories"),
     plural: t("ig.catPlural"),
-    columns: [[t("it.position"), "number"], [t("rec.dutchName"), "text"], [t("rec.englishName"), "text"], [t("nav.ingredients"), "number"], [t("lg.actions")]],
-    add: t("list.ingredient_categories.add"),
     emptyTitle: t("ig.catEmpty"),
     emptyText: t("ig.catEmptyText"),
+    usedHead: t("nav.ingredients"),
+    used: (c, k) => {
+      const count = (k.ingredients ?? []).filter((i) => i.category === c.id).length;
+      return { count, text: t("rec.nIngredients", count) };
+    },
   });
   return { ings, cats };
 }
@@ -55,28 +58,13 @@ function ingredientRow(i, catList) {
   );
 }
 
-/** @param {Item} c @param {number} at @param {Item[]} ingredients */
-function categoryRow(c, at, ingredients) {
-  const n = names(c);
-  const count = ingredients.filter((i) => i.category === c.id).length;
-  return h(
-    "tr",
-    { "data-kp-row-key": c.id },
-    h("td", { "data-label": t("it.position"), class: "kp-numeric" }, String(at + 1)),
-    h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("ingredient_categories", c, n.nl) : missingBadge("ingredient_categories", c) ?? "–"),
-    h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("ingredient_categories", c, n.en) : missingBadge("ingredient_categories", c) ?? "–"),
-    h("td", { "data-label": t("nav.ingredients"), class: "kp-numeric", "data-kp-sort-value": String(count) }, String(count)),
-    h("td", { "data-label": t("lg.actions") }, rowActions("ingredient_categories", c)),
-  );
-}
-
 /** @param {HTMLElement} root */
 export function mount(root) {
   document.title = `${t("nav.ingredients")} · Kitchen`;
   const { ings, cats } = buildCards();
   const page = h("div", { class: "dl-page" }, pageHead({ title: t("nav.ingredients"), lede: t("ig.lede") }), ings.card, cats.card);
   for (const b of ings.addButtons) b.addEventListener("click", () => openRecordEditor("ingredients", null));
-  for (const b of cats.addButtons) b.addEventListener("click", () => openRecordEditor("ingredient_categories", null));
+  let first = true;
   return mountTables({
     root,
     page,
@@ -85,7 +73,9 @@ export function mount(root) {
     fill: (k) => {
       const catList = k.ingredient_categories ?? [];
       ings.body.replaceChildren(...(k.ingredients ?? []).map((i) => ingredientRow(i, catList)));
-      cats.body.replaceChildren(...ordered(catList).map((c, at) => categoryRow(c, at, k.ingredients ?? [])));
+      cats.fill(k);
+      if (first) requestAnimationFrame(() => cats.openAsked());
+      first = false;
     },
   });
 }

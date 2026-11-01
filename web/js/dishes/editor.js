@@ -11,12 +11,12 @@
 // has a Dutch and an English half, and a dish shows on the wheel of each language it has a name in (src/parents.rs;
 // Kenny, 22/10/2026 23:08).
 //
-// The name editor edits one category: its two names and its position in the list.
+// A category has no editor here any more: it is edited in its table (records/category-table.js, Kenny 01/11/2026 20:21).
 //
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): names.js (the name helpers), drawer.js (the drawer and `sec`), sides.js
 // (the sides block). The old names are re-exported from here, so no importer changes.
 
-import { getQuantity, toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, reason } from "../api.js";
 import { ingredientsPicker } from "../ingredients/picker.js";
@@ -108,75 +108,5 @@ export function openDishEditor(dialog, { dish, categories, from = null }) {
     form: f.form,
     saveLabel: dish ? t("de.saveDish") : t("list.dishes.addSave"),
     onSave: () => saveDish(dish, from, f),
-  });
-}
-
-/** The name editor's fields: two names and the position. @param {"dish_categories" | "ingredient_categories"} list @param {Item | null} item @param {number} count @param {{ nl: string, en: string }} example @param {string} noun */
-function nameForm(list, item, count, example, noun) {
-  const n = names(item);
-  const nl = input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: example.nl });
-  const en = input(n.en, "text", { autocomplete: "off", placeholder: example.en });
-  const last = item ? count : count + 1;
-  const position = h(
-    "div",
-    { class: "kp-quantity", "data-kp-quantity": true, "data-kp-quantity-min": "1", "data-kp-quantity-max": String(Math.max(1, last)), "data-kp-quantity-label": t("it.position") },
-    h("input", { class: "kp-quantity__input", value: String(Math.min(item?.order ?? last, last)) }),
-  );
-  const form = /** @type {HTMLFormElement} */ (
-    h(
-      "form",
-      { class: "kp-drawer__body rl-form", id: "dl-name-form", novalidate: true },
-      sec(
-        t("de.nameTitle", noun),
-        t("de.nameText"),
-        h(
-          "div",
-          { class: "kp-formgrid" },
-          row(t("rec.dutchName"), nl, t("rec.dutchHint")),
-          row(t("rec.englishName"), en, t("rec.englishHint")),
-          row(t("it.position"), position, t(list === "dish_categories" ? "de.posDish" : "de.posIng")),
-        ),
-      ),
-    )
-  );
-  return { form, nl, en, position };
-}
-
-/** Save the category and close up the others around it, so the positions stay 1, 2, 3, … without a gap or a tie. @param {"dish_categories" | "ingredient_categories"} list @param {Item | null} item @param {Item[]} items @param {ReturnType<typeof nameForm>} f */
-async function saveName(list, item, items, f) {
-  const body = {
-    ...(item ?? {}),
-    name: { nl: /** @type {HTMLInputElement} */ (f.nl).value.trim(), en: /** @type {HTMLInputElement} */ (f.en).value.trim() },
-    order: getQuantity(f.position),
-  };
-  if (!body.name.nl || !body.name.en) {
-    /** @type {HTMLInputElement} */ (body.name.nl ? f.en : f.nl).focus();
-    return { error: t(body.name.nl ? "ip.needEn" : "ip.needNl"), remedy: t("rec.fixName"), word: t("rec.notSaved") };
-  }
-  try {
-    const saved = item ? await replace(list, body) : await create(list, body);
-    const rest = ordered(items).filter((x) => x.id !== saved.id);
-    rest.splice(Math.max(0, body.order - 1), 0, saved);
-    for (const [i, x] of rest.entries()) if (x.order !== i + 1) await replace(list, { ...x, order: i + 1 });
-  } catch (e) {
-    return { error: reason(e), word: t("rec.notSaved") };
-  }
-  toast(t(item ? "rec.savedName" : "rec.addedName", label(body)));
-  return t("rec.saved");
-}
-
-/**
- * Open the name editor for a dish category or an ingredient category, or a new one.
- * @param {HTMLDialogElement} dialog
- * @param {{ list: "dish_categories" | "ingredient_categories", item: Item | null, items: Item[], noun: string, example: { nl: string, en: string } }} spec
- */
-export function openNameEditor(dialog, { list, item, items, noun, example }) {
-  const f = nameForm(list, item, items.length, example, noun);
-  openDrawer(dialog, {
-    title: item ? t("rec.editTitle", label(item)) : t(`list.${list}.add`),
-    text: t("de.nothingSaved"),
-    form: f.form,
-    saveLabel: item ? t("common.save") : t(`list.${list}.addSave`),
-    onSave: () => saveName(list, item, items, f),
   });
 }

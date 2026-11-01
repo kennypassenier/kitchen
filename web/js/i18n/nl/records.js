@@ -28,6 +28,8 @@ export const NL_RECORDS = {
   "rec.isSafe": (n) => `${n} is een veilig gerecht`,
   "rec.notSafe": (n) => `${n} is geen veilig gerecht meer. Het recept blijft.`,
   "rec.notBack": (w) => `Kon het niet terugzetten. ${w}`,
+  "rec.addInRow": "Toevoegen",
+  "rec.notAdded": (w) => `Niet toegevoegd: ${w}`,
   "rec.orderNotSaved": (w) => `De volgorde van de lijst is niet bewaard, dus er kan een nummer ontbreken. ${w}`,
   "rec.recipeDishGone": "Het gerecht is intussen verwijderd, dus het recept kan niet terug.",
   "rec.notChanged": (w) => `Niet veranderd: ${w}`,

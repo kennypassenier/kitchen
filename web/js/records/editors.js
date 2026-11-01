@@ -1,9 +1,9 @@
-// The record editors: one form per list, opened in the shared drawer (see drawer.js). The dish and the two category lists
-// have their own editors (dishes/editor.js); the other lists' forms are in editors-stock.js, editors-log.js and
+// The record editors: one form per list, opened in the shared drawer (see drawer.js). The dish has its own editor
+// (dishes/editor.js) and a category is edited in its table (records/category-table.js); the other lists' forms are in editors-stock.js, editors-log.js and
 // editors-names.js, and this file picks the one for the list.
 
 import { kitchenNow } from "../api.js";
-import { openDishEditor, openNameEditor, ordered } from "../dishes/editor.js";
+import { openDishEditor, ordered } from "../dishes/editor.js";
 import { LISTS } from "./lists.js";
 import { drawer } from "./drawer.js";
 import { openFreezerEditor, openShelfEditor } from "./editors-stock.js";
@@ -32,8 +32,10 @@ export function openRecordEditor(list, item, preset = {}) {
   if (list === "dishes") {
     openDishEditor(drawer(), { dish: item, categories: ordered(k?.dish_categories ?? []) });
   } else if (list === "dish_categories" || list === "ingredient_categories") {
-    const dish = list === "dish_categories";
-    openNameEditor(drawer(), { list, item, items: k?.[list] ?? [], noun: LISTS[list].noun, example: dish ? { nl: "Speciaal", en: "Special" } : { nl: "Vlees", en: "Meat" } });
+    // No drawer for a category (Kenny, 01/11/2026 20:21, "In de tabel"): its list page opens with the cell open, or
+    // with the add row in focus for a new one (records/category-table.js reads `?edit=`).
+    history.pushState(null, "", `${LISTS[list].home[0]}${item ? `?edit=${encodeURIComponent(item.id)}` : ""}`);
+    dispatchEvent(new PopStateEvent("popstate"));
   } else {
     FORMS[list]?.(list, item, { ...preset, ...(item ?? {}) });
   }
