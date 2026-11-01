@@ -1,13 +1,9 @@
-// The table rows of the recipes screen: one per recipe, with Edit, Duplicate and Delete.
+// The table rows of the recipes screen: one per recipe, with Edit and a menu for Duplicate and Delete (row-actions.js).
 
-import { remove, ApiError } from "../../api.js";
 import { h } from "../../dom.js";
-import { openConfirmation, toast } from "/static/kp/dist/kp-themes.min.js";
-import { deletePhoto, photosOf } from "../../recipe/photos.js";
 import { dmy } from "../../format.js";
 import { t } from "../../i18n/index.js";
-import { editHref } from "../../recipe/edit-route.js";
-import { copyToEditor } from "../../recipe/edit-nav.js";
+import { actionsOf } from "./row-actions.js";
 
 export const prepLabels = () => /** @type {Record<string, string>} */ ({ none: t("recs.prepNone"), light: t("recs.prepLight"), full: t("recs.prepFull") });
 const mealLabels = () => /** @type {Record<string, string>} */ ({ breakfast: t("wheel.mealBreakfast"), lunch: t("wheel.mealLunch"), dinner: t("wheel.mealDinner") });
@@ -20,34 +16,6 @@ function lastCooked(k) {
   const last = new Map();
   for (const e of k.log) if (e.recipe_id && (!last.has(e.recipe_id) || e.date > last.get(e.recipe_id))) last.set(e.recipe_id, e.date);
   return last;
-}
-
-/** Delete asks for the recipe's name; its photos go with it (Kenny, 24/10/2026 05:23). @param {HTMLElement} del @param {Record<string, any>} r */
-function askDelete(del, r) {
-  openConfirmation(del, {
-    phrase: t("rec.deleteAsk", r.name),
-    typeName: r.name,
-    acceptLabel: t("list.recipes.delete"),
-    loses: [t("recs.loses")],
-    onAccept: () =>
-      void remove("recipes", r.id).then(
-        () => {
-          for (const photo of photosOf(r)) void deletePhoto(photo);
-          toast(t("rec.deleted", r.name));
-        },
-        (e) => toast(t("rec.notDeleted", e instanceof ApiError ? e.message : String(e)), { live: "assertive", sticky: true }),
-      ),
-  });
-}
-
-/** Edit (a link to the editor page), Duplicate and Delete. @param {Record<string, any>} r */
-function actionsOf(r) {
-  const edit = h("a", { class: "kp-button kp-button--sm", href: editHref({ id: r.id }, "/recipes"), "aria-label": t("rec.editName", r.name) }, t("common.edit"));
-  const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", r.name) }, t("common.duplicate"));
-  const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", r.name) }, t("common.delete"));
-  copy.addEventListener("click", () => copyToEditor(r));
-  del.addEventListener("click", () => askDelete(del, r));
-  return h("div", { class: "rl-actions" }, edit, copy, del);
 }
 
 /** @param {import("../../api.js").Kitchen} k */

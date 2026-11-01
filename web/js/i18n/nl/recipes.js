@@ -18,11 +18,11 @@ export const NL_RECIPES = {
   "recs.colPrep": "Voorbereiding",
   "recs.colSafe": "Veilig",
   "recs.colLast": "Laatst gekookt",
+  "recs.moreFor": (name) => `Meer acties voor ${name}`,
   "recs.colActions": "Acties",
   "recs.all": "Alle recepten",
   "recs.lede": "Zoek op naam, sorteer op elke kolom en klik op een naam om het recept te openen.",
   "recs.loading": "Je recepten worden gelezen",
-  "recs.loses": "Het recept, zijn ingrediënten, gerei, stappen en foto's.",
   "recs.safe": "Veilig",
   "recs.never": "Nooit",
 };

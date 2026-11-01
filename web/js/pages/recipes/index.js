@@ -7,7 +7,7 @@
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): template.js builds the page, rows.js the table rows.
 
 import { loadKitchen, onKitchen, kitchenNow } from "../../api.js";
-import { attachDataTables, dataTable } from "/static/kp/dist/kp-themes.min.js";
+import { attachDataTables, attachMenuButtons, dataTable } from "/static/kp/dist/kp-themes.min.js";
 import { newRecipe } from "../../recipe/edit-nav.js";
 import { importAsk } from "../../recipe/import-plan.js";
 import { t } from "../../i18n/index.js";
@@ -42,10 +42,13 @@ export function mount(root, { params }) {
   const detachField = wireImportField(ui.field, ask.dishId);
   if (ask.focus) ui.field.url.focus();
 
+  let detachMenus = () => {};
   /** @param {Kitchen} k */
   function show(k) {
     paintContext(ui.field, { dish: ask.dishId ? k.dishes.find((d) => d.id === ask.dishId) ?? null : null, site: ask.siteId ? (k.recipe_sources ?? []).find((s) => s.id === ask.siteId) ?? null : null });
+    detachMenus();
     body.replaceChildren(...rowsFor(k));
+    detachMenus = attachMenuButtons(body);
     handle?.refresh({ keepPage: true });
     handle?.state("ready");
   }
@@ -70,6 +73,7 @@ export function mount(root, { params }) {
     alive = false;
     stop();
     detach();
+    detachMenus();
     detachField();
   };
 }

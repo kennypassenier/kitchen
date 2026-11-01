@@ -18,11 +18,11 @@ export const EN_RECIPES = {
   "recs.colPrep": "Prep",
   "recs.colSafe": "Safe",
   "recs.colLast": "Last cooked",
+  "recs.moreFor": (name) => `More actions for ${name}`,
   "recs.colActions": "Actions",
   "recs.all": "All recipes",
   "recs.lede": "Search by name, sort by any column, and press a name to open the recipe.",
   "recs.loading": "Reading your recipes",
-  "recs.loses": "The recipe, its ingredients, tools, steps and photos.",
   "recs.safe": "Safe",
   "recs.never": "Never",
 };
