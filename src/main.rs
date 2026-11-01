@@ -137,61 +137,73 @@ const MORE: &str = "More";
 
 /// The pages of the app's bar and the hidden ones.
 fn register_pages(app: &mut App) {
-    // The bar: the five places of every day, in the order of an evening (Kenny, 01/11/2026 20:21: "Meer-menu"). Every page
-    // in the group "More" sits behind the bar's More menu instead, in the order given here. The recipe page and cook mode
-    // are reached from a dish, not the bar.
-    app.page(Page::new("wheel", "What do we eat?", "/").order(0))
-        .page(Page::new("timing", "When do I start?", "/timing").order(1))
-        .page(Page::new("baddays", "Bad days", "/bad-days").order(2))
-        .page(Page::new("recipes", "Recipes", "/recipes").order(3))
-        // Every line of the log, recipes cooked and shelf foods eaten.
-        .page(Page::new("log", "What I ate", "/log").order(4))
-        // The dishes behind the parents' wheel, and the wheel itself in English; the Dutch one is /eten, without a login.
-        .page(
-            Page::new("dishes", "Dishes", "/dishes")
-                .group(MORE)
-                .order(10),
-        )
-        // The one list of ingredients dishes and recipes point at.
-        .page(
-            Page::new("ingredients", "Ingredients", "/ingredients")
-                .group(MORE)
-                .order(11),
-        )
-        .page(
-            Page::new("parents", "Parents' wheel", "/parents")
-                .group(MORE)
-                .order(12),
-        )
-        // The websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11).
-        .page(
-            Page::new("sources", "Recipe sources", "/sources")
-                .group(MORE)
-                .order(13),
-        )
-        // Last in the menu, after the kit's Storage (order 1000 and up).
-        .page(
-            Page::new("settings", "Calm settings", "/settings")
-                .group(MORE)
-                .order(1100),
-        )
-        .page(
-            Page::new("recipe", "Recipe", "/recipe")
-                .group("Recipes")
-                .hidden(),
-        )
-        // The recipe editor is a page of its own (Kenny, 01/11/2026): `?id=` edits, `?new=1` / `?dish=` writes a new one.
-        .page(
-            Page::new("recipe-edit", "Edit recipe", "/recipe/edit")
-                .group("Recipes")
-                .hidden(),
-        )
-        .page(Page::new("cook", "Cook", "/cook").group("Recipes").hidden())
-        .kit_page("storage", |page| page.group(MORE))
+    register_bar(app);
+    register_more(app);
+    register_hidden(app);
+    app.kit_page("storage", |page| page.group(MORE))
         .brand("/")
         .brand_title("Kitchen")
         // Nothing calls a client API and the kit's status page would be a
         // second home; the operator reads /healthz and `kitchen --check`.
         .disable_kit_page("status")
         .disable_kit_page("clients");
+}
+
+/// The bar: the five places of every day, in the order of an evening (Kenny, 01/11/2026 20:21: "Meer-menu").
+fn register_bar(app: &mut App) {
+    app.page(Page::new("wheel", "What do we eat?", "/").order(0))
+        .page(Page::new("timing", "When do I start?", "/timing").order(1))
+        .page(Page::new("baddays", "Bad days", "/bad-days").order(2))
+        .page(Page::new("recipes", "Recipes", "/recipes").order(3))
+        // Every line of the log, recipes cooked and shelf foods eaten.
+        .page(Page::new("log", "What I ate", "/log").order(4));
+}
+
+/// Every page in the group "More" sits behind the bar's More menu instead, in the order given here.
+fn register_more(app: &mut App) {
+    // The dishes behind the parents' wheel, and the wheel itself in English; the Dutch one is /eten, without a login.
+    app.page(
+        Page::new("dishes", "Dishes", "/dishes")
+            .group(MORE)
+            .order(10),
+    )
+    // The one list of ingredients dishes and recipes point at.
+    .page(
+        Page::new("ingredients", "Ingredients", "/ingredients")
+            .group(MORE)
+            .order(11),
+    )
+    .page(
+        Page::new("parents", "Parents' wheel", "/parents")
+            .group(MORE)
+            .order(12),
+    )
+    // The websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11).
+    .page(
+        Page::new("sources", "Recipe sources", "/sources")
+            .group(MORE)
+            .order(13),
+    )
+    // Last in the menu, after the kit's Storage (order 1000 and up).
+    .page(
+        Page::new("settings", "Calm settings", "/settings")
+            .group(MORE)
+            .order(1100),
+    );
+}
+
+/// The recipe page, the editor and cook mode are reached from a dish, not the bar.
+fn register_hidden(app: &mut App) {
+    app.page(
+        Page::new("recipe", "Recipe", "/recipe")
+            .group("Recipes")
+            .hidden(),
+    )
+    // The recipe editor is a page of its own (Kenny, 01/11/2026): `?id=` edits, `?new=1` / `?dish=` writes a new one.
+    .page(
+        Page::new("recipe-edit", "Edit recipe", "/recipe/edit")
+            .group("Recipes")
+            .hidden(),
+    )
+    .page(Page::new("cook", "Cook", "/cook").group("Recipes").hidden());
 }
