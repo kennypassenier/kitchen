@@ -21,7 +21,7 @@ export const sections = () => `
       data-kp-loading-words="${t("bad.loadingSafe")}">
       <div class="kp-card__header">
         <h3 class="kp-card__title" id="bd-safe-t">${t("bad.safeTitle")}</h3>
-        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span><button type="button" class="kp-button kp-button--primary" data-bd-safe-add>${t("bad.addSafe")}</button></div>
+        <div class="kp-card__actions"><span class="kp-timestamp" data-bd-safe-count></span><span data-bd-safe-add-slot></span></div>
       </div>
       <p class="kp-card__body">${t("bad.safeBody")}</p>
       <div class="kp-card__stage">

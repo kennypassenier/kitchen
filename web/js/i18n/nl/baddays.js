@@ -9,6 +9,8 @@ export const NL_BADDAYS = {
   "bad.secSafeText": "Een korte, vaste rij gerechten die op elke dag lukken, als grote tegels met elk één zin. Ze wisselen nooit van plek, zodat je duim leert waar ze staan.",
   "bad.loadingSafe": "Je veilige gerechten worden geopend…",
   "bad.safeTitle": "Je veilige gerechten",
+  "bad.safeMenu": "Recepten die nog geen veilig gerecht zijn",
+  "bad.allSafeWhy": "Elk recept is al een veilig gerecht, dus er is niets toe te voegen. Schrijf hieronder een nieuw recept.",
   "bad.addSafe": "Veilig gerecht toevoegen",
   "bad.safeBody": "Kies er een en het avondeten is beslist. Elk is een recept dat je als veilige favoriet markeerde.",
   "bad.safeLabel": "Veilige gerechten",

@@ -9,6 +9,8 @@ export const EN_BADDAYS = {
   "bad.secSafeText": "A short, fixed row of dishes that work on any day, as large tiles with one sentence each. They never reorder, so the thumb learns where they are.",
   "bad.loadingSafe": "Opening your safe dishes…",
   "bad.safeTitle": "Your safe dishes",
+  "bad.safeMenu": "Recipes that are not a safe dish yet",
+  "bad.allSafeWhy": "Every recipe is a safe dish already, so there is nothing to add. Write a new recipe below.",
   "bad.addSafe": "Add a safe dish",
   "bad.safeBody": "Pick one and that is dinner decided. Each one is a recipe you marked as a safe favourite.",
   "bad.safeLabel": "Safe dishes",

@@ -2,11 +2,12 @@
 
 import { setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { h, $ } from "../../dom.js";
-import { openSafePicker, unmarkSafe } from "../../records/index.js";
+import { unmarkSafe } from "../../records/index.js";
 import { editRecipe } from "../../recipe/edit-nav.js";
 import { t } from "../../i18n/index.js";
 import { dmy } from "../../format.js";
 import { safeRecipes, firstSentence, lastMade } from "./helpers.js";
+import { createSafeAdd } from "./safe-add.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 
@@ -33,11 +34,9 @@ function safeRow(k, r) {
   );
 }
 
-/** No safe dish yet: the card says so and offers the picker. @param {HTMLElement} card */
-function showNoSafe(card) {
-  const pick = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("bad.addSafe"));
-  pick.addEventListener("click", () => openSafePicker());
-  setCardState(card, "empty", { title: t("bad.noSafe"), text: t("bad.noSafeText"), action: pick });
+/** No safe dish yet: the card says so and offers the same list as its header. @param {HTMLElement} card @param {HTMLElement} action */
+function showNoSafe(card, action) {
+  setCardState(card, "empty", { title: t("bad.noSafe"), text: t("bad.noSafeText"), action });
 }
 
 /** @param {import("./index.js").BadDaysCtx} ctx */
@@ -46,21 +45,27 @@ export function createSafe(ctx) {
   const safeCard = /** @type {HTMLElement} */ ($("#bd-safe-card", page));
   const safeList = /** @type {HTMLElement} */ ($("[data-bd-safe]", page));
   const safeCount = /** @type {HTMLElement} */ ($("[data-bd-safe-count]", page));
+  // The list of recipes to add sits in the header and, with no safe dish yet, in the empty state; both fill from the kitchen.
+  const headerAdd = createSafeAdd();
+  const emptyAdd = createSafeAdd();
+  ctx.stops.push(headerAdd.stop, emptyAdd.stop);
+  /** @type {HTMLElement} */ ($("[data-bd-safe-add-slot]", page)).replaceWith(headerAdd.el);
   /** @param {Kitchen} k */
   function renderSafe(k) {
+    headerAdd.fill(k);
+    emptyAdd.fill(k);
     const dishes = safeRecipes(k);
     const signature = JSON.stringify(dishes.map((r) => [r.id, r.name, r.summary, r.minutes, r.gear, lastMade(k, r.id)]));
     if (signature === drawn.safe) return;
     drawn.safe = signature;
     safeCount.textContent = t("bad.dishCount", dishes.length);
     if (!dishes.length) {
-      showNoSafe(safeCard);
+      showNoSafe(safeCard, emptyAdd.el);
       return;
     }
     safeList.replaceChildren(...dishes.map((r) => safeRow(k, r)));
     setCardState(safeCard, "ready");
   }
-  $("[data-bd-safe-add]", page)?.addEventListener("click", () => openSafePicker());
   safeCard.addEventListener("kp-card-retry", ctx.reload);
   return {
     render: renderSafe,
