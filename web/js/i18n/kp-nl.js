@@ -1,6 +1,6 @@
 // The package's own words in Dutch, for kp's `setStrings` (js/i18n/index.js). kp-themes ships English only; this holds
 // the words of the components Kitchen uses (tables, forms, dialogs, toasts, card states, the wheel, pickers, the
-// calendar, focus steps, the timeline, the heat grid, checklists, galleries, menus, the theme picker and the bar). A
+// calendar, focus steps, the timeline, the heat grid, checklists, galleries, menus, the theme picker, the unsaved bar and the bar). A
 // key not here stays English: the package's developer diagnostics (console warnings) and the components Kitchen does
 // not draw. A function keeps the parameters of the English one.
 
@@ -16,6 +16,7 @@ import { KP_NL_CONTROLS } from "./kp-nl/controls.js";
 import { KP_NL_STEPS } from "./kp-nl/steps.js";
 import { KP_NL_WHEEL_QR } from "./kp-nl/wheel-qr.js";
 import { KP_NL_SEQUENCER } from "./kp-nl/sequencer.js";
+import { KP_NL_UNSAVED } from "./kp-nl/unsaved.js";
 
 const NL_WORDS = {
   ...KP_NL_BASICS,
@@ -29,6 +30,7 @@ const NL_WORDS = {
   ...KP_NL_STEPS,
   ...KP_NL_WHEEL_QR,
   ...KP_NL_SEQUENCER,
+  ...KP_NL_UNSAVED,
 };
 
 export const KP_NL = Object.freeze({

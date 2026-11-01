@@ -6,6 +6,8 @@ import { openConfirmation, toast } from "/static/kp/dist/kp-themes.min.js";
 import { deletePhoto, photosOf } from "../../recipe/photos.js";
 import { dmy } from "../../format.js";
 import { t } from "../../i18n/index.js";
+import { editHref } from "../../recipe/edit-route.js";
+import { copyToEditor } from "../../recipe/edit-nav.js";
 
 export const prepLabels = () => /** @type {Record<string, string>} */ ({ none: t("recs.prepNone"), light: t("recs.prepLight"), full: t("recs.prepFull") });
 const mealLabels = () => /** @type {Record<string, string>} */ ({ breakfast: t("wheel.mealBreakfast"), lunch: t("wheel.mealLunch"), dinner: t("wheel.mealDinner") });
@@ -38,19 +40,18 @@ function askDelete(del, r) {
   });
 }
 
-/** The three buttons of a row. @param {Record<string, any>} r @param {{ edit: (r: Record<string, any>) => void, copy: (r: Record<string, any>) => void }} on */
-function actionsOf(r, on) {
-  const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
+/** Edit (a link to the editor page), Duplicate and Delete. @param {Record<string, any>} r */
+function actionsOf(r) {
+  const edit = h("a", { class: "kp-button kp-button--sm", href: editHref({ id: r.id }, "/recipes"), "aria-label": t("rec.editName", r.name) }, t("common.edit"));
   const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", r.name) }, t("common.duplicate"));
   const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", r.name) }, t("common.delete"));
-  edit.addEventListener("click", () => on.edit(r));
-  copy.addEventListener("click", () => on.copy(r));
+  copy.addEventListener("click", () => copyToEditor(r));
   del.addEventListener("click", () => askDelete(del, r));
   return h("div", { class: "rl-actions" }, edit, copy, del);
 }
 
-/** @param {import("../../api.js").Kitchen} k @param {{ edit: (r: Record<string, any>) => void, copy: (r: Record<string, any>) => void }} on */
-export function rowsFor(k, on) {
+/** @param {import("../../api.js").Kitchen} k */
+export function rowsFor(k) {
   const last = lastCooked(k);
   return k.recipes.map((r) => {
     const cooked = last.get(r.id) ?? null;
@@ -63,7 +64,7 @@ export function rowsFor(k, on) {
       h("td", { "data-label": t("recs.colPrep") }, h("span", { class: "kp-badge" }, prepLabels()[r.prep] ?? "–")),
       h("td", { "data-label": t("recs.colSafe") }, r.safe ? h("span", { class: "kp-badge kp-badge--success" }, t("recs.safe")) : "–"),
       h("td", { "data-label": t("recs.colLast"), "data-kp-sort-value": String(dayNumber(cooked)) }, cooked ? dmy(cooked) : t("recs.never")),
-      h("td", { "data-label": t("recs.colActions") }, actionsOf(r, on)),
+      h("td", { "data-label": t("recs.colActions") }, actionsOf(r)),
     );
   });
 }

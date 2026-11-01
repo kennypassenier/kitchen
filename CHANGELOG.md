@@ -6,6 +6,18 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+### Changed
+- **The recipe editor is a page of its own** (`/recipe/edit`, Kenny 01/11/2026), not a drawer. `?id=<id>` edits a recipe,
+  `?new=1` or `?dish=<id>` writes a new one (`&safe=1` makes it a safe dish), `&start=copy|import` opens an editable
+  copy or an import result as unsaved work, and `&from=<path>` is where Save and Back return to. It has the kit's page
+  header, the kit's unsaved-changes bar (Save and Discard always in view, docked to the foot of the screen once the
+  header scrolls away, Ctrl+S) which counts the changed sections, and an "On this page" list (a fold on a phone) with
+  the sections the drawer had. Draft autosave and the restore offer are unchanged; leaving a changed page (a link, the
+  bar's Back) asks Keep as draft / Discard, closing the tab asks the browser's question, and a Back button in the browser
+  keeps the work as a draft. Recipes (Add, Edit, Duplicate), a dish's Recipes card, bad days and an import result all open
+  the page; Save returns to where you came from, else the recipe page. The recipe drawer is gone.
+- The unsaved bar and the contents list speak Dutch in the Dutch interface (`web/js/i18n/kp-nl/unsaved.js`).
+
 ## [5.0.0] - 2026-10-31
 
 Everything since 4.1.0, released together as 5.0.0 (Kenny, 31/10/2026).

@@ -1,4 +1,4 @@
-// The recipes screen's static parts: the page header, the table with its slots, the list card and the editor drawer.
+// The recipes screen's static parts: the page header, the table with its slots, the list card.
 
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
@@ -71,7 +71,6 @@ export function buildPage() {
     h("p", { class: "kp-lede" }, t("recs.lede")),
     table,
   );
-  const editor = h("dialog", { class: "kp-drawer kp-dialog rl-editor", "aria-labelledby": "rl-editor-t" });
   const page = h("div", { class: "rl-page" }, head, list);
-  return { add, importer, table, body, empty, editor, page };
+  return { add, importer, table, body, empty, page };
 }

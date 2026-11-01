@@ -156,6 +156,12 @@ fn register_pages(app: &mut App) {
                 .group("Recipes")
                 .hidden(),
         )
+        // The recipe editor is a page of its own (Kenny, 01/11/2026): `?id=` edits, `?new=1` / `?dish=` writes a new one.
+        .page(
+            Page::new("recipe-edit", "Edit recipe", "/recipe/edit")
+                .group("Recipes")
+                .hidden(),
+        )
         .page(Page::new("cook", "Cook", "/cook").group("Recipes").hidden())
         .brand("/")
         .brand_title("Kitchen")

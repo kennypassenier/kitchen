@@ -1,5 +1,5 @@
 // The draft: saved in the database about a second after the last change (Kenny, 29/10/2026). Deleted on Save and on an
-// explicit Discard (never by closing: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
+// explicit Discard (never by leaving: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
 
 import { saveDraft, deleteDraft, readDraft } from "../../api.js";
 import { h } from "../../dom.js";
@@ -17,10 +17,11 @@ export function createDraft({ draftKey, collect }) {
   let chain = Promise.resolve();
   let gone = false;
   let opening = "";
-  const write = async () => {
+  /** @param {boolean} force write even when the form equals how it opened (Keep as draft on a copy or an import) */
+  const write = async (force = false) => {
     if (gone) return;
     const now = collect(true);
-    if (JSON.stringify(now) === opening) return;
+    if (!force && JSON.stringify(now) === opening) return;
     await saveDraft(draftKey, now).catch(() => {}); // a draft that cannot be saved must never get in the way of editing
   };
   return {
@@ -34,12 +35,12 @@ export function createDraft({ draftKey, collect }) {
     },
     queue: () => {
       clearTimeout(timer);
-      timer = window.setTimeout(() => (chain = chain.then(write)), DRAFT_MS);
+      timer = window.setTimeout(() => (chain = chain.then(() => write())), DRAFT_MS);
     },
-    /** Write the draft now (a close must not lose the last second of typing). */
-    flush: async () => {
+    /** Write the draft now (leaving must not lose the last second of typing). `force`: even when nothing changed since it opened. @param {boolean} [force] */
+    flush: async (force = false) => {
       clearTimeout(timer);
-      chain = chain.then(write);
+      chain = chain.then(() => write(force));
       await chain;
     },
     drop: async () => {
@@ -48,7 +49,7 @@ export function createDraft({ draftKey, collect }) {
       await chain;
       await deleteDraft(draftKey).catch(() => {});
     },
-    /** Stop saving (the editor is being replaced by one on a restored draft). */
+    /** Stop saving (the editor is being replaced by one on a restored draft, or the page is left for good). */
     abandon: () => {
       gone = true;
       clearTimeout(timer);
@@ -62,13 +63,13 @@ export function watchDraft(form, draft) {
 }
 
 /**
- * An earlier session's draft is offered, not applied: Restore opens the editor again on it, Discard deletes it.
- * @param {{ draftKey: string, draft: ReturnType<typeof createDraft>, offer: HTMLElement, dialog: HTMLDialogElement, restoreWith: (data: Record<string, any>) => void }} o
+ * An earlier session's draft is offered, not applied: Restore starts the form again from it, Discard deletes it.
+ * @param {{ draftKey: string, draft: ReturnType<typeof createDraft>, offer: HTMLElement, host: HTMLElement, restoreWith: (data: Record<string, any>) => void }} o
  */
-export function offerEarlierDraft({ draftKey, draft, offer, dialog, restoreWith }) {
+export function offerEarlierDraft({ draftKey, draft, offer, host, restoreWith }) {
   void readDraft(draftKey)
     .then((found) => {
-      if (!found || draft.gone || !dialog.isConnected || JSON.stringify(found.data) === draft.opening) return;
+      if (!found || draft.gone || !host.isConnected || JSON.stringify(found.data) === draft.opening) return;
       const restoreButton = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("edit.draftRestore"));
       const discardButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.draftDiscard"));
       offer.replaceChildren(h("div", { class: "kp-alert__body" }, h("strong", null, t("edit.draftAsk", stamp(found.saved))), " ", t("edit.draftText")), h("div", { class: "kp-row-actions" }, restoreButton, discardButton));

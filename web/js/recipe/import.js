@@ -1,13 +1,13 @@
 // Import a recipe (Kenny, 29/10/2026 14:27): a drawer on `.kp-formgrid` that takes a web address, or pasted text, asks the
-// kitchen to read it (POST /data/import, src/import.rs) and opens the ordinary recipe editor on what came back, as an
+// kitchen to read it (POST /data/import, src/import.rs) and opens the recipe editor page on what came back, as an
 // UNSAVED draft: the dish stays empty (or is the dish the import was started from) and required, nothing is stored
-// until Save, and Cancel clears the draft like any other. The reading of lines (amount, unit, name, minutes) is in
+// until Save, and Discard clears the draft like any other. The reading of lines (amount, unit, name, minutes) is in
 // import-lines.js; the cover photo is offered in the editor (cover.js).
 
 import { closeDialog, attachAutosize, attachCardStates, setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { importRecipe, kitchenNow, readDraft, saveDraft, ApiError } from "../api.js";
-import { openEditor } from "./editor/index.js";
+import { importToEditor } from "./edit-nav.js";
 import { newId } from "./editor/ids.js";
 import { row, input, area } from "../ui/form-parts.js";
 import { parseIngredientLine, firstMinutes, matchIngredient } from "./import-lines.js";
@@ -136,15 +136,16 @@ function fail(p, title, body) {
   p.alert.hidden = false;
 }
 
-/** Write the draft, then open the editor on what the kitchen read. @param {HTMLDialogElement} dialog @param {{ dishId: string | null, mainOptions: string[] }} spec @param {Imported} found @param {() => void} stopCards */
-async function openOnImport(dialog, { dishId, mainOptions }, found, stopCards) {
+/** Write the draft, then open the editor page on what the kitchen read. @param {HTMLDialogElement} dialog @param {{ dishId: string | null }} spec @param {Imported} found @param {() => void} stopCards */
+async function openOnImport(dialog, { dishId }, found, stopCards) {
   const restore = toRestore(found, dishId, kitchenNow()?.ingredients ?? []);
   // The draft is written first, as the editor would after the first change, but never over a draft that is already there.
   const key = `new:${dishId ?? ""}`;
   const existing = await readDraft(key).catch(() => null);
   if (!existing) await saveDraft(key, restore).catch(() => {});
   stopCards();
-  openEditor(dialog, { recipe: null, mainOptions, preset: dishId ? { dish_id: dishId } : {}, restore, imported: true, cover: found.image_url });
+  await closeDialog(dialog);
+  importToEditor({ dishId, restore, cover: found.image_url });
 }
 
 /** A failed import says why, and offers the pasted text when that is the way on. @param {ImportParts} p @param {unknown} e @param {boolean} usePaste */
@@ -159,7 +160,7 @@ function showFailure(p, e, usePaste) {
   }
 }
 
-/** @param {HTMLDialogElement} dialog @param {ImportParts} p @param {HTMLFormElement} form @param {{ dishId: string | null, mainOptions: string[] }} spec @param {() => void} stopCards */
+/** @param {HTMLDialogElement} dialog @param {ImportParts} p @param {HTMLFormElement} form @param {{ dishId: string | null }} spec @param {() => void} stopCards */
 function wireSubmit(dialog, p, form, spec, stopCards) {
   let busy = false;
   form.addEventListener("submit", async (event) => {
@@ -192,14 +193,14 @@ function wireSubmit(dialog, p, form, spec, stopCards) {
 
 /**
  * Open the import drawer in `dialog`. `dishId` is the dish the recipe goes to when the import started on a dish's page.
- * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, mainOptions: string[], site?: { name?: string, url?: string } | null }} spec
+ * @param {HTMLDialogElement} dialog @param {{ dishId?: string | null, site?: { name?: string, url?: string } | null }} spec
  */
-export function openImport(dialog, { dishId = null, mainOptions, site = null }) {
+export function openImport(dialog, { dishId = null, site = null }) {
   const p = buildParts(site);
   const stopCards = attachCardStates(p.card);
   const form = fillDrawer(dialog, p);
   wireClose(dialog, p, stopCards);
-  wireSubmit(dialog, p, form, { dishId, mainOptions }, stopCards);
+  wireSubmit(dialog, p, form, { dishId }, stopCards);
   if (!dialog.open) dialog.showModal();
   p.url.focus();
 }

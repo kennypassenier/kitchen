@@ -8,6 +8,7 @@ import { EN_SETTINGS } from "./en/settings.js";
 import { EN_RECIPES } from "./en/recipes.js";
 import { EN_RECIPE } from "./en/recipe.js";
 import { EN_EDITOR } from "./en/editor.js";
+import { EN_EDITPAGE } from "./en/editpage.js";
 import { EN_COOK } from "./en/cook.js";
 import { EN_PARENTS } from "./en/parents.js";
 
@@ -19,6 +20,7 @@ export const EN_PAGES = {
   ...EN_RECIPES,
   ...EN_RECIPE,
   ...EN_EDITOR,
+  ...EN_EDITPAGE,
   ...EN_COOK,
   ...EN_PARENTS,
 };

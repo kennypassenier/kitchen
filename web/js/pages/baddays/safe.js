@@ -2,7 +2,8 @@
 
 import { setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { h, $ } from "../../dom.js";
-import { openSafePicker, openRecipeEditor, unmarkSafe } from "../../records/index.js";
+import { openSafePicker, unmarkSafe } from "../../records/index.js";
+import { editRecipe } from "../../recipe/edit-nav.js";
 import { t } from "../../i18n/index.js";
 import { dmy } from "../../format.js";
 import { safeRecipes, firstSentence, lastMade } from "./helpers.js";
@@ -15,7 +16,7 @@ function safeRow(k, r) {
   const text = r.summary ? firstSentence(String(r.summary)) : t("bad.takesAbout", r.minutes, r.gear);
   const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", r.name) }, t("common.edit"));
   const unsafe = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("bad.notSafeName", r.name) }, t("bad.notSafe"));
-  edit.addEventListener("click", () => openRecipeEditor(r));
+  edit.addEventListener("click", () => editRecipe(r));
   unsafe.addEventListener("click", () => unmarkSafe(r));
   return h(
     "li",

@@ -106,7 +106,6 @@ export const NL_EDITOR = {
   "edit.removeStep": "Stap verwijderen",
   "edit.timerDefault": "Timer",
   "edit.stepN": (n) => `Stap ${n}`,
-  "edit.saveRecipe": "Recept bewaren",
   "edit.secDish": "Het gerecht",
   "edit.secDishText": "Hoe het heet en waar het wiel het mag kiezen.",
   "edit.secTime": "Tijd en porties",

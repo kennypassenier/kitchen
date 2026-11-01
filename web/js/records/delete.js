@@ -5,11 +5,11 @@ import { h } from "../dom.js";
 import { create, replace, remove, kitchenNow, ingredientName, reason } from "../api.js";
 import { t, nameOf, textOf } from "../i18n/index.js";
 import { openDishEditor, ordered } from "../dishes/editor.js";
-import { copyRecipe, copyDish } from "../recipe/duplicate.js";
+import { copyDish } from "../recipe/duplicate.js";
 import { LISTS, dishHas } from "./lists.js";
 import { drawer } from "./drawer.js";
 import { openRecordEditor } from "./editors.js";
-import { openRecipeEditor } from "./safe.js";
+import { copyToEditor } from "../recipe/edit-nav.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
@@ -110,9 +110,9 @@ export function deleteRecord(anchor, list, item, { after } = {}) {
   });
 }
 
-/** Duplicate a recipe (Kenny, 29/10/2026): the editor opens on an editable copy in the same dish. @param {Item} recipe */
+/** Duplicate a recipe (Kenny, 29/10/2026): the editor page opens on an editable copy in the same dish. @param {Item} recipe */
 export function duplicateRecipe(recipe) {
-  openRecipeEditor(null, { ...copyRecipe(recipe), dish_id: recipe.dish_id }, String(recipe.name ?? ""));
+  copyToEditor(recipe);
 }
 
 /** Duplicate a dish: the dish editor opens on an editable copy with its recipes. @param {Item} dishItem */

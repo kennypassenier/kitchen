@@ -106,7 +106,6 @@ export const EN_EDITOR = {
   "edit.removeStep": "Remove step",
   "edit.timerDefault": "Timer",
   "edit.stepN": (n) => `Step ${n}`,
-  "edit.saveRecipe": "Save the recipe",
   "edit.secDish": "The dish",
   "edit.secDishText": "What it is called and where the wheel may pick it.",
   "edit.secTime": "Time and portions",

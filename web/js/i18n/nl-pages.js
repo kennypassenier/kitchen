@@ -8,6 +8,7 @@ import { NL_SETTINGS } from "./nl/settings.js";
 import { NL_RECIPES } from "./nl/recipes.js";
 import { NL_RECIPE } from "./nl/recipe.js";
 import { NL_EDITOR } from "./nl/editor.js";
+import { NL_EDITPAGE } from "./nl/editpage.js";
 import { NL_COOK } from "./nl/cook.js";
 import { NL_PARENTS } from "./nl/parents.js";
 
@@ -19,6 +20,7 @@ export const NL_PAGES = {
   ...NL_RECIPES,
   ...NL_RECIPE,
   ...NL_EDITOR,
+  ...NL_EDITPAGE,
   ...NL_COOK,
   ...NL_PARENTS,
 };

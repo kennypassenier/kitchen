@@ -3,7 +3,8 @@
 import { attachCardStates, setCardState, toast, openConfirmation } from "/static/kp/dist/kp-themes.min.js";
 import { makeDefaultRecipe, recipeLabel, remove, ApiError } from "../../api.js";
 import { h } from "../../dom.js";
-import { openRecipeEditor, openRecipeImport, duplicateRecipe, BLANK_RECIPE } from "../../records/index.js";
+import { openRecipeImport, duplicateRecipe } from "../../records/index.js";
+import { editRecipe, newRecipe } from "../../recipe/edit-nav.js";
 import { t } from "../../i18n/index.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
@@ -23,7 +24,7 @@ function askDelete(del, r, view, label) {
 /** Edit, Duplicate and Delete for one recipe. @param {Item} r @param {Item} view @param {string} label */
 function recipeButtons(r, view, label) {
   const edit = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.editName", label) }, t("common.edit"));
-  edit.addEventListener("click", () => openRecipeEditor(view));
+  edit.addEventListener("click", () => editRecipe(view));
   const copy = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("rec.duplicateName", label) }, t("common.duplicate"));
   copy.addEventListener("click", () => duplicateRecipe(view));
   const del = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--destructive", "aria-label": t("rec.deleteName", label) }, t("common.delete"));
@@ -82,7 +83,7 @@ export function dishRecipes(pageEl) {
   let dish = null;
   add.addEventListener("click", () => {
     if (!dish) return;
-    openRecipeEditor(null, { ...BLANK_RECIPE, dish_id: dish.id });
+    newRecipe({ dishId: dish.id });
   });
   importer.addEventListener("click", () => {
     if (dish) openRecipeImport(dish.id);

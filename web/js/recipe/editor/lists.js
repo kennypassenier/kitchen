@@ -109,8 +109,8 @@ function unresolvedPanel(ingredients) {
   return { unresolvedBox, unresolvedLines, paintUnresolved };
 }
 
-/** A repeatable list under its own small heading and sentence. @param {string} title @param {string} text @param {...HTMLElement} els */
-const listBlock = (title, text, ...els) => h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...els);
+/** A repeatable list under its own small heading and sentence (the id is an entry of the page's contents list). @param {string} id @param {string} title @param {string} text @param {...HTMLElement} els */
+const listBlock = (id, title, text, ...els) => h("div", { class: "rl-list", id }, h("h4", { class: "kp-fw-semibold" }, title), h("p", { class: "rl-formsec__text" }, text), ...els);
 
 /** @param {Record<string, any>} r the recipe as it was */
 export function listFields(r) {
@@ -124,9 +124,9 @@ export function listFields(r) {
   const lists = h(
     "div",
     { class: "rl-lists" },
-    listBlock(t("edit.tracks"), t("edit.tracksHint"), tracks.el),
-    listBlock(t("edit.ingredients"), t("edit.ingredientsHint"), unresolvedBox, manyBlock(ingredients), ingredients.el),
-    listBlock(t("edit.tools"), t("edit.toolsHint"), tools.el),
+    listBlock("rl-sec-tracks", t("edit.tracks"), t("edit.tracksHint"), tracks.el),
+    listBlock("rl-sec-ingredients", t("edit.ingredients"), t("edit.ingredientsHint"), unresolvedBox, manyBlock(ingredients), ingredients.el),
+    listBlock("rl-sec-tools", t("edit.tools"), t("edit.toolsHint"), tools.el),
   );
   return { el: lists, tracks, ingredients, tools, unresolvedBox, unresolvedLines, paintUnresolved };
 }

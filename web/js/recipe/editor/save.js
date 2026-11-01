@@ -1,6 +1,6 @@
-// Reading the form back into a recipe, and Save.
+// Reading the form back into a recipe, and Save (the editor page's unsaved bar asks for it: pages/recipe-edit/bar.js).
 
-import { combobox, getQuantity, getSegmentedValues, runFlashButton, toast } from "/static/kp/dist/kp-themes.min.js";
+import { combobox, getQuantity, getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { create, replace, kitchenNow, ApiError } from "../../api.js";
 import { t, lang } from "../../i18n/index.js";
 import { on } from "../../ui/form-parts.js";
@@ -47,44 +47,45 @@ export function createCollector({ recipe, preset, r, details, notes, times, list
   return { collect, dishText };
 }
 
+/** @typedef {{ ok: true, id: string, name: string } | { ok: false, section: string, message: string }} SaveResult */
+
 /**
- * Submit: check the dish, the imported lines and the source, then create or replace; the photos settle, the draft goes.
- * @param {{ form: HTMLFormElement, save: HTMLElement, recipe: Record<string, any> | null, editing: boolean, collector: ReturnType<typeof createCollector>, details: ReturnType<typeof import("./details.js").detailFields>, lists: ReturnType<typeof import("./lists.js").listFields>, tracker: any, draft: ReturnType<typeof import("./draft.js").createDraft>, close: () => void }} o
+ * Save: check the dish, the imported lines and the source, then create or replace; the photos settle, the draft goes. A
+ * refusal names the section to show it under and says what to do, as one sentence.
+ * @param {{ recipe: Record<string, any> | null, collector: ReturnType<typeof createCollector>, details: ReturnType<typeof import("./details.js").detailFields>, lists: ReturnType<typeof import("./lists.js").listFields>, tracker: any, draft: ReturnType<typeof import("./draft.js").createDraft> }} o
+ * @returns {() => Promise<SaveResult>}
  */
-export function wireSubmit({ form, save, recipe, editing, collector, details, lists, tracker, draft, close }) {
+export function createSaver({ recipe, collector, details, lists, tracker, draft }) {
   const { source, dishField } = details;
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    void runFlashButton(save, async () => {
-      const body = collector.collect();
-      if (!body.dish_id && !body.new_dish) {
-        dishField.input.focus();
-        return { error: t("edit.needsDish"), remedy: t("edit.needsDishFix"), word: t("rec.notSaved") };
-      }
-      const shownName = collector.dishText({ id: body.dish_id, name: body.new_dish });
-      // Imported lines still waiting for an ingredient are never dropped silently: Save waits until each is resolved.
-      const open = lists.unresolvedLines().length;
-      if (open) {
-        lists.paintUnresolved();
-        lists.unresolvedBox.scrollIntoView({ block: "center" });
-        return { error: t("imp.blocked", open), remedy: t("imp.blockedFix"), word: t("rec.notSaved") };
-      }
-      const typedSource = /** @type {HTMLInputElement} */ (source).value.trim();
-      if (typedSource && !/^https?:\/\/\S+$/i.test(typedSource)) {
-        source.focus();
-        return { error: t("edit.sourceBad"), remedy: t("edit.sourceBadFix"), word: t("rec.notSaved") };
-      }
-      try {
-        if (recipe) await replace("recipes", body);
-        else await create("recipes", body);
-      } catch (e) {
-        return { error: e instanceof ApiError ? e.message : String(e), word: t("rec.notSaved") };
-      }
-      await tracker.settle(photosOf(body));
-      await draft.drop();
-      toast(editing ? t("rec.savedName", shownName) : t("rec.addedName", shownName));
-      close();
-      return t("set.saved");
-    });
-  });
+  /** @param {string} section @param {string} error @param {string} [remedy] @returns {SaveResult} */
+  const refuse = (section, error, remedy = "") => ({ ok: false, section, message: `${error} ${remedy}`.trim() });
+  return async function save() {
+    const body = collector.collect();
+    if (!body.dish_id && !body.new_dish) {
+      dishField.input.focus();
+      return refuse("dish", t("edit.needsDish"), t("edit.needsDishFix"));
+    }
+    const shownName = collector.dishText({ id: body.dish_id, name: body.new_dish });
+    // Imported lines still waiting for an ingredient are never dropped silently: Save waits until each is resolved.
+    const open = lists.unresolvedLines().length;
+    if (open) {
+      lists.paintUnresolved();
+      lists.unresolvedBox.scrollIntoView({ block: "center" });
+      return refuse("lists", t("imp.blocked", open), t("imp.blockedFix"));
+    }
+    const typedSource = /** @type {HTMLInputElement} */ (source).value.trim();
+    if (typedSource && !/^https?:\/\/\S+$/i.test(typedSource)) {
+      source.focus();
+      return refuse("dish", t("edit.sourceBad"), t("edit.sourceBadFix"));
+    }
+    let saved;
+    try {
+      saved = recipe ? await replace("recipes", body) : await create("recipes", body);
+    } catch (e) {
+      return refuse("dish", e instanceof ApiError ? e.message : String(e));
+    }
+    await tracker.settle(photosOf(body));
+    await draft.drop();
+    return { ok: true, id: String(saved?.id ?? recipe?.id ?? ""), name: shownName };
+  };
 }

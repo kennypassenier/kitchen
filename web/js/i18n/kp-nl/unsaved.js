@@ -1,0 +1,45 @@
+// The package's Dutch words for the unsaved-changes bar and the "On this page" list (the recipe editor page, 01/11/2026).
+// Part of kp-nl.js.
+
+/** @param {number} n */
+const wijz = (n) => (n === 1 ? "wijziging" : "wijzigingen");
+
+export const KP_NL_UNSAVED = {
+  contentsLabel: "Op deze pagina",
+  contentsTitle: "Op deze pagina",
+  unsavedGroup: "Niet-opgeslagen wijzigingen",
+  unsavedNone: "Geen wijzigingen",
+  unsavedCount: (/** @type {number} */ n) => `${n} ${wijz(n)}`,
+  unsavedSave: (/** @type {number} */ n) => `${n} ${wijz(n)} opslaan`,
+  unsavedSaveNone: "Opslaan",
+  unsavedDiscard: "Weggooien",
+  unsavedMore: "Meer",
+  unsavedDiscardChanges: "Wijzigingen weggooien",
+  unsavedDiscardHint: "Zet alles terug; het concept blijft staan",
+  unsavedShowChanges: "Toon de wijzigingen",
+  unsavedShowHint: "Welke delen veranderd zijn",
+  unsavedNothingToSave: "Er is nog niets veranderd.",
+  unsavedSavingNow: "De wijzigingen worden opgeslagen.",
+  unsavedListTitle: "Niet-opgeslagen wijzigingen",
+  unsavedGoFirst: "Ga naar de eerste",
+  unsavedGoTo: (/** @type {string} */ key) => `Ga naar ${key}`,
+  unsavedRevert: "Terugzetten",
+  unsavedRevertOne: (/** @type {string} */ key) => `${key} terugzetten`,
+  unsavedUnnamed: "Naamloos onderdeel",
+  unsavedOn: "aan",
+  unsavedOff: "uit",
+  unsavedEmpty: "(leeg)",
+  unsavedDropped: (/** @type {number} */ n) => `${n} ${wijz(n)} weggegooid`,
+  unsavedUndo: "Ongedaan maken",
+  unsavedRestoredUndo: (/** @type {number} */ n) => `${n} ${wijz(n)} terug`,
+  unsavedRestored: (/** @type {number} */ n) => `${n} ${wijz(n)} bewaard van voor je wegging`,
+  unsavedSavedAll: (/** @type {number} */ n) => `${n} ${wijz(n)} opgeslagen`,
+  unsavedPartly: (/** @type {number} */ saved, /** @type {number} */ refused) => `${saved} opgeslagen, ${refused} geweigerd`,
+  unsavedRefused: (/** @type {number} */ n) => (n === 1 ? "1 wijziging kon niet worden opgeslagen" : `${n} wijzigingen konden niet worden opgeslagen`),
+  unsavedWhy: (/** @type {string} */ key, /** @type {string} */ why) => `${key}: ${why}`,
+  unsavedDismiss: "Sluiten",
+  unsavedLeaveTitle: "Weggaan zonder opslaan?",
+  unsavedLeaveText: (/** @type {number} */ n) => `${n} ${wijz(n)} ${n === 1 ? "is" : "zijn"} nog niet opgeslagen en ${n === 1 ? "gaat" : "gaan"} verloren als je weggaat.`,
+  unsavedLeaveAccept: "Weggaan",
+  unsavedLeaveStay: "Blijven",
+};

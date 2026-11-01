@@ -1,0 +1,103 @@
+/* The recipe editor page (`/recipe/edit`, Kenny 01/11/2026): the contents list beside the sections on a desktop, folded above
+   them on a phone. Layout only; every look is the package's (page header, unsaved bar, contents list, cards). */
+
+.rl-editpage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kitchen-section-gap);
+  align-content: start;
+}
+
+.rl-editpage__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kp-space-lg, 1.5rem);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .rl-editpage__grid {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--kp-space-2xl, 2rem);
+  }
+}
+
+.rl-editpage__col,
+.rl-editpage__main {
+  display: grid;
+  gap: var(--kp-space-xl, 2rem);
+  min-inline-size: 0;
+  align-content: start;
+}
+
+.rl-editpage__col > [hidden] {
+  display: none;
+}
+
+/* The index: a fold on a phone, always open beside the form on a desktop (its summary is then not needed). */
+.rl-editpage__index {
+  min-inline-size: 0;
+}
+
+/* The header's actions: Back, then the unsaved bar. On a phone they stack and the bar takes the width, so Save is never cut off. */
+.rl-editpage .kp-page-header__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: var(--kp-space-sm, 0.5rem);
+  min-inline-size: 0;
+}
+
+.rl-editpage .kp-page-header__actions > .kp-unsaved {
+  justify-self: stretch;
+  min-inline-size: 0;
+}
+
+@media (min-width: 40rem) {
+  .rl-editpage .kp-page-header__actions {
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+@media (min-width: 64rem) {
+  .rl-editpage__index {
+    position: sticky;
+    inset-block-start: 5rem;
+  }
+
+  .rl-editpage__indexsummary {
+    display: none;
+  }
+
+  .rl-editpage__index {
+    border: 0;
+  }
+
+  .rl-editpage__index .kp-accordion__body {
+    padding: 0;
+  }
+
+  .rl-editpage__index .kp-contents--sticky {
+    position: static;
+  }
+}
+
+/* A section of the form is a card: its title, its sentence, then its fields on the form grid. */
+.rl-editpage .rl-formsec {
+  padding: var(--kp-space-lg, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 0.5rem);
+  background: var(--card, transparent);
+  scroll-margin-block-start: 6rem;
+}
+
+.rl-editpage .rl-list {
+  scroll-margin-block-start: 6rem;
+}
+
+@media (max-width: 40rem) {
+  .rl-editpage .rl-formsec {
+    padding: var(--kp-space-md, 1rem);
+  }
+}

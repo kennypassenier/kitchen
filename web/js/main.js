@@ -20,6 +20,7 @@ const ROUTES = /** @type {Record<string, () => Promise<{ mount: Mount }>>} */ ({
   "/timing": () => import("./pages/timing/index.js"),
   "/bad-days": () => import("./pages/baddays/index.js"),
   "/recipe": () => import("./pages/recipe/index.js"),
+  "/recipe/edit": () => import("./pages/recipe-edit/index.js"),
   "/recipes": () => import("./pages/recipes/index.js"),
   "/settings": () => import("./pages/settings/index.js"),
   "/parents": () => import("./pages/parents.js"),
@@ -43,7 +44,7 @@ const DETAIL = /** @type {Record<string, string>} */ ({
 });
 
 /** The bar entry a hidden screen lights up. */
-const GROUP = /** @type {Record<string, string>} */ ({ "/recipe": "/recipes", "/cook": "/recipes" });
+const GROUP = /** @type {Record<string, string>} */ ({ "/recipe": "/recipes", "/recipe/edit": "/recipes", "/cook": "/recipes" });
 
 /**
  * The screen a path opens, with the parameters it reads: the query, plus `list` and `id` for an item's own page.
