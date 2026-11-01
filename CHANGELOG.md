@@ -7,6 +7,19 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 ### Changed
+- **Delete at once, with a 10 s Undo** for every item that can come back: dishes, recipes, recipe sources,
+  ingredients, dish and ingredient categories, freezer portions, shelf foods, log lines and resting marks. No typed
+  name any more. The server keeps a deleted item for 2 minutes and Undo puts the same item back at its place under the
+  same id (`POST /data/restore/{list}/{id}`), so log lines, freezer items and dishes that point at it find it again;
+  a recipe's photos are deleted only when the Undo window closed.
+- **Delete is off while an item is in use**, with the reason on the button: "Used by 1 dish and 2 recipes" for an
+  ingredient, "Used by 6 dishes" for a category (tables and the item's own page). The ingredients table counts
+  dishes and recipes apart.
+- **Categories are edited in their table**: both names in their cell (Enter saves, Esc cancels), the order by dragging
+  a row or Alt+Up / Alt+Down, a new one in the add row on top. The category drawer is gone; a category's own page
+  opens its cell in the table.
+- **What I ate has an add row on top of its table**: day, what was eaten, how it felt and a note; Enter adds. The
+  drawer for a new line is gone (editing a line keeps it).
 - **The recipe editor is a page of its own** (`/recipe/edit`, Kenny 01/11/2026), not a drawer. `?id=<id>` edits a recipe,
   `?new=1` or `?dish=<id>` writes a new one (`&safe=1` makes it a safe dish), `&start=copy|import` opens an editable
   copy or an import result as unsaved work, and `&from=<path>` is where Save and Back return to. It has the kit's page
