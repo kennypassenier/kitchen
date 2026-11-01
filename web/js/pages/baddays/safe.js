@@ -55,6 +55,8 @@ export function createSafe(ctx) {
     headerAdd.fill(k);
     emptyAdd.fill(k);
     const dishes = safeRecipes(k);
+    // With no safe dish the empty state offers the list; a second identical button in the header would only repeat it.
+    headerAdd.el.hidden = dishes.length === 0;
     const signature = JSON.stringify(dishes.map((r) => [r.id, r.name, r.summary, r.minutes, r.gear, lastMade(k, r.id)]));
     if (signature === drawn.safe) return;
     drawn.safe = signature;
