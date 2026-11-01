@@ -4,7 +4,7 @@
 // changes, and the package's calls that paint lanes, bars, marks, stretches and the legend. A page builds its lanes and
 // runs and hands them to drawTimeline(); the package does the rest (axis, line for now, states, hover cards, keys).
 
-import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/dist/kp-themes.min.js";
+import { VERSION as KP_VERSION, attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/dist/kp-themes.min.js";
 
 import { ganttFitMarkup } from "./timeline-fit.js";
 
@@ -20,14 +20,14 @@ export { setGanttState as setTimelineState };
  * Put the timeline into `slot` (already in the page), attached and in its loading frame with the lane names and the axis
  * beside the busy card. `redraw` is called when the width changes enough to move the bar labels. `fit` is how it meets its
  * width (timeline-fit.js): "scroll" keeps the kit's readable plot that scrolls sideways inside its frame on a phone; "fit"
- * takes the width it is given (cook mode, ux-review cook-timeline "Passend maken", Kenny 01/11/2026).
+ * takes the width it is given (the kit's own fit mode once it has one) (cook mode, ux-review cook-timeline "Passend maken", Kenny 01/11/2026).
  * @param {HTMLElement} slot
  * @param {{ label: string, loading: string, legend?: "off" | "on", fit?: import("./timeline-fit.js").TimelineFit, strings?: Record<string, string>, redraw?: () => void }} o
  * @returns {{ el: HTMLElement, detach: () => void }}
  */
 export function mountTimeline(slot, { label, loading, legend = "off", fit = "scroll", strings = {}, redraw }) {
   const safe = label.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" ${ganttFitMarkup(fit)} data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
+  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" ${ganttFitMarkup(fit, KP_VERSION)} data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
   const el = /** @type {HTMLElement} */ (slot.firstElementChild);
   const off = attachGantts(slot, { strings: { ganttLoading: loading, ...strings } });
   setGanttState(el, "loading");
