@@ -7,6 +7,16 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 ### Changed
+- **The bar keeps five places and a More menu** (Kenny 01/11/2026): What do we eat?, When do I start?, Bad days, Recipes and
+  What I ate stay in the bar; Dishes, Ingredients, Parents' wheel, Recipe sources, Storage and Calm settings sit under
+  "More ▾". The header is one row at 1280. The NL/EN toggle left the bar: the language is chosen in Calm settings only.
+- **Calm settings: the theme is a button with the theme's name** ("Formal ▾") that opens the kit's theme menu.
+- **Recipe page**: the "Cook on your phone" card is a "Send to phone" button beside Edit that opens the code in a
+  popover, and the four print options sit in a "Print options" popover next to "Print this recipe"; the preview stays.
+- **Bad days**: "Add a safe dish" is a short list of the recipes not yet safe (one click marks one safe); the safe
+  dishes' Edit and "Not safe any more" buttons align on a shared grid; adding to the freezer starts with "From the
+  dish", which fills both names.
+- **Recipes**: each row has Edit and a menu with Duplicate and Delete (the delete is the one with Undo).
 - **Delete at once, with a 10 s Undo** for every item that can come back: dishes, recipes, recipe sources,
   ingredients, dish and ingredient categories, freezer portions, shelf foods, log lines and resting marks. No typed
   name any more. The server keeps a deleted item for 2 minutes and Undo puts the same item back at its place under the
