@@ -23,7 +23,13 @@ Only pin + sync + checks should remain:
    (`--kp-calendar-nav-measured`; the Dutch 340 px nav overflowed 42 px, now fits).
 6. Re-check the chassis-rs gaps 23-25 workarounds against the new chassis (23 popover position: the `position: fixed` + flip in
    `web/js/ui/popover.js`; 24 labelled theme trigger: `web/js/pages/settings/theme-button.js`; 25 More set in the folding bar:
-   `web/js/shell/plan.js`); see `~/Projects/kp-gaps/chassis-rs.md`.
+   `web/js/shell/plan.js`); see `~/Projects/kp-gaps/chassis-rs.md`. Two are fixed in kp-themes 12.2.0 (main 65baed252):
+   - 23: `.kp-popover[popover]` is `position: fixed` with flip fallbacks, so drop Kitchen's `.app-popover` override
+     (`web/js/ui/popover.js` and its CSS) and re-measure the Send to phone, Print options and More menus at 1280 and 390 px.
+   - 24: `themeMenuMarkup({ trigger: 'label', current })` draws "Formal ▾" and keeps the name and accessible name current, so
+     drop `web/js/pages/settings/theme-button.js` and re-measure the `/settings` theme button at 1280 and 390 px.
+   - The new chassis-rs also advertises the maskable and monochrome icons already in `web/pwa/` (kit manifest); check
+     `/manifest.webmanifest` lists them.
 7. Re-check Kitchen's imports against the new bundle with `/tmp/claude-1000/-home-kenny-Projects/cf5bc211-3b73-5e5c-b494-895e05e608c8/scratchpad/kp-names.mjs`.
 8. Then the release gate: the full suite (cargo test, node tests, check scripts), Firefox smoke at 1280 and 390 (EN and NL), measure-align and
    measure-gaps clear; only then the release decision.
