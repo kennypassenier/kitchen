@@ -6,9 +6,22 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
-Four UX rounds (Kenny, 01/11/2026): the bar and its More menu, Calm settings, the recipe page's popovers, bad days, recipes
-and their rows, delete with Undo everywhere, inline add rows, the recipe editor as a page, import from a link, one
-full-screen cook stage and the wheel's filter menus. Kenny's own list is below; nothing here is released yet.
+Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
+Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
+
+### Added
+- **Undo for every delete that can come back**: a dish, recipe, recipe source, ingredient, dish or ingredient category,
+  freezer portion, shelf food, log line or resting mark goes at once and a 10 s "Undo" toast puts it back at its place
+  under its own id. The server keeps what it deleted in memory for 2 minutes (`POST /data/restore/{list}/{id}`).
+- **The recipe editor page** (`/recipe/edit`) with the kit's always-visible unsaved bar (Save, Discard, Ctrl+S), an
+  "On this page" index and Keep as draft / Discard when you leave; **Edit** in the recipe page's header.
+- **Import from a link at the top of the Recipes page** ("Paste a link" + Import; pasted text in a fold).
+- **Cook mode as one full-screen stage** with a "Gather first" sheet and a "More" sheet (see Changed).
+- **Add rows** on top of the What I ate table and of the category tables; categories reorder by dragging.
+- **Reasons on disabled Delete** ("Used by 1 dish and 2 recipes").
+- **Tonight's answer is remembered for the day** in this browser, so "When do I start?" opens on it.
+- **Wheel filter chips** with a Want / Not / Either way menu; **"Send to phone"** and **"Print options"** popovers;
+  **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
 - **The bar keeps five places and a More menu** (Kenny 01/11/2026): What do we eat?, When do I start?, Bad days, Recipes and
@@ -53,7 +66,7 @@ full-screen cook stage and the wheel's filter menus. Kenny's own list is below; 
   The import drawer is gone.
 - The unsaved bar and the contents list speak Dutch in the Dutch interface (`web/js/i18n/kp-nl/unsaved.js`).
 - **Cook mode is one full-screen stage** (Kenny, 01/11/2026): the step in hand fills the screen, Back and Next are pinned
-  at the bottom (56 px), running timers are pinned at the top as compact rows while one runs, and the tracks are one strip
+  at the bottom (55 px), running timers are pinned at the top as compact rows while one runs, and the tracks are one strip
   of tabs over the step. Begin with the mise en place, the explanations, the timeline, the timer discs, calm mode and the
   links to the recipe and the mini version are in one "More" sheet; until cooking has begun a quiet "Gather first" opens
   it on Begin. Wake lock, timers, `fresh=1`, planned waits and Read aloud work as before.
@@ -68,12 +81,33 @@ full-screen cook stage and the wheel's filter menus. Kenny's own list is below; 
   browser for the day); the empty state no longer has a button of its own.
 
 ### Fixed
+- **Closing the recipe editor never throws work away**: Escape, the close button and Cancel keep the draft; leaving a
+  changed page asks Keep as draft / Discard.
+- **The wheel's filter and "what counts as easy" panels fit inside their card** (they stuck out at the edge), and the
+  easy options use the normal chip style.
+- **The recipe log shows no empty toolbar ghost** above its empty state.
+- **"Read aloud" in cook mode is a 44 px touch target** (was smaller).
+- **Pages use the kit's page width** (80 % of the window, never under 64rem); the wheel page stays wider on purpose.
 - **Calm settings** rows whose value cell has a hint keep what the setting says on the line of its name (they hung 9 to
   19 px under it); the Dutch calendar on Bad days no longer scrolls a 390 px phone sideways (its nav folds below 26rem).
 
 ### Internal
 - The unused safe-dish picker and its words are gone; the recipe editor page's Save and heading helpers, the recipes
-  table's life and the page registrations moved into small modules (no behaviour change).
+  table's life and the page registrations moved into small modules (no behaviour change); functions the UX rounds grew
+  were split under 40 lines.
+- `ganttFitAttrs` (`web/js/recipe/timeline-fit.js`) asks the kit for `data-kp-gantt-scroll="fit"` from kp-themes
+  `FIT_FROM` (12.2.0, assumed) and "off" before; tests in `scripts/`.
+
+### Migration / deploy notes (for the homelab thread)
+- **Environment**: no new or changed variable. `KITCHEN_TRUSTED_PROXIES` must still include Traefik (10.10.10.4) behind
+  the home route, as in 5.0.0; `KITCHEN_TRUSTED_ADMINS`, `KITCHEN_PARENTS_ALLOW` and the rest are untouched.
+- **Store**: `kitchen.json` stays format 5 (`FORMAT` in `src/store/data.rs`; no migration step added since 5.0.0). No new
+  collection or field is stored: Undo lives in server memory only and is lost at a restart (an Undo after a restart
+  answers "can no longer be undone"). The kit's own database stays at schema 2 (chassis 4.0.0, unchanged).
+- **Rollback to 5.0.0**: the data file is identical in shape, so 5.0.0 opens it as is; only the Undo route and the new
+  screens go away. A backup is still good practice, but none is required for this step. Going further back than 5.0.0
+  keeps the 5.0.0 rule (a backup taken before that update).
+- Deploys the same way as 5.0.0 (no new dependency, no new port, no new file on disk).
 
 ## [5.0.0] - 2026-10-31
 
