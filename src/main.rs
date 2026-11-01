@@ -132,25 +132,49 @@ fn parents_settings() -> Result<(Option<String>, parents::Allow), String> {
     Ok((host, allow))
 }
 
+/// The group of the pages that sit behind the bar's More menu (web/js/shell/plan.js reads it by this name).
+const MORE: &str = "More";
+
 /// The pages of the app's bar and the hidden ones.
 fn register_pages(app: &mut App) {
-    // The bar: the four places a person goes, in the order of an evening.
-    // The recipe page and cook mode are reached from a dish, not the bar.
-    app.page(Page::new("wheel", "What do we eat?", "/"))
-        .page(Page::new("timing", "When do I start?", "/timing"))
-        .page(Page::new("baddays", "Bad days", "/bad-days"))
-        .page(Page::new("settings", "Calm settings", "/settings"))
-        .page(Page::new("recipes", "Recipes", "/recipes"))
-        // The dishes behind the parents' wheel, and the wheel itself in
-        // English; the Dutch one is /eten, without a login.
-        .page(Page::new("dishes", "Dishes", "/dishes"))
-        // The one list of ingredients dishes and recipes point at.
-        .page(Page::new("ingredients", "Ingredients", "/ingredients"))
-        .page(Page::new("parents", "Parents' wheel", "/parents"))
+    // The bar: the five places of every day, in the order of an evening (Kenny, 01/11/2026 20:21: "Meer-menu"). Every page
+    // in the group "More" sits behind the bar's More menu instead, in the order given here. The recipe page and cook mode
+    // are reached from a dish, not the bar.
+    app.page(Page::new("wheel", "What do we eat?", "/").order(0))
+        .page(Page::new("timing", "When do I start?", "/timing").order(1))
+        .page(Page::new("baddays", "Bad days", "/bad-days").order(2))
+        .page(Page::new("recipes", "Recipes", "/recipes").order(3))
         // Every line of the log, recipes cooked and shelf foods eaten.
-        .page(Page::new("log", "What I ate", "/log"))
+        .page(Page::new("log", "What I ate", "/log").order(4))
+        // The dishes behind the parents' wheel, and the wheel itself in English; the Dutch one is /eten, without a login.
+        .page(
+            Page::new("dishes", "Dishes", "/dishes")
+                .group(MORE)
+                .order(10),
+        )
+        // The one list of ingredients dishes and recipes point at.
+        .page(
+            Page::new("ingredients", "Ingredients", "/ingredients")
+                .group(MORE)
+                .order(11),
+        )
+        .page(
+            Page::new("parents", "Parents' wheel", "/parents")
+                .group(MORE)
+                .order(12),
+        )
         // The websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11).
-        .page(Page::new("sources", "Recipe sources", "/sources"))
+        .page(
+            Page::new("sources", "Recipe sources", "/sources")
+                .group(MORE)
+                .order(13),
+        )
+        // Last in the menu, after the kit's Storage (order 1000 and up).
+        .page(
+            Page::new("settings", "Calm settings", "/settings")
+                .group(MORE)
+                .order(1100),
+        )
         .page(
             Page::new("recipe", "Recipe", "/recipe")
                 .group("Recipes")
@@ -163,6 +187,7 @@ fn register_pages(app: &mut App) {
                 .hidden(),
         )
         .page(Page::new("cook", "Cook", "/cook").group("Recipes").hidden())
+        .kit_page("storage", |page| page.group(MORE))
         .brand("/")
         .brand_title("Kitchen")
         // Nothing calls a client API and the kit's status page would be a

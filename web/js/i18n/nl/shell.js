@@ -25,5 +25,7 @@ export const NL_SHELL = {
   "nav.parents": "Wiel van de ouders",
   "nav.log": "Wat ik at",
   "nav.sources": "Receptbronnen",
+  "nav.more": "Meer",
+  "nav.moreMenu": "Alle andere pagina's",
   "nav.storage": "Opslag",
 };

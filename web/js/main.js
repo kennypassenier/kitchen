@@ -5,9 +5,10 @@
 // The bar renders from the kit's page registry (`GET /api/kit/pages`), so it
 // never carries a second hand-written list.
 
-import { attachNavToggles, attachNavMenus, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup, attachSegmented, setSegmentedValues, SEGMENTED_EVENT, toast } from "/static/kp/dist/kp-themes.min.js";
+import { attachNavToggles, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup, attachSegmented, setSegmentedValues, SEGMENTED_EVENT, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
+import { createBar } from "./shell/nav.js";
 import { onKitchen, patchSettings, loadKitchen } from "./api.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
@@ -63,6 +64,7 @@ function route(path, search) {
 
 const page = /** @type {HTMLElement} */ (document.getElementById("page"));
 const nav = /** @type {HTMLElement} */ (document.getElementById("nav"));
+const bar = createBar(nav);
 const tools = /** @type {HTMLElement} */ (document.getElementById("tools"));
 
 applyStoredCalm();
@@ -83,7 +85,7 @@ async function render() {
   cleanup();
   cleanup = () => {};
   const found = route(path, location.search);
-  markNav(found?.bar ?? path);
+  bar.mark(found?.bar ?? path);
   if (!found) {
     page.replaceChildren(notFound());
     document.title = `${t("shell.notFoundTitle")} · Kitchen`;
@@ -125,35 +127,6 @@ function failed(e) {
   );
 }
 
-/** @param {string} path */
-function markNav(path) {
-  for (const a of nav.querySelectorAll("a")) {
-    if (a.getAttribute("href") === path) a.setAttribute("aria-current", "page");
-    else a.removeAttribute("aria-current");
-  }
-}
-
-async function drawNav() {
-  try {
-    const res = await fetch("/api/kit/pages", { credentials: "same-origin" });
-    if (!res.ok) throw new Error(String(res.status));
-    const set = await res.json();
-    nav.replaceChildren(
-      ...set.pages
-        .filter((/** @type {any} */ p) => p.nav)
-        .map((/** @type {any} */ p) => h("li", null, h("a", { class: "kp-nav__link", href: p.path }, t(`nav.${p.id}`) === `nav.${p.id}` ? p.title : t(`nav.${p.id}`)))),
-    );
-  } catch {
-    // The kit's registry did not answer: the bar keeps the five places.
-    nav.replaceChildren(
-      ...[["/", "wheel"], ["/timing", "timing"], ["/bad-days", "baddays"], ["/recipes", "recipes"], ["/settings", "settings"]]
-        .map(([href, id]) => h("li", null, h("a", { class: "kp-nav__link", href }, t(`nav.${id}`)))),
-    );
-  }
-  const path = location.pathname.replace(/\/+$/, "") || "/";
-  markNav(route(path, location.search)?.bar ?? path);
-}
-
 // The language toggle, left of the theme picker (Kenny, 24/10/2026 05:12): the package's segmented choice of two. It
 // writes the kitchen's `settings.lang`, so the choice follows Kenny between devices; the kitchen's value wins on load.
 const langToggle = h(
@@ -183,12 +156,11 @@ onKitchen((k) => {
 onLang((l) => {
   setSegmentedValues(langToggle, [l]);
   langToggle.setAttribute("aria-label", t("shell.language"));
-  void drawNav();
+  void bar.draw();
   void render();
 });
 void loadKitchen().catch(() => {});
 attachNavToggles(document);
-attachNavMenus(document);
 attachSkipLinks(document);
 
 // Same-origin links route in place; a modified click opens normally.
@@ -204,5 +176,5 @@ document.addEventListener("click", (e) => {
 });
 addEventListener("popstate", () => void render());
 
-void drawNav();
+void bar.draw();
 void render();
