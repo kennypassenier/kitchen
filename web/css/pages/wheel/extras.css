@@ -28,6 +28,9 @@
 
 /* No energy today is a form grid like the filters: names in one column, every control on one edge. */
 .wl-easy {
+  /* The padding and border sit inside the card's width (content-box made the panel stick out by 26px, ux-review fix-wheel-filters-1). */
+  box-sizing: border-box;
+  min-inline-size: 0;
   padding: var(--kp-space-md, 1rem);
   border: 1px solid var(--border);
   border-radius: var(--radius, 0.5rem);
