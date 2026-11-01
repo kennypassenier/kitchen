@@ -25,6 +25,20 @@ carries a **Migration** section saying what an operator must do.
   the Recipes page with the field focused and a line naming the site or the dish (`/recipes?import=1&site=` / `&dish=`).
   The import drawer is gone.
 - The unsaved bar and the contents list speak Dutch in the Dutch interface (`web/js/i18n/kp-nl/unsaved.js`).
+- **Cook mode is one full-screen stage** (Kenny, 01/11/2026): the step in hand fills the screen, Back and Next are pinned
+  at the bottom (56 px), running timers are pinned at the top as compact rows while one runs, and the tracks are one strip
+  of tabs over the step. Begin with the mise en place, the explanations, the timeline, the timer discs, calm mode and the
+  links to the recipe and the mini version are in one "More" sheet; until cooking has begun a quiet "Gather first" opens
+  it on Begin. Wake lock, timers, `fresh=1`, planned waits and Read aloud work as before.
+- **The cook timeline fits a phone**: no bar is cut at the edge any more and its rows are lower (390 px: 272 to 202 px).
+  It asks for kp-themes' own fit mode (`data-kp-gantt-scroll="fit"`) from the kit release that carries it.
+- **What do we eat?**: "Yes, cook this" is drawn as the primary action only once the wheel has given an answer, and the
+  answer column keeps its lines so the buttons never move. Each filter chip opens a small menu with Want / Not / Either
+  way and shows its answer as a mark and a word; the help line is said once at the top of the filter card.
+- **The empty side wheel says why inside its disc** ("No side for this dish" / "Geen bijgerecht bij dit gerecht"), at
+  the same size, on `/`, `/eten` and `/parents`.
+- **When do I start?** has one recipe picker, in the page header, and opens on tonight's wheel answer (kept in this
+  browser for the day); the empty state no longer has a button of its own.
 
 ## [5.0.0] - 2026-10-31
 
