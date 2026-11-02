@@ -37,7 +37,7 @@ function buildCard() {
   const beginTitle = h("h3", { class: "kp-card__title" }, t("cook.yourRecipe"));
   const facts = h(
     "dl",
-    { class: "kp-kv" },
+    { class: "kp-kv kp-kv--center" },
     ...[t("cook.serves"), t("cook.time"), t("cook.dirties")].map((k) => h("div", { class: "kp-kv__row" }, h("dt", null, k), h("dd", null, "—"))),
   );
   const beginBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg" }, t("cook.begin"));

@@ -42,7 +42,7 @@ function buildPage(list) {
     crumb,
     h("div", { class: "kp-page-header__inner" }, h("div", null, title, h("p", { class: "kp-page-header__description" }, t("it.keeps", meta.this))), h("div", { class: "kp-page-header__actions" }, ...(fromSite ? [fromSite] : []), edit, ...(copy ? [copy] : []), del)),
   );
-  const kv = h("dl", { class: "kp-kv kp-kv--lines" });
+  const kv = h("dl", { class: "kp-kv kp-kv--lines kp-kv--center" });
   const card = h(
     "section",
     { class: "kp-card it-card", "data-kp-state": "loading", "data-kp-loading-words": t("it.reading", meta.the), "aria-labelledby": "it-card-t" },

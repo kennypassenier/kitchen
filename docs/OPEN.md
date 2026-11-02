@@ -44,7 +44,8 @@ Only pin + sync + checks should remain:
      re-measures at the end of the task: check Kitchen code that sets `.value` and then reads the height in the same task.
    - The action list supports six columns: drop the fifth-column workaround in `web/css/pages/dishes.css`
      (`.it-recipes:has(> li > .kp-row-actions > :nth-child(5))`).
-   - New opt-in class `kp-kv--center` for `dl.kp-kv`: add it and re-measure the label hang at 1280 and 390 px.
+   - New opt-in class `kp-kv--center` for `dl.kp-kv`: DONE 02/11/2026 (both lists carry it, guarded by
+     `scripts/kv-center.test.mjs`; inert until 12.2.0). Left for the bump: re-measure the label hang at 1280 and 390 px.
 7. Re-check Kitchen's imports against the new bundle with `/tmp/claude-1000/-home-kenny-Projects/cf5bc211-3b73-5e5c-b494-895e05e608c8/scratchpad/kp-names.mjs`.
 8. Then the release gate: the full suite (cargo test, node tests, check scripts), Firefox smoke at 1280 and 390 (EN and NL), measure-align and
    measure-gaps clear; only then the release decision.

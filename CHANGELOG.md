@@ -98,6 +98,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- Key-value lists (the item page's Details, cook mode's Begin card) carry kp-themes' `kp-kv--center`, so a label that
+  wraps lines up with its value once the kit ships it (12.2.0; harmless before). `scripts/kv-center.test.mjs` fails on a
+  `dl.kp-kv` without it.
 - **A restart no longer leaves photo files behind** [fix-photo-orphans-1]: when the kitchen starts it deletes the photo
   files nothing refers to any more (dropped within Undo's window just before a restart, or uploaded in a tab that closed
   before its draft was written), once they are older than 10 minutes, and logs how many went.
