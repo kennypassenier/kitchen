@@ -51,7 +51,7 @@ function recipeRow(r, i, recipes, k) {
 function buildCard() {
   const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
   const importer = h("button", { type: "button", class: "kp-button" }, t("imp.button"));
-  const listEl = h("ul", { class: "kp-action-list it-recipes" });
+  const listEl = h("ul", { class: "kp-action-list kp-action-list--lead it-recipes" });
   const card = h(
     "section",
     { class: "kp-card it-card", "data-kp-state": "ready", "aria-labelledby": "it-recipes-t" },

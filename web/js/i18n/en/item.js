@@ -61,4 +61,5 @@ export const EN_ITEM = {
   "it.readingDishes": "Reading the dishes",
   "it.everyCategory": "Every category",
   "it.details": "Details",
+  "it.detailsLede": "Every field and its value; Edit at the top of the page changes them.",
 };

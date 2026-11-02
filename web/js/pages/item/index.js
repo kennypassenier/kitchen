@@ -47,6 +47,7 @@ function buildPage(list) {
     "section",
     { class: "kp-card it-card", "data-kp-state": "loading", "data-kp-loading-words": t("it.reading", meta.the), "aria-labelledby": "it-card-t" },
     h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-card-t" }, t("it.details"))),
+    h("p", { class: "kp-card__body" }, t("it.detailsLede")),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, kv)),
   );
   return { title, edit, copy, del, fromSite, kv, card, pageEl: h("div", { class: "it-page" }, head, card) };

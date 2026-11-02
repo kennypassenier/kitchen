@@ -61,4 +61,5 @@ export const NL_ITEM = {
   "it.readingDishes": "De gerechten worden gelezen",
   "it.everyCategory": "Elke categorie",
   "it.details": "Gegevens",
+  "it.detailsLede": "Elk gegeven met zijn waarde; Bewerken bovenaan de pagina past ze aan.",
 };

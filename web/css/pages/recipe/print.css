@@ -47,7 +47,9 @@
   gap: var(--kp-space-sm, 0.5rem) var(--kp-space-md, 1rem);
 }
 
-@media (max-width: 24rem) {
+/* Stacked on a phone: side by side, the Dutch labels in the dark theme were 360 px wide in a 316 px card (7 px sideways
+   scroll at 390). */
+@media (max-width: 36rem) {
   .rp-print__go {
     grid-auto-flow: row;
   }

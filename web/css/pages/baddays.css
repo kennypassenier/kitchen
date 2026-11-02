@@ -124,7 +124,12 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* The levels and "Add a food" each take a row of their own: side by side the button was pushed past the card's edge
+     (5 px sideways scroll at 390 in dark) and the levels wrapped their words onto three lines. */
   #bd-shelf-card > .kp-card__header > .kp-card__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
     justify-self: stretch;
     min-inline-size: 0;
   }
