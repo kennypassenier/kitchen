@@ -8,7 +8,7 @@
 import { h } from "../dom.js";
 import { create, replace, kitchenNow } from "../api.js";
 import { t, nameOf } from "../i18n/index.js";
-import { saveFailed } from "../api/stale-notice.js";
+import { saveFailed, noticeIfStale } from "../api/stale-notice.js";
 import { names } from "../dishes/names.js";
 import { input, NAME_LIMIT } from "../ui/form-parts.js";
 import { tableCard } from "./table-card.js";
@@ -62,7 +62,12 @@ function row(list, w, c, key, k) {
   );
 }
 
-/** A name edited in its cell: saved at once; an empty half is refused in the cell. @param {CategoryList} list @param {Map<string, string>} ids @param {CustomEvent} event */
+/**
+ * A name edited in its cell: saved at once; an empty half is refused in the cell. A save refused as stale (the category
+ * was saved elsewhere since this page read it) shows the shared stale toast with Reload, as every other quick save does
+ * (fix-cat-rename-stale-1); the cell still takes the refusal back and shows its words.
+ * @param {CategoryList} list @param {Map<string, string>} ids @param {CustomEvent} event
+ */
 function onEdit(list, ids, event) {
   const d = event.detail;
   const half = /** @type {"nl" | "en"} */ (d.cell.dataset.half);
@@ -70,7 +75,17 @@ function onEdit(list, ids, event) {
   const value = String(d.value ?? "").trim();
   if (!item || !half) return d.reject(t("rec.notSaved"));
   if (!value) return d.reject(t(half === "nl" ? "ip.needNl" : "ip.needEn"));
-  d.waitUntil(replace(list, { ...item, name: { ...names(item), [half]: value } }));
+  d.waitUntil(renameSave(list, item, half, value));
+}
+
+/** The rename's save; a stale refusal also raises the shared notice, then the error goes on to the cell. @param {CategoryList} list @param {Item} item @param {"nl" | "en"} half @param {string} value */
+async function renameSave(list, item, half, value) {
+  try {
+    return await replace(list, { ...item, name: { ...names(item), [half]: value } });
+  } catch (e) {
+    noticeIfStale(e);
+    throw e;
+  }
 }
 
 /** A row dragged to another place: every category saved with its new number. @param {CategoryList} list @param {Map<string, string>} ids @param {CustomEvent} event */

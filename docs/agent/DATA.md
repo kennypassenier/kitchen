@@ -27,7 +27,8 @@ read, else from the page's copy of the item (`ifMatchFor` in `web/js/api/save.js
 and maps the refusal). So the quick actions (safe toggle on Bad days, a category reorder or rename, make a recipe the
 dish's default, a recipe's Undo, which is a dish save) are refused instead of silently overwriting; they answer with one
 kit toast, "This changed elsewhere in the meantime. Reload the page and try again." with **Reload**, and read the kitchen
-again (`saveFailed` in `web/js/api/stale-notice.js`). Undo's restore (`POST /data/restore/{list}/{id}`) sends no
+again (`saveFailed` in `web/js/api/stale-notice.js`; a category renamed in its table cell through `noticeIfStale`,
+which raises the same toast and leaves the cell its own refusal line, fix-cat-rename-stale-1). Undo's restore (`POST /data/restore/{list}/{id}`) sends no
 `If-Match`, by decision: a deleted item has no newer version to overwrite, the server puts back exactly what it removed
 (with the `rev` it had), and it answers 409 when the id is back already.
 

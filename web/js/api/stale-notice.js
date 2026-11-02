@@ -21,6 +21,18 @@ function staleNotice() {
 }
 
 /**
+ * The stale notice when `e` is the server's stale refusal; answers whether it was. For a save whose other failures the
+ * component already shows where it happened (a name edited in its table cell: the kit's cell keeps its own error line),
+ * so only the stale case adds the shared toast with Reload, as every other quick save does.
+ * @param {unknown} e the error the save threw @returns {boolean}
+ */
+export function noticeIfStale(e) {
+  if (!isStale(e)) return false;
+  staleNotice();
+  return true;
+}
+
+/**
  * A quick action's save failed: the stale notice when it was refused as stale, else the caller's own words in a toast
  * that stays until it is read.
  * @param {unknown} e the error the save threw @param {() => string} words the caller's toast for any other failure
