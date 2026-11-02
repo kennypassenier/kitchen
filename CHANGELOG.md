@@ -155,6 +155,9 @@ kit's failed-edits drawer and the server-is-master rules (Kitchen ran on unrelea
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- An empty or failed data table on /dishes, /ingredients, /log, /sources and /recipes keeps the height it had loaded
+  (it was 9-41 px lower): a stand-in for kp-themes 2bc105c2b adds the count line, pager and sort summary that leave to the
+  plate's held height, until that kp-themes release reaches Kitchen through chassis-rs [fix-table-footprint-1]
 - Found by the 6.0.0 release checks: the printable sheet printed without its ingredient checklist (kp-themes draws only
   into the page's own realm; the list is now drawn in the page and imported into the frame) [fix-sheet-checklist-1]; a new
   device kept nothing offline, because the "keep everything offline" default's mark followed the login (now device-only)

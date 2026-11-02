@@ -14,6 +14,7 @@ import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
 import { onKitchen, loadKitchen, refreshIfOffline } from "./api.js";
 import { startOffline } from "./offline/start.js";
+import { holdDatatableFootprints } from "./ui/datatable-footprint.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
 /** @typedef {(root: HTMLElement, ctx: Ctx) => (void | (() => void))} Mount */
@@ -172,6 +173,8 @@ startOffline();
 void loadKitchen().catch((e) => console.warn("the kitchen could not be read at start", e));
 attachNavToggles(document);
 attachSkipLinks(document);
+// Stand-in until kp-themes 2bc105c2b reaches Kitchen (web/js/ui/datatable-footprint.js).
+holdDatatableFootprints();
 
 // Same-origin links route in place; a modified click opens normally.
 document.addEventListener("click", (e) => {
