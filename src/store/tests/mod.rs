@@ -5,6 +5,7 @@ use super::migrate::{migrate, to_2, to_3};
 use super::*;
 
 mod crud;
+mod idempotent;
 mod limits;
 mod migrate;
 mod photo_gc;
@@ -29,5 +30,6 @@ pub(super) fn empty() -> Data {
         drafts: vec![],
         recipe_sources: None,
         settings: Map::new(),
+        answered: vec![],
     }
 }

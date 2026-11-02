@@ -33,5 +33,7 @@ export const NL_OFFLINE = {
   "off.whatChange": (what) => `Wijziging aan ${what}`,
   "off.whatDelete": (what) => `Verwijderen van ${what}`,
   "off.whatItem": (list, name) => `${list} „${name}”`,
+  "off.whatTake": (dish) => `Een portie “${dish}” uit de diepvries genomen`,
+  "off.whatTakeUnnamed": "Een portie uit de diepvries genomen",
   "off.whatUnknown": "Een item dat niet meer in de keuken staat",
 };

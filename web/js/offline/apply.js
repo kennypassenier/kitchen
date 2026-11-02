@@ -10,6 +10,9 @@
 //   stray edit stays visible instead of vanishing). A recipe is saved as its dish (api.js), so it is a dish PUT here.
 // - `DELETE /data/{list}/{id}`: the item gone.
 // - `PATCH /data/settings`: keys merged, `null` removes one (src/routes.rs).
+// - `POST /data/freezer/{id}/take` with `{portions: n}`: n portions off the freezer item, as the server takes them
+//   (feat-offline-take-1); a take that would go below zero is shown at zero, and the server's refusal then lands in the
+//   failed list.
 // - An edit in the failed list (refused on replay) is NOT applied: the server kept its own version, which is what the
 //   page should show until the person drops or re-saves the edit.
 // Anything else (an unknown list, a path Kitchen never writes) is returned in `unknown`, for the caller to report.
@@ -17,15 +20,39 @@
 /** @typedef {Record<string, any>} Item */
 /** @typedef {Record<string, any>} KitchenData the kitchen as `GET /data/kitchen` answers it */
 /** @typedef {{ method: string, path: string, body?: any, state?: string }} Edit one entry of the kit's queue */
-/** @typedef {{ kind: "replace" | "delete", list: string, id: string } | { kind: "settings" }} EditShape */
+/** @typedef {{ kind: "replace" | "delete", list: string, id: string } | { kind: "settings" } | { kind: "take", id: string }} EditShape */
 
 /** The settings route (one object, merged by PATCH). */
 export const SETTINGS_PATH = "/data/settings";
 
 const ITEM_PATH = /^\/data\/([a-z_]+)\/([^/?#]+)$/;
+const TAKE_PATH = /^\/data\/freezer\/([^/?#]+)\/take$/;
+
+/** The freezer take route of item `id`, as api.js writes it. @param {string} id */
+export const takePath = (id) => `/data/freezer/${encodeURIComponent(id)}/take`;
 
 /** The item route of `id` in `list`, as api.js writes it. @param {string} list @param {string} id */
 export const itemPath = (list, id) => `/data/${list}/${encodeURIComponent(id)}`;
+
+/** A path segment unescaped, or null for a malformed escape (not a path api.js wrote). @param {string} raw */
+function decoded(raw) {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The freezer with `n` portions taken off item `id` (negative puts back), never below zero; null when the item is not
+ * there. @param {Item[]} freezer @param {string} id @param {number} n @returns {Item[] | null}
+ */
+export function takeFrom(freezer, id, n) {
+  const item = freezer.find((x) => x.id === id);
+  if (!item) return null;
+  const left = Math.max(0, Number(item.portions ?? 0) - n);
+  return replaceItem(freezer, { ...item, portions: left });
+}
 
 /**
  * What a queued edit does, or null when it is not one of Kitchen's edit shapes.
@@ -33,14 +60,15 @@ export const itemPath = (list, id) => `/data/${list}/${encodeURIComponent(id)}`;
  */
 export function shapeOf(edit) {
   if (edit.method === "PATCH" && edit.path === SETTINGS_PATH) return { kind: "settings" };
+  const take = edit.method === "POST" ? TAKE_PATH.exec(edit.path) : null;
+  if (take) {
+    const id = decoded(take[1]);
+    return id === null ? null : { kind: "take", id };
+  }
   const m = ITEM_PATH.exec(edit.path);
   if (!m) return null;
-  let id;
-  try {
-    id = decodeURIComponent(m[2]);
-  } catch {
-    return null; // a malformed escape: not a path api.js wrote
-  }
+  const id = decoded(m[2]);
+  if (id === null) return null;
   if (edit.method === "PUT") return { kind: "replace", list: m[1], id };
   if (edit.method === "DELETE") return { kind: "delete", list: m[1], id };
   return null;
@@ -78,6 +106,10 @@ export function applyEdit(kitchen, edit) {
   const shape = shapeOf(edit);
   if (!shape) return null;
   if (shape.kind === "settings") return { ...kitchen, settings: mergeSettings(kitchen.settings ?? {}, edit.body ?? {}) };
+  if (shape.kind === "take") {
+    const freezer = Array.isArray(kitchen.freezer) ? takeFrom(kitchen.freezer, shape.id, Number(edit.body?.portions ?? 1)) : null;
+    return freezer ? { ...kitchen, freezer } : null;
+  }
   const items = kitchen[shape.list];
   if (!Array.isArray(items)) return null;
   if (shape.kind === "delete") return { ...kitchen, [shape.list]: removeItem(items, shape.id) };

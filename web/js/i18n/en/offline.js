@@ -14,7 +14,7 @@ export const EN_OFFLINE = {
   "off.logoutBody": (n) => `${n} ${n === 1 ? "edit was" : "edits were"} not sent to the kitchen yet. Signing out deletes ${n === 1 ? "it" : "them"} from this device.`,
   "off.logoutAccept": "Sign out anyway",
   "off.logoutStay": "Stay signed in",
-  // a POST (new item, draft, import, freezer portion, Undo's restore) without a connection (api/http.js)
+  // a POST (new item, draft, import, Undo's restore) without a connection (api/http.js); a freezer take queues instead
   "api.needsConnection": "This needs a connection: something new gets its number from the kitchen. Nothing you typed is lost; try again once you are online.",
   // the refused edits (offline/failed-list.js)
   "off.failedTitle": "Edits the kitchen refused",
@@ -36,5 +36,7 @@ export const EN_OFFLINE = {
   "off.whatChange": (what) => `Change to ${what}`,
   "off.whatDelete": (what) => `Delete of ${what}`,
   "off.whatItem": (list, name) => `${list} “${name}”`,
+  "off.whatTake": (dish) => `A portion of “${dish}” taken from the freezer`,
+  "off.whatTakeUnnamed": "A portion taken from the freezer",
   "off.whatUnknown": "An item that is no longer in the kitchen",
 };

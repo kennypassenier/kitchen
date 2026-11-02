@@ -21,6 +21,12 @@ export function whatOf(edit, kitchen, t, lang) {
   const shape = shapeOf(edit);
   if (!shape) return t("off.whatUnknown");
   if (shape.kind === "settings") return t("off.whatSettings");
+  if (shape.kind === "take") {
+    // A freezer item is named by its dish (`dish: {nl, en}`), not `name`.
+    const item = Array.isArray(kitchen?.freezer) ? kitchen.freezer.find((/** @type {any} */ x) => x.id === shape.id) : null;
+    const dish = String(pick(item?.dish ?? "", lang) ?? "").trim();
+    return dish ? t("off.whatTake", dish) : t("off.whatTakeUnnamed");
+  }
   const held = Array.isArray(kitchen?.[shape.list]) ? kitchen[shape.list].find((/** @type {any} */ x) => x.id === shape.id) : null;
   const name = nameIn(edit.body, lang) || nameIn(held, lang);
   const thing = name ? t("off.whatItem", t(`list.${shape.list}`), name) : t(`list.${shape.list}`);

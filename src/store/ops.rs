@@ -163,22 +163,10 @@ impl Store {
 
     /// Take `n` portions out of a freezer item (negative puts them back,
     /// which is how Undo works). An item at zero stays, so Undo can find it.
+    /// The once-per-key form the route uses is [`Store::take_portions_once`]; this keyless form is for the tests.
+    #[cfg(test)]
     pub async fn take_portions(&self, id: &str, n: i64) -> Result<Value, Refused> {
-        self.change(|d| {
-            let slot = d
-                .freezer
-                .iter_mut()
-                .find(|v| v.get("id").and_then(Value::as_str) == Some(id))
-                .ok_or(Refused::NotFound)?;
-            let have = slot.get("portions").and_then(Value::as_i64).unwrap_or(0);
-            let left = have - n;
-            if left < 0 {
-                return Err(Refused::NoPortionsLeft);
-            }
-            slot["portions"] = Value::from(left);
-            Ok(slot.clone())
-        })
-        .await
+        self.take_portions_once(id, n, None).await
     }
 }
 

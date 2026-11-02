@@ -3,8 +3,9 @@
 // owns the `If-Match` header, the offline copy, the write queue and its replay; Kitchen only decides WHICH revision a
 // save names (api/save.js `ifMatchFor`) and turns the kit's refusals into ApiErrors in the page's language.
 //
-// The kit has no POST: creating an item, a draft, an import, a freezer take and Undo's restore stay on api/http.js
-// `call` and need a connection (the server issues the ids).
+// The freezer take is a POST through the kit (`chassisData.post`, chassis-rs 8042dbe, feat-offline-take-1): queued
+// offline and replayed with the same `Idempotency-Key`, so the server takes it once. Creating an item, a draft, an
+// import and Undo's restore stay on api/http.js `call` and need a connection (the server issues the ids).
 //
 // The kit's runtime is a module the server puts into the page AFTER Kitchen's own main.js (chassis-rs injects it before
 // `</head>`), so `window.chassisData` exists only once every deferred module ran: the first call waits for
@@ -26,10 +27,11 @@ export const READ_EVENT = "kitchen-data-read";
  * The part of `window.chassisData` Kitchen uses (chassis-rs docs/OFFLINE_DESIGN.md).
  * @typedef {object} KitData
  * @property {(options: object) => Promise<unknown>} configure
- * @property {(path: string) => Promise<{ data: any, rev: string | null, offline: boolean, savedAt: number | null }>} get
+ * @property {(path: string) => Promise<{ data: any, rev: string | null, offline: boolean, partial?: boolean, savedAt: number | null }>} get
  * @property {(path: string, body: unknown, options?: { rev?: string | number }) => Promise<KitWrite>} put
  * @property {(path: string, body: unknown, options?: { rev?: string | number }) => Promise<KitWrite>} patch
  * @property {(path: string, options?: { rev?: string | number }) => Promise<KitWrite>} delete
+ * @property {(path: string, body: unknown, options?: { rev?: string | number }) => Promise<KitWrite>} post
  * @property {() => Promise<KitEntry[]>} queue
  * @property {() => Promise<KitEntry[]>} failed
  * @property {() => Promise<number>} pending
@@ -127,19 +129,30 @@ export async function queuedEdits() {
 }
 
 /**
- * PUT / PATCH / DELETE through the kit. `rev` is the revision the page read (sent as `If-Match`); leave it out for a
+ * PUT / PATCH / DELETE / POST through the kit (POST: only the freezer take, which the server applies once per key). `rev` is the revision the page read (sent as `If-Match`); leave it out for a
  * write that is not checked (settings, a delete). Resolves to the server's answer, or `queued: true` (and no data) when
  * the edit waits in the kit's queue to be sent once the service answers again.
- * @param {"PUT" | "PATCH" | "DELETE"} method @param {string} path @param {unknown} [body] @param {number} [rev]
+ * @param {"PUT" | "PATCH" | "DELETE" | "POST"} method @param {string} path @param {unknown} [body] @param {number} [rev]
  * @returns {Promise<{ data: any, queued: boolean }>}
  */
 export async function writeJson(method, path, body, rev) {
   const kit = await kitData();
   const options = typeof rev === "number" ? { rev } : {};
   try {
-    const done = method === "DELETE" ? await kit.delete(path, options) : method === "PATCH" ? await kit.patch(path, body, options) : await kit.put(path, body, options);
+    const done = await send(kit, method, path, body, options);
     return { data: done.data, queued: done.queued };
   } catch (e) {
     throw toApiError(e);
   }
+}
+
+/**
+ * The kit's call for `method`. @param {KitData} kit @param {"PUT" | "PATCH" | "DELETE" | "POST"} method @param {string} path
+ * @param {unknown} body @param {{ rev?: number }} options @returns {Promise<KitWrite>}
+ */
+function send(kit, method, path, body, options) {
+  if (method === "DELETE") return kit.delete(path, options);
+  if (method === "PATCH") return kit.patch(path, body, options);
+  if (method === "POST") return kit.post(path, body, options);
+  return kit.put(path, body, options);
 }

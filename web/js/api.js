@@ -4,7 +4,8 @@
 // (api/kit-data.js, refactor-rev-kit-1, feat-offline-kitchen): it keeps the device's offline copy, sends If-Match and,
 // when the service cannot be reached, queues the edit and answers `queued`. A queued edit is applied to the shared copy
 // as it was sent, so every screen shows it at once; a reload lays the queue over the copy again (api/kitchen-read.js).
-// A POST (create, draft, import, freezer take, restore) needs a connection: the kit has no POST.
+// A POST (create, draft, import, restore) needs a connection: the server issues the ids. The freezer take is the one
+// POST through the kit (feat-offline-take-1): queued offline with an Idempotency-Key, so the server takes it once.
 //
 // Every screen reads the kitchen through `loadKitchen()` and changes it
 // through the calls below; a change updates the shared copy and tells every
@@ -21,7 +22,7 @@ import { recipeBody, recipeView } from "./api/recipe-view.js";
 import { ifMatchFor } from "./api/save.js";
 import { kitData, readJson, writeJson } from "./api/kit-data.js";
 import { readKitchen } from "./api/kitchen-read.js";
-import { mergeSettings } from "./offline/apply.js";
+import { mergeSettings, takeFrom, takePath } from "./offline/apply.js";
 import { parkDeleted, unqueueDelete } from "./offline/undo.js";
 
 export { ApiError, reason } from "./api/http.js";
@@ -222,11 +223,19 @@ export const readWheelEnglish = async () => (await readJson("/data/wheel/en")).d
 /** The same list in Dutch, behind the login: Kitchen's /parents in Dutch, also away from home. */
 export const readWheelDutch = async () => (await readJson("/data/wheel/nl")).data;
 
-/** Take portions out of the freezer (negative puts them back). @param {string} id @param {number} [portions] */
+/**
+ * Take portions out of the freezer (negative puts them back), through the kit: without a connection the take waits in
+ * its queue and the shared copy shows it at once (the kitchen read lays it over too, offline/apply.js), never below
+ * zero; the server applies a replay once (`Idempotency-Key`). Resolves to the item as it now stands.
+ * @param {string} id @param {number} [portions]
+ */
 export async function takePortions(id, portions = 1) {
-  const item = await call("POST", `/data/freezer/${encodeURIComponent(id)}/take`, { portions });
-  put("freezer", item);
-  return item;
+  const { data, queued } = await writeJson("POST", takePath(id), { portions });
+  const item = queued ? (takeFrom(copy?.freezer ?? [], id, portions) ?? []).find((x) => x.id === id) : data;
+  if (item) put("freezer", item);
+  // Only the freezer page takes, from items its copy holds; said if that ever breaks (the take itself still waits).
+  else console.warn(`Kitchen: a queued take of freezer item ${id} is not in the page's copy; it shows after the next read.`);
+  return item ?? { id };
 }
 
 /** Merge keys into the settings (`null` removes one). @param {Record<string, unknown>} patch */

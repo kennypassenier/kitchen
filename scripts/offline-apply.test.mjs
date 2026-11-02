@@ -89,3 +89,24 @@ test("Undo finds only a delete that still waits to be sent", () => {
   assert.equal(queuedDeleteOf(edits, "shelf", "nope"), null);
   assert.equal(queuedDeleteOf(edits.slice(0, 2), "shelf", "s1"), null);
 });
+
+// feat-offline-take-1 (written 02/11/2026, not run): a freezer take queued through the kit's post().
+test("a queued freezer take is laid over the freezer, never below zero", async () => {
+  const { takeFrom, takePath } = await import("../web/js/offline/apply.js");
+  assert.equal(takePath("f 1"), "/data/freezer/f%201/take");
+  assert.deepEqual(shapeOf({ method: "POST", path: takePath("f1"), body: { portions: 1 } }), { kind: "take", id: "f1" });
+  assert.equal(shapeOf({ method: "PUT", path: takePath("f1") }), null, "only a POST is a take");
+  const one = applyEdit(kitchen(), { method: "POST", path: takePath("f1"), body: { portions: 1 } });
+  assert.equal(one?.freezer[0].portions, 2);
+  const back = applyEdit(kitchen(), { method: "POST", path: takePath("f1"), body: { portions: -1 } });
+  assert.equal(back?.freezer[0].portions, 4, "Undo's put-back");
+  assert.deepEqual(takeFrom([{ id: "f1", portions: 0 }], "f1", 1), [{ id: "f1", portions: 0 }]);
+  assert.equal(takeFrom([], "f1", 1), null);
+  const { kitchen: after, unknown } = applyQueued(kitchen(), [
+    { method: "POST", path: takePath("f1"), body: { portions: 1 }, state: "queued" },
+    { method: "POST", path: takePath("f1"), body: { portions: 1 }, state: "failed" },
+    { method: "POST", path: takePath("gone"), body: { portions: 1 }, state: "queued" },
+  ]);
+  assert.equal(after.freezer[0].portions, 2, "a failed take is not laid over");
+  assert.equal(unknown.length, 1, "a take of an item the kitchen does not hold is reported");
+});

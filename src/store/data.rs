@@ -70,6 +70,11 @@ pub struct Data {
     pub recipe_sources: Option<Vec<Value>>,
     #[serde(default)]
     pub settings: Map<String, Value>,
+    /// The `Idempotency-Key`s of freezer takes already applied, with their first answer (feat-offline-take-1,
+    /// `idempotent.rs`): at most `ANSWERS_KEEP`, absent in a file without any, so the format stays 5. Not part of what
+    /// `GET /data/kitchen` answers.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub answered: Vec<super::Answered>,
 }
 
 impl Data {

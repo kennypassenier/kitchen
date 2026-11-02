@@ -3,21 +3,23 @@
 //
 //   KITCHEN_BASE=http://127.0.0.1:18440 KITCHEN_TOKEN=… node scripts/release/offline.e2e.mjs
 //
-// Use a test Kitchen (its own state dir): the run edits the settings' pace and one dish's name and puts both back.
+// Use a test Kitchen (its own state dir): the run edits the settings' pace and one dish's name and puts both back, and
+// adds one freezer item ("E2E soup") that it deletes again.
 // Scenarios, each on a fresh signed-in context (a new device to the kit):
 //   1. cook mode reloads offline with "Keep everything offline" on (Kenny's default)
 //   2. only one recipe kept (feat-offline-recipe): "Keep everything" off, the recipe page's "Keep offline" on; the kit
 //      keeps that dish and not the whole kitchen; the recipe and cook mode open offline, another dish does not; the
-//      settings row counts it; clearing the copy clears it. SKIPPED while offline/config.js PER_RECIPE_KEEP is false
-//      (the kit release with per-item keep, docs/OPEN.md bump row)
+//      settings row counts it; clearing the copy clears it
 //   3. an offline edit shows after an offline reload and is replayed when the connection is back
 //   4. a conflict on replay lands in the list of refused edits; "Keep the kitchen's version" empties it
 //   5. "Clear offline copy" clears it: an offline reload then shows the page's failed state
 //   6. signing out with an unsent edit asks first (the kit's confirmation)
+//   7. a freezer take (feat-offline-take-1): one whose answer is lost after it reached the kitchen is replayed with the
+//      same Idempotency-Key and takes ONE portion; one made offline shows at once and is sent when the connection is back
 // Exit code 1 on the first failed check; the measured duration is printed at the end.
 
 import { api, bandState, check, kitchenOf, launch, queueOf, settings, signedIn, synced } from "./offline-driver.mjs";
-import { PER_RECIPE_KEEP, dishPath } from "../../web/js/offline/config.js";
+import { dishPath } from "../../web/js/offline/config.js";
 
 const cfg = settings();
 const started = Date.now();
@@ -82,6 +84,40 @@ async function oneRecipeKept(browser) {
   await page.locator('.rp-card[data-kp-state="error"]').waitFor();
   check(true, "clearing the copy clears the kept recipe too");
   check(errors.length === 0, `no page errors (${errors.join("; ")})`);
+  await context.close();
+}
+
+/** The freezer item as the kitchen itself holds it (no copy). @param {any} page @param {string} id */
+const serverPortions = (page, id) =>
+  page.evaluate(async (fid) => (await (await fetch("/data/freezer", { credentials: "same-origin" })).json()).find((/** @type {any} */ f) => f.id === fid)?.portions, id);
+
+async function freezerTakeOnce(browser) {
+  const { context, page } = await signedIn(browser, cfg);
+  const item = await api(page, "create", "freezer", { dish: { nl: "E2E soep", en: "E2E soup" }, portions: 3 });
+  // The first take reaches the kitchen, but its answer is lost: the kit queues it with its key and replays it.
+  let lost = false;
+  await context.route("**/data/freezer/*/take", async (r) => {
+    if (lost) return r.continue();
+    lost = true;
+    await r.fetch();
+    await r.abort("internetdisconnected");
+  });
+  await api(page, "takePortions", item.id, 1);
+  check((await queueOf(page))[0] === 1, "the take whose answer was lost waits in the kit's queue");
+  const done = synced(page);
+  await page.evaluate(() => /** @type {any} */ (window).chassisData.retry());
+  await done;
+  check((await serverPortions(page, item.id)) === 2, "the replay with the same Idempotency-Key took one portion, not two");
+  await context.unroute("**/data/freezer/*/take");
+  await context.setOffline(true);
+  await api(page, "takePortions", item.id, 1);
+  const offline = (await kitchenOf(page)).freezer.find((/** @type {any} */ f) => f.id === item.id);
+  check(offline?.portions === 1, "a take made offline shows at once, also after an offline read");
+  const back = synced(page);
+  await context.setOffline(false);
+  await back;
+  check((await serverPortions(page, item.id)) === 1, "the offline take reached the kitchen once");
+  await api(page, "remove", "freezer", item.id);
   await context.close();
 }
 
@@ -163,14 +199,11 @@ async function logoutAsks(browser) {
 const browser = await launch(cfg);
 let failed = false;
 try {
-  for (const [name, run] of [["cook mode offline", cookOffline], ["offline edit + replay", editAndReplay], ["conflict on replay", conflictToFailedList], ["clear copy", clearCopy], ["logout with unsent edits", logoutAsks]]) {
+  for (const [name, run] of [["cook mode offline", cookOffline], ["only one recipe kept", oneRecipeKept], ["offline edit + replay", editAndReplay], ["conflict on replay", conflictToFailedList], ["clear copy", clearCopy], ["logout with unsent edits", logoutAsks], ["freezer take once", freezerTakeOnce]]) {
     console.log(name);
     await run(browser);
   }
-  if (PER_RECIPE_KEEP) {
-    console.log("only one recipe kept");
-    await oneRecipeKept(browser);
-  } else console.log("only one recipe kept: SKIPPED (PER_RECIPE_KEEP is false until the kit's per-item keep, docs/OPEN.md)");
+
 } catch (e) {
   failed = true;
   console.error(e instanceof Error ? e.message : e);

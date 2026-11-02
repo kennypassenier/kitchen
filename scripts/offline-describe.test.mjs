@@ -33,3 +33,11 @@ test("when: dd/mm/yyyy HH:mm in Brussels time, or nothing when the kit did not s
   assert.equal(whenOf({ method: "PUT", path: "/x", at: Date.UTC(2026, 10, 2, 17, 5) }, t), "<off.failedWhen:02/11/2026 18:05>");
   assert.equal(whenOf({ method: "PUT", path: "/x" }, t), "");
 });
+
+// feat-offline-take-1 (written 02/11/2026, not run): a refused freezer take is named by its dish.
+test("a refused freezer take is named by the freezer item's dish", () => {
+  const withFreezer = { ...kitchen, freezer: [{ id: "f1", dish: { nl: "Soep", en: "Soup" } }] };
+  const edit = { method: "POST", path: "/data/freezer/f1/take", body: { portions: 1 } };
+  assert.equal(whatOf(edit, withFreezer, t, "en"), "<off.whatTake:Soup>");
+  assert.equal(whatOf({ ...edit, path: "/data/freezer/gone/take" }, withFreezer, t, "nl"), "<off.whatTakeUnnamed>");
+});

@@ -11,7 +11,7 @@
 //! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since; the answer carries `ETag: "<rev>"` |
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
-//! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
+//! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back); an `Idempotency-Key` (UUID) applies it once, a repeated key answers the first result (`store/idempotent.rs`) |
 //! | `GET`/`PATCH /data/settings` | the settings; PATCH merges, `null` removes a key |
 //! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
 //! | `POST /data/import`, `POST /data/import/image` | a recipe from a web page or pasted text, see `import.rs` |
@@ -33,7 +33,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chassis::{Conflict, IfMatch, Revisioned};
+use chassis::{Conflict, IdempotencyKey, IfMatch, Revisioned};
 use serde_json::{Value, json};
 
 use crate::store::{Refused, Store, rev_of};
@@ -89,8 +89,11 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
     }
 }
 
+/// Everything at once; the answered take keys are the server's own bookkeeping and stay out of it.
 async fn kitchen(State(s): Shared) -> Response {
-    Json(s.snapshot().await).into_response()
+    let mut data = s.snapshot().await;
+    data.answered.clear();
+    Json(data).into_response()
 }
 
 async fn list(State(s): Shared, Path(list): Path<String>) -> Response {
@@ -135,9 +138,17 @@ async fn restore(State(s): Shared, Path((list, id)): Path<(String, String)>) -> 
     answer(s.restore(&list, &id).await)
 }
 
-async fn take(State(s): Shared, Path(id): Path<String>, Json(body): Json<Value>) -> Response {
+/// A take queued offline is replayed by the page's offline client with the same `Idempotency-Key` (parsed by the kit:
+/// a UUID, else the kit's 400), so a replay whose first answer was lost takes nothing twice.
+async fn take(
+    State(s): Shared,
+    Path(id): Path<String>,
+    key: IdempotencyKey,
+    Json(body): Json<Value>,
+) -> Response {
     let n = body.get("portions").and_then(Value::as_i64).unwrap_or(1);
-    answer(s.take_portions(&id, n).await)
+    let key = key.get().map(|k| k.to_string());
+    answer(s.take_portions_once(&id, n, key.as_deref()).await)
 }
 
 async fn settings(State(s): Shared) -> Response {
@@ -149,61 +160,5 @@ async fn patch_settings(State(s): Shared, Json(body): Json<Value>) -> Response {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use chassis::core::revision::Precondition;
-
-    #[tokio::test]
-    async fn a_stale_refusal_is_the_kits_409_with_code_rev_and_etag() {
-        let stale = Precondition::Rev(3).check(4).unwrap_err();
-        let res = answer(Err::<Value, _>(Refused::Stale(stale)));
-        assert_eq!(res.status(), StatusCode::CONFLICT);
-        assert_eq!(res.headers()["etag"], "\"4\"");
-        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
-        let body: Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(body["code"], "stale");
-        assert_eq!(body["rev"], 4);
-        assert!(body["error"].is_string() && body["remedy"].is_string());
-    }
-
-    /// A kitchen with one dish (rev 3) holding one recipe, for the item route.
-    fn one_dish() -> State<Arc<Store>> {
-        let data: crate::store::Data = serde_json::from_value(json!({
-            "format": 5,
-            "dishes": [{ "id": "d1", "rev": 3, "name": { "nl": "Stoofvlees", "en": "Stew" },
-                         "recipes": [{ "id": "r1", "default": true, "steps": [] }] }],
-        }))
-        .unwrap();
-        State(Arc::new(Store::in_memory(data)))
-    }
-
-    #[tokio::test]
-    async fn an_item_answers_the_dish_with_its_recipes_and_its_rev_as_etag() {
-        let res = item(one_dish(), Path(("dishes".into(), "d1".into()))).await;
-        assert_eq!(res.status(), StatusCode::OK);
-        assert_eq!(res.headers()["etag"], "\"3\"");
-        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
-        let body: Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(body["id"], "d1");
-        assert_eq!(body["rev"], 3);
-        assert_eq!(body["recipes"][0]["id"], "r1");
-    }
-
-    #[tokio::test]
-    async fn a_missing_item_or_list_is_404() {
-        let gone = item(one_dish(), Path(("dishes".into(), "nope".into()))).await;
-        assert_eq!(gone.status(), StatusCode::NOT_FOUND);
-        let no_list = item(one_dish(), Path(("nolist".into(), "d1".into()))).await;
-        assert_eq!(no_list.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn any_other_refusal_keeps_kitchens_own_shape() {
-        let res = answer(Err::<Value, _>(Refused::NotFound));
-        assert_eq!(res.status(), StatusCode::NOT_FOUND);
-        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
-        let body: Value = serde_json::from_slice(&bytes).unwrap();
-        assert!(body.get("code").is_none());
-        assert!(body["error"].is_string());
-    }
-}
+#[path = "routes_tests.rs"]
+mod tests;
