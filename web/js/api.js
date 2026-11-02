@@ -104,8 +104,12 @@ export async function create(list, body) {
   return item;
 }
 
-/** Replace an item whole. @param {string} list @param {Item} item */
-export async function replace(list, item) {
+/**
+ * Replace an item whole. `ifMatch` (fix-stale-save-1): the revision the caller read (an item's `rev`, a recipe's `dish_rev`);
+ * the server then refuses the save with an ApiError of code "stale" when someone saved it since. Left out, the last save wins.
+ * @param {string} list @param {Item} item @param {{ ifMatch?: number }} [o]
+ */
+export async function replace(list, item, { ifMatch } = {}) {
   if (list === "recipes") {
     // A recipe saved is its dish saved. When `dish_id` names another dish the recipe MOVES (Kenny, 29/10/2026): it is
     // added to the new dish first (the default only when that dish had none), then taken off the old one, whose first
@@ -124,18 +128,18 @@ export async function replace(list, item) {
       const rest = list.filter((r) => r.id !== item.id);
       if (rest.length && !rest.some((r) => r.default === true)) rest[0] = { ...rest[0], default: true };
       try {
-        await replace("dishes", { ...dish, recipes: rest });
+        await replace("dishes", { ...dish, recipes: rest }, { ifMatch });
       } catch (e) {
         // Take the copy out of the target again (not in both dishes); if that fails too, say so where it can be found.
         await replace("dishes", { ...target, recipes: there }).catch((undo) => console.warn(`moving recipe ${item.id}: the copy in dish ${target.id} could not be taken back`, undo));
         throw e;
       }
     } else {
-      await replace("dishes", { ...dish, recipes: list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r)) });
+      await replace("dishes", { ...dish, recipes: list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r)) }, { ifMatch });
     }
     return copy?.recipes.find((r) => r.id === item.id) ?? item;
   }
-  const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item);
+  const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item, { ifMatch });
   put(list, saved);
   return saved;
 }

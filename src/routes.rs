@@ -7,7 +7,7 @@
 //! |---|---|
 //! | `GET /data/{list}` | the list |
 //! | `POST /data/{list}` | add an item; the answer carries its new `id` |
-//! | `PUT /data/{list}/{id}` | replace the item |
+//! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since |
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
@@ -21,7 +21,8 @@
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::http::header::IF_MATCH;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
@@ -53,12 +54,15 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
         Err(e) => {
             let code = match e {
                 Refused::NotFound | Refused::UnknownCollection(_) => StatusCode::NOT_FOUND,
-                Refused::NoPortionsLeft | Refused::Exists => StatusCode::CONFLICT,
+                Refused::NoPortionsLeft | Refused::Exists | Refused::Stale { .. } => {
+                    StatusCode::CONFLICT
+                }
                 Refused::UndoClosed => StatusCode::GONE,
                 Refused::Disk(_) => StatusCode::INTERNAL_SERVER_ERROR,
                 Refused::NotAnObject
                 | Refused::IdMismatch
                 | Refused::NoKey
+                | Refused::BadIfMatch
                 | Refused::MissingName(_)
                 | Refused::BadSource(_)
                 | Refused::BadRecipeSource(_)
@@ -70,6 +74,10 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 body["reason"] = json!(reason);
                 body["field"] = json!(field);
                 body["limit"] = json!(limit);
+            }
+            if let Refused::Stale { have } = e {
+                body["code"] = json!("stale");
+                body["rev"] = json!(have);
             }
             (code, Json(body)).into_response()
         }
@@ -91,9 +99,26 @@ async fn create(State(s): Shared, Path(list): Path<String>, Json(body): Json<Val
 async fn replace(
     State(s): Shared,
     Path((list, id)): Path<(String, String)>,
+    headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Response {
-    answer(s.replace(&list, &id, body).await)
+    match if_match(&headers) {
+        Ok(rev) => answer(s.replace_if(&list, &id, body, rev).await),
+        Err(e) => answer(Err::<Value, _>(e)),
+    }
+}
+
+/// The revision a page loaded, from `If-Match` (`5` or `"5"`); absent is no check (the behaviour before fix-stale-save-1).
+pub(crate) fn if_match(headers: &HeaderMap) -> Result<Option<u64>, Refused> {
+    let Some(raw) = headers.get(IF_MATCH) else {
+        return Ok(None);
+    };
+    let text = raw.to_str().map_err(|_| Refused::BadIfMatch)?.trim();
+    let bare = text
+        .strip_prefix('"')
+        .and_then(|t| t.strip_suffix('"'))
+        .unwrap_or(text);
+    bare.parse().map(Some).map_err(|_| Refused::BadIfMatch)
 }
 
 async fn delete(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
@@ -115,4 +140,34 @@ async fn settings(State(s): Shared) -> Response {
 
 async fn patch_settings(State(s): Shared, Json(body): Json<Value>) -> Response {
     answer(s.merge_settings(body).await)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with(value: &str) -> HeaderMap {
+        let mut h = HeaderMap::new();
+        h.insert(IF_MATCH, value.parse().unwrap());
+        h
+    }
+
+    #[test]
+    fn if_match_reads_a_bare_or_quoted_revision_and_refuses_anything_else() {
+        assert_eq!(if_match(&HeaderMap::new()), Ok(None));
+        assert_eq!(if_match(&with("3")), Ok(Some(3)));
+        assert_eq!(if_match(&with("\"7\"")), Ok(Some(7)));
+        assert_eq!(if_match(&with("*")), Err(Refused::BadIfMatch));
+        assert_eq!(if_match(&with("-1")), Err(Refused::BadIfMatch));
+    }
+
+    #[tokio::test]
+    async fn a_stale_refusal_is_409_with_its_code() {
+        let res = answer(Err::<Value, _>(Refused::Stale { have: 4 }));
+        assert_eq!(res.status(), StatusCode::CONFLICT);
+        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["code"], "stale");
+        assert_eq!(body["rev"], 4);
+    }
 }

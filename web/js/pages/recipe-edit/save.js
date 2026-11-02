@@ -6,7 +6,8 @@ import { t } from "../../i18n/index.js";
 import { SECTIONS } from "../../recipe/editor/sections.js";
 import { clearHandoff } from "../../recipe/edit-handoff.js";
 import { afterSave } from "../../recipe/edit-route.js";
-import { reason } from "../../api.js";
+import { reason, loadKitchen } from "../../api.js";
+import { showStale } from "./stale.js";
 
 /** Put the refusal in the alert above the form and bring it into view. @param {HTMLElement} alert @param {{ section: string, message: string }} res */
 function showFailure(alert, res) {
@@ -23,6 +24,22 @@ function showFailure(alert, res) {
  */
 export function createSave({ alert, start, from, navigate, editor, bar, onDone }) {
   let saving = false;
+  /**
+   * After a stale save: drop this version (its new photos and its draft), or keep it as the recipe's draft, then open
+   * the page again on the kitchen as saved now. @param {boolean} keepDraft
+   */
+  async function reopen(keepDraft) {
+    const { draft, tracker } = editor().parts;
+    if (keepDraft) await draft.flush(true);
+    else {
+      await tracker.discard();
+      await draft.drop();
+    }
+    await loadKitchen({ force: true });
+    onDone();
+    bar().clean();
+    navigate(location.pathname + location.search);
+  }
   return async function save() {
     if (saving) return;
     saving = true;
@@ -37,7 +54,8 @@ export function createSave({ alert, start, from, navigate, editor, bar, onDone }
     saving = false;
     if (!res.ok) {
       bar().saving(false);
-      showFailure(alert, res);
+      if (res.stale) showStale(alert, { reload: () => reopen(false), keep: () => reopen(true) });
+      else showFailure(alert, res);
       return;
     }
     onDone();

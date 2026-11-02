@@ -14,6 +14,7 @@ export const EN_RECORDS = {
   "rec.editText": "Change any field; nothing is saved until you press Save.",
   "rec.addText": "Fill in what you know; every field can be changed later.",
   "rec.notSaved": "Not saved",
+  "api.stale": "This was changed somewhere else in the meantime. Reload the page before you save again; your changes here are not saved.",
   "rec.saved": "Saved",
   "rec.savedName": (n) => `Saved ${n}`,
   "rec.addedName": (n) => `Added ${n}`,

@@ -9,6 +9,21 @@ that needs it; add it here in the same change.
 Dates and times shown to a person are `dd/mm/yyyy HH:mm`, Europe/Brussels.
 Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 
+## Revisions and stale saves (`rev`, `If-Match`)
+
+fix-stale-save-1, 02/11/2026 (two tabs on one recipe: the last Save silently won). Every item of a collection carries an
+optional `rev` (a whole number): absent counts as 0, and every `PUT /data/{list}/{id}` stores the old value plus one (a `rev`
+in the body is ignored). Optional, so the format stays 5 and an older file opens as it is. A `PUT` may send
+`If-Match: <rev>` (`5` or `"5"`): when the stored `rev` differs, someone saved the item since the page read it and the
+answer is 409 `{"error": "<words>", "code": "stale", "rev": <stored>}`, with nothing changed; a header that is no whole
+number is 400. Without the header a save behaves as before (the last one wins). A recipe lives in its dish, so the dish's
+`rev` covers its recipes: the recipe view carries it as `dish_rev` (never stored; `recipeBody` strips it), the recipe editor
+sends the `dish_rev` it opened with, and on a 409 the page offers "Reload" (this version, its draft and its new photos go)
+or "Keep my version as a draft" (the reloaded page offers the draft back) in an alert above the form
+(`web/js/pages/recipe-edit/stale.js`). The dish drawer sends the `rev` of the dish it opened (its recipes ride along in its
+body) and shows the refusal as its error. Other saves send no `If-Match` yet (a toggle, a reorder, Undo). Undo's restore
+puts the item back with the `rev` it had.
+
 ## Size limits
 
 Kenny's standing "fixes go in", 02/11/2026 (`[fix-field-limits-1]`): the server refuses an item (create, replace, draft)

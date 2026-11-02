@@ -6,26 +6,35 @@ import { limitOf, limitWords } from "./refusal.js";
 
 export class ApiError extends Error {
   /**
-   * `limit`: a size refusal's field and limit (api/refusal.js), so an editor can show it at that field.
-   * @param {string} message @param {number} status @param {import("./refusal.js").LimitRefusal | null} [limit]
+   * `limit`: a size refusal's field and limit (api/refusal.js), so an editor can show it at that field. `code`: the
+   * server's machine word for the refusal, when it gives one (`"stale"`: saved elsewhere since it was read, fix-stale-save-1).
+   * @param {string} message @param {number} status @param {import("./refusal.js").LimitRefusal | null} [limit] @param {string} [code]
    */
-  constructor(message, status, limit = null) {
+  constructor(message, status, limit = null, code = "") {
     super(message);
     this.status = status;
     this.limit = limit;
+    this.code = code;
   }
 }
 
 /** The words for an error: api.js messages are fit to show as they are. @param {unknown} e */
 export const reason = (e) => (e instanceof Error ? e.message : String(e));
 
-/** `keepalive`: the request outlives the page (a draft written while the tab closes). @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean }} [o] */
-export async function call(method, path, body, { keepalive = false } = {}) {
+/**
+ * `keepalive`: the request outlives the page (a draft written while the tab closes). `ifMatch`: the item's `rev` as the
+ * page read it; the server refuses the change (409, code "stale") when it was saved since (fix-stale-save-1).
+ * @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean, ifMatch?: number }} [o]
+ */
+export async function call(method, path, body, { keepalive = false, ifMatch } = {}) {
+  /** @type {Record<string, string>} */
+  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
+  if (typeof ifMatch === "number") headers["If-Match"] = String(ifMatch);
   let res;
   try {
     res = await fetch(path, {
       method,
-      headers: body === undefined ? {} : { "Content-Type": "application/json" },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: "same-origin",
       keepalive,
@@ -46,8 +55,11 @@ export async function call(method, path, body, { keepalive = false } = {}) {
   }
   if (!res.ok) {
     // A size refusal is said in the page's language and names the field (fix-field-limits-1); any other keeps the server's words.
+    // A stale save is said in the page's language too (fix-stale-save-1).
     const limit = limitOf(data);
-    throw new ApiError(limit ? limitWords(limit, t) : (data?.error ?? `The kitchen answered ${res.status}.`), res.status, limit);
+    const code = typeof data?.code === "string" ? data.code : "";
+    const words = limit ? limitWords(limit, t) : code === "stale" ? t("api.stale") : (data?.error ?? `The kitchen answered ${res.status}.`);
+    throw new ApiError(words, res.status, limit, code);
   }
   return data;
 }

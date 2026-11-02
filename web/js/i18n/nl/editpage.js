@@ -12,4 +12,10 @@ export const NL_EDITPAGE = {
   "ep.wasNone": "Nog niet opgeslagen",
   "ep.nowChanged": "Veranderd",
   "ep.handoffFailed": (why) => `De kopie kon niet worden geopend: ${why}`,
+  // fix-stale-save-1: een ander tabblad of toestel bewaarde dit recept nadat deze pagina het opende.
+  "ep.staleTitle": "Dit recept is intussen ergens anders gewijzigd.",
+  "ep.staleText": "Jouw versie is niet bewaard. Opnieuw laden laat ze vallen en opent het bewaarde recept; bewaar je ze als concept, dan biedt de herladen pagina ze opnieuw aan.",
+  "ep.staleReload": "Opnieuw laden",
+  "ep.staleKeep": "Mijn versie als concept bewaren",
+  "ep.staleFailed": (why) => `Dat lukte niet: ${why}`,
 };

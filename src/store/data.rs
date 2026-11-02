@@ -13,7 +13,7 @@ use serde_json::{Map, Value};
 /// the freezer and resting point at dishes (`dish_id`). Format 5 (10:04):
 /// a shelf food's title, text and gear and a freezer item's name are
 /// `{nl, en}` like every other name. The `drafts` list (Kenny, 29/10/2026)
-/// is optional in the file, so the format stays 5.
+/// is optional in the file, so the format stays 5, and so is an item's `rev` (fix-stale-save-1: absent counts as 0).
 pub const FORMAT: u32 = 5;
 
 /// The collections a page may read and write. Settings is a single object
@@ -119,6 +119,13 @@ pub enum Refused {
     UndoClosed,
     /// Undo found an item with that id in the list again.
     Exists,
+    /// `If-Match` named another revision than the stored one: the item was saved elsewhere since the page read it
+    /// (fix-stale-save-1); `have` is the stored revision.
+    Stale {
+        have: u64,
+    },
+    /// An `If-Match` header that is not a revision number.
+    BadIfMatch,
     Disk(String),
 }
 
@@ -157,6 +164,13 @@ impl std::fmt::Display for Refused {
                 "that delete can no longer be undone: too much time has passed"
             ),
             Refused::Exists => write!(f, "that item is already back"),
+            Refused::Stale { .. } => write!(
+                f,
+                "this item was changed elsewhere since it was opened: reload it before saving"
+            ),
+            Refused::BadIfMatch => {
+                write!(f, "If-Match must be the item's revision, a whole number")
+            }
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }

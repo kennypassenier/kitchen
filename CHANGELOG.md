@@ -95,6 +95,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **Two tabs on one recipe no longer overwrite each other silently** [fix-stale-save-1]: every item has a revision and a
+  save names the one it read (`If-Match`); a recipe saved elsewhere in the meantime answers "This recipe was changed
+  somewhere else in the meantime." with **Reload** or **Keep my version as a draft**. The dish drawer is guarded the same way.
 - **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the
   "Log tonight's dinner" card (the kit forgets the place once the flow is done, so it opened on step 1 with no card); a logged
   dinner stays logged, so it cannot be logged twice. Kept per recipe in this tab until cooking starts fresh.
@@ -144,8 +147,8 @@ Nothing here is released or deployed yet; no store format change, no new setting
 ### Migration / deploy notes (for the homelab thread)
 - **Environment**: no new or changed variable. `KITCHEN_TRUSTED_PROXIES` must still include Traefik (10.10.10.4) behind
   the home route, as in 5.0.0; `KITCHEN_TRUSTED_ADMINS`, `KITCHEN_PARENTS_ALLOW` and the rest are untouched.
-- **Store**: `kitchen.json` stays format 5 (`FORMAT` in `src/store/data.rs`; no migration step added since 5.0.0). No new
-  collection or field is stored: Undo lives in server memory only and is lost at a restart (an Undo after a restart
+- **Store**: `kitchen.json` stays format 5 (`FORMAT` in `src/store/data.rs`; no migration step added since 5.0.0). One optional
+  field is stored: `rev` on an item once it is saved (fix-stale-save-1; absent = 0, 5.0.0 ignores it). Undo lives in server memory only and is lost at a restart (an Undo after a restart
   answers "can no longer be undone"). The kit's own database stays at schema 2 (chassis 4.0.0, unchanged).
 - **Rollback to 5.0.0**: the data file is identical in shape, so 5.0.0 opens it as is; only the Undo route and the new
   screens go away. A backup is still good practice, but none is required for this step. Going further back than 5.0.0

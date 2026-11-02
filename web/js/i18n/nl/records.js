@@ -14,6 +14,7 @@ export const NL_RECORDS = {
   "rec.editText": "Pas aan wat je wilt; er wordt niets bewaard tot je op Bewaren drukt.",
   "rec.addText": "Vul in wat je weet; alles kan later nog veranderen.",
   "rec.notSaved": "Niet bewaard",
+  "api.stale": "Dit is intussen ergens anders gewijzigd. Herlaad de pagina voor je opnieuw bewaart; je wijzigingen hier zijn niet bewaard.",
   "rec.saved": "Bewaard",
   "rec.savedName": (n) => `${n} bewaard`,
   "rec.addedName": (n) => `${n} toegevoegd`,

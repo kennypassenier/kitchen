@@ -7,6 +7,7 @@ import { on } from "../../ui/form-parts.js";
 import { photosOf } from "../photos.js";
 import { limitWords, withinRecipe } from "../../api/refusal.js";
 import { sectionOf } from "./sections.js";
+import { staleResult } from "./stale.js";
 import { recipeBody, labelOut, dishText as dishNameOf } from "./logic.js";
 
 /**
@@ -49,7 +50,7 @@ export function createCollector({ recipe, preset, r, details, notes, times, list
   return { collect, dishText };
 }
 
-/** @typedef {{ ok: true, id: string, name: string } | { ok: false, section: string, message: string }} SaveResult */
+/** @typedef {{ ok: true, id: string, name: string } | { ok: false, section: string, message: string, stale?: boolean }} SaveResult */
 
 /**
  * Save: check the dish, the imported lines and the source, then create or replace; the photos settle, the draft goes. A
@@ -82,8 +83,11 @@ export function createSaver({ recipe, collector, details, lists, tracker, draft 
     }
     let saved;
     try {
-      saved = recipe ? await replace("recipes", body) : await create("recipes", body);
+      // The dish's revision as this editor read it: a save made elsewhere since is refused, not overwritten (fix-stale-save-1).
+      saved = recipe ? await replace("recipes", body, { ifMatch: recipe.dish_rev }) : await create("recipes", body);
     } catch (e) {
+      const stale = staleResult(e, t);
+      if (stale) return stale;
       if (e instanceof ApiError && e.limit) {
         // A size refusal names the field within this recipe and the section it sits in (fix-field-limits-1).
         const field = withinRecipe(e.limit.field);

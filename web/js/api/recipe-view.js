@@ -11,9 +11,9 @@ import { nameOf, lang, t } from "../i18n/index.js";
 // has more than one or it has a label, its label ("Stoofvlees · Oven"). A create, replace or remove on "recipes"
 // goes to the dish.
 
-/** The recipe fields a dish keeps for it; the view's name, dish and dates are not stored. @param {Item} r */
+/** The recipe fields a dish keeps for it; the view's name, dish, dish revision and dates are not stored. @param {Item} r */
 export function recipeBody(r) {
-  const { name, created, updated, isNew, dish_id, dishName, new_dish, ...body } = r;
+  const { name, created, updated, isNew, dish_id, dishName, new_dish, dish_rev, ...body } = r;
   return body;
 }
 
@@ -30,7 +30,8 @@ export function recipeView(k) {
     const dish = nameOf(d).text;
     return list.map((r, i) => {
       const own = String(r.label?.[lang()] || r.label?.[lang() === "nl" ? "en" : "nl"] || "").trim();
-      return { ...r, dish_id: d.id, dishName: dish, name: list.length > 1 || own ? `${dish} · ${recipeLabel(r, i)}` : dish, created: d.created, updated: d.updated };
+      // `dish_rev`: the dish's revision when this copy was read; the editor sends it back as If-Match (fix-stale-save-1).
+      return { ...r, dish_id: d.id, dish_rev: Number(d.rev ?? 0), dishName: dish, name: list.length > 1 || own ? `${dish} · ${recipeLabel(r, i)}` : dish, created: d.created, updated: d.updated };
     });
   });
 }

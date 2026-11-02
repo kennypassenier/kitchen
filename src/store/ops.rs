@@ -72,8 +72,22 @@ impl Store {
         .await
     }
 
-    /// Replace an item whole; `id` and `created` are kept.
+    /// Replace an item whole; `id` and `created` are kept. No revision check (see [`Store::replace_if`]).
+    #[cfg(test)]
     pub async fn replace(&self, coll: &str, id: &str, body: Value) -> Result<Value, Refused> {
+        self.replace_if(coll, id, body, None).await
+    }
+
+    /// Replace an item whole; `id` and `created` are kept and `rev` goes one up (absent counts as 0; fix-stale-save-1).
+    /// `if_match` is the `rev` the page loaded: when given and the stored one differs, someone saved in between and the
+    /// change is refused ([`Refused::Stale`]) instead of silently winning.
+    pub async fn replace_if(
+        &self,
+        coll: &str,
+        id: &str,
+        body: Value,
+        if_match: Option<u64>,
+    ) -> Result<Value, Refused> {
         let Value::Object(mut obj) = body else {
             return Err(Refused::NotAnObject);
         };
@@ -92,6 +106,12 @@ impl Store {
                 .iter_mut()
                 .find(|v| v.get("id").and_then(Value::as_str) == Some(id))
                 .ok_or(Refused::NotFound)?;
+            let have = rev_of(slot);
+            if let Some(want) = if_match
+                && want != have
+            {
+                return Err(Refused::Stale { have });
+            }
             obj.insert("id".into(), Value::String(id.into()));
             if let Some(created) = slot.get("created") {
                 obj.insert("created".into(), created.clone());
@@ -100,7 +120,8 @@ impl Store {
                 "updated".into(),
                 Value::String(chassis::shell::time::now_rfc3339()),
             );
-            *slot = Value::Object(obj.clone());
+            obj.insert("rev".into(), Value::from(have + 1));
+            *slot = Value::Object(obj);
             Ok(slot.clone())
         })
         .await
@@ -151,4 +172,9 @@ impl Store {
         })
         .await
     }
+}
+
+/// An item's revision: how many times it was replaced; absent (an item stored before fix-stale-save-1) counts as 0.
+pub(super) fn rev_of(item: &Value) -> u64 {
+    item.get("rev").and_then(Value::as_u64).unwrap_or(0)
 }

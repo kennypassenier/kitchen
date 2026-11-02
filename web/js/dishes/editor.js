@@ -82,7 +82,8 @@ async function saveDish(dish, from, f) {
   const halfLabel = body.sides.findIndex((/** @type {Item} */ s) => s.label && (!s.label.nl || !s.label.en));
   if (halfLabel >= 0) return { error: t("de.sideLabelHalf", halfLabel + 1), remedy: t("de.sideLabelFix"), word: t("rec.notSaved") };
   try {
-    if (dish) await replace("dishes", body);
+    // The dish as the drawer opened it (its recipes included): a save made elsewhere since is refused, not overwritten.
+    if (dish) await replace("dishes", body, { ifMatch: Number(dish.rev ?? 0) });
     else await create("dishes", body);
   } catch (e) {
     return { error: reason(e), word: t("rec.notSaved") };
