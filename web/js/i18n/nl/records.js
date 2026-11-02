@@ -18,6 +18,11 @@ export const NL_RECORDS = {
   // fix-quick-rev-1: een snelle actie (veilig, volgorde, standaard, Ongedaan maken) geweigerd omdat het item ergens anders bewaard werd.
   "api.staleQuick": "Dit is intussen ergens anders gewijzigd. Herlaad de pagina en probeer opnieuw.",
   "api.staleReload": "Opnieuw laden",
+  // chassis-rs 4.2.0: een oproep zonder aanmelding krijgt 401 JSON (geen omleiding); de pagina blijft en zegt het (api/signed-out.js).
+  "api.signedOut": "Je bent afgemeld, dus de keuken heeft dit niet aangenomen. Meld je aan (de melding heeft een link) en probeer het dan opnieuw.",
+  "api.signedOutNote": "Je bent afgemeld. Meld je aan in een nieuw tabblad, kom dan hier terug en probeer opnieuw; wat je typte blijft staan.",
+  "api.signIn": "Aanmelden (nieuw tabblad)",
+  "api.dropped": "De verbinding met de keuken viel weg. Er is niets verloren; probeer opnieuw.",
   "rec.saved": "Bewaard",
   "rec.savedName": (n) => `${n} bewaard`,
   "rec.addedName": (n) => `${n} toegevoegd`,

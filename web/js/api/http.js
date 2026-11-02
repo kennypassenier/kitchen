@@ -1,8 +1,9 @@
 // The JSON calls: one fetch wrapper, its error type and the words for an error. No state; api.js holds the data.
 
-import { toLogin } from "../raw.js";
 import { t } from "../i18n/index.js";
 import { failureOf, headersFor } from "./save.js";
+import { isSignedOut } from "./login-link.js";
+import { signedOutNotice } from "./signed-out.js";
 
 export class ApiError extends Error {
   /**
@@ -39,11 +40,12 @@ export async function call(method, path, body, { keepalive = false, ifMatch } = 
       keepalive,
     });
   } catch {
-    throw new ApiError("The connection to the kitchen dropped. Nothing is lost; try again.", 0);
+    throw new ApiError(t("api.dropped"), 0);
   }
-  if (res.status === 401) {
-    toLogin();
-    throw new ApiError("Signed out; opening the login page.", 401);
+  // Signed out (chassis-rs 4.2.0 answers a script call 401 JSON): the page stays, the notice offers the login.
+  if (isSignedOut(res.status)) {
+    signedOutNotice();
+    throw new ApiError(t("api.signedOut"), 401);
   }
   const text = await res.text();
   let data = null;

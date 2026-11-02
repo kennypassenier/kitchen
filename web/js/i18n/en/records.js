@@ -18,6 +18,11 @@ export const EN_RECORDS = {
   // fix-quick-rev-1: a quick action (safe toggle, reorder, make default, Undo) refused because the item was saved elsewhere.
   "api.staleQuick": "This changed elsewhere in the meantime. Reload the page and try again.",
   "api.staleReload": "Reload",
+  // chassis-rs 4.2.0: a script call without a login gets 401 JSON (no redirect); the page stays and says so (api/signed-out.js).
+  "api.signedOut": "You are signed out, so the kitchen did not take this. Sign in (the notice has a link), then try again.",
+  "api.signedOutNote": "You are signed out. Sign in in a new tab, then come back here and try again; what you typed stays.",
+  "api.signIn": "Sign in (new tab)",
+  "api.dropped": "The connection to the kitchen dropped. Nothing is lost; try again.",
   "rec.saved": "Saved",
   "rec.savedName": (n) => `Saved ${n}`,
   "rec.addedName": (n) => `Added ${n}`,

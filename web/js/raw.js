@@ -2,14 +2,12 @@
 // the data; the two recipe modules that talk to the server in other shapes (recipe/photos.js, recipe/cover.js) come through
 // here, so the credentials and the signed-out handling live in one place. The error words stay the caller's own.
 
-/** Signed out: open the login page, and come back to this screen after it. */
-export function toLogin() {
-  location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-}
+import { signedOutNotice } from "./api/signed-out.js";
+import { isSignedOut } from "./api/login-link.js";
 
 /**
- * Send a request with the session's credentials. A dropped connection throws `dropped`, a 401 opens the login page and
- * throws `signedOut`; any other answer is returned for the caller to read.
+ * Send a request with the session's credentials. A dropped connection throws `dropped`; a 401 (signed out, chassis-rs
+ * 4.2.0) shows the sign-in notice with its link and throws `signedOut`; any other answer is returned for the caller to read.
  * @param {string} path @param {RequestInit} init @param {{ dropped: string, signedOut: string }} words @returns {Promise<Response>}
  */
 export async function sendRaw(path, init, { dropped, signedOut }) {
@@ -19,8 +17,8 @@ export async function sendRaw(path, init, { dropped, signedOut }) {
   } catch {
     throw new Error(dropped);
   }
-  if (res.status === 401) {
-    toLogin();
+  if (isSignedOut(res.status)) {
+    signedOutNotice();
     throw new Error(signedOut);
   }
   return res;

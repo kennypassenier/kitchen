@@ -11,7 +11,7 @@ export const NL_RECIPE = {
   "photo.notPicture": (name) => `${name} is geen foto.`,
   "photo.thatFile": "Dat bestand",
   "photo.dropped": "De verbinding met de keuken viel weg. Er is niets verloren; probeer opnieuw.",
-  "photo.signedOut": "Je bent afgemeld; de aanmeldpagina wordt geopend.",
+  "photo.signedOut": "Je bent afgemeld, dus de foto is niet verstuurd. Meld je aan en voeg hem dan opnieuw toe.",
   "photo.answered": (status) => `De keuken antwoordde met ${status}.`,
   "photo.orderRemoval": (label) => `${label}: volgorde en verwijderen`,
   "photo.sending": "Een foto wordt verstuurd.",

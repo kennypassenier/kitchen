@@ -11,7 +11,7 @@ export const EN_RECIPE = {
   "photo.notPicture": (name) => `${name} is not a picture.`,
   "photo.thatFile": "That file",
   "photo.dropped": "The connection to the kitchen dropped. Nothing is lost; try again.",
-  "photo.signedOut": "Signed out; opening the login page.",
+  "photo.signedOut": "You are signed out, so the picture was not sent. Sign in, then add it again.",
   "photo.answered": (status) => `The kitchen answered ${status}.`,
   "photo.orderRemoval": (label) => `${label}: order and removal`,
   "photo.sending": "A photo is being sent.",
