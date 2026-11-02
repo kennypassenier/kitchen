@@ -67,12 +67,22 @@ function drawText(doc, { recipe, portions, words, total }) {
   ol.replaceChildren(...steps.map((s) => Object.assign(doc.createElement("li"), { textContent: pick(s.text, appLang()) })));
 }
 
-/** The ingredients as the package's checklist, scaled to the portions. @param {HTMLElement} list @param {SheetSpec} spec */
-function drawIngredients(list, { recipe, portions, words }) {
+/**
+ * The ingredients as the package's checklist, scaled to the portions; returns the list now in the frame.
+ *
+ * The package draws only into an element of the page's own realm (`instanceof HTMLElement`), and the frame is another
+ * window, so a list in the frame stayed empty and the sheet printed without its ingredients (found at the 6.0.0 release
+ * checks, fix-sheet-checklist-1; kp-gaps/kitchen.md). The list is drawn in this page's document with the frame list's
+ * attributes, then imported into the frame in place of the old one.
+ * @param {Document} doc the frame's document @param {HTMLElement} list the frame's list @param {SheetSpec} spec
+ */
+function drawIngredients(doc, list, { recipe, portions, words }) {
+  const host = document.createElement("div");
+  for (const { name, value } of list.attributes) host.setAttribute(name, value);
   const factor = portions / (recipe.portions || portions || 1);
   const fallbackGroup = words.ingredients(portions).split(" ")[0];
   setChecklistItems(
-    list,
+    host,
     (recipe.ingredients ?? []).map((/** @type {import("./amounts.js").Ingredient} */ ing) => {
       const { text, unit } = amountOf(ing, factor, words);
       const amount = [text, unit].filter(Boolean).join(" ");
@@ -84,6 +94,9 @@ function drawIngredients(list, { recipe, portions, words }) {
       };
     }),
   );
+  const drawn = /** @type {HTMLElement} */ (doc.importNode(host, true));
+  list.replaceWith(drawn);
+  return drawn;
 }
 
 /** The empty iframe, loaded with the frame's own page and the package's paper styles. @param {HTMLIFrameElement} frame */
@@ -110,7 +123,7 @@ async function loadFrame(frame) {
  */
 export async function createSheet(frame) {
   const { win, doc } = await loadFrame(frame);
-  const list = /** @type {HTMLElement} */ (doc.querySelector(".kp-checklist"));
+  let list = /** @type {HTMLElement} */ (doc.querySelector(".kp-checklist"));
   /** @type {PrintOptions} */
   const options = { notes: "show", box: "square", groups: "keep", lines: "off" };
   /** @type {(() => void) | null} */
@@ -130,7 +143,7 @@ export async function createSheet(frame) {
     draw(spec) {
       doc.documentElement.lang = spec.lang;
       drawText(doc, spec);
-      drawIngredients(list, spec);
+      list = drawIngredients(doc, list, spec);
       stamp();
     },
     option(name, value) {
