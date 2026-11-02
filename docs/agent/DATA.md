@@ -41,18 +41,46 @@ wissen". Built on the kit's offline data client, `window.chassisData` (chassis-r
 which the server injects into every page and which stays inert until `web/js/api/kit-data.js` configures it.
 
 **Transport.** Every `GET`, `PUT`, `PATCH` and `DELETE` of the pages goes through the kit (`readJson`, `writeJson`): the
-kit sends `If-Match` (the revision `ifMatchFor` chose), keeps the copy and queues what cannot be sent. The kit has no
-`POST`, so a create, a draft save, an import, a freezer take and Undo's restore stay on `web/js/api/http.js` and need a
-connection; without one they say so (`api.needsConnection`: the kitchen gives new things their id). A 401 from the kit
+kit sends `If-Match` (the revision `ifMatchFor` chose), keeps the copy and queues what cannot be sent. The freezer take
+is the one `POST` through the kit (below); a create, a draft save, an import and Undo's restore stay on
+`web/js/api/http.js` and need a connection; without one they say so (`api.needsConnection`: the kitchen gives new things their id). A 401 from the kit
 raises the same sign-in notice as before; a read with neither a connection nor a copy says so (`api.offlineNoCopy`).
 
-**What is kept.** One answer: `GET /data/kitchen` (`OFFLINE_ROUTES` in `web/js/offline/config.js`), which every screen draws
-from; per device in IndexedDB `chassis-data:kitchen`, under the kit's 50 MB cap. "Keep everything offline" is the kit's
+**What is kept.** With "keep everything" on, `GET /data/kitchen` whole (`OFFLINE_ROUTES` in `web/js/offline/config.js`),
+which every screen draws from; with it off, only the recipes kept one by one (below); per device in IndexedDB `chassis-data:kitchen`, under the kit's 50 MB cap. "Keep everything offline" is the kit's
 per-device `keepAll`: the kit starts it off, Kitchen turns it on once per device before the first read
 (`web/js/offline/keep.js`, mark `kitchen:offline-default-applied` in localStorage), so a person who turns it off keeps it
-off. Turning it off keeps no new copy and leaves the present one until "Clear offline copy" (`clearCopy`: the copy goes,
-waiting edits stay). Photos are files, not JSON: offline they show only as far as the browser's own cache holds them.
+off. Turning it off trims the stored copy to the recipes kept one by one (below); "Clear offline copy" (`clearCopy`) deletes every copy, waiting edits
+stay. Photos are files, not JSON: offline they show only as far as the browser's own cache holds them.
 Drafts and the parents' wheel are read through the kit but not kept.
+
+**Kept one by one** (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12, option B; on chassis-rs 8042dbe's trimmed
+keeping). With "Keep everything offline" off, the recipe page's "Keep offline" / "Offline bewaren" switch
+(`web/js/pages/recipe/keep-row.js`) keeps that recipe's DISH, `GET /data/dishes/{id}` (the item route
+`GET /data/{list}/{id}`: the item with its `rev` as `ETag`, 404 when missing). A recipe lives in its dish, so the dish's
+other recipes come along and the switch's line says so. It also keeps each ingredient the dish's recipe lines name
+(`/data/ingredients/{id}`), so the kit stores `/data/ingredients` trimmed to those (the names the recipe page, the
+printable sheet and cook mode's mise show); letting a dish go lets go only the ingredients no other kept dish names
+(`ingredientPlan`, `web/js/offline/kept.js`). Turning the switch on reads the dish and the ingredients at once, because
+the kit copies an answer only when it reads it; turning it off removes the copies at once (the kit's trim). The route
+table (`OFFLINE_ROUTES` in `web/js/offline/config.js`) gives `/data/kitchen` no item route below it, so the kit stores
+the whole kitchen only while "keep everything" is on and never for one recipe; switching "keep everything" off trims the
+stored copy to the kept recipes. The settings (one object) are not kept per recipe: offline, a kept recipe's cook mode
+uses the default timer sound. A read with no connection and no whole-kitchen copy builds a kitchen of the kept dishes
+only (`partial: true`, every other list and the settings empty; `readKeptKitchen` in `web/js/api/recipe-keep.js`), so
+the recipe page and cook mode open a kept recipe offline and any other recipe says it is not there. The Calm row counts
+the recipes kept this way; "Clear offline copy" clears their copies too (the marks stay, so the next read with a
+connection copies them again). The switch is hidden while "keep everything" is on.
+
+**A freezer take offline** (feat-offline-take-1, Kenny 19:13 "Kit krijgt post()"). "Take a portion" on Bad days is
+`POST /data/freezer/{id}/take` through the kit's `post()`: without a connection it waits in the kit's queue with a UUID
+`Idempotency-Key` made when it was queued and kept across replays. The server records the key with the take in the same
+`kitchen.json` write (`answered`, at most `ANSWERS_KEEP` = 200, oldest dropped; left out of `GET /data/kitchen`;
+`src/store/idempotent.rs`) and answers a repeated key with the first result, so a replay whose answer was lost takes no
+second portion. A refused take records nothing. Kitchen shows a queued take at once (`takeFrom` in
+`web/js/offline/apply.js`, never below zero) and lays it over every kitchen read like the other queued edits; the kit's
+own `optimistic(copy)` option is not used, because it amends the copy of the POST's own path, which Kitchen never reads.
+A take refused on replay (no portions left) lands in the failed list as "A portion of “Soup” taken from the freezer".
 
 **Edits while offline.** A save the kitchen cannot take joins the kit's queue (with its `If-Match`) and the kit answers
 `queued`; `web/js/api.js` then applies it to the shared copy as it was sent, keeping the revision it was read at. The kit
@@ -350,7 +378,9 @@ every dish, recipe or ingredient that uses it.
 the dish it is when it is one of Kenny's (the wheel counts its portions
 for that dish; format 4).
 `POST /data/freezer/{id}/take` with `{"portions": 1}` takes one out (Undo
-sends `-1`); an item at zero portions stays until a page deletes it.
+sends `-1`); an item at zero portions stays until a page deletes it. An
+`Idempotency-Key` (UUID) applies a take once: a repeated key answers the
+first result (feat-offline-take-1, "A freezer take offline" above).
 
 ## shelf (zero-prep shelf)
 

@@ -3,7 +3,7 @@
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
 ES modules on kp-themes, which comes only through chassis-rs (`/static/kp/`, Kenny 19/10/2026). Owner Kenny; chat Dutch, code and docs English.
 
-State (02/11/2026): 5.0.0 released and signed (chassis 4.0.0, kp-themes 12.0.0); main is on chassis 4.3.0 (tag v4.3.0: `kp_modules()`, the gzip prefs fix, the login `next`, the offline data client) / kp-themes 12.2.0 split delivery, unreleased; live is still 4.1.0,
+State (02/11/2026): 5.0.0 released and signed (chassis 4.0.0, kp-themes 12.0.0); main is pinned to chassis-rs main 8042dbe (after tag v4.3.0: trimmed offline keeping, `chassisData.post()`, `IdempotencyKey`; re-pin to its release tag) / kp-themes 12.2.0 split delivery, unreleased; live is still 4.1.0,
 the deploy waits on the homelab thread (docs/OPEN.md).
 
 Read first: README.md, docs/OPEN.md, docs/DECISIONS.md. Data shapes:

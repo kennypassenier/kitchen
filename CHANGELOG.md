@@ -11,6 +11,8 @@ Nothing here is released or deployed yet; no store format change, no new server 
 Built on **chassis-rs 4.3.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.3.0, `[meta-chassis-430-1]`): it carries
 `WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=` and the offline data
 client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased revs of chassis main for these on 02/11/2026).
+Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trimmed offline keeping, `chassisData.post()`,
+`IdempotencyKey`); re-pin to the release tag that carries it before the release.
 
 ### Added
 - **The whole kitchen offline** [feat-offline-kitchen-1..4] (Kenny 02/11/2026, "Hele keuken offline"): on the kit's offline
@@ -26,8 +28,16 @@ client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased rev
     mine over it"; the other edits are sent.
   - Signing out with edits not yet sent is meant to ask first (the kit's confirmation, given Kitchen's words); the sign-out
     button lives on the kit's own pages, which do not start the data client, so it does not ask yet (docs/OPEN.md).
-  - Creating something new, a draft, an import, a freezer portion and Undo's restore still need a connection (the kitchen
+  - Creating something new, a draft, an import and Undo's restore still need a connection (the kitchen
     gives new things their number); without one they now say so ("This needs a connection ...").
+- **Keep one recipe offline** [feat-offline-recipe-1..3] (Kenny 02/11/2026 17:25 and 19:12, "zowel de hele keuken als per
+  recept"): with "Keep everything offline" off, the recipe page has "Keep offline" / "Offline bewaren": it keeps that
+  recipe on this device with its dish (and so the dish's other recipes) and the ingredient names it uses, so the recipe
+  page and cook mode open it without a connection; Calm settings counts the recipes kept this way. Switching "Keep
+  everything offline" off now removes the rest of the copy instead of leaving it until "Clear offline copy".
+- **Take a portion without a connection** [feat-offline-take-1] (Kenny 02/11/2026 19:13): "Take a portion" on Bad days
+  works offline; the freezer shows it at once and the kitchen takes it when the connection is back, exactly once even if
+  an answer got lost on the way.
 - **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
 - **New Kitchen app icon** (pot with steam, approved 01/11/2026): the full set (180/192/512, maskable 192/512, monochrome 512, SVG) in `web/pwa` and on the parents' page (`web/eten`, whose manifest now lists maskable and monochrome icons); the kit's own manifest picks up maskable/monochrome with the next chassis-rs.
 - **Undo for every delete that can come back**: a dish, recipe, recipe source, ingredient, dish or ingredient category,
@@ -220,6 +230,15 @@ client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased rev
   field is stored: `rev` on an item once it is saved (fix-stale-save-1; absent = 0, 5.0.0 ignores it). Undo lives in server memory only and is lost at a restart (an Undo after a restart
   answers "can no longer be undone"). **The kit's own database (`kitchen-kit.db`) moves from schema 2 to 3 on the first
   start** (chassis-rs 4.2.0 adds the empty `kit_push_subscriptions` table; Kitchen sends no push).
+- **New read-only route** (feat-offline-recipe-1): `GET /data/{list}/{id}` answers one item with its `rev` as `ETag` (404
+  when the list or item is missing), behind the same login as every `/data/` route. No proxy or setting change: it sits
+  under the `/data/` prefix the home route already passes.
+- **Freezer take keys** (feat-offline-take-1): `POST /data/freezer/{id}/take` reads an optional `Idempotency-Key` (a UUID,
+  else 400) and `kitchen.json` gains an optional `answered` list (at most 200 keys with their first answer; absent when
+  empty, format stays 5). 5.0.0 ignores the field on a rollback and drops it at its next save, which only means a replay
+  queued before the rollback could take twice. The proxy must pass the `Idempotency-Key` header (Traefik does by default).
+- **chassis-rs pinned to rev 8042dbe** (unreleased, `[meta-chassis-8042dbe-1]`): trimmed offline keeping and
+  `chassisData.post()`; re-pin to the release tag that carries it before the release.
 - **Size limits** (fix-field-limits-1): the server now refuses a name half over 200 characters, any other text over
   5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
   limit can still be read, but saving it again asks to shorten the field first.

@@ -1,6 +1,6 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs 4.3.0), the kp-themes split delivery's release checks, the offline copy's release checks, and two choices for Kenny about the offline copy.
+5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs main 8042dbe), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, waiting on the chassis-rs release tag and their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
@@ -8,7 +8,7 @@ the release (list below).
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
 | On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.2.0 with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | Kenny's release decision (a form with the open items), then the release checks below |
-| Two choices about the offline copy (section "Choices for Kenny" below): the per-recipe toggle's shape and a freezer take without a connection | Kenny (a form) |
+| Per-recipe "Offline bewaren" [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1] (Kenny 17:25, 19:12, 19:13): built on chassis-rs main 8042dbe [meta-chassis-8042dbe-1], release check 11 below not run. **Re-pin to the chassis-rs release tag carrying 8042dbe** before the release (only `chassis` moves in `Cargo.lock`) | the chassis-rs release, then Kenny's release decision and release check 11 |
 | The offline copy [feat-offline-kitchen-1..4] and the revision fold [refactor-rev-kit-1] (02/11/2026, on chassis-rs cd68fd9): built, release checks 9 and 10 below not run | Kenny's release decision, then release checks 9 and 10 |
 | kp-themes split delivery (Kenny 02/11/2026 17:24, "Nu overstappen"): merged on main 6f3fc0e [feat-kp-split-3] (branch `kp-split-entries`, 4ee6fbb), with Kitchen pinned to chassis-rs main fcb993f [meta-chassis-fcb993f-1], whose `WebApp::kp_modules()` makes the kit inject `webapp-runtime-modules.js` (imports only `remember.js`, `freshness.js`, `auto-refresh.js`), so a page holds one copy of kp's state. Release checks still to run (item 7 below) | Kenny's release decision, then release check 7 |
 
@@ -42,7 +42,8 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
-8. **Re-pin chassis-rs to its release tag: DONE 02/11/2026** [meta-chassis-430-1] (tag v4.3.0 = db11d10 carries
+8. **Re-pin chassis-rs to the release tag carrying 8042dbe** (OPEN again: [meta-chassis-8042dbe-1] pinned rev 8042dbe on
+   02/11/2026 evening; before that done as [meta-chassis-430-1]: tag v4.3.0 = db11d10 carries
    `kp_modules()`, the gzip prefs fix, the login `?next=` and the offline data client; only `chassis` moved in `Cargo.lock`).
 9. **The offline copy [feat-offline-kitchen-1..4], [refactor-rev-kit-1]** (nothing run on 02/11/2026): the new and changed
    unit tests `node --test scripts/offline-apply.test.mjs scripts/offline-keep.test.mjs scripts/offline-size.test.mjs
@@ -50,15 +51,37 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    kit's 409 shape, `src/store/tests/rev.rs` on `Precondition`, new `if_match_star_saves_over_any_revision`).
 10. **The offline release script** `KITCHEN_BASE=… KITCHEN_TOKEN=… node scripts/release/offline.e2e.mjs` (Firefox, a test
    Kitchen; it edits the pace and one dish's name and puts both back): cook mode reloaded offline with "Keep everything
-   offline" on; only one recipe kept (prints SKIPPED until choice 1 is made); an offline edit shown after an offline reload,
+   offline" on; only one recipe kept (release check 11); an offline edit shown after an offline reload,
    then replayed; a conflict on replay landing in the list of refused edits and "Keep the kitchen's version" emptying it;
    "Clear offline copy" then an offline reload showing the failed state; signing out with an unsent edit asking first
    (expected to FAIL until the logout kit gap is fixed). Then the Firefox smoke and `measure.mjs` on `/settings` (the new
    Calm row) at 1280 and 390, EN and NL, and the failed-list drawer at 390.
 
+11. **Keep one recipe offline [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1]** (written
+   02/11/2026 on chassis-rs 8042dbe, nothing run): `cargo test` (new: `src/routes_tests.rs`
+   `an_item_answers_the_dish_with_its_recipes_and_its_rev_as_etag`, `a_missing_item_or_list_is_404`,
+   `a_take_replayed_with_the_same_key_takes_one_portion`, `a_key_that_is_not_a_uuid_is_the_kits_400_and_none_is_fine`;
+   `src/store/tests/idempotent.rs`, five tests: a repeated key, another or no key, a refused take records nothing, only the
+   last 200 keys, keys survive a reopen; the route tests moved from `src/routes.rs` to `src/routes_tests.rs`);
+   `node --test scripts/offline-kept.test.mjs` (new: dish paths, kept ids, the switch's state, a dish's ingredients, the
+   ingredient plan, the count, the partial kitchen, the route table) and the take tests added to
+   `scripts/offline-apply.test.mjs` and `scripts/offline-describe.test.mjs`; scenarios 2 and 7 of
+   `scripts/release/offline.e2e.mjs` (2: the kit keeps the dish and NOT `/data/kitchen`, the recipe and cook mode open
+   offline, another dish does not, the Calm row counts it, clearing clears it; 7: a take whose answer is lost is replayed
+   with the same key and takes ONE portion, an offline take shows at once and reaches the kitchen once). Also the existing
+   offline tests against 8042dbe (`keepAll` / `keepItem` now return promises; Kitchen awaits both), then `measure.mjs` on
+   `/recipe` with the switch shown, `/settings` (the count line) and `/bad-days`, 1280 and 390, EN and NL.
+
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
-- Fixed on chassis-rs main 073273f (unreleased, for the release after 4.3.0): the logout guard works on the kit's own pages
+- **Built on chassis-rs 8042dbe (unreleased)**: per-item keep [feat-offline-recipe] and the freezer take through
+  `chassisData.post()` [feat-offline-take-1]. At the release tag: re-pin, run release check 11. Still open for Kenny: what
+  a kept dish does once it is deleted on the server (its copy and mark stay and the offline read shows it until "Clear
+  offline copy" or turning its switch off; options: drop the mark on a 404 of the dish, or keep it and say "no longer in
+  the kitchen"); and a kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
+  shows a queued take through its own overlay instead (filed for chassis-rs: an `optimistic` that names the path it
+  amends).
+- Fixed on chassis-rs main 073273f (in 8042dbe, which Kitchen is now pinned to; not yet acted on): the logout guard works on the kit's own pages
   without `configure()` (and "Log out…" no longer sticks after "Stay"), the connection band's words follow
   `kp-strings-change`, and the kit has its own failed-edits drawer (Discard / Save again / Discard all) opened from the
   toast's Review, `chassisData.review()` or `[data-chassis-review]`; the `chassis-data-review` event is now cancelable.
@@ -81,25 +104,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 ## Choices for Kenny (not built)
 
-1. **The per-recipe "Offline bewaren" toggle (held, feat-offline-kitchen).** Kenny chose a toggle per recipe when "Alles
-   offline bewaren" is off. The kit keeps copies per URL and keeps every LIST route as soon as one item is kept ("a list is
-   the way to a kept item"); Kitchen reads everything as one list answer, `GET /data/kitchen`, and has no item GET. So:
-   - A. The toggle keeps the whole-kitchen copy (`/data/kitchen` stays the one route; the toggle marks the recipe and
-     turns the copy on for it). No server change, cook mode works offline for every recipe, but the toggle then means
-     "keep the kitchen" rather than "keep this recipe", and turning one recipe on keeps them all.
-   - B. A server item route `GET /data/dishes/{id}` (a recipe lives in its dish) plus `/data/ingredients` and
-     `/data/settings` as kept lists; the adapter builds a partial kitchen offline (only kept dishes); `/data/kitchen` is
-     no kit route. Needs a kit option for "a list kept only when keep-all is on" (chassis-rs change), or with "all" on every
-     dish must be fetched one by one to be kept.
-   - C. Ask chassis-rs for an app hook that stores a derived copy (e.g. `keepDerived(path, data)`), so Kitchen saves a
-     trimmed kitchen (the kept recipes' dishes, the ingredients, the settings) under its own key. Kit change; most
-     precise, one more API in the kit.
-2. **A freezer take without a connection (held).** "Take a portion" is `POST /data/freezer/{id}/take` (relative, never a
-   conflict); the kit has no POST, so offline it now says "needs a connection".
-   - A. Keep it online-only (as now).
-   - B. Send it as `PUT /data/freezer/{id}` with the new absolute `portions` and the item's `rev`: queued and replayed like
-     any edit, but two devices taking a portion offline then conflict (the second goes to the failed list).
-   - C. Ask chassis-rs for a queued `post()` (non-idempotent, never rebased): Kitchen keeps the relative take; kit change.
+None open: the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
 
 Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026; re-check against 4.3.0, whose CHANGELOG says logout with unsent edits asks):
 - **Logout does not ask on Kitchen.** The sign-out button exists only on the kit's own pages (`layout.html`,
@@ -108,7 +113,7 @@ Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.m
   the data client's logout hook on its own pages from the app's name) or give Kitchen a sign-out form (a choice).
 - **The kit's band toasts read their words once** (`bindBand` spreads `messages` at bind time): after a language switch
   they stay in the start language until the next load. The logout question follows (it reads them each time).
-- **No `post()` in the client** (choice 2 above) and **no failed-list view** (Kitchen draws its own).
+- **No `post()` in the client**: added in chassis-rs 8042dbe and used for the freezer take; **no failed-list view**: added in 073273f (Kitchen still draws its own until that bump row is done).
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
 deliberate (Kenny, 30/10/2026 17:52, bottoms level; see `docs/DECISIONS.md`); "After 1.0: memory, sensory profile, low
