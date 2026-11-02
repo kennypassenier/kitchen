@@ -6,6 +6,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { REFUSED_EVENT, SYNCED_EVENT, needsReread, refreshNeeded, wireSync } from "../web/js/offline/sync.js";
 
+// wireSync listens on the page's global (window); Node's global is no EventTarget, so lend it one for these tests.
+const bus = new EventTarget();
+for (const name of ["addEventListener", "removeEventListener", "dispatchEvent"]) {
+  globalThis[name] ??= bus[name].bind(bus);
+}
+
 test("a replay that sent something needs a read", () => {
   assert.equal(needsReread({ sent: 1, remaining: 0, stopped: null }), true);
 });
