@@ -11,6 +11,7 @@ mod migrate;
 mod photo_gc;
 mod photo_orphans;
 mod rev;
+mod rev_delete_settings;
 mod undo;
 mod validate;
 
@@ -30,6 +31,7 @@ pub(super) fn empty() -> Data {
         drafts: vec![],
         recipe_sources: None,
         settings: Map::new(),
+        settings_rev: 0,
         answered: vec![],
     }
 }

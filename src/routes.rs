@@ -9,10 +9,10 @@
 //! | `POST /data/{list}` | add an item; the answer carries its new `id` |
 //! | `GET /data/{list}/{id}` | one item, with its revision as `ETag` (feat-offline-recipe: the offline copy keeps a single dish); 404 when the list does not hold it |
 //! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since; the answer carries `ETag: "<rev>"` |
-//! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
+//! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo); `If-Match: <rev>` refuses it (409, `"code": "stale"`, the stored item as `current`) when it was saved since |
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back); an `Idempotency-Key` (UUID) applies it once, a repeated key answers the first result (`store/idempotent.rs`) |
-//! | `GET`/`PATCH /data/settings` | the settings; PATCH merges, `null` removes a key |
+//! | `GET`/`PATCH /data/settings` | the settings with their revision as `ETag`; PATCH merges, `null` removes a key, raises `settings_rev` and honours `If-Match` like `PUT` |
 //! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
 //! | `POST /data/import`, `POST /data/import/image` | a recipe from a web page or pasted text, see `import.rs` |
 //!
@@ -130,8 +130,24 @@ async fn replace(
     }
 }
 
-async fn delete(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
-    answer(s.delete(&list, &id).await)
+/// A delete checked against the revision the page read (`If-Match`, fix-offline-master-5): a delete queued offline and
+/// replayed after someone saved the item is refused with the kit's 409, which carries the stored item as `current`, so
+/// the page's offline client puts its copy back to the server's version. Without the header the delete is unchecked.
+async fn delete(
+    State(s): Shared,
+    Path((list, id)): Path<(String, String)>,
+    if_match: IfMatch,
+) -> Response {
+    match s.delete_if(&list, &id, if_match.precondition()).await {
+        Err(Refused::Stale(stale)) => {
+            let conflict = Conflict::from(stale);
+            match s.item(&list, &id).await {
+                Ok(current) => conflict.with_item(current).into_response(),
+                Err(_) => conflict.into_response(),
+            }
+        }
+        other => answer(other),
+    }
 }
 
 async fn restore(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
@@ -151,12 +167,23 @@ async fn take(
     answer(s.take_portions_once(&id, n, key.as_deref()).await)
 }
 
+/// The settings, with their revision as `ETag` (fix-offline-master-5; the body stays the plain object of keys).
 async fn settings(State(s): Shared) -> Response {
-    Json(s.settings().await).into_response()
+    let (settings, rev) = s.settings().await;
+    Revisioned::new(rev, settings).into_response()
 }
 
-async fn patch_settings(State(s): Shared, Json(body): Json<Value>) -> Response {
-    answer(s.merge_settings(body).await)
+/// A merge checked against the settings' revision the page read (`If-Match`, fix-offline-master-5): stale, it is the
+/// kit's 409 with the stored settings as `current`; merged, the settings answer with their new revision as `ETag`.
+async fn patch_settings(State(s): Shared, if_match: IfMatch, Json(body): Json<Value>) -> Response {
+    match s.merge_settings_if(body, if_match.precondition()).await {
+        Ok((settings, rev)) => Revisioned::new(rev, settings).into_response(),
+        Err(Refused::Stale(stale)) => {
+            let (current, _) = s.settings().await;
+            Conflict::from(stale).with_item(current).into_response()
+        }
+        Err(e) => answer(Err::<Value, _>(e)),
+    }
 }
 
 #[cfg(test)]

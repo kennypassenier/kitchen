@@ -1,4 +1,5 @@
-//! Changing a collection: add, replace and remove an item, and take portions out of the freezer.
+//! Changing a collection: add, replace and remove an item (both checked against `If-Match`), and take portions out of
+//! the freezer.
 
 use chassis::core::revision::{self, Precondition};
 use serde_json::Value;
@@ -132,8 +133,22 @@ impl Store {
         Ok(item)
     }
 
-    /// Remove an item; it stays restorable for a while (`undo::UNDO_KEEP`).
+    /// Remove an item without a revision check (see [`Store::delete_if`]).
+    #[cfg(test)]
     pub async fn delete(&self, coll: &str, id: &str) -> Result<Value, Refused> {
+        self.delete_if(coll, id, None).await
+    }
+
+    /// Remove an item; it stays restorable for a while (`undo::UNDO_KEEP`). `if_match` is the revision the page read
+    /// (fix-offline-master-5, Kenny 02/11/2026 19:43 "de server is altijd de master"): when given and the stored one
+    /// differs, someone saved the item since, and the delete is refused ([`Refused::Stale`]) instead of silently
+    /// removing that newer version; nothing changes. Without it a delete behaves as before.
+    pub async fn delete_if(
+        &self,
+        coll: &str,
+        id: &str,
+        if_match: Option<Precondition>,
+    ) -> Result<Value, Refused> {
         let gone = self
             .change(|d| {
                 let c = d
@@ -143,6 +158,7 @@ impl Store {
                     .iter()
                     .position(|v| v.get("id").and_then(Value::as_str) == Some(id))
                     .ok_or(Refused::NotFound)?;
+                revision::check(if_match, rev_of(&c[at])).map_err(Refused::Stale)?;
                 Ok((at, c.remove(at)))
             })
             .await?;

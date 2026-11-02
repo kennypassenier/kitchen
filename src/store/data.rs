@@ -14,7 +14,8 @@ use serde_json::{Map, Value};
 /// the freezer and resting point at dishes (`dish_id`). Format 5 (10:04):
 /// a shelf food's title, text and gear and a freezer item's name are
 /// `{nl, en}` like every other name. The `drafts` list (Kenny, 29/10/2026)
-/// is optional in the file, so the format stays 5, and so is an item's `rev` (fix-stale-save-1: absent counts as 0).
+/// is optional in the file, so the format stays 5, and so is an item's `rev` (fix-stale-save-1: absent counts as 0)
+/// and the settings' `settings_rev` (fix-offline-master-5).
 pub const FORMAT: u32 = 5;
 
 /// The collections a page may read and write. Settings is a single object
@@ -70,6 +71,11 @@ pub struct Data {
     pub recipe_sources: Option<Vec<Value>>,
     #[serde(default)]
     pub settings: Map<String, Value>,
+    /// The settings' revision (fix-offline-master-5, Kenny 02/11/2026 19:43 "de server is altijd de master"): how many
+    /// times `PATCH /data/settings` changed them, checked against `If-Match` like an item's `rev`. Absent in a file
+    /// written before it existed and counted as 0 there, so the format stays 5.
+    #[serde(default)]
+    pub settings_rev: u64,
     /// The `Idempotency-Key`s of freezer takes already applied, with their first answer (feat-offline-take-1,
     /// `idempotent.rs`): at most `ANSWERS_KEEP`, absent in a file without any, so the format stays 5. Not part of what
     /// `GET /data/kitchen` answers.

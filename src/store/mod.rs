@@ -13,7 +13,7 @@
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio::sync::RwLock;
 
 mod caps;
@@ -26,6 +26,7 @@ mod ops;
 mod photo_gc;
 mod photo_orphans;
 mod seed;
+mod settings;
 mod undo;
 mod validate;
 
@@ -126,28 +127,6 @@ impl Store {
             .find(|x| x.get("id").and_then(Value::as_str) == Some(id))
             .cloned()
             .ok_or(Refused::NotFound)
-    }
-
-    pub async fn settings(&self) -> Map<String, Value> {
-        self.data.read().await.settings.clone()
-    }
-
-    /// Merge the given keys into the settings; a `null` removes a key.
-    pub async fn merge_settings(&self, body: Value) -> Result<Map<String, Value>, Refused> {
-        let Value::Object(patch) = body else {
-            return Err(Refused::NotAnObject);
-        };
-        self.change(|d| {
-            for (k, v) in &patch {
-                if v.is_null() {
-                    d.settings.remove(k);
-                } else {
-                    d.settings.insert(k.clone(), v.clone());
-                }
-            }
-            Ok(d.settings.clone())
-        })
-        .await
     }
 
     /// Apply a change and save it; on a failed save the change is undone,
