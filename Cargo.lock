@@ -299,8 +299,8 @@ dependencies = [
 
 [[package]]
 name = "chassis"
-version = "4.0.0"
-source = "git+https://github.com/kennypassenier/chassis-rs?tag=v4.0.0#0de6498adda4a0d1bb4f1cec0291414395522204"
+version = "4.2.0"
+source = "git+https://github.com/kennypassenier/chassis-rs?tag=v4.2.0#53e3dc371c5b9d1e2752f33a46809171ffa13d39"
 dependencies = [
  "axum",
  "axum-extra",
@@ -312,6 +312,7 @@ dependencies = [
  "governor",
  "hex",
  "http",
+ "http-body-util",
  "metrics",
  "metrics-exporter-prometheus",
  "minijinja",
