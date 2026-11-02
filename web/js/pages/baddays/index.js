@@ -9,7 +9,19 @@
 // again reads the kitchen again for the whole screen. Data comes from api.js
 // only; nothing is stored here but what api.js writes.
 
-import { attachCardStates, attachActionTiles, attachSegmented, attachDataTables, attachAgo, attachFocusSteps, attachCalendars, attachActionColumns, attachDatePickers, attachQuantities, attachLoadingPieces, attachMotion, attachSelects } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates } from "/static/kp/dist/js/card-state.js";
+import { attachActionTiles } from "/static/kp/dist/js/action-tiles.js";
+import { attachSegmented } from "/static/kp/dist/js/segmented.js";
+import { attachDataTables } from "/static/kp/dist/js/datatable.js";
+import { attachAgo } from "/static/kp/dist/js/freshness.js";
+import { attachFocusSteps } from "/static/kp/dist/js/focus-steps.js";
+import { attachCalendars } from "/static/kp/dist/js/calendar.js";
+import { attachActionColumns } from "/static/kp/dist/js/actions.js";
+import { attachDatePickers } from "/static/kp/dist/js/datepicker.js";
+import { attachQuantities } from "/static/kp/dist/js/quantity.js";
+import { attachLoadingPieces } from "/static/kp/dist/js/loading-pieces.js";
+import { attachMotion } from "/static/kp/dist/js/motion.js";
+import { attachSelects } from "/static/kp/dist/js/combobox.js";
 import { kitchenNow, loadKitchen, onKitchen, reason } from "../../api.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";

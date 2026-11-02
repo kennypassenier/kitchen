@@ -27,6 +27,18 @@ Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[me
   **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
+- **kp-themes split delivery on every page** [feat-kp-split-1] (Kenny 02/11/2026 17:24, "Nu overstappen"): `web/index.html`
+  and the parents' page `web/eten/index.html` link `kp-themes-base.min.css` (fonts included) instead of `fonts.css` plus the
+  4.4 MB `kp-themes.css`; `/static/theme-boot.js` sits below it with `data-register-pattern`, `data-themes` and
+  `data-fallback` (as the kit's layout writes them), and `dist/js/auto.js` loads as a module. A picked theme fetches its
+  register through `attachLazyRegisters` (`web/eten/registers.js`, shared by both pages, before the theme pickers). The 92
+  import lines from the one-file bundle and the 11 JSDoc type imports now name kp's per-module entries (204 import lines
+  over 49 entries, from `action-tiles.js` to `wheel.js`; `components.js` for the skip links, nav toggles and
+  `openConfirmation`, which have no smaller entry). The printable sheet reads the base sheet plus the formal register
+  instead of `kp-themes.css`. `scripts/kp-entries.test.mjs` fails on any path back to the bundle, a page that mixes the two,
+  or a name an entry does not export; `scripts/check-wheels.mjs` also knows `dist/js/wheel.js`.
+  **Not mergeable while chassis-rs injects `webapp-runtime.js` on the bundle** (docs/OPEN.md): that would put two copies
+  of kp's state on the main app's pages.
 - **chassis-rs 4.2.0 / kp-themes 12.2.0** [meta-chassis-420-1]: only `chassis` moved in `Cargo.lock`. The cook timeline uses
   the kit's fit mode (`data-kp-gantt-scroll="fit"`, `FIT_FROM` 12.2.0 confirmed). The bar's More pages (Dishes,
   Ingredients, Parents' wheel, Recipe sources, Calm settings) are the kit's secondary pages (`Page::secondary`), so the

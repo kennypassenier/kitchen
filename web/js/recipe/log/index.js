@@ -5,7 +5,9 @@
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): frame.js builds the elements, paint.js draws them from a `LogState`,
 // actions.js holds what the buttons do, dates.js the week arithmetic.
 
-import { attachFlashButtons, setHeat, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { attachFlashButtons } from "/static/kp/dist/js/flash.js";
+import { setHeat } from "/static/kp/dist/js/heat.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
 import { today } from "../../format.js";
 import { h } from "../../dom.js";
 import { WEEKS } from "./dates.js";

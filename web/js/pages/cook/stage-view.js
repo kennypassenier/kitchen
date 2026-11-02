@@ -3,7 +3,7 @@
 // It also tells the stylesheet how far down the page the stage starts (`--ck-above`), so the stage fills the rest of the
 // viewport whatever the shell's bar measures in this theme and at this width.
 
-import { getTimers } from "/static/kp/dist/kp-themes.min.js";
+import { getTimers } from "/static/kp/dist/js/timer.js";
 import { stageParts } from "./stage-state.js";
 
 /** @param {import("./index.js").CookCtx} ctx */

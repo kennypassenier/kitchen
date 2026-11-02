@@ -1,7 +1,9 @@
 // The disc and the digits: one wait to the moment the first track starts, both counting down by themselves.
 
 import { h, $ } from "../../dom.js";
-import { attachTimerDiscs, attachCountdowns, attachSwitches } from "/static/kp/dist/kp-themes.min.js";
+import { attachTimerDiscs } from "/static/kp/dist/js/timer-disc.js";
+import { attachCountdowns } from "/static/kp/dist/js/countdown.js";
+import { attachSwitches } from "/static/kp/dist/js/forms.js";
 import { t } from "../../i18n/index.js";
 import { ZONE } from "../../format.js";
 import { MIN, hm } from "./plan.js";

@@ -4,7 +4,7 @@
 // again so the page shows what is stored now. Any other refusal keeps the caller's own toast. The recipe editor and the
 // dish drawer have their own answer in their form (fix-stale-save-1) and do not come through here.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { loadKitchen } from "../api.js";
 import { t } from "../i18n/index.js";
 import { isStale } from "./save.js";

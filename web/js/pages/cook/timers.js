@@ -2,7 +2,11 @@
 // package's timers. The component's events are the only input; the memory keeps the timers for a reload.
 
 import { h, $ } from "../../dom.js";
-import { setAttention, goToStep, getStepsPassed, getTimers, stopTimer, attachTimerDiscs, timerDiscOf, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { setAttention } from "/static/kp/dist/js/attention.js";
+import { goToStep, getStepsPassed } from "/static/kp/dist/js/focus-steps.js";
+import { getTimers, stopTimer } from "/static/kp/dist/js/timer.js";
+import { attachTimerDiscs, timerDiscOf } from "/static/kp/dist/js/timer-disc.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
 import { t } from "../../i18n/index.js";
 import { bandAction } from "./logic.js";
 

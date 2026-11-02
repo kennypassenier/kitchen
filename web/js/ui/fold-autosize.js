@@ -3,7 +3,7 @@
 // the second-language text of every step, hidden in its closed "More" fold. Those are switched off (`data-kp-autosize="off"`,
 // which the kit's attach skips) until the fold first opens; then they get their attribute back and are attached.
 
-import { attachAutosize } from "/static/kp/dist/kp-themes.min.js";
+import { attachAutosize } from "/static/kp/dist/js/autosize.js";
 
 const ATTR = "data-kp-autosize";
 

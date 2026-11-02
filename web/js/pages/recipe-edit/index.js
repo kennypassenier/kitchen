@@ -4,7 +4,7 @@
 // "On this page" list around the sections the drawer had (js/recipe/editor/). Leaving a changed form asks Keep as
 // draft / Discard (recipe/editor/leaving.js).
 
-import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/js/card-state.js";
 import { loadKitchen, reason } from "../../api.js";
 import { t } from "../../i18n/index.js";
 import { parseEdit, backTarget, safeReturn } from "../../recipe/edit-route.js";

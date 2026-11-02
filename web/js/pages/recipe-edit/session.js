@@ -1,7 +1,7 @@
 // One opening of the editor page: the form in its scope, the kit's unsaved bar and contents list around it, Save, Discard,
 // and leaving. A copy, an import or a restored draft starts as unsaved work (recipe/editor/index.js: no baseline).
 
-import { attachContents, setContents } from "/static/kp/dist/kp-themes.min.js";
+import { attachContents, setContents } from "/static/kp/dist/js/page-contents.js";
 import { t } from "../../i18n/index.js";
 import { createEditor } from "../../recipe/editor/index.js";
 import { leaveWith } from "../../recipe/editor/leaving.js";

@@ -2,7 +2,9 @@
 
 import { h, $ } from "../../dom.js";
 import { loadKitchen, recipeById } from "../../api.js";
-import { setCardState, combobox, drawnSelect, setTime } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
+import { combobox, drawnSelect } from "/static/kp/dist/js/combobox.js";
+import { setTime } from "/static/kp/dist/js/timefield.js";
 import { setTimelineState } from "../../recipe/timeline.js";
 import { t } from "../../i18n/index.js";
 import { DEFAULTS, SPARES, hasTimes, timedSteps, countedMinutes } from "./plan.js";

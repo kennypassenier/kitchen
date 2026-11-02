@@ -2,7 +2,7 @@
 // `data-kp-changed`; here a row is a section of the form, marked by comparing the recipe body with how the form opened
 // (recipe/editor/sections.js). The bar's Save, Discard and the leave question come back as events the page answers.
 
-import { attachUnsaved, markUnsavedClean, setUnsavedSaving, UNSAVED_SAVE_EVENT, UNSAVED_DISCARD_EVENT, UNSAVED_LEAVE_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachUnsaved, markUnsavedClean, setUnsavedSaving, UNSAVED_SAVE_EVENT, UNSAVED_DISCARD_EVENT, UNSAVED_LEAVE_EVENT } from "/static/kp/dist/js/unsaved.js";
 import { SECTIONS } from "../../recipe/editor/sections.js";
 import { FORM_EVENTS } from "../../recipe/editor/index.js";
 

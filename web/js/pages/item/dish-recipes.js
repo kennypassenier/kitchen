@@ -1,6 +1,6 @@
 // The recipes card on a dish's page.
 
-import { attachCardStates, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState } from "/static/kp/dist/js/card-state.js";
 import { makeDefaultRecipe, reason, recipeLabel } from "../../api.js";
 import { saveFailed } from "../../api/stale-notice.js";
 import { h } from "../../dom.js";

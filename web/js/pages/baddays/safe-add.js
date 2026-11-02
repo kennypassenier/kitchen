@@ -1,7 +1,8 @@
 // "Add a safe dish": a button whose kit menu lists the recipes that are not a safe dish yet; one click marks it safe, no
 // editor (Kenny, 01/11/2026 20:21, "Keuzelijst"). Writing a new recipe stays one entry at the foot of the list.
 
-import { attachMenuButtons, setMenu, toast, MENU_SELECT_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachMenuButtons, setMenu, MENU_SELECT_EVENT } from "/static/kp/dist/js/menu-button.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../../dom.js";
 import { replace, reason, kitchenNow } from "../../api.js";
 import { t } from "../../i18n/index.js";

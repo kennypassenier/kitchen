@@ -1,6 +1,8 @@
 // Reading the form back into a recipe, and Save (the editor page's unsaved bar asks for it: pages/recipe-edit/bar.js).
 
-import { combobox, getQuantity, getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
+import { combobox } from "/static/kp/dist/js/combobox.js";
+import { getQuantity } from "/static/kp/dist/js/quantity.js";
+import { getSegmentedValues } from "/static/kp/dist/js/segmented.js";
 import { create, replace, kitchenNow, ApiError } from "../../api.js";
 import { t, lang } from "../../i18n/index.js";
 import { on } from "../../ui/form-parts.js";

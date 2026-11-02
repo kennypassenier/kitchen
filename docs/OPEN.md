@@ -1,6 +1,6 @@
 # Open
 
-3 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs 4.2.0), and two choices for Kenny.
+4 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs 4.2.0), the kp-themes split delivery, and one choice for Kenny.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
@@ -8,7 +8,8 @@ the release (list below).
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
 | On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.2.0 with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | Kenny's release decision (a form with the open items), then the release checks below |
-| Two choices (section "Choices for Kenny" below): offline data for cook mode, and whether pages move to kp-themes' split delivery | Kenny (a form) |
+| One choice (section "Choices for Kenny" below): offline data for cook mode | Kenny (a form) |
+| kp-themes split delivery (Kenny 02/11/2026 17:24, "Nu overstappen"): built on branch `kp-split-entries` [feat-kp-split-1], not merged. The kit injects `/static/chassis/webapp-runtime.js` into every page of Kitchen's web app, and that runtime still imports the one-file bundle (chassis-rs 4.2.0 keeps it there on purpose, `BUNDLE_USERS`); with Kitchen on the per-module entries the main app's pages would hold two copies of kp's state. Concretely: the runtime points the bundle's remember store at the login's preferences (`kp-remember:` keys), so cook mode's place (`data-kp-remember` on focus-steps) would fall back to this browser only, and the kit's refresh control would no longer get Kitchen's Dutch words. `/eten` alone gets no runtime, but it shares `web/eten/dishwheel.js` with `/parents`, so it cannot move alone | chassis-rs: a split-delivery runtime (or a knob to pick it), then merge the branch and run its release checks |
 
 ## Release checks (not run on 02/11/2026: tests only at the release, with Kenny's ok)
 
@@ -29,9 +30,22 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 6. Measured once on 02/11/2026 (no re-run needed unless the code moves): popovers, settings theme button, /bad-days NL nav,
    the dish rows' five actions, `kp-kv--center`, long wheel names, Override switch, offline cook mode, photo upload, QR, the
    401 notice (EN 1280, NL 390). Numbers in CHANGELOG [Unreleased] and `~/Projects/kp-gaps/kitchen.md`.
+7. **The split delivery [feat-kp-split-1]** (written 02/11/2026, nothing run; only after the branch is merged on a
+   chassis-rs whose runtime is off the bundle): `node --test scripts/kp-entries.test.mjs` (new; finds the vendored
+   `dist/js/` in the cargo checkout of the chassis revision in `Cargo.lock`, or `KP_DIST=<dir>`); the Firefox smoke of
+   every page (`/`, `/recipes`, `/recipe`, `/recipe/edit`, `/cook`, `/timing`, `/bad-days`, `/settings`, `/log`,
+   `/dishes`, `/ingredients`, `/sources`, `/parents`, an item page, `/eten`) at 1280 and 390, English and Dutch, with 0
+   console errors, and in every theme picked from the menu (the register loads before the switch, no unstyled frame);
+   a network check per page that no page loads `kp-themes.min.js`, `kp-themes.css` or `css/fonts.css` (the injected
+   runtime included) and no kp module or chunk loads twice; cook mode's remembered place still follows the login to a
+   second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
+   and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
+   main pages (CSS order moved: base + register instead of the full sheet).
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
+- kp-themes split delivery: Kitchen's pages stay on the one-file bundle until the kit's injected runtime
+  (`webapp-runtime.js`) moves off it; the move waits ready on branch `kp-split-entries` (table above).
 - Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
 - Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
   still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
@@ -48,11 +62,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    choice: never a stale kitchen); (b) Kitchen keeps the recipe being cooked in sessionStorage when cook mode opens, so a
    reload offline shows that one recipe; (c) keep the whole kitchen in IndexedDB for offline reading. Recommendation: (b),
    small and limited to the screen that is used in the kitchen.
-2. **kp-themes split delivery** (`kp-themes-base.min.css` + `dist/js/` entries, about a sixth of the CSS). Kitchen stays on
-   the one-file bundle: its 92 import lines and the kit's `webapp-runtime.js` use the bundle, and the two must never mix on
-   one page. Options: (a) stay on the bundle; (b) move all pages in one release (every import, the stylesheet links,
-   `theme-boot.js` with its data attributes, `attachLazyRegisters`), once the kit's runtime offers a split entry;
-   (c) move now and accept two copies of kp's state. Recommendation: (a) until the runtime moves, then (b).
+
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
 deliberate (Kenny, 30/10/2026 17:52, bottoms level; see `docs/DECISIONS.md`); "After 1.0: memory, sensory profile, low

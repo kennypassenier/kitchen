@@ -8,7 +8,14 @@
 // controls, calm-theme.js reads the device-level rows, rows.js says how each saved row reads and writes, save.js
 // saves them and fills them from the kitchen.
 
-import { setCardState, attachCardStates, attachCalm, attachSwitches, attachThemePickers, attachSegmented, attachTimes, attachSelects, attachFlashButtons } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState, attachCardStates } from "/static/kp/dist/js/card-state.js";
+import { attachCalm } from "/static/kp/dist/js/calm.js";
+import { attachSwitches } from "/static/kp/dist/js/forms.js";
+import { attachThemePickers } from "/static/kp/dist/js/picker.js";
+import { attachSegmented } from "/static/kp/dist/js/segmented.js";
+import { attachTimes } from "/static/kp/dist/js/timefield.js";
+import { attachSelects } from "/static/kp/dist/js/combobox.js";
+import { attachFlashButtons } from "/static/kp/dist/js/flash.js";
 import { t } from "../../i18n/index.js";
 import { buildFrame } from "./frame.js";
 import { watchCalmAndTheme } from "./calm-theme.js";

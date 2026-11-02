@@ -1,6 +1,6 @@
 // Delete (at once, with Undo; refused while something still uses the item), duplicate, and the Edit/Delete buttons of a row.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../dom.js";
 import { replace, remove, restore, kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";

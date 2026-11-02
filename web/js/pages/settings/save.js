@@ -2,7 +2,8 @@
 
 import { h, $ } from "../../dom.js";
 import { patchSettings, loadKitchen } from "../../api.js";
-import { setCardState, runFlashButton } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
+import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { t } from "../../i18n/index.js";
 import { SPARES } from "./consts.js";
 import { saidOf } from "./calm-theme.js";

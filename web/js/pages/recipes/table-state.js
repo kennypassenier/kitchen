@@ -1,7 +1,7 @@
 // The recipes table's life: its rows from the kitchen, its loading and failed states, and the live refresh.
 
 import { loadKitchen, onKitchen, kitchenNow } from "../../api.js";
-import { attachMenuButtons } from "/static/kp/dist/kp-themes.min.js";
+import { attachMenuButtons } from "/static/kp/dist/js/menu-button.js";
 import { t } from "../../i18n/index.js";
 import { paintContext } from "./import-field.js";
 import { rowsFor } from "./rows.js";
@@ -12,7 +12,7 @@ import { rowsFor } from "./rows.js";
  * Fill the table from the kitchen now and on every change; `ask` says which dish or site the import field names.
  * @param {ReturnType<typeof import("./template.js").buildPage>} ui
  * @param {{ dishId: string | null, siteId: string | null }} ask
- * @param {ReturnType<typeof import("/static/kp/dist/kp-themes.min.js").dataTable>} handle
+ * @param {ReturnType<typeof import("/static/kp/dist/js/datatable.js").dataTable>} handle
  * @returns {() => void} stops it
  */
 export function bindRows(ui, ask, handle) {

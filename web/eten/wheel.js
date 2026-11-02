@@ -15,7 +15,9 @@
 // The card's loading, empty and failed states are js/card-state.js. Nothing is stored: the spin is the whole of it.
 
 import { mountDishWheel } from "./dishwheel.js";
-import { attachCardStates, setCardState, CARD_RETRY_EVENT, attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT, attachArt } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState, CARD_RETRY_EVENT } from "/static/kp/dist/js/card-state.js";
+import { attachSegmented, setSegmentedCounts, getSegmentedValues, SEGMENTED_EVENT } from "/static/kp/dist/js/segmented.js";
+import { attachArt } from "/static/kp/dist/js/art.js";
 import { WORDS } from "./words.js";
 
 export { WORDS };

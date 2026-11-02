@@ -1,7 +1,9 @@
 // The code that opens cook mode on a phone, the printable sheet and its four options: they follow the recipe and the portions.
 
 import { h } from "../../dom.js";
-import { setCardState, setQr, attachSegmented } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
+import { setQr } from "/static/kp/dist/js/qr.js";
+import { attachSegmented } from "/static/kp/dist/js/segmented.js";
 import { WORDS } from "../../recipe/words.js";
 import { minutesText } from "../../recipe/amounts.js";
 import { createSheet } from "../../recipe/sheet.js";

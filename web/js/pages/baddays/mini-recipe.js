@@ -1,6 +1,7 @@
 // Part 4: the mini recipe, the safe recipe cooked longest ago, shrunk to its smallest steps (or in full).
 
-import { setSegmentedValues, setFocusSteps, setFocusStepsState } from "/static/kp/dist/kp-themes.min.js";
+import { setSegmentedValues } from "/static/kp/dist/js/segmented.js";
+import { setFocusSteps, setFocusStepsState } from "/static/kp/dist/js/focus-steps.js";
 import { $ } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { miniRecipe, toFocusSteps } from "./helpers.js";

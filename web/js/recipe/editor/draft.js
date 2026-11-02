@@ -1,7 +1,7 @@
 // The draft: saved in the database about a second after the last change (Kenny, 29/10/2026). Deleted on Save and on an
 // explicit Discard (never by leaving: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { saveDraft, deleteDraft, readDrafts } from "../../api.js";
 import { offeredFor } from "../draft-keys.js";
 import { h } from "../../dom.js";

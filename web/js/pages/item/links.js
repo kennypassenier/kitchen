@@ -1,6 +1,6 @@
 // Small link builders and shared facts for an item's page.
 
-import { agoMoment } from "/static/kp/dist/kp-themes.min.js";
+import { agoMoment } from "/static/kp/dist/js/freshness.js";
 import { kitchenNow, ingredientName } from "../../api.js";
 import { h } from "../../dom.js";
 import { itemLink } from "../../records/index.js";

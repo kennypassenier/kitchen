@@ -9,7 +9,7 @@
 // and hands them back (details, times, lists, steps, timeline), with the pure logic in logic.js. Since 01/11/2026 the editor
 // is a page, not a drawer: `createEditor` builds the form, the page puts it in the document and calls `start()`.
 
-import { attachSequencers } from "/static/kp/dist/kp-themes.min.js";
+import { attachSequencers } from "/static/kp/dist/js/sequencer.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { photoTracker, photosOf } from "../photos.js";

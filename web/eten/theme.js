@@ -6,7 +6,9 @@
 // The picker's words are set here, not taken from Kitchen's kp-nl.js: that file sits under /js/, behind the login, and
 // this page may load only /eten/ and /static/.
 
-import { setStrings, attachThemePickers, themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
+import { setStrings } from "/static/kp/dist/js/strings.js";
+import { attachThemePickers, themeMenuMarkup } from "/static/kp/dist/js/picker.js";
+import { attachThemeRegisters } from "./registers.js";
 
 const LABEL = "Thema";
 
@@ -20,6 +22,7 @@ setStrings({
 
 /** Draw the menu into `host` and wire it. @param {HTMLElement} host */
 export function mountThemePicker(host) {
+  attachThemeRegisters();
   host.innerHTML = themeMenuMarkup({ id: "eten-theme-menu", label: LABEL });
   attachThemePickers(host);
 }
