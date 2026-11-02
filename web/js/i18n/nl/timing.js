@@ -108,6 +108,7 @@ export const NL_TIMING = {
   "timing.said": (n, lanes, words) => `${n} ${n === 1 ? "stap" : "stappen"} met tijden${lanes > 1 ? ` in ${lanes} onderdelen` : ""}, ${words} van begin tot bord.`,
   "timing.openRecipe": "Open het recept",
   "timing.thatNoTimes": "Dat recept heeft nog geen staptijden.",
+  "timing.thatMissing": "Dat recept staat niet in de keuken.",
   "timing.chooseToCount": "Kies een recept om vanaf het eten terug te rekenen.",
   // The picker in the header opens on tonight's wheel answer (Kenny, 01/11/2026 20:21, "Eén kiezer").
   "timing.fromWheel": (line) => `Het antwoord van het wiel voor vanavond. ${line}`,

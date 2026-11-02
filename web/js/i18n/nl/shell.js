@@ -4,6 +4,8 @@
 export const NL_SHELL = {
   "shell.language": "Taal",
   "shell.theme": "Thema",
+  "shell.skip": "Naar de inhoud",
+  "shell.pages": "Pagina's",
   "shell.notFoundTitle": "Deze pagina bestaat niet",
   "shell.notFoundText": "Het adres is misschien oud. Het wiel is altijd één tik weg.",
   "shell.openWheel": "Open het wiel",

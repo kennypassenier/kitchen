@@ -108,6 +108,7 @@ export const EN_TIMING = {
   "timing.said": (n, lanes, words) => `${n} steps with times${lanes > 1 ? ` in ${lanes} tracks` : ""}, ${words} start to plate.`,
   "timing.openRecipe": "Open the recipe",
   "timing.thatNoTimes": "That recipe has no step times yet.",
+  "timing.thatMissing": "That recipe is not in the kitchen.",
   "timing.chooseToCount": "Choose a recipe to count back from dinner.",
   // The picker in the header opens on tonight's wheel answer (Kenny, 01/11/2026 20:21, "Eén kiezer").
   "timing.fromWheel": (line) => `Tonight's wheel answer. ${line}`,

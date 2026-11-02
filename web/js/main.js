@@ -129,17 +129,32 @@ function failed(e) {
 
 // The theme picker, right of the bar. The language is chosen once, in Calm settings (Kenny, 01/11/2026 20:21); it writes
 // the kitchen's `settings.lang`, so the choice follows Kenny between devices, and the kitchen's value wins on load.
-const theme = h("span", { class: "app-theme" });
-theme.innerHTML = themeMenuMarkup({ id: "app-theme-menu", label: t("shell.theme") });
-tools.replaceChildren(theme);
-attachThemePickers(tools);
+// It is drawn again on a language change, so its name and the Light / Dark groups follow the language.
+let detachTheme = () => {};
+function drawTheme() {
+  detachTheme();
+  const theme = h("span", { class: "app-theme" });
+  theme.innerHTML = themeMenuMarkup({ id: "app-theme-menu", label: t("shell.theme") });
+  tools.replaceChildren(theme);
+  detachTheme = attachThemePickers(tools);
+}
+drawTheme();
 onKitchen((k) => {
   const kept = k.settings?.lang === "nl" ? "nl" : "en";
   if (kept !== lang()) useLang(kept);
 });
 // A new language draws the bar and the page again, in place: nothing typed is kept in a page that is redrawn, so a
 // language change in Calm settings is the only thing that does this.
+/** The shell's own words in index.html (the skip link, the bar's name) follow the language too. */
+function shellWords() {
+  const skip = document.querySelector(".kp-skip-link");
+  if (skip) skip.textContent = t("shell.skip");
+  document.getElementById("bar")?.setAttribute("aria-label", t("shell.pages"));
+}
+shellWords();
 onLang(() => {
+  shellWords();
+  drawTheme();
   void bar.draw();
   void render();
 });

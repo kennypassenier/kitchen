@@ -76,7 +76,7 @@ function sayRecipe({ ctx }, { handle, said, actions }) {
     said.textContent = ctx.fromWheel ? t("timing.fromWheel", line) : line;
     actions.append(h("a", { class: "kp-button kp-button--sm", href: `/recipe?id=${encodeURIComponent(String(ctx.recipe.id))}` }, t("timing.openRecipe")));
   } else {
-    said.textContent = ctx.recipeId ? t("timing.thatNoTimes") : t("timing.chooseToCount");
+    said.textContent = !ctx.recipeId ? t("timing.chooseToCount") : ctx.recipe ? t("timing.thatNoTimes") : t("timing.thatMissing");
   }
 }
 
