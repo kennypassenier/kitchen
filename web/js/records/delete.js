@@ -4,6 +4,7 @@ import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { replace, remove, restore, kitchenNow } from "../api.js";
 import { t } from "../i18n/index.js";
+import { saveFailed } from "../api/stale-notice.js";
 import { openDishEditor, ordered } from "../dishes/editor.js";
 import { copyDish } from "../recipe/duplicate.js";
 import { LISTS } from "./lists.js";
@@ -22,12 +23,16 @@ import { byOrder, closeUp, makeRoom } from "./order.js";
 /** Whether a list keeps its items in a numbered order (the two category lists). @param {List} list */
 const numbered = (list) => list === "dish_categories" || list === "ingredient_categories";
 
-/** Save the given items' new `order`, one after the other; a refusal says so (the list then shows a gap, no loss). @param {List} list @param {Item[]} changes */
+/**
+ * Save the given items' new `order`, one after the other; a refusal says so (the list then shows a gap, no loss). A
+ * category saved elsewhere since this page read it is refused as stale and the stale notice says so (fix-quick-rev-1).
+ * @param {List} list @param {Item[]} changes
+ */
 async function saveOrders(list, changes) {
   try {
     for (const x of changes) await replace(list, x);
   } catch (e) {
-    toast(t("rec.orderNotSaved", e instanceof Error ? e.message : String(e)), { live: "assertive", sticky: true });
+    saveFailed(e, () => t("rec.orderNotSaved", e instanceof Error ? e.message : String(e)));
   }
 }
 

@@ -5,6 +5,7 @@ import { attachMenuButtons, setMenu, toast, MENU_SELECT_EVENT } from "/static/kp
 import { h } from "../../dom.js";
 import { replace, reason, kitchenNow } from "../../api.js";
 import { t } from "../../i18n/index.js";
+import { saveFailed } from "../../api/stale-notice.js";
 import { newRecipe } from "../../recipe/edit-nav.js";
 import { notSafeRecipes, choiceHint } from "./safe-choices.js";
 
@@ -31,7 +32,7 @@ async function choose(value) {
     await replace("recipes", { ...r, safe: true });
     toast(t("rec.isSafe", r.name));
   } catch (e) {
-    toast(t("rec.notChanged", reason(e)), { live: "assertive", sticky: true });
+    saveFailed(e, () => t("rec.notChanged", reason(e)));
   }
 }
 

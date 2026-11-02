@@ -1,7 +1,8 @@
 // The recipes card on a dish's page.
 
-import { attachCardStates, setCardState, toast } from "/static/kp/dist/kp-themes.min.js";
-import { makeDefaultRecipe, recipeLabel } from "../../api.js";
+import { attachCardStates, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { makeDefaultRecipe, reason, recipeLabel } from "../../api.js";
+import { saveFailed } from "../../api/stale-notice.js";
 import { h } from "../../dom.js";
 import { duplicateRecipe, deleteRecipe } from "../../records/index.js";
 import { go } from "../../go.js";
@@ -28,7 +29,7 @@ function recipeButtons(r, view, label) {
 function defaultMark(r, label, isDefault) {
   if (isDefault) return h("span", { class: "kp-badge kp-badge--success" }, t("it.default"));
   const def = h("button", { type: "button", class: "kp-button kp-button--sm", "aria-label": t("it.makeDefaultName", label) }, t("it.makeDefault"));
-  def.addEventListener("click", () => void makeDefaultRecipe(r.id).catch((e) => toast(String(e), { live: "assertive" })));
+  def.addEventListener("click", () => void makeDefaultRecipe(r.id).catch((e) => saveFailed(e, () => reason(e))));
   return def;
 }
 

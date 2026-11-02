@@ -15,6 +15,9 @@ export const EN_RECORDS = {
   "rec.addText": "Fill in what you know; every field can be changed later.",
   "rec.notSaved": "Not saved",
   "api.stale": "This was changed somewhere else in the meantime. Reload the page before you save again; your changes here are not saved.",
+  // fix-quick-rev-1: a quick action (safe toggle, reorder, make default, Undo) refused because the item was saved elsewhere.
+  "api.staleQuick": "This changed elsewhere in the meantime. Reload the page and try again.",
+  "api.staleReload": "Reload",
   "rec.saved": "Saved",
   "rec.savedName": (n) => `Saved ${n}`,
   "rec.addedName": (n) => `Added ${n}`,

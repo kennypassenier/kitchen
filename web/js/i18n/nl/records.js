@@ -15,6 +15,9 @@ export const NL_RECORDS = {
   "rec.addText": "Vul in wat je weet; alles kan later nog veranderen.",
   "rec.notSaved": "Niet bewaard",
   "api.stale": "Dit is intussen ergens anders gewijzigd. Herlaad de pagina voor je opnieuw bewaart; je wijzigingen hier zijn niet bewaard.",
+  // fix-quick-rev-1: een snelle actie (veilig, volgorde, standaard, Ongedaan maken) geweigerd omdat het item ergens anders bewaard werd.
+  "api.staleQuick": "Dit is intussen ergens anders gewijzigd. Herlaad de pagina en probeer opnieuw.",
+  "api.staleReload": "Opnieuw laden",
   "rec.saved": "Bewaard",
   "rec.savedName": (n) => `${n} bewaard`,
   "rec.addedName": (n) => `${n} toegevoegd`,

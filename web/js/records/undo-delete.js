@@ -7,6 +7,7 @@
 import { toast, undoToast } from "/static/kp/dist/kp-themes.min.js";
 import { reason } from "../api.js";
 import { t } from "../i18n/index.js";
+import { saveFailed } from "../api/stale-notice.js";
 
 /** How long Undo is offered (Kenny's choice: 10 s, as the shelf and the log). */
 export const UNDO_MS = 10_000;
@@ -40,7 +41,8 @@ export async function deleteWithUndo({ name, remove, restore, settle }) {
       try {
         await restore();
       } catch (e) {
-        toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true });
+        // A recipe's Undo saves its dish: changed elsewhere since, it is refused as stale (fix-quick-rev-1).
+        saveFailed(e, () => t("rec.notBack", reason(e)));
       }
     },
   });

@@ -3,11 +3,10 @@
 // editor turns that into its own result so the page can offer Reload or Keep as a draft (pages/recipe-edit/stale.js).
 // Pure: tested by scripts/stale-save.test.mjs.
 
-/** Whether an error is the server's stale refusal. @param {unknown} e */
-export const isStale = (e) => {
-  const err = /** @type {{ status?: unknown, code?: unknown } | null} */ (e && typeof e === "object" ? e : null);
-  return err?.status === 409 && err?.code === "stale";
-};
+import { isStale } from "../../api/save.js";
+
+// Whether an error is the server's stale refusal: one test for every save (api/save.js, fix-quick-rev-1).
+export { isStale };
 
 /**
  * The editor's save result for a stale refusal, else null (the caller maps any other error as before).

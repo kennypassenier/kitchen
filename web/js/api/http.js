@@ -2,7 +2,7 @@
 
 import { toLogin } from "../raw.js";
 import { t } from "../i18n/index.js";
-import { limitOf, limitWords } from "./refusal.js";
+import { failureOf, headersFor } from "./save.js";
 
 export class ApiError extends Error {
   /**
@@ -27,9 +27,8 @@ export const reason = (e) => (e instanceof Error ? e.message : String(e));
  * @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean, ifMatch?: number }} [o]
  */
 export async function call(method, path, body, { keepalive = false, ifMatch } = {}) {
-  /** @type {Record<string, string>} */
-  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
-  if (typeof ifMatch === "number") headers["If-Match"] = String(ifMatch);
+  // The If-Match and the refusal's words come from one place for every save (api/save.js, fix-quick-rev-1).
+  const headers = headersFor(body, ifMatch);
   let res;
   try {
     res = await fetch(path, {
@@ -54,11 +53,7 @@ export async function call(method, path, body, { keepalive = false, ifMatch } = 
     /* not JSON: handled below */
   }
   if (!res.ok) {
-    // A size refusal is said in the page's language and names the field (fix-field-limits-1); any other keeps the server's words.
-    // A stale save is said in the page's language too (fix-stale-save-1).
-    const limit = limitOf(data);
-    const code = typeof data?.code === "string" ? data.code : "";
-    const words = limit ? limitWords(limit, t) : code === "stale" ? t("api.stale") : (data?.error ?? `The kitchen answered ${res.status}.`);
+    const { words, limit, code } = failureOf(res.status, data, t);
     throw new ApiError(words, res.status, limit, code);
   }
   return data;

@@ -5,10 +5,10 @@
 // No drawer is left for a category. An item page's Edit (and the "missing name" badge) opens the cell in its table
 // through `?edit=<id>` (records/editors.js).
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, kitchenNow } from "../api.js";
 import { t, nameOf } from "../i18n/index.js";
+import { saveFailed } from "../api/stale-notice.js";
 import { names } from "../dishes/names.js";
 import { input, NAME_LIMIT } from "../ui/form-parts.js";
 import { tableCard } from "./table-card.js";
@@ -79,7 +79,8 @@ async function onReorder(list, ids, event) {
     const order = /** @type {string[]} */ (event.detail.order).map((key) => ids.get(key) ?? key);
     for (const x of reordered(kitchenNow()?.[list] ?? [], order)) await replace(list, x);
   } catch (e) {
-    toast(t("rec.orderNotSaved", e instanceof Error ? e.message : String(e)), { live: "assertive", sticky: true });
+    // A category saved elsewhere since this page read it: the stale notice (fix-quick-rev-1).
+    saveFailed(e, () => t("rec.orderNotSaved", e instanceof Error ? e.message : String(e)));
   }
 }
 

@@ -3,6 +3,7 @@
 import { undoToast, toast } from "/static/kp/dist/kp-themes.min.js";
 import { create, replace, remove, kitchenNow, reason } from "../api.js";
 import { t, textOf } from "../i18n/index.js";
+import { saveFailed } from "../api/stale-notice.js";
 import { today, dmy } from "../format.js";
 
 /** @typedef {import("./lists.js").Item} Item */
@@ -19,10 +20,11 @@ export function unmarkSafe(r) {
         clock: "ring",
         undo: async () => {
           const now = kitchenNow()?.recipes.find((x) => x.id === r.id);
-          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => toast(t("rec.notBack", reason(e)), { live: "assertive", sticky: true }));
+          if (now) await replace("recipes", { ...now, safe: true }).catch((e) => saveFailed(e, () => t("rec.notBack", reason(e))));
         },
       }),
-    (e) => toast(t("rec.notChanged", reason(e)), { live: "assertive", sticky: true }),
+    // Changed elsewhere since this page read it: the stale notice, nothing overwritten (fix-quick-rev-1).
+    (e) => saveFailed(e, () => t("rec.notChanged", reason(e))),
   );
 }
 

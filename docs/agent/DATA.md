@@ -21,8 +21,15 @@ number is 400. Without the header a save behaves as before (the last one wins). 
 sends the `dish_rev` it opened with, and on a 409 the page offers "Reload" (this version, its draft and its new photos go)
 or "Keep my version as a draft" (the reloaded page offers the draft back) in an alert above the form
 (`web/js/pages/recipe-edit/stale.js`). The dish drawer sends the `rev` of the dish it opened (its recipes ride along in its
-body) and shows the refusal as its error. Other saves send no `If-Match` yet (a toggle, a reorder, Undo). Undo's restore
-puts the item back with the `rev` it had.
+body) and shows the refusal as its error. Since fix-quick-rev-1 (02/11/2026) every other save sends one too: `replace` in
+`web/js/api.js` takes the revision from the body it saves (`rev`, or a recipe's `dish_rev`), which is the one the page
+read, else from the page's copy of the item (`ifMatchFor` in `web/js/api/save.js`, the one place that builds the header
+and maps the refusal). So the quick actions (safe toggle on Bad days, a category reorder or rename, make a recipe the
+dish's default, a recipe's Undo, which is a dish save) are refused instead of silently overwriting; they answer with one
+kit toast, "This changed elsewhere in the meantime. Reload the page and try again." with **Reload**, and read the kitchen
+again (`saveFailed` in `web/js/api/stale-notice.js`). Undo's restore (`POST /data/restore/{list}/{id}`) sends no
+`If-Match`, by decision: a deleted item has no newer version to overwrite, the server puts back exactly what it removed
+(with the `rev` it had), and it answers 409 when the id is back already.
 
 ## Size limits
 

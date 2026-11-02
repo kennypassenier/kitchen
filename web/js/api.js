@@ -12,6 +12,7 @@
 import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
+import { ifMatchFor } from "./api/save.js";
 
 export { ApiError, reason } from "./api/http.js";
 export { recipeLabel } from "./api/recipe-view.js";
@@ -105,8 +106,10 @@ export async function create(list, body) {
 }
 
 /**
- * Replace an item whole. `ifMatch` (fix-stale-save-1): the revision the caller read (an item's `rev`, a recipe's `dish_rev`);
- * the server then refuses the save with an ApiError of code "stale" when someone saved it since. Left out, the last save wins.
+ * Replace an item whole. Every replace is checked against the revision the page read (fix-stale-save-1, fix-quick-rev-1):
+ * `ifMatch` when the caller gives one (the recipe editor's `dish_rev`, the dish drawer's `rev`), else the revision the
+ * body carries (api/save.js `ifMatchFor`). The server refuses a save made over someone else's with an ApiError of code
+ * "stale" and changes nothing; a quick action shows that through api/stale-notice.js `saveFailed`.
  * @param {string} list @param {Item} item @param {{ ifMatch?: number }} [o]
  */
 export async function replace(list, item, { ifMatch } = {}) {
@@ -116,6 +119,8 @@ export async function replace(list, item, { ifMatch } = {}) {
     // remaining recipe becomes the default when the moved one was it. `label` ({nl, en}) replaces the label when given.
     const dish = copy?.dishes.find((d) => (d.recipes ?? []).some((/** @type {Item} */ r) => r.id === item.id));
     if (!dish) throw new ApiError("That recipe does not exist (any more).", 404);
+    // The dish's revision as the caller read it (the recipe view's `dish_rev`), not the copy's, which may be newer.
+    const rev = ifMatchFor("recipes", item, { explicit: ifMatch, held: dish });
     const list = /** @type {Item[]} */ (dish.recipes);
     const old = /** @type {Item} */ (list.find((r) => r.id === item.id));
     const label = item.label ? { nl: String(item.label.nl ?? ""), en: String(item.label.en ?? "") } : { ...(old.label ?? { nl: "", en: "" }) };
@@ -128,18 +133,21 @@ export async function replace(list, item, { ifMatch } = {}) {
       const rest = list.filter((r) => r.id !== item.id);
       if (rest.length && !rest.some((r) => r.default === true)) rest[0] = { ...rest[0], default: true };
       try {
-        await replace("dishes", { ...dish, recipes: rest }, { ifMatch });
+        await replace("dishes", { ...dish, recipes: rest }, { ifMatch: rev });
       } catch (e) {
-        // Take the copy out of the target again (not in both dishes); if that fails too, say so where it can be found.
-        await replace("dishes", { ...target, recipes: there }).catch((undo) => console.warn(`moving recipe ${item.id}: the copy in dish ${target.id} could not be taken back`, undo));
+        // Take the copy out of the target again (not in both dishes); if that fails too, say so where it can be found. The
+        // target as saved a moment ago (its revision went up), so the take-back is not refused as stale.
+        const added = copy?.dishes.find((d) => d.id === target.id) ?? target;
+        await replace("dishes", { ...added, recipes: there }).catch((undo) => console.warn(`moving recipe ${item.id}: the copy in dish ${target.id} could not be taken back`, undo));
         throw e;
       }
     } else {
-      await replace("dishes", { ...dish, recipes: list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r)) }, { ifMatch });
+      await replace("dishes", { ...dish, recipes: list.map((r) => (r.id === item.id ? { ...recipeBody(item), id: item.id, label, default: old.default === true } : r)) }, { ifMatch: rev });
     }
     return copy?.recipes.find((r) => r.id === item.id) ?? item;
   }
-  const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item, { ifMatch });
+  const held = /** @type {Item[] | undefined} */ (copy?.[/** @type {keyof Kitchen} */ (list)])?.find?.((x) => x.id === item.id);
+  const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item, { ifMatch: ifMatchFor(list, item, { explicit: ifMatch, held }) });
   put(list, saved);
   return saved;
 }
@@ -168,7 +176,10 @@ export async function remove(list, id) {
 
 /**
  * Undo of a delete (Kenny, 01/11/2026 20:21): the server puts the removed item back at its place under the same id,
- * within its undo window (src/store/undo.rs); `at` is where the shared copy held it. Resolves to the item.
+ * within its undo window (src/store/undo.rs); `at` is where the shared copy held it. Resolves to the item. No If-Match
+ * (fix-quick-rev-1, decided): a deleted item has no newer version to overwrite. The server puts back exactly what it
+ * removed, with its `rev`, and answers 409 when the id is back already, so a restore can never silently replace a save.
+ * (Undo of a recipe is a dish save, `replace`, and is checked like any other.)
  * @param {string} list @param {string} id @param {number} at
  */
 export async function restore(list, id, at) {
