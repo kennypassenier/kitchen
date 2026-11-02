@@ -223,6 +223,12 @@ Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trim
 - `ganttFitAttrs` (`web/js/recipe/timeline-fit.js`) asks the kit for `data-kp-gantt-scroll="fit"` from kp-themes
   `FIT_FROM` (12.2.0, confirmed against its CHANGELOG) and "off" before; tests in `scripts/`.
 
+- The kit's own failed-edits drawer (Discard / Save again / Discard all; chassis-rs 073273f, in the pinned 8042dbe) replaces
+  Kitchen's list of refused edits [refactor-offline-drawer-1]: `failed-list.js`, `describe.js`, their test and words are gone;
+  Kitchen's NL/EN words go to the kit through `kitMessages`. The logout question on the kit's own pages and the band's words
+  after a language switch are the kit's now. `web/js/api.js` lost the recipe import and the wheel reads to
+  `web/js/api/server-reads.js` (still exported from `api.js`) [refactor-api-split-1].
+
 ### Migration / deploy notes (for the homelab thread)
 - **Environment**: no new or changed variable. `KITCHEN_TRUSTED_PROXIES` must still include Traefik (10.10.10.4) behind
   the home route, as in 5.0.0; `KITCHEN_TRUSTED_ADMINS`, `KITCHEN_PARENTS_ALLOW` and the rest are untouched.

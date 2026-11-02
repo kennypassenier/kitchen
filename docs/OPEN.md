@@ -109,14 +109,12 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 None open: the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
 
-Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026; re-check against 4.3.0, whose CHANGELOG says logout with unsent edits asks):
-- **Logout does not ask on Kitchen.** The sign-out button exists only on the kit's own pages (`layout.html`,
-  `#chassis-logout`), which do not start `chassisData`, so the kit's "unsent edits" confirmation never runs there; Kitchen's
-  pages have no sign-out of their own. Kitchen does not bypass the kit (no logout code in Kitchen). Fix in the kit (configure
-  the data client's logout hook on its own pages from the app's name) or give Kitchen a sign-out form (a choice).
-- **The kit's band toasts read their words once** (`bindBand` spreads `messages` at bind time): after a language switch
-  they stay in the start language until the next load. The logout question follows (it reads them each time).
-- **No `post()` in the client**: added in chassis-rs 8042dbe and used for the freezer take. The failed-edits view (073273f) is used; the logout and band gaps above are fixed in 8042dbe (re-check: release check 12).
+Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026):
+- [x] Logout did not ask on the kit's pages, the band's words read once, no `post()`, no failed-edits view: all four fixed in
+  chassis-rs 073273f / 8042dbe (done on 8042dbe; the row for 073273f is ticked, re-check in release check 12).
+- [ ] **Optimistic `post()` only updates the POST's own path** (`post(path, body, { optimistic })` amends the copy of the
+  POST's path, not the list it changes): Kitchen draws the queued freezer take itself (`takePortions`, `offline/apply.js`).
+  Filed in kp-gaps/chassis-rs.md 02/11/2026 (an `optimistic` that names the path it amends); drop Kitchen's overlay when it ships.
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
 deliberate (Kenny, 30/10/2026 17:52, bottoms level; see `docs/DECISIONS.md`); "After 1.0: memory, sensory profile, low
