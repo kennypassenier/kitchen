@@ -83,6 +83,11 @@
   margin: 0;
 }
 
+/* The offline row's "Clear offline copy" sits in its value cell (fix-settings-clear-align-1): at its own width, not the cell's. */
+.st-value > .kp-button {
+  justify-self: start;
+}
+
 .st-said {
   min-block-size: 1.5em;
 }

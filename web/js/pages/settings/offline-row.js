@@ -31,9 +31,21 @@ export function offlineControls() {
   return { offlineInput, offlineControl, clearButton };
 }
 
-/** The row in the Calm grid. @param {ReturnType<typeof offlineControls>} c */
+/**
+ * The row in the Calm grid. The clear button sits in the value cell under its hint, not in the actions column: that
+ * column holds the rows' same-width "Use default" buttons, and the wider "Clear offline copy" started 30 px off them at
+ * 1280 and wrapped to its own line at 390 (measure.mjs at the 6.0.0 release checks, fix-settings-clear-align-1).
+ * @param {ReturnType<typeof offlineControls>} c
+ */
 export const offlineRow = (c) =>
-  row({ id: "offline", title: t("set.offlineTitle"), text: t("set.offlineText"), control: c.offlineControl, said: t("set.offlineReading"), extra: h("small", { class: "st-hint" }, t("set.offlineClearHint")), action: c.clearButton });
+  row({ id: "offline", title: t("set.offlineTitle"), text: t("set.offlineText"), control: c.offlineControl, said: t("set.offlineReading"), extra: hintAndClear(c.clearButton) });
+
+/** The hint and the clear button as direct children of the value cell (settings.css keys on `.st-value > .st-hint`). @param {Node} button */
+function hintAndClear(button) {
+  const both = document.createDocumentFragment();
+  both.append(h("small", { class: "st-hint" }, t("set.offlineClearHint")), button);
+  return both;
+}
 
 /**
  * Say what the setting does now, how much room the copy takes and, with the setting off, how many recipes are kept
