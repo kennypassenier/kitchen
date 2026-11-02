@@ -7,11 +7,9 @@
 // A POST (create, draft, import, restore) needs a connection: the server issues the ids. The freezer take is the one
 // POST through the kit (feat-offline-take-1): queued offline with an Idempotency-Key, so the server takes it once.
 //
-// Every screen reads the kitchen through `loadKitchen()` and changes it
-// through the calls below; a change updates the shared copy and tells every
-// listener, so two screens never disagree. A failure is an `ApiError` whose
-// message is fit to show as it is: the server's own words, or that the
-// connection dropped (never that anything is gone).
+// Every screen reads the kitchen through `loadKitchen()` and changes it through the calls below; a change updates the
+// shared copy and tells every listener, so two screens never disagree. A failure is an `ApiError` whose message is fit
+// to show as it is: the server's own words, or that the connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any> }} Kitchen */
@@ -20,7 +18,7 @@ import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
 import { ifMatchFor } from "./api/save.js";
-import { kitData, readJson, writeJson } from "./api/kit-data.js";
+import { kitData, writeJson } from "./api/kit-data.js";
 import { readKitchen } from "./api/kitchen-read.js";
 import { mergeSettings, takeFrom, takePath } from "./offline/apply.js";
 import { parkDeleted, unqueueDelete } from "./offline/undo.js";
@@ -214,14 +212,7 @@ export async function restore(list, id, at) {
 }
 
 export { readDraft, readDrafts, saveDraft, deleteDraft } from "./api/drafts.js";
-
-/** A recipe read from a web page (`{ url }`) or pasted text (`{ text }`), normalised; a refusal's message is its code (src/import.rs). @param {{ url?: string, text?: string }} body */
-export const importRecipe = (body) => call("POST", "/data/import", body);
-
-/** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */
-export const readWheelEnglish = async () => (await readJson("/data/wheel/en")).data;
-/** The same list in Dutch, behind the login: Kitchen's /parents in Dutch, also away from home. */
-export const readWheelDutch = async () => (await readJson("/data/wheel/nl")).data;
+export { importRecipe, readWheelEnglish, readWheelDutch } from "./api/server-reads.js";
 
 /**
  * Take portions out of the freezer (negative puts them back), through the kit: without a connection the take waits in
