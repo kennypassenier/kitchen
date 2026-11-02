@@ -1,6 +1,6 @@
 # Open
 
-4 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs rev b08ecab), the kp-themes split delivery's release checks, and one choice for Kenny.
+4 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs rev cd68fd9), the kp-themes split delivery's release checks, and one choice for Kenny.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
@@ -41,7 +41,8 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
-8. **Re-pin chassis-rs** from rev b08ecab (fcb993f `kp_modules()` + b08ecab gzip prefs-block fix) to the release tag that carries both before Kitchen's release (both
+8. **Re-pin chassis-rs** from rev cd68fd9 (fcb993f `kp_modules()`, b08ecab gzip prefs-block fix, 0b541ca login `?next=`,
+   cd68fd9 offline data client; pinned 02/11/2026 [meta-chassis-cd68fd9-1]) to the release tag that carries all four before Kitchen's release (both
    entries in `Cargo.toml`, `.chassis.toml` `chassis_tag`, `cargo update -p chassis`; only `chassis` may move in `Cargo.lock`).
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
