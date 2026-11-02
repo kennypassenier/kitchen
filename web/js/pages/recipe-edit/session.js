@@ -26,7 +26,7 @@ export function openSession({ shell, start, mainOptions, from, navigate }) {
     // The old sections' marks go first, so the bar counts again (a removed node is no attribute change).
     bar.refreshNow();
     editor?.dispose();
-    editor = createEditor({ recipe: s.recipe, mainOptions, preset: s.preset, restore: s.restore, copyOf: s.copyOf, imported: s.imported, cover: s.cover, draftKey: s.draftKey, restoreWith: (data, key) => show({ restore: data, copyOf: "", imported: false, cover: null, draftKey: key }) });
+    editor = createEditor({ recipe: s.recipe, mainOptions, preset: s.preset, restore: s.restore, copyOf: s.copyOf, imported: s.imported, cover: s.cover, draftKey: s.draftKey, compare: s.compare ?? null, restoreWith: (data, key) => show({ restore: data, copyOf: "", imported: false, cover: null, draftKey: key, compare: editor.baseline }) });
     alert.hidden = true;
     scope.replaceChildren(editor.form);
     editor.start();

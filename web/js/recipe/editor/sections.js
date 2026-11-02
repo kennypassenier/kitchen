@@ -16,13 +16,15 @@ export const SECTIONS = [
  * restored draft is new work from the start): every section that holds fields counts as changed. `isNew`: a recipe not saved
  * yet; once it has a dish (chosen or named) it is worth saving even with nothing else typed, so its dish section counts as
  * changed (fix-dish-only-save-1: a new recipe opened from its dish said "No changes" and could not be saved).
- * @param {Record<string, any> | null} opening @param {Record<string, any>} now @param {{ isNew?: boolean }} [o] @returns {string[]}
+ * `unsaved`: a copy, an import or a restored new draft, which is new work however little differs from how it opened; it
+ * counts what differs, or its dish section when nothing does, never every section (fix-change-count-1).
+ * @param {Record<string, any> | null} opening @param {Record<string, any>} now @param {{ isNew?: boolean, unsaved?: boolean }} [o] @returns {string[]}
  */
-export function changedSections(opening, now, { isNew = false } = {}) {
+export function changedSections(opening, now, { isNew = false, unsaved = false } = {}) {
   const held = SECTIONS.filter((s) => s.fields.length);
   if (!opening) return held.map((s) => s.key);
   const diff = held.filter((s) => s.fields.some((f) => JSON.stringify(opening[f]) !== JSON.stringify(now[f]))).map((s) => s.key);
-  return !diff.length && isNew && (now.dish_id || now.new_dish) ? ["dish"] : diff;
+  return !diff.length && isNew && (unsaved || now.dish_id || now.new_dish) ? ["dish"] : diff;
 }
 
 /**

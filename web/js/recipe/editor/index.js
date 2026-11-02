@@ -64,9 +64,9 @@ const sec = (def, ...body) => h("section", { class: "rl-formsec", id: def.id, "d
 /**
  * Build the editor's form for a recipe, or a new one. `restore` is a draft's form state (Kenny, 29/10/2026). Nothing is wired
  * until the page has put `form` in the document and called `start()`.
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string, imported?: boolean, cover?: string | null, draftKey?: string, restoreWith?: (data: Record<string, any>, key: string) => void }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js); `imported` makes it the preview of an import (recipe/import.js) and `cover` is the picture address the page offered (recipe/cover.js); `draftKey` is the key its draft is kept under when it is not the default (recipe/draft-keys.js); `restoreWith` is called with an earlier draft's data and key when its Restore is pressed
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string, imported?: boolean, cover?: string | null, draftKey?: string, compare?: Record<string, any> | null, restoreWith?: (data: Record<string, any>, key: string) => void }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js); `imported` makes it the preview of an import (recipe/import.js) and `cover` is the picture address the page offered (recipe/cover.js); `draftKey` is the key its draft is kept under when it is not the default (recipe/draft-keys.js); `restoreWith` is called with an earlier draft's data and key when its Restore is pressed; `compare` is what a restored draft is compared with (the form the editor it replaces opened with, fix-change-count-1)
  */
-export function createEditor({ recipe, mainOptions, preset = {}, restore = null, copyOf = "", imported = false, cover = null, draftKey = "", restoreWith = () => {} }) {
+export function createEditor({ recipe, mainOptions, preset = {}, restore = null, copyOf = "", imported = false, cover = null, draftKey = "", compare = null, restoreWith = () => {} }) {
   const r = startOf(recipe, preset, restore);
   const p = buildParts(recipe, r, { preset, restore, mainOptions, key: draftKey });
   const { details, times, notes, lists, timeline, steps, tracker, collector, draft } = p;
@@ -76,9 +76,11 @@ export function createEditor({ recipe, mainOptions, preset = {}, restore = null,
   const form = /** @type {HTMLFormElement} */ (h("form", { class: "rl-form", id: "rl-editor-form", novalidate: true }, offer, ...SECTIONS.map((def) => sec(def, body[def.key]))));
   // The cover offer of an import: nothing is loaded from the page's site until Yes (recipe/cover.js).
   if (cover) offer.after(coverCard({ url: cover, picked: (id) => { tracker.uploaded(id); details.recipePhoto.set([id]); } }));
-  // A copy, an import and a restored draft are new work from the start: there is no saved form to compare with.
+  // What the sections are compared with, set at start(): the saved form, how it opened, or a restore's `compare`.
   /** @type {Record<string, any> | null} */
   let baseline = null;
+  // Not saved yet and new work from the start: a copy, an import, or a restored draft of a new recipe.
+  const unsaved = !recipe && Boolean(restore || imported || copyOf);
   /** @type {() => void} */
   let detachSeq = () => {};
   const saver = createSaver({ recipe, collector, details, lists, tracker, draft });
@@ -92,15 +94,21 @@ export function createEditor({ recipe, mainOptions, preset = {}, restore = null,
       wireForm({ form, steps, timeline, times, lists });
       watchDraft(form, draft);
       draft.setOpening(JSON.stringify(collector.collect(true)));
-      if (!restore && !imported && !copyOf) baseline = collector.collect(true);
+      // A restored draft of a saved recipe is compared with the saved recipe; anything else with how it opened. A copy, an
+      // import or a restored new draft is unsaved work all the same (`unsaved`), but claims only what differs.
+      baseline = compare ?? collector.collect(true);
       if (restore) return;
       offerEarlierDraft({ draftKey: p.draftKey, dishId: preset.dish_id ?? null, draft, offer, host: form, restoreWith: (data, key) => { void tracker.discard(); restoreWith(data, key); } });
     },
     save: saver,
     /** The sections whose fields differ from how the form opened. */
-    changed: () => changedSections(baseline, collector.collect(true), { isNew: !recipe }),
+    changed: () => changedSections(baseline, collector.collect(true), { isNew: !recipe, unsaved }),
+    /** The form this editor compares with: a restore that replaces it compares with the same. */
+    get baseline() {
+      return baseline;
+    },
     /** Whether the form differs from how it opened (a copy or an import always does until it is saved). */
-    dirty: () => isChanged(baseline ? JSON.stringify(baseline) : "", JSON.stringify(collector.collect(true))),
+    dirty: () => unsaved || isChanged(baseline ? JSON.stringify(baseline) : "", JSON.stringify(collector.collect(true))),
     /** Stop everything this editor wired. `keep`: write the draft once more first, so nothing typed is lost. @param {{ keep?: boolean }} [o] */
     dispose({ keep = false } = {}) {
       timeline.stop();

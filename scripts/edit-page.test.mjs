@@ -97,3 +97,14 @@ test("a new recipe with only its dish chosen counts as changed, so it can be sav
   assert.deepEqual(changedSections(opened, { ...opened }), [], "a saved recipe as it opened has no changes");
   assert.deepEqual(changedSections(opened, { ...opened, steps: [{ id: 1 }] }, { isNew: true }), ["steps"]);
 });
+
+test("a copy or an import counts as changed without claiming every section (fix-change-count-1)", () => {
+  const opened = { dish_id: null, new_dish: null, summary: "imported", steps: [{ id: 1 }], portions: 4 };
+  assert.deepEqual(changedSections(opened, { ...opened }, { isNew: true, unsaved: true }), ["dish"]);
+  assert.deepEqual(changedSections(opened, { ...opened, portions: 2 }, { isNew: true, unsaved: true }), ["time"]);
+});
+
+test("a restored draft of a saved recipe counts only what differs from the saved recipe (fix-change-count-1)", () => {
+  const saved = { summary: "x", portions: 2, steps: [{ id: 1 }], tracks: [], last_note: "" };
+  assert.deepEqual(changedSections(saved, { ...saved, summary: "draft" }), ["dish"]);
+});
