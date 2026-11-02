@@ -167,9 +167,13 @@ on a dish's `DELETE` all of the dish's ids; a sweep every 30 s (`SWEEP_EVERY`) d
 120 s window (`UNDO_KEEP`) closed and only when nothing refers to them: no dish, no draft and no deleted item still in
 its window. A restore within the window (Undo's dish `PUT`, or `POST /data/restore/dishes/{id}`) refers to them again, so
 they stay. So a page reloaded or closed within the 10 s no longer leaves the photos of a deleted recipe behind. The
-noted ids live in memory: a restart within the window leaves those files as orphans. Known limit: a photo that was uploaded and then never saved nor
-cancelled and is in no draft (a draft saves about a second after a change, so a tab closed within that second)
-stays as an orphan file; nothing sweeps them.
+noted ids live in memory, so a restart within the window drops them; the start-up sweep takes over (fix-photo-orphans-1,
+02/11/2026, `src/store/photo_orphans.rs`): when the kitchen starts it deletes every `photos/<uuid>.jpg|webp` file that
+nothing in `kitchen.json` refers to (any `photo` / `photos` at any depth: dishes, their recipes and steps, drafts) and
+that was last written more than 10 minutes ago (`ORPHAN_MIN_AGE`), so an upload whose draft is not written yet is never
+taken. That also covers a photo uploaded in a tab that closed before its draft was written. Undo lives in memory too, so
+after a restart nothing can bring a dropped photo back. Other files in the folder are never touched; the log says how
+many files went ("orphan photo files deleted at start", every start) and names each one that could not be deleted.
 
 ## dishes
 

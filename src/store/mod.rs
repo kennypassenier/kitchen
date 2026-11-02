@@ -23,6 +23,7 @@ mod limits;
 mod migrate;
 mod ops;
 mod photo_gc;
+mod photo_orphans;
 mod seed;
 mod undo;
 mod validate;
@@ -32,6 +33,7 @@ pub use data::{Data, Refused};
 pub use drafts::DRAFT_DAYS;
 pub use migrate::migrate;
 pub use photo_gc::SWEEP_EVERY;
+pub use photo_orphans::{ORPHAN_MIN_AGE, OrphanSweep};
 pub use seed::seed;
 use seed::sources_seed;
 

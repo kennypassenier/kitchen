@@ -98,6 +98,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **A restart no longer leaves photo files behind** [fix-photo-orphans-1]: when the kitchen starts it deletes the photo
+  files nothing refers to any more (dropped within Undo's window just before a restart, or uploaded in a tab that closed
+  before its draft was written), once they are older than 10 minutes, and logs how many went.
 - **A quick action no longer overwrites a change made elsewhere** [fix-quick-rev-1]: the safe toggle, a category reorder,
   make default and a recipe's Undo send the revision they read, like the editor; when the item was saved in another tab
   or on another device in the meantime, nothing is overwritten and one toast says "This changed elsewhere in the
@@ -164,7 +167,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
   limit can still be read, but saving it again asks to shorten the field first.
 - **Photo clean-up**: photos dropped from a dish are removed once the 120 s undo window closes (fix-undo-photos-1); a
-  restart inside that window leaves those files on disk (harmless, no data lost).
+  restart inside that window no longer leaves them: each start deletes the photo files nothing refers to that are older
+  than 10 minutes (fix-photo-orphans-1) and logs "orphan photo files deleted at start" with the count. The first start
+  of this version may delete older orphans from before it; files other than `<uuid>.jpg|webp` are never touched.
 - **Rollback to 5.0.0**: the data file is identical in shape, so 5.0.0 opens it as is; only the Undo route and the new
   screens go away. A backup is still good practice, but none is required for this step. Going further back than 5.0.0
   keeps the 5.0.0 rule (a backup taken before that update).

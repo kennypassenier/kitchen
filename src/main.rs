@@ -74,7 +74,14 @@ async fn main() -> std::process::ExitCode {
         // The count is logged from the start hook: the kit's logging comes up after this point, so a line written here is lost
         // (found 29/10/2026).
         let pruned = store.prune_drafts(chassis::shell::time::now_epoch()).await;
-        app.on_start(move || report_pruned(pruned));
+        // Photo files nothing refers to any more (a restart inside Undo's window, a tab closed before its draft) go too,
+        // once they are older than an upload in flight could be (fix-photo-orphans-1). After the drafts, so a pruned
+        // draft's photos are not counted twice; before the routes, so no upload races it.
+        let orphans = store.sweep_orphan_photos().await;
+        app.on_start(move || {
+            report_pruned(pruned);
+            report_orphans(orphans);
+        });
         // Photos that dropped out of a dish go once Undo can no longer bring them back (fix-undo-photos-1).
         let sweeper = store.clone();
         tokio::spawn(async move {
@@ -126,6 +133,25 @@ fn report_pruned(pruned: Result<usize, String>) {
             "old recipe drafts dropped"
         ),
         Err(error) => tracing::warn!(%error, "old recipe drafts could not be dropped; they stay"),
+    }
+}
+
+/// Say how many orphan photo files the start deleted (always, so the sweep is seen to run), and any it could not delete.
+fn report_orphans(swept: Result<store::OrphanSweep, String>) {
+    match swept {
+        Ok(store::OrphanSweep { removed, failed: 0 }) => tracing::info!(
+            removed,
+            min_age_mins = store::ORPHAN_MIN_AGE.as_secs() / 60,
+            "orphan photo files deleted at start"
+        ),
+        Ok(store::OrphanSweep { removed, failed }) => tracing::warn!(
+            removed,
+            failed,
+            "orphan photo files deleted at start; some could not be (see the lines above)"
+        ),
+        Err(error) => {
+            tracing::warn!(%error, "the start-up photo sweep did not run; every photo file stays")
+        }
     }
 }
 

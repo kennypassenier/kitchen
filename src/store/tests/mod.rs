@@ -8,6 +8,7 @@ mod crud;
 mod limits;
 mod migrate;
 mod photo_gc;
+mod photo_orphans;
 mod rev;
 mod undo;
 mod validate;

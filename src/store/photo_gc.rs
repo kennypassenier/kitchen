@@ -6,7 +6,8 @@
 //!   is deleted (fix-undo-photos-1, 02/11/2026). Undo can still put those back for [`UNDO_KEEP`], so the ids are noted
 //!   ([`Dropped`]) and the sweep ([`Store::sweep_photos`], every [`SWEEP_EVERY`]) deletes them once that window closed.
 //!   The page deletes them itself after its 10 s Undo too; the sweep is what stays when the page was reloaded or closed
-//!   before that. Noted ids are lost at a restart (an orphan file then stays; harmless).
+//!   before that. Noted ids live in memory; a restart drops them, and the start-up sweep (photo_orphans.rs,
+//!   fix-photo-orphans-1) deletes those files instead.
 //!
 //! Either way a file is deleted only when nothing refers to it: no dish, no draft and no deleted item still in its undo
 //! window. A copy of a recipe shares its photo ids, so the copy keeps the file.
