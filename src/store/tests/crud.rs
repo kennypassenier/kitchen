@@ -33,10 +33,29 @@ async fn drafts_older_than_a_week_go_and_take_their_own_photos() {
     s.photos = Some(photos.clone());
     // 2026-10-29T12:00:00Z
     let now = 1_793_275_200;
-    assert_eq!(s.prune_drafts(now).await, 1);
+    assert_eq!(s.prune_drafts(now).await, Ok(1));
     assert_eq!(s.list("drafts").await.unwrap().len(), 1);
     assert!(!photos.join(format!("{mine}.jpg")).exists());
     assert!(photos.join(format!("{shared}.jpg")).exists());
+}
+
+#[tokio::test]
+async fn a_prune_that_cannot_save_says_so_and_keeps_the_drafts() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut data = empty();
+    data.drafts.push(
+        serde_json::json!({"id": "a", "key": "new:", "saved": "2026-10-01T00:00:00Z", "data": {}}),
+    );
+    let mut s = Store::in_memory(data);
+    // A kitchen file "inside" a plain file: no directory can be made there, so the save fails.
+    std::fs::write(dir.path().join("blocker"), b"x").unwrap();
+    s.path = dir.path().join("blocker").join("kitchen.json");
+    let out = s.prune_drafts(1_793_275_200).await;
+    assert!(
+        out.is_err(),
+        "a failed save must not read as zero drafts pruned: {out:?}"
+    );
+    assert_eq!(s.list("drafts").await.unwrap().len(), 1);
 }
 
 #[tokio::test]

@@ -47,3 +47,18 @@ fn the_size_cap_is_four_mib() {
     ok.push(0);
     assert_eq!(check_upload("image/jpeg", &ok), Err(Refusal::TooLarge));
 }
+
+#[test]
+fn a_delete_that_fails_is_an_error_not_a_missing_photo() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let id = "0b9e6c1e-2f4a-4c1d-9a37-5d1f0a6f9b21";
+    assert_eq!(remove_files(dir.path(), id).unwrap(), 0);
+    std::fs::write(dir.path().join(format!("{id}.jpg")), JPEG).unwrap();
+    // A directory the server may not change: the file cannot go, and that must not read as "not there".
+    std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o555)).unwrap();
+    let locked = remove_files(dir.path(), id);
+    std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+    assert!(locked.is_err(), "{locked:?}");
+    assert_eq!(remove_files(dir.path(), id).unwrap(), 1);
+}

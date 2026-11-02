@@ -107,14 +107,16 @@ async fn main() -> std::process::ExitCode {
     app.run().await
 }
 
-/// Say how many old drafts the start dropped; silent when none went.
-fn report_pruned(pruned: usize) {
-    if pruned > 0 {
-        tracing::info!(
+/// Say how many old drafts the start dropped (silent when none went), or that dropping them failed.
+fn report_pruned(pruned: Result<usize, String>) {
+    match pruned {
+        Ok(0) => {}
+        Ok(pruned) => tracing::info!(
             pruned,
             days = store::DRAFT_DAYS,
             "old recipe drafts dropped"
-        );
+        ),
+        Err(error) => tracing::warn!(%error, "old recipe drafts could not be dropped; they stay"),
     }
 }
 

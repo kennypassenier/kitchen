@@ -141,22 +141,36 @@ async fn remove(State(dir): State<Dir>, Path(id): Path<String>) -> Response {
         );
     }
     let shown = id.clone();
-    let gone = tokio::task::spawn_blocking(move || {
-        Kind::ALL
-            .into_iter()
-            .filter(|k| std::fs::remove_file(dir.0.join(format!("{id}.{}", k.ext()))).is_ok())
-            .count()
-    })
-    .await
-    .unwrap_or(0);
-    if gone == 0 {
-        refuse(
+    let gone = tokio::task::spawn_blocking(move || remove_files(&dir.0, &id)).await;
+    match gone {
+        Ok(Ok(0)) => refuse(
             StatusCode::NOT_FOUND,
             "that photo does not exist (any more)",
-        )
-    } else {
-        Json(json!({ "deleted": shown })).into_response()
+        ),
+        Ok(Ok(_)) => Json(json!({ "deleted": shown })).into_response(),
+        Ok(Err(e)) => refuse(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("could not delete the photo: {e}"),
+        ),
+        Err(e) => refuse(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("could not delete the photo: {e}"),
+        ),
     }
+}
+
+/// Delete every file of photo `id` in `dir`; answers how many there were. A kind that is not there is fine; any other
+/// failure is an error, so a file that could not go never reads as one that was never there.
+pub(crate) fn remove_files(dir: &FsPath, id: &str) -> std::io::Result<usize> {
+    let mut gone = 0;
+    for k in Kind::ALL {
+        match std::fs::remove_file(dir.join(format!("{id}.{}", k.ext()))) {
+            Ok(()) => gone += 1,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(gone)
 }
 
 #[cfg(test)]

@@ -53,8 +53,8 @@ pub(super) fn photo_ids(v: &Value, out: &mut std::collections::HashSet<String>) 
 
 impl Store {
     /// Drop the drafts last saved more than [`DRAFT_DAYS`] before `now` (epoch seconds), and their photos. Runs when the
-    /// kitchen starts; answers how many drafts went.
-    pub async fn prune_drafts(&self, now: u64) -> usize {
+    /// kitchen starts; answers how many drafts went, or why the pruned list could not be saved (then every draft stays).
+    pub async fn prune_drafts(&self, now: u64) -> Result<usize, String> {
         let cutoff = rfc3339_at(now.saturating_sub(DRAFT_DAYS * 86_400));
         // A draft with no readable `saved` stamp is kept: nothing says it is old.
         let gone = self
@@ -69,9 +69,9 @@ impl Store {
                 Ok(old)
             })
             .await
-            .unwrap_or_default();
+            .map_err(|e| e.to_string())?;
         self.release_photos(&gone).await;
-        gone.len()
+        Ok(gone.len())
     }
 
     /// Delete the photo files the removed `drafts` refer to, except those a recipe or another draft still refers to.
@@ -90,16 +90,23 @@ impl Store {
             photo_ids(&Value::Array(d.dishes.clone()), &mut kept);
             photo_ids(&Value::Array(d.drafts.clone()), &mut kept);
         }
-        let _ = tokio::task::spawn_blocking(move || {
+        let done = tokio::task::spawn_blocking(move || {
             for id in wanted.difference(&kept) {
-                if !crate::photos::valid_id(id) {
-                    continue;
-                }
-                for kind in crate::photos::Kind::ALL {
-                    let _ = std::fs::remove_file(dir.join(format!("{id}.{}", kind.ext())));
+                if crate::photos::valid_id(id) {
+                    remove_photo(&dir, id);
                 }
             }
         })
         .await;
+        if let Err(e) = done {
+            tracing::warn!(error = %e, "the photos of removed drafts were not cleaned up");
+        }
+    }
+}
+
+/// Delete the files of photo `id`; a failure is logged (the file stays as an orphan: harmless, but not unseen).
+fn remove_photo(dir: &std::path::Path, id: &str) {
+    if let Err(e) = crate::photos::remove_files(dir, id) {
+        tracing::warn!(photo = id, error = %e, "a draft's photo could not be deleted");
     }
 }
