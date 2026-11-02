@@ -1,9 +1,11 @@
 // Starting the offline copy on every page (feat-offline-kitchen), called once by main.js: the kit is configured (and
 // Kenny's "keep everything offline" default applied) before the first read, the connection band follows the reads, the
-// copy is read again after the kit sent waiting edits. The kit's own drawer lists the refused edits (its toast's "Review").
+// copy is read again after the kit sent waiting edits, and a kitchen read from the device's copy is read again when the
+// browser is back online (fix-offline-master-3: the server is the master). The kit's own drawer lists the refused edits
+// (its toast's "Review").
 
 import { kitData } from "../api/kit-data.js";
-import { loadKitchen } from "../api.js";
+import { loadKitchen, refreshIfOffline } from "../api.js";
 import { wireBand } from "./band.js";
 import { wireSync } from "./sync.js";
 
@@ -13,4 +15,5 @@ export function startOffline() {
   const reread = () => loadKitchen({ force: true });
   wireBand(document, reread);
   wireSync(reread);
+  addEventListener("online", refreshIfOffline);
 }

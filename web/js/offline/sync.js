@@ -46,3 +46,10 @@ export function wireSync(reread) {
     removeEventListener(SYNCED_EVENT, onSynced);
   };
 }
+
+/**
+ * Whether the held kitchen must be read again before it is served (fix-offline-master-3): only when it came from the
+ * device's copy and no read is already on its way. A copy the kitchen answered is served from memory as before.
+ * @param {boolean} heldFromCopy the held kitchen came from the offline copy @param {boolean} reading a read is in flight
+ */
+export const refreshNeeded = (heldFromCopy, reading) => heldFromCopy && !reading;

@@ -4,7 +4,7 @@
 // Written on 02/11/2026, not run (Kenny's test rule): a release check in docs/OPEN.md.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { REFUSED_EVENT, SYNCED_EVENT, needsReread, wireSync } from "../web/js/offline/sync.js";
+import { REFUSED_EVENT, SYNCED_EVENT, needsReread, refreshNeeded, wireSync } from "../web/js/offline/sync.js";
 
 test("a replay that sent something needs a read", () => {
   assert.equal(needsReread({ sent: 1, remaining: 0, stopped: null }), true);
@@ -35,4 +35,14 @@ test("a refused take (conflict, then a summary with nothing sent) reads the kitc
   } finally {
     stop();
   }
+});
+
+// fix-offline-master-3: a kitchen held from the device's copy is read again on a page change and when back online.
+test("a kitchen read from the device's copy is read again; one from the kitchen is not", () => {
+  assert.equal(refreshNeeded(true, false), true);
+  assert.equal(refreshNeeded(false, false), false);
+});
+
+test("no second read while one is on its way", () => {
+  assert.equal(refreshNeeded(true, true), false);
 });

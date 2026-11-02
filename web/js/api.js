@@ -22,6 +22,7 @@ import { kitData, writeJson } from "./api/kit-data.js";
 import { readKitchen } from "./api/kitchen-read.js";
 import { mergeSettings, takeFrom, takePath } from "./offline/apply.js";
 import { parkDeleted, unqueueDelete } from "./offline/undo.js";
+import { refreshNeeded } from "./offline/sync.js";
 
 export { ApiError, reason } from "./api/http.js";
 export { recipeLabel } from "./api/recipe-view.js";
@@ -31,6 +32,8 @@ export { recipeById, daysSinceCooked, ingredientById, ingredientName, defaultRec
 let copy = null;
 /** @type {Promise<Kitchen> | null} */
 let pending = null;
+/** Whether `copy` came from the device's offline copy rather than from the kitchen (fix-offline-master-3). */
+let copyOffline = false;
 /** @type {Set<(k: Kitchen) => void>} */
 const listeners = new Set();
 
@@ -51,11 +54,13 @@ onLang(() => {
  * @returns {Promise<Kitchen>}
  */
 export function loadKitchen({ force = false } = {}) {
-  if (copy && !force) return Promise.resolve(copy);
+  // A read in flight is newer than the held copy (refreshIfOffline may have started one), so it goes first.
   if (pending && !force) return pending;
+  if (copy && !force) return Promise.resolve(copy);
   pending = readKitchen().then(
-    ({ kitchen: k }) => {
+    ({ kitchen: k, offline }) => {
       copy = k;
+      copyOffline = offline;
       copy.recipes = recipeView(k);
       pending = null;
       tell();
@@ -67,6 +72,17 @@ export function loadKitchen({ force = false } = {}) {
     },
   );
   return pending;
+}
+
+/**
+ * Read the kitchen again when the held copy came from the device's copy (fix-offline-master-3): the server is the master,
+ * so a copy read offline is never served from memory once the kitchen may answer again. Called on every page change
+ * (main.js) and when the browser says it is back online (offline/start.js); without a connection the read falls back
+ * to the device's copy as before. Never from a kitchen listener, so a read cannot start another.
+ */
+export function refreshIfOffline() {
+  if (!refreshNeeded(copyOffline, pending !== null)) return;
+  void loadKitchen({ force: true }).catch((e) => console.warn("Kitchen: reading the kitchen again after an offline read failed", e));
 }
 
 /** The kitchen as last read, or null. */
