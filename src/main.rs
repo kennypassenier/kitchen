@@ -169,16 +169,13 @@ fn parents_settings() -> Result<(Option<String>, parents::Allow), String> {
     Ok((host, allow))
 }
 
-/// The group of the pages that sit behind the bar's More menu (web/js/shell/plan.js reads it by this name).
-const MORE: &str = "More";
-
 /// The pages of the app's bar and the hidden ones.
 fn register_pages(app: &mut App) {
     register_bar(app);
     register_more(app);
     register_hidden(app);
-    app.kit_page("storage", |page| page.group(MORE))
-        .brand("/")
+    // The kit's Storage page is secondary by default (chassis-rs 4.2.0), so it sits in the More menu with the five below.
+    app.brand("/")
         .brand_title("Kitchen")
         // Nothing calls a client API and the kit's status page would be a
         // second home; the operator reads /healthz and `kitchen --check`.
@@ -196,35 +193,36 @@ fn register_bar(app: &mut App) {
         .page(Page::new("log", "What I ate", "/log").order(4));
 }
 
-/// Every page in the group "More" sits behind the bar's More menu instead, in the order given here.
+/// The secondary pages sit behind the bar's More menu instead, in the order given here (`Page::secondary`, chassis-rs
+/// 4.2.0: the kit's own header and phone tab bar put them in its one More menu too; web/js/shell/plan.js reads the flag).
 fn register_more(app: &mut App) {
     // The dishes behind the parents' wheel, and the wheel itself in English; the Dutch one is /eten, without a login.
     app.page(
         Page::new("dishes", "Dishes", "/dishes")
-            .group(MORE)
+            .secondary()
             .order(10),
     )
     // The one list of ingredients dishes and recipes point at.
     .page(
         Page::new("ingredients", "Ingredients", "/ingredients")
-            .group(MORE)
+            .secondary()
             .order(11),
     )
     .page(
         Page::new("parents", "Parents' wheel", "/parents")
-            .group(MORE)
+            .secondary()
             .order(12),
     )
     // The websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11).
     .page(
         Page::new("sources", "Recipe sources", "/sources")
-            .group(MORE)
+            .secondary()
             .order(13),
     )
     // Last in the menu, after the kit's Storage (order 1000 and up).
     .page(
         Page::new("settings", "Calm settings", "/settings")
-            .group(MORE)
+            .secondary()
             .order(1100),
     );
 }

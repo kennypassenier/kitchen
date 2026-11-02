@@ -41,7 +41,7 @@ export function createBar(nav) {
     else menu.button.removeAttribute("aria-current");
   }
 
-  /** @param {{ id: string, title: string, path: string, group?: string | null, nav?: boolean }[]} pages */
+  /** @param {{ id: string, title: string, path: string, group?: string | null, nav?: boolean, secondary?: boolean }[]} pages */
   function paint(pages) {
     const split = splitBar(pages);
     more = split.more;
