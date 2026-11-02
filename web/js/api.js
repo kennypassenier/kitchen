@@ -12,12 +12,12 @@
 // to show as it is: the server's own words, or that the connection dropped (never that anything is gone).
 
 /** @typedef {Record<string, any>} Item */
-/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any> }} Kitchen */
+/** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any>, settings_rev?: number }} Kitchen */
 
 import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
-import { ifMatchFor } from "./api/save.js";
+import { deleteRevFor, ifMatchFor, settingsRevFor } from "./api/save.js";
 import { kitData, writeJson } from "./api/kit-data.js";
 import { readKitchen } from "./api/kitchen-read.js";
 import { mergeSettings, takeFrom, takePath } from "./offline/apply.js";
@@ -181,7 +181,11 @@ export async function replace(list, item, { ifMatch } = {}) {
   return saved;
 }
 
-/** Remove an item; resolves to what was removed (keep it for Undo). @param {string} list @param {string} id */
+/**
+ * Remove an item; resolves to what was removed (keep it for Undo). The delete names the revision the page holds, so one
+ * made over a newer save elsewhere is refused with an ApiError of code "stale" (fix-offline-master-5).
+ * @param {string} list @param {string} id
+ */
 export async function remove(list, id) {
   if (list === "recipes") {
     // Removing a recipe takes it off its dish; the dish stays, and its first other recipe becomes the default.
@@ -194,7 +198,9 @@ export async function remove(list, id) {
     return was;
   }
   const held = /** @type {Item[] | undefined} */ (copy?.[/** @type {keyof Kitchen} */ (list)])?.find?.((x) => x.id === id);
-  const { data, queued } = await writeJson("DELETE", `/data/${list}/${encodeURIComponent(id)}`);
+  // Checked against the revision this page read (fix-offline-master-5): a stale delete, sent now or replayed later, is
+  // refused instead of removing a version saved elsewhere since.
+  const { data, queued } = await writeJson("DELETE", `/data/${list}/${encodeURIComponent(id)}`, undefined, deleteRevFor(held));
   // Queued: what the page held is what will be removed, so Undo has it (and can take the waiting delete back).
   const gone = queued ? held : data;
   if (queued) parkDeleted(list, held);
@@ -249,13 +255,31 @@ export async function takePortions(id, portions = 1) {
   return item ?? { id };
 }
 
-/** Merge keys into the settings (`null` removes one). @param {Record<string, unknown>} patch */
-export async function patchSettings(patch) {
-  const { data, queued } = await writeJson("PATCH", "/data/settings", patch);
-  // Queued: merged here the way the server merges (`null` removes a key).
+/** The settings PATCHes in flight, one after the other, so each names the revision the one before it answered. */
+let settingsChain = Promise.resolve();
+
+/**
+ * Merge keys into the settings (`null` removes one). Checked against the settings' revision the page read
+ * (`settings_rev`, fix-offline-master-5): a merge made over a newer change elsewhere is refused with an ApiError of code
+ * "stale", sent now or replayed from the queue later. Merges run one after the other (two rows changed in quick
+ * succession would otherwise both name the same revision and the second be refused).
+ * @param {Record<string, unknown>} patch
+ */
+export function patchSettings(patch) {
+  const run = settingsChain.then(() => sendSettings(patch));
+  settingsChain = run.catch(() => undefined); // a refusal is the caller's; the next merge still runs
+  return run;
+}
+
+/** One settings PATCH and what it does to the shared copy. @param {Record<string, unknown>} patch */
+async function sendSettings(patch) {
+  const { data, queued, rev } = await writeJson("PATCH", "/data/settings", patch, settingsRevFor(copy));
+  // Queued: merged here the way the server merges (`null` removes a key); the revision stays the one read, which the
+  // queued merge names (the kit moves the merges behind it on once it went through).
   const settings = queued ? mergeSettings(copy?.settings ?? {}, patch) : data;
   if (copy) {
     copy.settings = settings;
+    if (!queued && rev !== null) copy.settings_rev = Number(rev);
     tell();
   }
   return settings;

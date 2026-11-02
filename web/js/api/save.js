@@ -43,6 +43,27 @@ export function ifMatchFor(list, item, { explicit, held } = {}) {
 }
 
 /**
+ * The `If-Match` a delete sends (fix-offline-master-5, Kenny 02/11/2026 19:43 "de server is altijd de master"): the
+ * revision of the item as this page holds it, so a delete queued offline and replayed after someone saved the item is
+ * refused (the kit puts it in its failed list and its copy back to the server's version) instead of silently removing
+ * the newer version. A page that holds no copy of the item names none (`undefined`): the kit then sends the revision of
+ * its own copy of the path, if it keeps one.
+ * @param {Item | null | undefined} held @returns {number | undefined}
+ */
+export function deleteRevFor(held) {
+  return held ? revOf(held) : undefined;
+}
+
+/**
+ * The `If-Match` a settings PATCH sends (fix-offline-master-5): the settings' revision as the kitchen answer this page
+ * read carries it (`settings_rev`, absent in an answer from an older server: 0). No kitchen read yet: none.
+ * @param {{ settings_rev?: unknown } | null | undefined} kitchen @returns {number | undefined}
+ */
+export function settingsRevFor(kitchen) {
+  return kitchen ? revOf(kitchen, "settings_rev") : undefined;
+}
+
+/**
  * The headers of a JSON POST (api/http.js `call`): the content type when there is a body. A POST is never checked
  * against a revision; every checked write goes through the kit (api/kit-data.js `writeJson`), which sends `If-Match`.
  * @param {unknown} body

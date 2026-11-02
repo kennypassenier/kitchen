@@ -4,7 +4,7 @@
 // stale refusal the pages recognise.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { failureOf, headersFor, ifMatchFor, isStale, revOf } from "../web/js/api/save.js";
+import { deleteRevFor, failureOf, headersFor, ifMatchFor, isStale, revOf, settingsRevFor } from "../web/js/api/save.js";
 
 const t = (/** @type {string} */ key) => `<${key}>`;
 
@@ -60,4 +60,25 @@ test("other refusals keep their own words and are not stale", () => {
   assert.deepEqual(failureOf(400, { error: "bad If-Match", code: "stale" }, t), { words: "bad If-Match", limit: null, code: "stale" });
   assert.equal(failureOf(500, null, t).words, "The kitchen answered 500.");
   for (const e of [{ status: 409, code: "" }, { status: 400, code: "stale" }, new Error("offline"), null, "stale"]) assert.equal(isStale(e), false);
+});
+
+// fix-offline-master-5 (Kenny 02/11/2026 19:43, "de server is altijd de master"): a delete and a settings PATCH name
+// the revision the page read, so a stale one queued offline is refused on replay instead of silently winning.
+test("a delete names the revision of the item as the page holds it; none held names none", () => {
+  assert.equal(deleteRevFor({ id: "d", rev: 5 }), 5);
+  assert.equal(deleteRevFor({ id: "d" }), 0, "never saved counts as 0, so a delete over a later save is refused");
+  assert.equal(deleteRevFor(undefined), undefined, "the kit then sends the revision of its own copy, if any");
+});
+
+test("a settings PATCH names the settings' revision from the kitchen read", () => {
+  assert.equal(settingsRevFor({ settings_rev: 3 }), 3);
+  assert.equal(settingsRevFor({}), 0, "an answer from a server without settings_rev: 0");
+  assert.equal(settingsRevFor(null), undefined);
+});
+
+test("a stale delete or settings PATCH is the kit's 409 the pages recognise", () => {
+  const body = { error: "x", remedy: "y", code: "stale", rev: 2, current: { pace: "calm" } };
+  assert.equal(failureOf(409, body, t).code, "stale");
+  assert.equal(failureOf(409, body, t).words, "<api.stale>");
+  assert.ok(isStale({ status: 409, code: "stale" }));
 });

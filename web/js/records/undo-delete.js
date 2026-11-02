@@ -4,7 +4,6 @@
 // (records/recipe-delete.js), so the Recipes page can use the same call. What only the end of the window may do (delete
 // a recipe's photo files) waits for it in `settle`; Undo skips it, so a restored recipe keeps its pictures.
 
-import { toast } from "/static/kp/dist/js/overlays.js";
 import { undoToast } from "/static/kp/dist/js/undo-toast.js";
 import { reason } from "../api.js";
 import { t } from "../i18n/index.js";
@@ -31,7 +30,8 @@ export async function deleteWithUndo({ name, remove, restore, settle }) {
   try {
     await remove();
   } catch (e) {
-    toast(t("rec.notDeleted", reason(e)), { live: "assertive", sticky: true });
+    // Saved elsewhere since this page read it (fix-offline-master-5): the stale notice with Reload, nothing removed.
+    saveFailed(e, () => t("rec.notDeleted", reason(e)));
     return false;
   }
   const run = undoToast(t("rec.deleted", name), {

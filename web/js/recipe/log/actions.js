@@ -5,6 +5,7 @@ import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { undoToast } from "/static/kp/dist/js/undo-toast.js";
 import { create, remove, replace, reason } from "../../api.js";
 import { today } from "../../format.js";
+import { noticeIfStale } from "../../api/stale-notice.js";
 import { plus } from "./dates.js";
 import { paint } from "./paint.js";
 
@@ -47,7 +48,7 @@ function dropEntry(s, entry) {
         },
       });
     },
-    (e) => undoToast(`${s.words?.notSaved}: ${e instanceof Error ? e.message : e}`, { ms: 0 }),
+    (e) => noticeIfStale(e) || undoToast(`${s.words?.notSaved}: ${e instanceof Error ? e.message : e}`, { ms: 0 }),
   );
 }
 

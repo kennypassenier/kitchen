@@ -5,6 +5,7 @@ import { patchSettings, loadKitchen } from "../../api.js";
 import { setCardState } from "/static/kp/dist/js/card-state.js";
 import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { t } from "../../i18n/index.js";
+import { noticeIfStale } from "../../api/stale-notice.js";
 import { SPARES } from "./consts.js";
 import { saidOf } from "./calm-theme.js";
 import { haveOf } from "./rows.js";
@@ -30,6 +31,8 @@ function saveRow(ctx, key, value) {
       saidOf(ctx.root, key).textContent = r.said(value);
       return t("set.saved");
     } catch (e) {
+      // Changed elsewhere since this page read them (fix-offline-master-5): the shared toast with Reload as well.
+      noticeIfStale(e);
       return { error: e instanceof Error ? e.message : t("timing.noAnswer"), remedy: t("set.remedy") };
     }
   });

@@ -1,7 +1,6 @@
 // Safe dishes (a recipe's `safe` flag) and the zero-prep shelf's "I ate this".
 
 import { undoToast } from "/static/kp/dist/js/undo-toast.js";
-import { toast } from "/static/kp/dist/js/overlays.js";
 import { create, replace, remove, kitchenNow, reason } from "../api.js";
 import { t, textOf } from "../i18n/index.js";
 import { saveFailed } from "../api/stale-notice.js";
@@ -42,7 +41,7 @@ export async function ateShelf(s) {
       try {
         await remove("log", line.id);
       } catch (e) {
-        toast(t("rec.notTakenBack", reason(e)), { live: "assertive", sticky: true });
+        saveFailed(e, () => t("rec.notTakenBack", reason(e))); // stale: the shared notice (fix-offline-master-5)
       }
     },
   });

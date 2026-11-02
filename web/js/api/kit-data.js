@@ -129,18 +129,20 @@ export async function queuedEdits() {
 }
 
 /**
- * PUT / PATCH / DELETE / POST through the kit (POST: only the freezer take, which the server applies once per key). `rev` is the revision the page read (sent as `If-Match`); leave it out for a
- * write that is not checked (settings, a delete). Resolves to the server's answer, or `queued: true` (and no data) when
- * the edit waits in the kit's queue to be sent once the service answers again.
+ * PUT / PATCH / DELETE / POST through the kit (POST: only the freezer take, which the server applies once per key). `rev` is the revision the page read (sent as `If-Match`; a PUT, a
+ * DELETE and the settings PATCH name one since fix-offline-master-5); left out, the kit sends the revision of its own copy
+ * of the path, if any. Resolves to the server's answer with its new revision (the kit reads the body's `rev`, else the
+ * `ETag`), or `queued: true` (no data, no revision) when the edit waits in the kit's queue to be sent once the service
+ * answers again.
  * @param {"PUT" | "PATCH" | "DELETE" | "POST"} method @param {string} path @param {unknown} [body] @param {number} [rev]
- * @returns {Promise<{ data: any, queued: boolean }>}
+ * @returns {Promise<{ data: any, queued: boolean, rev: string | null }>}
  */
 export async function writeJson(method, path, body, rev) {
   const kit = await kitData();
   const options = typeof rev === "number" ? { rev } : {};
   try {
     const done = await send(kit, method, path, body, options);
-    return { data: done.data, queued: done.queued };
+    return { data: done.data, queued: done.queued, rev: done.rev ?? null };
   } catch (e) {
     throw toApiError(e);
   }

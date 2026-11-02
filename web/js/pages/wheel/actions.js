@@ -3,6 +3,7 @@
 
 import { create, remove } from "../../api.js";
 import { t } from "../../i18n/index.js";
+import { noticeIfStale } from "../../api/stale-notice.js";
 import { dmyDate, localIso } from "../../format.js";
 import { restUntil } from "./logic.js";
 import { byId, onWheel, pickToLoosen, track } from "./model.js";
@@ -22,6 +23,7 @@ export async function loosenOne(ctx, say) {
     try {
       await remove("resting", item.id);
     } catch (e) {
+      noticeIfStale(e); // saved elsewhere since (fix-offline-master-5): the shared toast with Reload as well
       say(t("wheel.letGoFailed", pick.label, why(e)));
       return;
     }
@@ -46,6 +48,7 @@ async function writing(ctx, write, repaint, say, done, failed) {
     await write();
     say(done());
   } catch (e) {
+    noticeIfStale(e); // a stale delete or save (fix-offline-master-5): the shared toast with Reload as well
     say(failed(why(e)));
   } finally {
     ctx.writing = false;

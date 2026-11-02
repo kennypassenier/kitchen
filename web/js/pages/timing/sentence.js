@@ -2,6 +2,7 @@
 
 import { h, $ } from "../../dom.js";
 import { patchSettings } from "../../api.js";
+import { noticeIfStale } from "../../api/stale-notice.js";
 import { attachTimes, setTime } from "/static/kp/dist/js/timefield.js";
 import { attachSelects } from "/static/kp/dist/js/combobox.js";
 import { attachSentences, sentence, setSentenceWhy } from "/static/kp/dist/js/sentence.js";
@@ -76,6 +77,7 @@ function save(s, patch) {
       await patchSettings(patch);
       if (s.form) setSentenceWhy(s.form, null);
     } catch (e) {
+      noticeIfStale(e); // the settings changed elsewhere since (fix-offline-master-5): the shared toast with Reload
       if (s.form) setSentenceWhy(s.form, t("timing.notSaved", e instanceof Error ? e.message : String(e)));
     }
   });
