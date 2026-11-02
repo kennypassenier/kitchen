@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-use super::guard::home_only;
+use super::guard::{home_only, host_of};
 use super::wheel::joined;
 use super::*;
 use crate::store::Data;
@@ -168,4 +168,19 @@ fn only_plain_file_names_are_served() {
     for bad in ["../main.rs", "", ".hidden", "a/b.js", "INDEX.html"] {
         assert!(f.read(bad).is_none(), "{bad}");
     }
+}
+
+#[test]
+fn the_host_is_compared_without_port_case_or_trailing_dot() {
+    for asked in [
+        "eten.test",
+        "ETEN.test",
+        "eten.test:443",
+        "eten.test.",
+        "Eten.Test.:8443",
+    ] {
+        assert_eq!(host_of(asked), "eten.test", "{asked}");
+    }
+    assert_eq!(host_of("[::1]:80"), "[::1]");
+    assert_eq!(host_of(""), "");
 }

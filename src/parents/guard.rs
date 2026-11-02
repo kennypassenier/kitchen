@@ -80,6 +80,21 @@ fn app_file(path: &str) -> bool {
         || path.starts_with("/eten/icon-") && path.ends_with(".png")
 }
 
+/// A `Host` header as the name it names: without the port, in lower case and without the trailing dot of a fully
+/// qualified name (`eten.test.` is the same host as `eten.test`; compared as written, it let the login page show on the
+/// parents' host, sec review 02/11/2026).
+pub(super) fn host_of(header: &str) -> String {
+    let name = match header.strip_prefix('[') {
+        Some(rest) => rest
+            .split(']')
+            .next()
+            .map(|v6| format!("[{v6}]"))
+            .unwrap_or_default(),
+        None => header.split(':').next().unwrap_or("").to_string(),
+    };
+    name.trim_end_matches('.').to_ascii_lowercase()
+}
+
 /// The parents' wheel's own gate (see the module comment): `/eten…` answers
 /// only `allow`, on every host, and `host` (when set) is kept to the wheel.
 /// The client address is the kit's: behind Traefik that is the address
@@ -102,7 +117,7 @@ pub fn parents_guard(
             .headers
             .get(header::HOST)
             .and_then(|h| h.to_str().ok())
-            .map(|h| h.split(':').next().unwrap_or("").to_ascii_lowercase())
+            .map(host_of)
             .unwrap_or_default();
         let ours = host.as_deref() == Some(asked.as_str());
         let verdict = if (private || (ours && path == "/")) && !allow.allows(req.client_ip) {
