@@ -5,16 +5,14 @@
 // the queue), so nothing typed is lost by clearing.
 //
 // With the setting off, the row also says how many recipes are kept one by one (feat-offline-recipe, the recipe page's
-// "Keep offline" toggle), once per-recipe keeping is live (offline/config.js PER_RECIPE_KEEP). "Clear offline copy"
-// clears those copies too (the kit's `clearCopy` clears every kept answer); the recipes stay marked, so the next read
-// with a connection copies them again.
+// "Keep offline" toggle). "Clear offline copy" clears those copies too (the kit's `clearCopy` clears every kept
+// answer); the recipes stay marked, so the next read with a connection copies them again.
 
 import { h, $ } from "../../dom.js";
 import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { kitData } from "../../api/kit-data.js";
 import { lang, t } from "../../i18n/index.js";
 import { sizeText } from "../../offline/size.js";
-import { PER_RECIPE_KEEP } from "../../offline/config.js";
 import { keptCount } from "../../offline/kept.js";
 import { loadKitchen } from "../../api.js";
 import { row } from "./parts.js";
@@ -39,7 +37,7 @@ export const offlineRow = (c) =>
 
 /**
  * Say what the setting does now, how much room the copy takes and, with the setting off, how many recipes are kept
- * one by one (null: not counted, per-recipe keeping is not live).
+ * one by one (null: not counted, "keep everything" is on).
  * @param {HTMLElement} root @param {boolean} on @param {{ used: number, max: number }} usage
  * @param {{ recipes: number, dishes: number } | null} kept
  */
@@ -51,12 +49,11 @@ function paint(root, on, usage, kept) {
 }
 
 /**
- * How many recipes are kept one by one, counted on the kitchen as last read; null while per-recipe keeping is not live
- * or "keep everything" is on.
+ * How many recipes are kept one by one, counted on the kitchen as last read; null while "keep everything" is on.
  * @param {{ all: boolean, items: string[] }} settings @returns {Promise<{ recipes: number, dishes: number } | null>}
  */
 async function countKept(settings) {
-  if (!PER_RECIPE_KEEP || settings.all) return null;
+  if (settings.all) return null;
   return keptCount(settings.items, await loadKitchen());
 }
 

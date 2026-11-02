@@ -4,8 +4,8 @@
 // Written on 02/11/2026, not run (Kenny's test rule): a release check in docs/OPEN.md.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { keepStateOf, keptCount, keptDishIds, partialKitchen } from "../web/js/offline/kept.js";
-import { DISH_ROUTE, KITCHEN_PATH, LOOKUP_PATHS, PER_RECIPE_KEEP, dishPath, offlineRoutes } from "../web/js/offline/config.js";
+import { dishIngredientIds, ingredientPlan, keepStateOf, keptCount, keptDishIds, partialKitchen } from "../web/js/offline/kept.js";
+import { DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE, KITCHEN_PATH, OFFLINE_ROUTES, dishPath, ingredientPath } from "../web/js/offline/config.js";
 
 test("a dish path is the item route with the id escaped", () => {
   assert.equal(dishPath("d1"), "/data/dishes/d1");
@@ -21,12 +21,31 @@ test("a malformed escape is skipped, not thrown", () => {
   assert.deepEqual(keptDishIds(["/data/dishes/%E0%A4%A", dishPath("ok")]), ["ok"]);
 });
 
-test("the toggle is hidden while per-recipe keeping is not live, and with keep everything on", () => {
+test("the toggle is hidden with keep everything on, else says whether the dish is kept", () => {
   const settings = { all: false, items: [dishPath("d1")] };
-  assert.equal(keepStateOf(settings, "d1", false), "hidden");
-  assert.equal(keepStateOf({ all: true, items: [] }, "d1", true), "all");
-  assert.equal(keepStateOf(settings, "d1", true), "kept");
-  assert.equal(keepStateOf(settings, "d2", true), "not-kept");
+  assert.equal(keepStateOf({ all: true, items: [dishPath("d1")] }, "d1"), "all");
+  assert.equal(keepStateOf(settings, "d1"), "kept");
+  assert.equal(keepStateOf(settings, "d2"), "not-kept");
+});
+
+const dishes = [
+  { id: "d1", recipes: [{ ingredients: [{ ingredient: "salt" }, { ingredient: "beef" }] }, { ingredients: [{ ingredient: "beer" }, { ingredient: "" }, {}] }] },
+  { id: "d2", recipes: [{ ingredients: [{ ingredient: "salt" }] }] },
+  { id: "d3" },
+];
+
+test("a dish's ingredients are every recipe's lines, once each, blanks skipped", () => {
+  assert.deepEqual(dishIngredientIds(dishes[0]), ["salt", "beef", "beer"]);
+  assert.deepEqual(dishIngredientIds(dishes[2]), []);
+  assert.deepEqual(dishIngredientIds(undefined), []);
+});
+
+test("keeping a dish keeps all its ingredients; letting go keeps the ones another kept dish uses", () => {
+  assert.deepEqual(ingredientPlan(dishes, [], "d1", true), ["salt", "beef", "beer"].map(ingredientPath));
+  const items = [dishPath("d1"), dishPath("d2")];
+  assert.deepEqual(ingredientPlan(dishes, items, "d1", false), ["beef", "beer"].map(ingredientPath));
+  assert.deepEqual(ingredientPlan(dishes, [dishPath("d1")], "d1", false), ["salt", "beef", "beer"].map(ingredientPath));
+  assert.deepEqual(ingredientPlan(dishes, items, "gone", true), []);
 });
 
 test("the count is every recipe of every kept dish the kitchen still holds", () => {
@@ -41,18 +60,18 @@ test("the count is every recipe of every kept dish the kitchen still holds", () 
   assert.deepEqual(keptCount([], kitchen), { recipes: 0, dishes: 0 });
 });
 
-test("the partial kitchen holds the kept dishes and lookups, every other list empty", () => {
-  const k = partialKitchen({ dishes: [{ id: "d1", recipes: [] }], ingredients: [{ id: "i1" }], settings: { timer_sound: "chime" } });
+test("the partial kitchen holds the kept dishes and ingredients, every other list and the settings empty", () => {
+  const k = partialKitchen({ dishes: [{ id: "d1", recipes: [] }], ingredients: [{ id: "i1" }] });
   assert.equal(k.partial, true);
   assert.deepEqual(k.dishes, [{ id: "d1", recipes: [] }]);
   assert.deepEqual(k.ingredients, [{ id: "i1" }]);
-  assert.deepEqual(k.settings, { timer_sound: "chime" });
+  assert.deepEqual(k.settings, {});
   for (const list of ["recipes", "freezer", "shelf", "log", "resting", "dish_categories", "ingredient_categories"]) assert.deepEqual(k[list], [], list);
 });
 
-test("the route table keeps only the whole kitchen until per-recipe keeping is live", () => {
-  assert.equal(PER_RECIPE_KEEP, false, "flip together with the kit bump row in docs/OPEN.md");
-  assert.deepEqual(offlineRoutes(false), [KITCHEN_PATH]);
-  assert.deepEqual(offlineRoutes(true), [KITCHEN_PATH, DISH_ROUTE, ...LOOKUP_PATHS]);
+test("the route table: the kitchen has no item route below it, dishes and ingredients do", () => {
+  assert.deepEqual([...OFFLINE_ROUTES], [KITCHEN_PATH, DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE]);
   assert.equal(DISH_ROUTE, "/data/dishes/:id");
+  assert.equal(INGREDIENT_ROUTE, `${INGREDIENTS_PATH}/:id`, "the kit pairs a list with the item route one /:param below");
+  assert.ok(!OFFLINE_ROUTES.some((r) => r.startsWith(`${KITCHEN_PATH}/`)), "no item route below /data/kitchen: it is kept only by keep everything");
 });

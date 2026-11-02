@@ -16,34 +16,26 @@ export const DISH_ROUTE = "/data/dishes/:id";
 /** The path of the dish with `id`, as the kit keeps it. @param {string} id */
 export const dishPath = (id) => `/data/dishes/${encodeURIComponent(id)}`;
 
-/**
- * What a recipe kept on its own needs besides its dish (feat-offline-recipe): the ingredient names (the recipe page,
- * the printable sheet and cook mode's mise en place name every line by its ingredient id) and the settings (cook
- * mode's timer sound). Both are list routes to the kit, so the kit keeps them as soon as one dish is kept; both are
- * small (tens of ingredients, a handful of settings).
- */
-export const LOOKUP_PATHS = Object.freeze(["/data/ingredients", "/data/settings"]);
+/** The ingredients list, and one ingredient (`GET /data/{list}/{id}`): the names every recipe line points at. */
+export const INGREDIENTS_PATH = "/data/ingredients";
+export const INGREDIENT_ROUTE = "/data/ingredients/:id";
+
+/** The path of the ingredient with `id`, as the kit keeps it. @param {string} id */
+export const ingredientPath = (id) => `/data/ingredients/${encodeURIComponent(id)}`;
 
 /**
- * Whether the per-recipe toggle "Offline bewaren" is live (Kenny 02/11/2026 17:25 and 19:12, option B). OFF while
- * Kitchen runs on chassis-rs 4.3.0: that kit keeps EVERY list route as soon as one item is kept ("a list is the way
- * to a kept item", chassis-rs docs/OFFLINE_DESIGN.md), and `/data/kitchen` is a list route, so keeping one recipe
- * would keep the whole kitchen while the toggle said "this recipe". Kitchen never claims what the kit does not do, so
- * the toggle, the per-recipe read and the settings count wait for the kit release with per-item keep (a list route
- * kept only by "keep everything"); the remaining wiring is the bump row in docs/OPEN.md.
+ * The GET answers the kit may keep a copy of (chassis-rs 8042dbe, trimmed keeping). With "keep everything" on the kit
+ * stores every one whole; with it off it stores only kept items, and a list route only trimmed to its kept items:
+ * - `/data/kitchen`, the whole kitchen every screen draws from. A list with no item route below it, so the kit stores
+ *   it only while "keep everything" is on: keeping one recipe never keeps the kitchen.
+ * - `/data/dishes/:id`, one dish with its recipes: what the recipe page's "Keep offline" keeps (a recipe lives in its
+ *   dish).
+ * - `/data/ingredients` with `/data/ingredients/:id`: the names a kept recipe's lines point at. The switch keeps each
+ *   ingredient the dish uses, so the list is stored trimmed to those.
+ * The settings (`/data/settings`, one object, no item route) are not kept per recipe: offline, a kept recipe's cook
+ * mode uses the default timer sound.
  */
-export const PER_RECIPE_KEEP = false;
-
-/**
- * The GET answers the kit may keep a copy of. The whole kitchen first: every screen draws from it, so with "keep
- * everything" on, one copy serves every page offline. With per-recipe keeping live, also the dish item route and the
- * lookups a kept recipe needs. A route without `:id` is a list route to the kit.
- * @param {boolean} perRecipe {@link PER_RECIPE_KEEP}
- * @returns {string[]}
- */
-export function offlineRoutes(perRecipe) {
-  return perRecipe ? [KITCHEN_PATH, DISH_ROUTE, ...LOOKUP_PATHS] : [KITCHEN_PATH];
-}
+export const OFFLINE_ROUTES = Object.freeze([KITCHEN_PATH, DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE]);
 
 /**
  * The kit's own words (its connection-band toasts and its logout confirmation) in the page's language. Getters, so the
@@ -73,5 +65,5 @@ export function kitMessages(t) {
  * @param {(key: string, ...args: any[]) => string} t the page's words
  */
 export function offlineOptions(t) {
-  return { name: OFFLINE_NAME, rev: REV_FIELD, routes: offlineRoutes(PER_RECIPE_KEEP), messages: kitMessages(t) };
+  return { name: OFFLINE_NAME, rev: REV_FIELD, routes: [...OFFLINE_ROUTES], messages: kitMessages(t) };
 }

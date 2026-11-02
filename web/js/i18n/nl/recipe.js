@@ -23,10 +23,10 @@ export const NL_RECIPE = {
   // the per-recipe offline toggle (pages/recipe/keep-row.js, feat-offline-recipe)
   "recipe.keepTitle": "Offline bewaren",
   "recipe.keepSwitch": "Offline bewaren",
-  "recipe.keepText": "Bewaart dit recept op dit toestel, zodat het en de kookmodus zonder verbinding openen. Het gerecht gaat mee (met de andere recepten van dat gerecht), net als de ingrediëntnamen en de instellingen die de kookmodus nodig heeft.",
+  "recipe.keepText": "Bewaart dit recept op dit toestel, zodat het en de kookmodus zonder verbinding openen. Het gerecht gaat mee (met de andere recepten van dat gerecht), net als de ingrediëntnamen die het gebruikt.",
   "recipe.keepOn": "Bewaard op dit toestel.",
   "recipe.keepOnLater": "Bewaard, maar er is nu geen verbinding: de kopie wordt gemaakt zodra dit recept opent met verbinding.",
-  "recipe.keepOff": "Niet meer bewaard. Wat al bewaard is, blijft tot je de offline kopie wist in Instellingen.",
+  "recipe.keepOff": "Niet meer bewaard: de kopie is van dit toestel verwijderd.",
   "recipe.keepFailed": "Offline bewaren kon voor dit recept niet aangepast worden op dit toestel.",
   "recipe.keepReadFailed": "Of dit recept offline bewaard is, kon op dit toestel niet gelezen worden.",
 };

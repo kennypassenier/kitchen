@@ -23,10 +23,10 @@ export const EN_RECIPE = {
   // the per-recipe offline toggle (pages/recipe/keep-row.js, feat-offline-recipe)
   "recipe.keepTitle": "Keep offline",
   "recipe.keepSwitch": "Keep offline",
-  "recipe.keepText": "Keeps this recipe on this device, so it and cook mode open without a connection. Its dish comes along (with the dish's other recipes), and so do the ingredient names and the settings cook mode needs.",
+  "recipe.keepText": "Keeps this recipe on this device, so it and cook mode open without a connection. Its dish comes along (with the dish's other recipes), and so do the ingredient names its lines use.",
   "recipe.keepOn": "Kept on this device.",
   "recipe.keepOnLater": "Kept, but there is no connection right now: the copy is made the next time this recipe opens with one.",
-  "recipe.keepOff": "No longer kept. What is stored stays until you clear the offline copy in Settings.",
+  "recipe.keepOff": "No longer kept: its copy is removed from this device.",
   "recipe.keepFailed": "Keeping this recipe offline could not be changed on this device.",
   "recipe.keepReadFailed": "Whether this recipe is kept offline could not be read on this device.",
 };

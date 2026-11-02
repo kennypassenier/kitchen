@@ -1,13 +1,13 @@
 // The recipe page's "Offline bewaren" / "Keep offline" toggle (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12):
 // when "Keep everything offline" is off on this device, one recipe (with its dish, which holds it, and what cook mode
-// needs) can be kept on its own. Hidden while "keep everything" is on (everything is kept then) and while per-recipe
-// keeping is not live (offline/config.js PER_RECIPE_KEEP: the kit release with per-item keep).
+// needs) can be kept on its own. Hidden while "keep everything" is on (everything is kept then).
 //
 // The kp switch with one line that says what it does and one that says what happened; a failure is said there and in
 // the console, never swallowed.
 
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
+import { kitchenNow } from "../../api.js";
 import { keepRecipe, recipeKeepState } from "../../api/recipe-keep.js";
 
 /** The row, hidden until the device's setting is read. One per page; the card re-appends it on every draw. */
@@ -36,7 +36,8 @@ export function buildKeepRow() {
 export async function paintKeepRow(row, dishId) {
   try {
     const state = await recipeKeepState(dishId);
-    row.el.hidden = state === "hidden" || state === "all";
+    row.el.hidden = state === "all";
+    row.input.disabled = false;
     row.input.checked = state === "kept";
     row.input.dataset.dish = dishId;
   } catch (e) {
@@ -53,7 +54,7 @@ export function wireKeepRow(row) {
     const dishId = row.input.dataset.dish ?? "";
     const on = row.input.checked;
     row.input.disabled = true;
-    void keepRecipe(dishId, on)
+    void keepRecipe(kitchenNow()?.dishes ?? [], dishId, on)
       .then(({ kept, copied }) => {
         row.input.checked = kept;
         row.said.textContent = !on ? t("recipe.keepOff") : copied ? t("recipe.keepOn") : t("recipe.keepOnLater");

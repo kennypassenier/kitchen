@@ -73,7 +73,7 @@ export const EN_SETTINGS = {
   "set.offlineSwitch": "Keep everything offline",
   "set.offlineReading": "Reading what this device keeps",
   "set.offlineOn": (used, max) => `On. The copy on this device takes ${used} of the ${max} it may use.`,
-  "set.offlineOff": (used) => `Off. Nothing new is kept offline on this device; what is kept now (${used}) stays until you clear it.`,
+  "set.offlineOff": (used) => `Off. Only recipes you keep one by one (Keep offline on a recipe) stay on this device; they take ${used}.`,
   "set.offlineKept": (n) => (n === 1 ? "1 recipe is kept on its own (Keep offline on its page)." : `${n} recipes are kept on their own (Keep offline on their page).`),
   "set.offlineClear": "Clear offline copy",
   "set.offlineClearHint": "Clear offline copy deletes the kitchen's copy from this device. Changes still waiting to be sent stay and are sent.",
