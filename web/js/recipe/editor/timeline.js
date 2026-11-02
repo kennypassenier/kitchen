@@ -48,7 +48,7 @@ function applyDrop(s, ev) {
   try {
     // The meeting lane then follows the steps before it (recipe/meet.js, Kenny, 30/10/2026).
     const named = namedTracks(s);
-    const after = settle(fromItems(s.steps.list.map((e) => e.get()), named, ev.detail.items), named);
+    const after = settle(fromItems(s.steps.list.map((e) => e.get()), named, ev.detail.items, ev.detail.changed), named);
     const byId = new Map(s.steps.list.map((e) => [e.id, e]));
     for (const st of after) /** @type {any} */ (byId.get(st.id))?.set(st);
     s.steps.list = after.map((st) => /** @type {any} */ (byId.get(st.id)));

@@ -105,3 +105,42 @@ test("drop chain: dragging the meeting step earlier than its predecessors is not
   const { after } = drop(steps, detail);
   assert.ok(layout(after, tracks).steps.find((p) => p.id === "m").start >= 20);
 });
+
+// [fix-meet-pin-1] The sequencer's change event carries every bar with its start as it stood; only the ids in `changed` were
+// moved by the person (or pushed by the kit). A bar that was not part of the edit must not get its old start written as a pin.
+const dropChanged = (steps, items, changed) => {
+  const after = settle(fromItems(steps, tracks, items, changed), tracks);
+  return { after, startOf: (id) => layout(after, tracks).steps.find((p) => p.id === id).start };
+};
+
+test("fromItems with changed: a step shrunk before a flowing meeting step pulls it back (no pin from its old start)", () => {
+  const steps = [step("a", "p", 10), step("b", "s", 20), step("m", null, 3)];
+  const items = toItems(steps, tracks, words).items.map((i) => (i.id === "b" ? { ...i, duration: 12 } : i));
+  const { after, startOf } = dropChanged(steps, items, ["b"]);
+  assert.equal(after.find((s) => s.id === "m").start, undefined);
+  assert.equal(startOf("m"), 12);
+});
+
+test("fromItems with changed: dragging a non-meeting step leaves the meeting step flowing; a later shrink still pulls it back", () => {
+  const steps = [step("a", "p", 10), step("b", "s", 20), step("m", null, 3)];
+  const moved = toItems(steps, tracks, words).items.map((i) => (i.id === "a" ? { ...i, start: 2 } : i));
+  const first = dropChanged(steps, moved, ["a"]).after;
+  assert.equal(first.find((s) => s.id === "a").start, 2);
+  assert.equal(first.find((s) => s.id === "m").start, undefined);
+  const shrunk = toItems(first, tracks, words).items.map((i) => (i.id === "b" ? { ...i, duration: 8 } : i));
+  assert.equal(dropChanged(first, shrunk, ["b"]).startOf("m"), 12);
+});
+
+test("fromItems with changed: the dragged step still gets its pin, an existing pin elsewhere is kept as it was", () => {
+  const steps = [step("a", "p", 10), step("b", "s", 20), step("m", null, 3, { start: 30 })];
+  const items = toItems(steps, tracks, words).items.map((i) => (i.id === "a" ? { ...i, start: 4 } : i));
+  const { after } = dropChanged(steps, items, ["a"]);
+  assert.equal(after.find((s) => s.id === "a").start, 4);
+  assert.equal(after.find((s) => s.id === "m").start, 30);
+});
+
+test("fromItems with changed: the meeting step itself dragged later is pinned there", () => {
+  const steps = [step("a", "p", 10), step("b", "s", 20), step("m", null, 3)];
+  const items = toItems(steps, tracks, words).items.map((i) => (i.id === "m" ? { ...i, start: 26 } : i));
+  assert.equal(dropChanged(steps, items, ["m"]).startOf("m"), 26);
+});

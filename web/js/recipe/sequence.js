@@ -13,7 +13,10 @@
 // NOT put the step there by itself, so a recipe that nobody dragged keeps `start` empty and still flows; a step that was
 // dragged away from its flow gets the start it was dropped at. Within each track the list is then put in the order of the starts
 // (stable; cook mode follows the list), and `start` is checked once more on the new order so what the timeline shows is exactly
-// what schedule.js computes afterwards (the total and the hands-on time are read from there).
+// what schedule.js computes afterwards (the total and the hands-on time are read from there). The change event carries every bar
+// with its start as it stood; only the bars in its `changed` list were moved (by the person, or pushed by the kit), so only those
+// may get a start written [fix-meet-pin-1]. Another bar keeps its own `start` field, so a meeting step that follows the flow is
+// not pinned at its old start and still follows back when a step before it shrinks (meet.js).
 
 import { layout } from "./schedule.js";
 
@@ -47,9 +50,10 @@ export function toItems(steps, tracks, { meet, all, unnamed, label }) {
  * The steps after an edit: the fields the timeline owns written from `items`, `start` kept honest, the list in the order of the
  * starts. Steps that are not among the items (no text yet) keep their place in the list and their fields.
  * @param {Step[]} steps the editor's steps in list order (all of them) @param {Track[]} tracks only named tracks @param {Changed[]} items
+ * @param {readonly string[]} [changed] the ids the edit moved (the event's `changed`); left out, every item counts as moved
  * @returns {Step[]}
  */
-export function fromItems(steps, tracks, items) {
+export function fromItems(steps, tracks, items, changed) {
   const by = new Map(items.map((i) => [i.id, i]));
   /** @type {Step[]} */
   const next = steps.map((s) => {
@@ -68,10 +72,11 @@ export function fromItems(steps, tracks, items) {
     const ordered = at.map((i) => next[i]).sort((x, y) => /** @type {Changed} */ (by.get(x.id)).start - /** @type {Changed} */ (by.get(y.id)).start);
     at.forEach((i, k) => (next[i] = ordered[k]));
   }
-  // `start` only where the flow of the list would put the step somewhere else.
+  // `start` only where the flow of the list would put the step somewhere else, and only for a step the edit moved.
+  const moved = changed ? new Set(changed) : null;
   for (let at = 0; at < next.length; at++) {
     const want = by.get(next[at].id);
-    if (!want) continue;
+    if (!want || (moved && !moved.has(want.id))) continue;
     const here = layout(next.slice(0, at + 1).filter((s) => by.has(s.id)), tracks).steps.at(-1);
     if (here && Math.abs(here.start - want.start) > 1e-9) next[at] = { ...next[at], start: want.start };
   }
