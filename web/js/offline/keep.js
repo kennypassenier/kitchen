@@ -9,8 +9,12 @@
 /** Kenny's default for "Alles offline bewaren" (02/11/2026). */
 export const KEEP_ALL_DEFAULT = true;
 
-/** The localStorage key that says the default was applied on this device. */
-export const DEFAULT_MARK = "kitchen:offline-default-applied";
+/**
+ * The localStorage key that says the default was applied on this device. Outside the `kitchen:` prefix the kit syncs to
+ * the login (src/main.rs `sync_browser_keys`): a synced mark arrived on every new device with the login, so the default
+ * was never applied there and nothing was kept offline (found at the 6.0.0 release checks, fix-offline-default-1).
+ */
+export const DEFAULT_MARK = "kitchen-device:offline-default-applied";
 
 /**
  * Whether the default still has to be applied on this device. A storage that cannot be read counts as "not yet":

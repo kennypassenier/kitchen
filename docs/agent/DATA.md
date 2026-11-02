@@ -61,7 +61,7 @@ raises the same sign-in notice as before; a read with neither a connection nor a
 **What is kept.** With "keep everything" on, `GET /data/kitchen` whole (`OFFLINE_ROUTES` in `web/js/offline/config.js`),
 which every screen draws from; with it off, only the recipes kept one by one (below); per device in IndexedDB `chassis-data:kitchen`, under the kit's 50 MB cap. "Keep everything offline" is the kit's
 per-device `keepAll`: the kit starts it off, Kitchen turns it on once per device before the first read
-(`web/js/offline/keep.js`, mark `kitchen:offline-default-applied` in localStorage), so a person who turns it off keeps it
+(`web/js/offline/keep.js`, mark `kitchen-device:offline-default-applied` in localStorage, outside the synced `kitchen:` prefix), so a person who turns it off keeps it
 off. Turning it off trims the stored copy to the recipes kept one by one (below); "Clear offline copy" (`clearCopy`) deletes every copy, waiting edits
 stay. Photos are files, not JSON: offline they show only as far as the browser's own cache holds them.
 Drafts and the parents' wheel are read through the kit but not kept.
