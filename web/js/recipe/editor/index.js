@@ -103,6 +103,7 @@ export function createEditor({ recipe, mainOptions, preset = {}, restore = null,
     dirty: () => isChanged(baseline ? JSON.stringify(baseline) : "", JSON.stringify(collector.collect(true))),
     /** Stop everything this editor wired. `keep`: write the draft once more first, so nothing typed is lost. @param {{ keep?: boolean }} [o] */
     dispose({ keep = false } = {}) {
+      timeline.stop();
       detachSeq();
       if (keep) void draft.flush(true).catch((e) => console.error("keeping the draft", e)).finally(draft.abandon);
       else draft.abandon();
