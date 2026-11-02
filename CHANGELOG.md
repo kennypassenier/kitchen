@@ -35,6 +35,10 @@ Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trim
   recipe on this device with its dish (and so the dish's other recipes) and the ingredient names it uses, so the recipe
   page and cook mode open it without a connection; Calm settings counts the recipes kept this way. Switching "Keep
   everything offline" off now removes the rest of the copy instead of leaving it until "Clear offline copy".
+- **A kept recipe that is gone leaves the offline copy** [feat-offline-gone-1] (Kenny 02/11/2026 19:43, "Uit kopie halen"):
+  when the kitchen answers 404 for a recipe kept offline (its dish was deleted), its keep, its copy and the ingredients no
+  other kept dish uses are dropped, and a toast says "This recipe is no longer in the kitchen and has been removed from your
+  offline copy." once. No connection, or any other error, drops nothing.
 - **Take a portion without a connection** [feat-offline-take-1] (Kenny 02/11/2026 19:13): "Take a portion" on Bad days
   works offline; the freezer shows it at once and the kitchen takes it when the connection is back, exactly once even if
   an answer got lost on the way.

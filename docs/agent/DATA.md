@@ -72,6 +72,15 @@ the recipe page and cook mode open a kept recipe offline and any other recipe sa
 the recipes kept this way; "Clear offline copy" clears their copies too (the marks stay, so the next read with a
 connection copies them again). The switch is hidden while "keep everything" is on.
 
+**A kept dish that is gone** (feat-offline-gone, Kenny 02/11/2026 19:43, "Uit kopie halen"). After every online
+`GET /data/kitchen` with "keep everything" off (`readKitchen`, `web/js/api/kitchen-read.js`), Kitchen compares the kept
+dishes with the dishes in the answer. For one the answer no longer lists it asks `GET /data/dishes/{id}`; only a 404 there
+counts as gone (`classifyDishRead`, `web/js/offline/gone.js`). Then `keepItem(dishPath, false)` drops the mark and the
+kit's trim removes the copy, the kept ingredients no remaining kept dish uses are dropped too (`orphanIngredientPaths`,
+`kept.js`; skipped while another missing dish could not be checked), and one non-sticky toast (`off.goneRecipe`) says so,
+once per dish (`api/recipe-gone.js`). No connection (the kit's status 0) or any other refusal keeps everything; the
+latter is logged. Nothing is checked while offline: a copy never says a dish is gone.
+
 **A freezer take offline** (feat-offline-take-1, Kenny 19:13 "Kit krijgt post()"). "Take a portion" on Bad days is
 `POST /data/freezer/{id}/take` through the kit's `post()`: without a connection it waits in the kit's queue with a UUID
 `Idempotency-Key` made when it was queued and kept across replays. The server records the key with the take in the same

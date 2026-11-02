@@ -71,14 +71,17 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    with the same key and takes ONE portion, an offline take shows at once and reaches the kitchen once). Also the existing
    offline tests against 8042dbe (`keepAll` / `keepItem` now return promises; Kitchen awaits both), then `measure.mjs` on
    `/recipe` with the switch shown, `/settings` (the count line) and `/bad-days`, 1280 and 390, EN and NL.
+12. **A kept recipe whose dish is gone [feat-offline-gone-1]** (written 02/11/2026, nothing run): `node --test
+   scripts/offline-gone.test.mjs` (new: a 404 is gone, no connection and every other status are not, only kept dishes
+   missing from the list are asked about, the notice once per dish, the ingredient sweep) and scenario 8 of
+   `scripts/release/offline.e2e.mjs` (a kept dish deleted on the server: a lost connection drops nothing; the next online
+   read drops the keep and the copy and shows the notice once; a later read stays quiet). By hand once: the notice reads
+   right in NL and EN and is not sticky.
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
 - **Built on chassis-rs 8042dbe (unreleased)**: per-item keep [feat-offline-recipe] and the freezer take through
-  `chassisData.post()` [feat-offline-take-1]. At the release tag: re-pin, run release check 11. Still open for Kenny: what
-  a kept dish does once it is deleted on the server (its copy and mark stay and the offline read shows it until "Clear
-  offline copy" or turning its switch off; options: drop the mark on a 404 of the dish, or keep it and say "no longer in
-  the kitchen"); and a kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
+  `chassisData.post()` [feat-offline-take-1]. At the release tag: re-pin, run release check 11. A kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
   shows a queued take through its own overlay instead (filed for chassis-rs: an `optimistic` that names the path it
   amends).
 - Built on chassis-rs main 073273f (in 8042dbe) `[refactor-offline-drawer-1]` (written 02/11/2026, nothing run): Kitchen's own
