@@ -41,6 +41,9 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
+   Unblock (coordinator 02/11/2026): chassis-rs is building a per-WebApp switch (roughly `kp_modules()`) that moves the
+   injected runtime onto the per-module entries; Kitchen calls it on its `WebApp`, pins that chassis-rs, then merges
+   `kp-split-entries`. Exact name and commit follow from the coordinator.
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
@@ -50,7 +53,11 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 - Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
   still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
 - `box-sizing: border-box` on the popover panel (`web/css/app.css`): `.kp-popover--panel` caps content-box (kp-gaps/kitchen.md).
+  Fixed on kp-themes main e1406eddb (panel is border-box, 352 px at 390, no overflow at 320): drop the rule once that
+  kp-themes release reaches Kitchen through chassis-rs, then re-measure the Send to phone / Print options popovers at 390.
 - Renaming the settings row's labelled theme trigger after a pick in the header's menu (`nameTrigger`, `web/js/pages/settings/calm-theme.js`; kp-gaps/kitchen.md).
+  Fixed on kp-themes main e1406eddb (the labelled trigger follows every theme change): drop `nameTrigger` once that
+  kp-themes release reaches Kitchen through chassis-rs, then check the /settings theme button after a pick in the header.
 - The signed-out notice opens the login in a new tab because the kit's login reads no `next` (kp-gaps/chassis-rs.md).
 - The More item of the bar is built by hand (no `data-kp-nav-more` in kp-themes yet); the in-use reason-tooltip workaround
   (`web/js/records/in-use.js`) until kp-themes ships its card-layout tooltip fix.
