@@ -155,6 +155,11 @@ kit's failed-edits drawer and the server-is-master rules (Kitchen ran on unrelea
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- Found by the 6.0.0 release checks: the printable sheet printed without its ingredient checklist (kp-themes draws only
+  into the page's own realm; the list is now drawn in the page and imported into the frame) [fix-sheet-checklist-1]; a new
+  device kept nothing offline, because the "keep everything offline" default's mark followed the login (now device-only)
+  [fix-offline-default-1]; on /settings "Clear offline copy" sits under its hint instead of off the "Use default" column
+  [fix-settings-clear-align-1].
 - **Every page could not read the kitchen** [fix-kit-ready-1]: Kitchen asked for the kit's data client while its own
   main.js ran; the browser already says `readyState` "interactive" then, before the kit's runtime module (injected after
   main.js) has run, so `window.chassisData` was not there yet and every page showed "the kit's data client is not on this

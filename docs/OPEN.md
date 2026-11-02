@@ -7,12 +7,35 @@ the release (list below).
 | Item | Waits on |
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
-| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | the release checks below (release word given 02/11/2026 20:15, version 6.0.0), then `chassis release` |
+| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | release checks run 02/11/2026 (below): one open finding, the datatable footprints in measure.mjs (Kenny's call), then `chassis release` |
 | Per-recipe "Offline bewaren" [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1] (Kenny 17:25, 19:12, 19:13): built on chassis-rs main 8042dbe [meta-chassis-8042dbe-1], now on tag v4.4.0 [meta-chassis-440-1] (only `chassis` moved in `Cargo.lock`); release check 11 below | release check 11 |
 | The offline copy [feat-offline-kitchen-1..4] and the revision fold [refactor-rev-kit-1] (02/11/2026, on chassis-rs cd68fd9): built, release checks 9 and 10 below not run | Kenny's release decision, then release checks 9 and 10 |
 | kp-themes split delivery (Kenny 02/11/2026 17:24, "Nu overstappen"): merged on main 6f3fc0e [feat-kp-split-3] (branch `kp-split-entries`, 4ee6fbb), with Kitchen pinned to chassis-rs main fcb993f [meta-chassis-fcb993f-1], whose `WebApp::kp_modules()` makes the kit inject `webapp-runtime-modules.js` (imports only `remember.js`, `freshness.js`, `auto-refresh.js`), so a page holds one copy of kp's state. Release checks still to run (item 7 below) | Kenny's release decision, then release check 7 |
 
-## Release checks (not run on 02/11/2026: tests only at the release, with Kenny's ok)
+## Release checks
+
+**Run once for 6.0.0 on 02/11/2026 evening** (Kenny's release word 20:15), on chassis-rs v4.4.0, a throwaway Kitchen
+(`--state-dir` under `~/.cache/kitchen-600/`), Firefox only. Durations measured; failed parts rerun alone after their fix.
+
+| Check | Result | Duration |
+|---|---|---|
+| `node --test scripts/` | 318/319; `offline-sync.test.mjs` threw (test wrong: no global EventTarget in Node) [fix-offline-sync-test-1], file rerun 6/6 | 0.4 s + rerun < 0.1 s |
+| `cargo fmt --check`, clippy `-D warnings`, `cargo test`, the three checks | clean; cargo test 94/94 | fmt < 1 s, clippy 0.2 s (built by the pin commit's hook), test 10.5 s, checks < 0.1 s each |
+| `cargo deny check advisories` | advisories ok (no dependency update) | 1.1 s |
+| 3 / 7: Firefox smoke, every page incl. `/storage`, 1280 + 390, EN + NL | 0 console errors, 0 failed steps in all four | 2 min 13 s, 2 min 14 s, 2 min 12 s, 2 min 12 s |
+| 7: network, 17 pages | no `kp-themes.min.js` / `kp-themes.css` / `css/fonts.css`, no kp or kit module loaded twice | 58 s |
+| 7: every theme from the header menu, 1280 EN + 390 NL | 12 themes each, one `data-theme` change and one stored write per pick (single wiring), 0 errors | 52 s |
+| 7: cook mode's place follows the login to a second browser context | same place in both (kit preference store) | 9 s |
+| 7: printable sheet | **FAILED**: no ingredient checklist (kp's `setChecklistItems` skips an element of the iframe's realm); fixed [fix-sheet-checklist-1], rerun: 2 boxed items, Print calls the frame's print once | 5 s + 7 s + 6 s |
+| 5: category rename, two tabs | stale rename refused, "changed elsewhere" toast with Reload, the other tab's name kept | 11 s |
+| 10-13: `scripts/release/offline.e2e.mjs` (all 8 scenarios, a token Kitchen without trusted admins) | 1-2 ok; 3 **FAILED** (app: the keep-everything default's mark was a synced `kitchen:` key, so a new device kept nothing) [fix-offline-default-1]; 5 and 6 failed on the test (datatable failed state; `/status` is not Kitchen's, `/storage` is) [fix-offline-e2e-2], [fix-offline-e2e-3]; reruns of 3-8 ok (`KITCHEN_E2E_ONLY` [fix-offline-e2e-1]) | 32 s (setup), 1 min 4 s, 1 min 30 s, 46 s, 20 s |
+| 13 (a)-(d), 14 (a)-(e): two devices (scratch script `~/.cache/kitchen-600/twodev.mjs`) | all as written: the second take refused (409 in the failed list), counts never below 0; kept recipe shows B's edit offline; band leaves offline, no Retry; Undo then B's version wins; stale delete and settings replays refused with B's values shown; online stale delete toast; two quick settings rows both save; online Undo. First run's 4 misses were the script (timing, selectors), rerun ok | 3 min 4 s + 55 s |
+| 4: `measure.mjs` formal,dark 1280,390 over 14 pages | `/` `/eten` `/parents` only the accepted 64.7 px kicker; `/recipe` `/recipe/edit` `/cook` `/timing` `/bad-days` clear; `/settings` **FAILED** (Clear offline copy off the actions column) fixed [fix-settings-clear-align-1], rerun clear EN + NL; **OPEN**: datatable state footprints on `/dishes` `/ingredients` `/log` `/sources` (1280) and `/recipes` (390): the driven empty/failed table is 9-41 px lower than its loaded footprint (kp `footprint.js` holds one table and not the other with identical attributes; clean on 01/11/2026 under kp-themes 12.0.0's bundle) | 10 min 17 s (2 in parallel), `/settings` reruns 1 min 36 s + 1 min 22 s |
+
+Total measured: about 33 min 36 s. Not run (by hand per the items): 12 (b) the band's words after a language switch, the
+gone notice's words in NL/EN; 11's and 12's measure of the kit drawer at 390.
+
+Before the release word (02/11/2026, kept for the record):
 
 What ran on 02/11/2026 before Kenny stopped test runs (16:16): one full gate after the bump commits (node 256/256 in
 0.4 s, cargo test 74/74 in 13.4 s, clippy, fmt and the three checks clean) and one Firefox smoke at 1280 and 390 in
