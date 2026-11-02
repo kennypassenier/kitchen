@@ -11,7 +11,7 @@ import { KITCHEN_PATH } from "../offline/config.js";
 import { applyQueued } from "../offline/apply.js";
 import { ApiError } from "./http.js";
 import { queuedEdits, readJson } from "./kit-data.js";
-import { dropGoneDishes } from "./recipe-gone.js";
+import { syncKeptWithServer } from "./kept-refresh.js";
 import { readKeptKitchen } from "./recipe-keep.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
@@ -22,10 +22,11 @@ import { readKeptKitchen } from "./recipe-keep.js";
  */
 export async function readKitchen() {
   const { data, offline } = await readWholeOrKept();
-  // Only a real answer from the kitchen can say a kept dish is gone; a copy (offline) never does. Not awaited: the page
-  // does not wait for the check, and a failure is said in the console, never dropped silently.
+  // Only a real answer from the kitchen can say a kept dish is gone or changed; a copy (offline) never does. The kept
+  // dishes' copies then follow this answer (the server is the master, fix-offline-master-2). Not awaited: the page does
+  // not wait for the check, and a failure is said in the console, never dropped silently.
   if (!offline && Array.isArray(data.dishes)) {
-    void dropGoneDishes(data.dishes).catch((e) => console.warn("Kitchen: checking the kept recipes against the kitchen failed", e));
+    void syncKeptWithServer(data.dishes).catch((e) => console.warn("Kitchen: bringing the kept recipes in line with the kitchen failed", e));
   }
   const { kitchen, unknown } = applyQueued(data, await queuedEdits());
   // An edit Kitchen never makes (a path or method outside its routes) is not guessed at: said once, left to the kit.

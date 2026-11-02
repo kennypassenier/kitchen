@@ -4,7 +4,7 @@
 // Written on 02/11/2026, not run (Kenny's test rule): a release check in docs/OPEN.md.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dishIngredientIds, ingredientPlan, keepStateOf, keptCount, keptDishIds, partialKitchen } from "../web/js/offline/kept.js";
+import { dishIngredientIds, ingredientPlan, keepStateOf, keptCount, keptDishIds, keptRefreshPlan, partialKitchen } from "../web/js/offline/kept.js";
 import { DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE, KITCHEN_PATH, OFFLINE_ROUTES, dishPath, ingredientPath } from "../web/js/offline/config.js";
 
 test("a dish path is the item route with the id escaped", () => {
@@ -74,4 +74,27 @@ test("the route table: the kitchen has no item route below it, dishes and ingred
   assert.equal(DISH_ROUTE, "/data/dishes/:id");
   assert.equal(INGREDIENT_ROUTE, `${INGREDIENTS_PATH}/:id`, "the kit pairs a list with the item route one /:param below");
   assert.ok(!OFFLINE_ROUTES.some((r) => r.startsWith(`${KITCHEN_PATH}/`)), "no item route below /data/kitchen: it is kept only by keep everything");
+});
+
+// fix-offline-master-2: after an online kitchen read the kept copies follow the server's answer.
+const withLines = (id, ...ingredients) => ({ id, recipes: [{ id: `${id}-r`, ingredients: ingredients.map((ingredient) => ({ ingredient })) }] });
+
+test("every kept dish the server still lists is read again; others and unkept dishes are not", () => {
+  const items = [dishPath("a"), dishPath("gone"), ingredientPath("i1")];
+  const plan = keptRefreshPlan([withLines("a", "i1"), withLines("b", "i2")], items);
+  assert.deepEqual(plan.dishIds, ["a"]);
+});
+
+test("an ingredient a kept dish names since is kept; one none names is let go only when every kept dish is listed", () => {
+  const items = [dishPath("a"), ingredientPath("old")];
+  const plan = keptRefreshPlan([withLines("a", "new")], items);
+  assert.deepEqual(plan.keep, [ingredientPath("new")]);
+  assert.deepEqual(plan.release, [ingredientPath("old")]);
+  const missing = keptRefreshPlan([withLines("a", "new")], [...items, dishPath("unchecked")]);
+  assert.deepEqual(missing.release, [], "a kept dish missing from the answer may still use it: nothing is let go");
+  assert.deepEqual(missing.keep, [ingredientPath("new")]);
+});
+
+test("nothing kept, nothing to refresh", () => {
+  assert.deepEqual(keptRefreshPlan([withLines("a", "i1")], []), { dishIds: [], keep: [], release: [] });
 });

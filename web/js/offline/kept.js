@@ -129,3 +129,26 @@ export function partialKitchen({ dishes, ingredients }) {
     settings: {},
   };
 }
+
+/**
+ * What an online kitchen read asks of the kept recipes so their copies equal the server's answer (fix-offline-master-2,
+ * Kenny 02/11/2026 19:43: the server is always the master). The kit copies a dish only when its item route is READ, and
+ * `/data/kitchen` is not that route, so without this a kept dish's copy stayed as it was when it was kept.
+ * - `dishIds`: the kept dishes the answer still lists, to read again (the kit stores each answer over its copy).
+ * - `keep`: ingredient paths those dishes name now but the device does not keep yet (a line added since).
+ * - `release`: kept ingredient paths no kept dish names any more; only when every kept dish is in the answer (a missing
+ *   one is the gone check's business, and its lines are unknown here, so nothing is let go while one is missing).
+ * @param {readonly Record<string, any>[]} serverDishes the dishes the kitchen just answered with
+ * @param {readonly string[]} items the kit's kept paths
+ * @returns {{ dishIds: string[], keep: string[], release: string[] }}
+ */
+export function keptRefreshPlan(serverDishes, items) {
+  const kept = keptDishIds(items);
+  const present = new Set(serverDishes.map((d) => d?.id));
+  const dishIds = kept.filter((id) => present.has(id));
+  const keptSet = new Set(items);
+  const used = new Set(serverDishes.filter((d) => dishIds.includes(d.id)).flatMap(dishIngredientIds).map(ingredientPath));
+  const keep = [...used].filter((p) => !keptSet.has(p));
+  const release = dishIds.length === kept.length ? orphanIngredientPaths(serverDishes, items) : [];
+  return { dishIds, keep, release };
+}
