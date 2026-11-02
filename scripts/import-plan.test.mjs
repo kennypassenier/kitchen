@@ -1,7 +1,7 @@
 // node --test scripts/import-plan.test.mjs: an import becomes an unsaved draft for the editor page (web/js/recipe/import-plan.js).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { importInput, draftKeyFor, planImport, shouldOfferPaste, importHref, importAsk, failureOf } from "../web/js/recipe/import-plan.js";
+import { importInput, planImport, shouldOfferPaste, importHref, importAsk, failureOf } from "../web/js/recipe/import-plan.js";
 
 const found = (extra = {}) => ({ name: "Carbonara", portions: 4, ingredients: ["200 g spaghetti", "1 handvol rucola"], steps: ["Kook de pasta 10 minuten.", "Meng alles."], minutes: { prep: 5, cook: 10, total: null }, image_url: "https://example.org/c.jpg", source_url: "https://example.org/carbonara", ...extra });
 const catalogue = [{ id: "i1", name: { nl: "Spaghetti", en: "Spaghetti" } }];
@@ -17,14 +17,15 @@ test("nothing typed is refused, not sent", () => {
   assert.deepEqual(importInput({ address: "", pasted: "   ", pasteOpen: true }), { ok: false });
 });
 
-test("the draft key is the one the editor page uses for a new recipe in that dish", () => {
-  assert.equal(draftKeyFor("d1"), "new:d1");
-  assert.equal(draftKeyFor(null), "new:");
+const U1 = "0b6c1f0e-1d2a-4c3b-9e8f-112233445566";
+
+test("an import's draft has its own key, never a blank new recipe's in that dish (fix-draft-key-1)", () => {
+  assert.equal(planImport(found(), "d1", catalogue, "Main", U1).key, `import:d1:${U1}`);
+  assert.equal(planImport(found(), null, catalogue, "Main", U1).key, `import::${U1}`);
 });
 
 test("the result is the editor's form state: label, source, portions, steps with minutes, lines matched or proposed", () => {
-  const plan = planImport(found(), "d1", catalogue, "Main");
-  assert.equal(plan.key, "new:d1");
+  const plan = planImport(found(), "d1", catalogue, "Main", U1);
   assert.equal(plan.cover, "https://example.org/c.jpg");
   const r = plan.restore;
   assert.equal(r.dish_id, "d1");
@@ -40,8 +41,8 @@ test("the result is the editor's form state: label, source, portions, steps with
 });
 
 test("without a dish the draft is for no dish; portions are kept inside 1 to 24; a page total is the override only when no step has minutes", () => {
-  const plan = planImport(found({ portions: 99, steps: ["Meng alles."], minutes: { prep: null, cook: null, total: 30 }, source_url: "file:///etc/passwd", image_url: null }), null, catalogue, "Main");
-  assert.equal(plan.key, "new:");
+  const plan = planImport(found({ portions: 99, steps: ["Meng alles."], minutes: { prep: null, cook: null, total: 30 }, source_url: "file:///etc/passwd", image_url: null }), null, catalogue, "Main", U1);
+  assert.equal(plan.key, `import::${U1}`);
   assert.equal(plan.restore.dish_id, null);
   assert.equal(plan.restore.portions, 24);
   assert.equal(plan.restore.minutes_override, 30);

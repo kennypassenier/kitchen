@@ -4,7 +4,7 @@
 // other. What the result becomes is recipe/import-plan.js (pure, tested); the reading of lines is import-lines.js; the
 // cover photo is offered in the editor (cover.js). The field that starts it is pages/recipes/import-field.js.
 
-import { importRecipe, kitchenNow, readDraft, saveDraft } from "../api.js";
+import { importRecipe, kitchenNow, saveDraft } from "../api.js";
 import { importToEditor } from "./edit-nav.js";
 import { planImport } from "./import-plan.js";
 import { t } from "../i18n/index.js";
@@ -17,9 +17,9 @@ import { t } from "../i18n/index.js";
 export async function runImport(body, dishId) {
   /** @type {import("./import-plan.js").Imported} */
   const found = await importRecipe(body);
-  const plan = planImport(found, dishId, kitchenNow()?.ingredients ?? [], t("edit.groupMain"));
-  // The draft is written first, as the editor would after the first change, but never over a draft that is already there.
-  const existing = await readDraft(plan.key).catch(() => null);
-  if (!existing) await saveDraft(plan.key, plan.restore).catch((e) => console.error("the import's draft was not saved", e));
-  importToEditor({ dishId, restore: plan.restore, cover: plan.cover });
+  const plan = planImport(found, dishId, kitchenNow()?.ingredients ?? [], t("edit.groupMain"), crypto.randomUUID());
+  // The draft is written first, as the editor would after the first change, under the import's own key: it can never
+  // write over a draft kept for a blank new recipe or another import (fix-draft-key-1).
+  await saveDraft(plan.key, plan.restore).catch((e) => console.error("the import's draft was not saved", e));
+  importToEditor({ dishId, restore: plan.restore, cover: plan.cover, draftKey: plan.key });
 }

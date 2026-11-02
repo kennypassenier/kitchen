@@ -4,11 +4,14 @@
 //   /recipe/edit?id=<recipe id>                        edit a saved recipe
 //   /recipe/edit?dish=<dish id>  or  ?new=1            a new recipe (in that dish); `safe=1` marks it a safe dish
 //   /recipe/edit?new=1&start=copy|import               a new recipe that starts from a handoff (recipe/edit-handoff.js)
+//   &draft=<key>                                       the copy's or import's own draft key (recipe/draft-keys.js)
 //   &from=<path>                                       where Save and Back return to (a path inside the app)
+
+import { ownKey } from "./draft-keys.js";
 
 export const EDIT_PATH = "/recipe/edit";
 
-/** @typedef {{ kind: "edit", id: string } | { kind: "new", dishId: string | null, safe: boolean, start: "copy" | "import" | null } | { kind: "none" }} EditTarget */
+/** @typedef {{ kind: "edit", id: string } | { kind: "new", dishId: string | null, safe: boolean, start: "copy" | "import" | null, draft: string | null } | { kind: "none" }} EditTarget */
 
 /**
  * What an address asks for. An `id` wins; otherwise `dish` or `new` ask for a new recipe; anything else is nothing.
@@ -20,7 +23,9 @@ export function parseEdit(params) {
   const dish = params.get("dish");
   if (!dish && params.get("new") !== "1") return { kind: "none" };
   const start = params.get("start");
-  return { kind: "new", dishId: dish || null, safe: params.get("safe") === "1", start: start === "copy" || start === "import" ? start : null };
+  const from = start === "copy" || start === "import" ? start : null;
+  // Only a copy or an import carries its own draft key, and only one shaped like one (recipe/draft-keys.js).
+  return { kind: "new", dishId: dish || null, safe: params.get("safe") === "1", start: from, draft: from ? ownKey(params.get("draft")) : null };
 }
 
 /**
@@ -37,7 +42,7 @@ export function safeReturn(from) {
 export const here = (loc) => safeReturn(loc.pathname + loc.search);
 
 /**
- * The editor's address. @param {{ id?: string, dish?: string | null, safe?: boolean, start?: "copy" | "import" }} spec @param {string | null} [from]
+ * The editor's address. @param {{ id?: string, dish?: string | null, safe?: boolean, start?: "copy" | "import", draft?: string }} spec @param {string | null} [from]
  */
 export function editHref(spec, from = null) {
   const q = new URLSearchParams();
@@ -47,6 +52,7 @@ export function editHref(spec, from = null) {
     if (spec.dish) q.set("dish", spec.dish);
     if (spec.safe) q.set("safe", "1");
     if (spec.start) q.set("start", spec.start);
+    if (spec.start && spec.draft) q.set("draft", spec.draft);
   }
   const back = safeReturn(from);
   if (back) q.set("from", back);

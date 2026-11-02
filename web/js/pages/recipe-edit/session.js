@@ -26,7 +26,7 @@ export function openSession({ shell, start, mainOptions, from, navigate }) {
     // The old sections' marks go first, so the bar counts again (a removed node is no attribute change).
     bar.refreshNow();
     editor?.dispose();
-    editor = createEditor({ recipe: s.recipe, mainOptions, preset: s.preset, restore: s.restore, copyOf: s.copyOf, imported: s.imported, cover: s.cover, restoreWith: (data) => show({ restore: data, copyOf: "", imported: false, cover: null }) });
+    editor = createEditor({ recipe: s.recipe, mainOptions, preset: s.preset, restore: s.restore, copyOf: s.copyOf, imported: s.imported, cover: s.cover, draftKey: s.draftKey, restoreWith: (data, key) => show({ restore: data, copyOf: "", imported: false, cover: null, draftKey: key }) });
     alert.hidden = true;
     scope.replaceChildren(editor.form);
     editor.start();
@@ -40,7 +40,9 @@ export function openSession({ shell, start, mainOptions, from, navigate }) {
   async function discard() {
     await editor.parts.draft.flush(true).catch((e) => console.error("keeping the draft", e));
     const preset = start.copyOf || start.imported ? { dish_id: start.preset.dish_id } : start.preset;
-    show({ restore: null, copyOf: "", imported: false, cover: null, preset });
+    // The blank form after a copy's or an import's Discard is a blank new recipe with its own key: the kept draft stays
+    // apart and is offered above the form (recipe/draft-keys.js).
+    show({ restore: null, copyOf: "", imported: false, cover: null, preset, draftKey: "" });
   }
 
   const bar = createBar({

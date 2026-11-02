@@ -25,6 +25,7 @@ import { createDraft, watchDraft, offerEarlierDraft } from "./draft.js";
 import { createCollector, createSaver } from "./save.js";
 import { isChanged } from "./leave.js";
 import { SECTIONS, changedSections } from "./sections.js";
+import { newKey } from "../draft-keys.js";
 
 export { newId } from "./ids.js";
 
@@ -37,10 +38,11 @@ function startOf(recipe, preset, restore) {
   return restore ? { ...base, ...restore } : base;
 }
 
-/** Every part of the form, built from the recipe. @param {Record<string, any> | null} recipe @param {Record<string, any>} r @param {{ preset: Record<string, any>, restore: Record<string, any> | null, mainOptions: string[] }} o */
-function buildParts(recipe, r, { preset, restore, mainOptions }) {
-  // The draft's key: the recipe's id, or `new:<dish id>` for a new one.
-  const draftKey = recipe ? String(recipe.id) : `new:${preset.dish_id ?? ""}`;
+/** Every part of the form, built from the recipe. @param {Record<string, any> | null} recipe @param {Record<string, any>} r @param {{ preset: Record<string, any>, restore: Record<string, any> | null, mainOptions: string[], key: string }} o */
+function buildParts(recipe, r, { preset, restore, mainOptions, key }) {
+  // The draft's key (recipe/draft-keys.js): the one given (an import's or a copy's own, or a restored draft's), else the
+  // recipe's id, else `new:<dish id>` for a blank new one.
+  const draftKey = key || (recipe ? String(recipe.id) : newKey(preset.dish_id));
   // Photos (Kenny, 24/10/2026 05:23): what this session uploads and what the recipe had, so Save and Discard leave no stray file.
   const tracker = photoTracker(photosOf(recipe));
   // A restored draft's photos were sent by an earlier session: this one answers for them now.
@@ -62,11 +64,11 @@ const sec = (def, ...body) => h("section", { class: "rl-formsec", id: def.id, "d
 /**
  * Build the editor's form for a recipe, or a new one. `restore` is a draft's form state (Kenny, 29/10/2026). Nothing is wired
  * until the page has put `form` in the document and called `start()`.
- * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string, imported?: boolean, cover?: string | null, restoreWith?: (data: Record<string, any>) => void }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js); `imported` makes it the preview of an import (recipe/import.js) and `cover` is the picture address the page offered (recipe/cover.js); `restoreWith` is called when an earlier draft's Restore is pressed
+ * @param {{ recipe: Record<string, any> | null, mainOptions: string[], preset?: Record<string, any>, restore?: Record<string, any> | null, copyOf?: string, imported?: boolean, cover?: string | null, draftKey?: string, restoreWith?: (data: Record<string, any>, key: string) => void }} spec `copyOf` names the recipe the form is a copy of (recipe/duplicate.js); `imported` makes it the preview of an import (recipe/import.js) and `cover` is the picture address the page offered (recipe/cover.js); `draftKey` is the key its draft is kept under when it is not the default (recipe/draft-keys.js); `restoreWith` is called with an earlier draft's data and key when its Restore is pressed
  */
-export function createEditor({ recipe, mainOptions, preset = {}, restore = null, copyOf = "", imported = false, cover = null, restoreWith = () => {} }) {
+export function createEditor({ recipe, mainOptions, preset = {}, restore = null, copyOf = "", imported = false, cover = null, draftKey = "", restoreWith = () => {} }) {
   const r = startOf(recipe, preset, restore);
-  const p = buildParts(recipe, r, { preset, restore, mainOptions });
+  const p = buildParts(recipe, r, { preset, restore, mainOptions, key: draftKey });
   const { details, times, notes, lists, timeline, steps, tracker, collector, draft } = p;
   const body = /** @type {Record<string, HTMLElement>} */ ({ dish: details.el, time: times.el, notes: notes.el, lists: lists.el, timeline: timeline.host, steps: steps.el });
   // The draft offer (Kenny, 29/10/2026): a draft saved by an earlier session is offered above the form.
@@ -92,7 +94,7 @@ export function createEditor({ recipe, mainOptions, preset = {}, restore = null,
       draft.setOpening(JSON.stringify(collector.collect(true)));
       if (!restore && !imported && !copyOf) baseline = collector.collect(true);
       if (restore) return;
-      offerEarlierDraft({ draftKey: p.draftKey, draft, offer, host: form, restoreWith: (data) => { void tracker.discard(); restoreWith(data); } });
+      offerEarlierDraft({ draftKey: p.draftKey, dishId: preset.dish_id ?? null, draft, offer, host: form, restoreWith: (data, key) => { void tracker.discard(); restoreWith(data, key); } });
     },
     save: saver,
     /** The sections whose fields differ from how the form opened. */

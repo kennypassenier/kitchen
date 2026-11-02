@@ -5,7 +5,8 @@ import { readDraft } from "../../api.js";
 import { readHandoff } from "../../recipe/edit-handoff.js";
 
 /**
- * @typedef {{ recipe: Record<string, any> | null, preset: Record<string, any>, restore: Record<string, any> | null, copyOf: string, imported: boolean, cover: string | null }} Start
+ * `draftKey` is the copy's or the import's own draft key (recipe/draft-keys.js), "" for the default.
+ * @typedef {{ recipe: Record<string, any> | null, preset: Record<string, any>, restore: Record<string, any> | null, copyOf: string, imported: boolean, cover: string | null, draftKey: string }} Start
  * @typedef {{ missing: true } | ({ missing: false } & Start)} Resolved
  */
 
@@ -18,23 +19,34 @@ export const mainOptionsOf = (k) => [...new Set((k.recipes ?? []).flatMap((r) =>
  */
 export async function resolveStart(target, k, storage) {
   /** @type {Start} */
-  const blank = { recipe: null, preset: {}, restore: null, copyOf: "", imported: false, cover: null };
+  const blank = { recipe: null, preset: {}, restore: null, copyOf: "", imported: false, cover: null, draftKey: "" };
   if (target.kind === "none") return { missing: true };
   if (target.kind === "edit") {
     const recipe = k.recipes.find((r) => r.id === target.id) ?? null;
     return recipe ? { missing: false, ...blank, recipe } : { missing: true };
   }
   const preset = { ...(target.dishId ? { dish_id: target.dishId } : {}), ...(target.safe ? { safe: true } : {}) };
-  if (target.start === "copy") {
-    const hand = readHandoff(storage, "copy");
-    if (hand?.kind === "copy") return { missing: false, ...blank, preset: hand.preset, copyOf: hand.copyOf };
-  }
-  if (target.start === "import") {
-    const hand = readHandoff(storage, "import");
-    if (hand?.kind === "import") return { missing: false, ...blank, preset, restore: hand.restore, imported: true, cover: hand.cover };
-    // A reload in a new tab has no handoff: the draft the import wrote is the import.
-    const found = await readDraft(`new:${target.dishId ?? ""}`);
-    if (found) return { missing: false, ...blank, preset, restore: found.data, imported: true };
-  }
-  return { missing: false, ...blank, preset };
+  if (!target.start) return { missing: false, ...blank, preset };
+  return { missing: false, ...blank, ...(await fromHandoff(target, preset, storage)) };
+}
+
+/**
+ * A copy or an import: the tab's handoff, else (a reload in another tab) the draft under the address's own key. An import
+ * starts from its draft when there is one, so a reload keeps what was typed since; a copy starts from the copy and its
+ * draft is offered above the form like any other (recipe/editor/draft.js).
+ * @param {Extract<import("../../recipe/edit-route.js").EditTarget, { kind: "new" }>} target @param {Record<string, any>} preset @param {Pick<Storage, "getItem">} storage
+ * @returns {Promise<Partial<Start>>}
+ */
+async function fromHandoff(target, preset, storage) {
+  const kind = /** @type {"copy" | "import"} */ (target.start);
+  const hand = readHandoff(storage, kind);
+  // A handoff of another copy or import (another tab's address in this tab) is not this one's.
+  const ours = hand && (!target.draft || hand.draftKey === target.draft) ? hand : null;
+  const draftKey = target.draft ?? ours?.draftKey ?? "";
+  // A draft that cannot be read leaves the handoff to start from; without one, the copy or import is gone (a new recipe).
+  const found = draftKey ? await readDraft(draftKey).catch((e) => (console.error("the draft could not be read", e), null)) : null;
+  if (ours?.kind === "copy") return { preset: ours.preset, copyOf: ours.copyOf, draftKey };
+  if (ours?.kind === "import") return { preset, restore: found?.data ?? ours.restore, imported: true, cover: ours.cover, draftKey };
+  if (found) return { preset, restore: found.data, imported: kind === "import", draftKey };
+  return { preset };
 }

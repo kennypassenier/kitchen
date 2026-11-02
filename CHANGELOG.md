@@ -90,6 +90,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **A meeting step follows back after a timeline drag** [fix-meet-pin-1]: a drop writes a start only for the bars it moved
   (the sequencer's `changed`), so a step where the tracks meet is no longer pinned at its old start and moves earlier again
   when a step before it shrinks.
+- **An import or a copy no longer writes over a kept draft** [fix-draft-key-1]: each has its own draft key (it shared the blank new
+  recipe's `new:<dish>`), carried in the editor's address so a reload finds it; a new recipe in that dish still offers
+  the draft an import or copy left behind.
 - **Closing the recipe editor never throws work away**: Escape, the close button and Cancel keep the draft; leaving a
   changed page asks Keep as draft / Discard.
 - **The wheel's filter and "what counts as easy" panels fit inside their card** (they stuck out at the edge), and the

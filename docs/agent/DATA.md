@@ -184,7 +184,12 @@ in both halves.
 
 `{key, data, saved}` (Kenny, 29/10/2026): the recipe editor's autosaved form, in the database and not in the
 browser, so it follows Kenny from one device to the next. `key` is the recipe's id, or `new:<dish id>` for a
-recipe that has no id yet (`new:` alone when it has no dish); `data` is the editor's form state (a recipe body
+blank new recipe (`new:` alone when it has no dish), `import:<dish id>:<uuid>` for an import and
+`copy:<source recipe id>:<uuid>` for a copy (fix-draft-key-1, 02/11/2026: they shared `new:<dish id>` and an import
+silently wrote over a draft kept for a blank new recipe; `web/js/recipe/draft-keys.js`). An import's or a copy's key is
+made once when it starts and travels in the editor's address (`&draft=`), so a reload, in any tab, finds its draft; a
+blank new recipe in a dish also offers an import's or copy's draft left in that dish (the newest), and restoring one goes
+on under that draft's key; `data` is the editor's form state (a recipe body
 with `dish_id` or `new_dish`, `label` and the steps); `saved` is set by the server on every write. One draft per
 `key`: `POST /data/drafts` with the same `key` replaces it (its `id` and `created` stay), so the editor saves
 about 1 s after the last change without ever making a second one. The editor deletes the draft on Save and on
@@ -195,8 +200,8 @@ has none), so the format stays 5. Photos a draft refers to are files like any ot
 ## import (`POST /data/import`, `POST /data/import/image`)
 
 Kenny, 29/10/2026 14:27: a recipe from a website or from pasted text, with a preview. Nothing is stored by the
-import itself: the answer opens the recipe editor as an unsaved draft (`drafts`, key `new:<dish id>`, deleted on
-Save and Cancel like any draft).
+import itself: the answer opens the recipe editor as an unsaved draft (`drafts`, key `import:<dish id>:<uuid>`, deleted
+on Save and Discard like any draft).
 
 `POST /data/import` takes `{"url": "https://…"}` or `{"text": "…"}` (text wins when both are sent) and answers
 `{name, portions, ingredients: [text], steps: [text], minutes: {prep, cook, total}, image_url, source_url}`

@@ -2,7 +2,8 @@
 // explicit Discard (never by leaving: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
 
 import { toast } from "/static/kp/dist/kp-themes.min.js";
-import { saveDraft, deleteDraft, readDraft } from "../../api.js";
+import { saveDraft, deleteDraft, readDrafts } from "../../api.js";
+import { offeredFor } from "../draft-keys.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { stamp } from "../../format.js";
@@ -85,12 +86,15 @@ export function watchDraft(form, draft) {
 }
 
 /**
- * An earlier session's draft is offered, not applied: Restore starts the form again from it, Discard deletes it.
- * @param {{ draftKey: string, draft: ReturnType<typeof createDraft>, offer: HTMLElement, host: HTMLElement, restoreWith: (data: Record<string, any>) => void }} o
+ * An earlier session's draft is offered, not applied: Restore starts the form again from it (under the key it was kept
+ * under, so a blank new recipe that restores an import's draft goes on writing that one), Discard deletes it. Which draft
+ * is offered is recipe/draft-keys.js `offeredFor`.
+ * @param {{ draftKey: string, dishId: string | null, draft: ReturnType<typeof createDraft>, offer: HTMLElement, host: HTMLElement, restoreWith: (data: Record<string, any>, key: string) => void }} o
  */
-export function offerEarlierDraft({ draftKey, draft, offer, host, restoreWith }) {
-  void readDraft(draftKey)
-    .then((found) => {
+export function offerEarlierDraft({ draftKey, dishId, draft, offer, host, restoreWith }) {
+  void readDrafts()
+    .then((all) => {
+      const found = offeredFor(all, draftKey, dishId);
       if (!found || draft.gone || !host.isConnected || JSON.stringify(found.data) === draft.opening) return;
       const restoreButton = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("edit.draftRestore"));
       const discardButton = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("edit.draftDiscard"));
@@ -98,11 +102,11 @@ export function offerEarlierDraft({ draftKey, draft, offer, host, restoreWith })
       offer.hidden = false;
       restoreButton.addEventListener("click", () => {
         draft.abandon();
-        restoreWith(found.data);
+        restoreWith(found.data, found.key);
       });
       discardButton.addEventListener("click", () => {
         offer.hidden = true;
-        void deleteDraft(draftKey).catch((e) => console.warn(`the discarded draft ${draftKey} was not deleted`, e));
+        void deleteDraft(found.key).catch((e) => console.warn(`the discarded draft ${found.key} was not deleted`, e));
       });
     })
     .catch((e) => console.warn(`the earlier draft ${draftKey} could not be read`, e));

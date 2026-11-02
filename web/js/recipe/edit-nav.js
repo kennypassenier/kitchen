@@ -7,6 +7,7 @@ import { copyRecipe } from "./duplicate.js";
 import { putHandoff } from "./edit-handoff.js";
 import { go } from "../go.js";
 import { editHref, here } from "./edit-route.js";
+import { copyKey } from "./draft-keys.js";
 
 /**
  * Go to the editor page; Save and Back return to the page the person is on now.
@@ -27,20 +28,22 @@ export const newRecipe = ({ dishId = null, safe = false } = {}) => goEdit({ dish
  * @param {Record<string, any>} recipe
  */
 export function copyToEditor(recipe) {
+  // Each copy has its own draft key (fix-draft-key-1): it never writes over a draft kept for a blank new recipe in the dish.
+  const draftKey = copyKey(String(recipe.id), crypto.randomUUID());
   try {
-    putHandoff(sessionStorage, { kind: "copy", preset: { ...copyRecipe(recipe), dish_id: recipe.dish_id }, copyOf: String(recipe.name ?? "") });
+    putHandoff(sessionStorage, { kind: "copy", preset: { ...copyRecipe(recipe), dish_id: recipe.dish_id }, copyOf: String(recipe.name ?? ""), draftKey });
   } catch (e) {
     toast(t("ep.handoffFailed", reason(e)), { live: "assertive", sticky: true });
     return;
   }
-  goEdit({ dish: recipe.dish_id, start: "copy" });
+  goEdit({ dish: recipe.dish_id, start: "copy", draft: draftKey });
 }
 
 /**
  * An import's result opens as an unsaved draft (recipe/import.js): the form state and the cover offer travel in the handoff.
- * @param {{ dishId: string | null, restore: Record<string, any>, cover: string | null }} found
+ * @param {{ dishId: string | null, restore: Record<string, any>, cover: string | null, draftKey: string }} found
  */
-export function importToEditor({ dishId, restore, cover }) {
-  putHandoff(sessionStorage, { kind: "import", dishId, restore, cover });
-  goEdit({ dish: dishId, start: "import" });
+export function importToEditor({ dishId, restore, cover, draftKey }) {
+  putHandoff(sessionStorage, { kind: "import", dishId, restore, cover, draftKey });
+  goEdit({ dish: dishId, start: "import", draft: draftKey });
 }

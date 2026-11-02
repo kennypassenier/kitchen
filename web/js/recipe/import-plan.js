@@ -2,6 +2,7 @@
 // and the editor's form state for what the kitchen read. The fetching and the hand-over are recipe/import.js.
 
 import { newId } from "./editor/ids.js";
+import { importKey } from "./draft-keys.js";
 import { parseIngredientLine, firstMinutes, matchIngredient } from "./import-lines.js";
 
 /** What the server found, as the editor's form state. @typedef {{ name: string, portions: number | null, ingredients: string[], steps: string[], minutes: { prep: number | null, cook: number | null, total: number | null }, image_url: string | null, source_url: string | null }} Imported */
@@ -47,8 +48,6 @@ export function importHref({ dish = null, site = null } = {}) {
 /** What the Recipes address asks of the import field. @param {URLSearchParams} params */
 export const importAsk = (params) => ({ focus: params.get("import") === "1", dishId: params.get("dish") || null, siteId: params.get("site") || null });
 
-/** The draft key of a new recipe in a dish (recipe/editor/index.js). @param {string | null} dishId */
-export const draftKeyFor = (dishId) => `new:${dishId ?? ""}`;
 
 /**
  * The editor's form state for an imported recipe: label from the name, portions, one step per instruction with the first
@@ -89,5 +88,9 @@ export function toRestore(imp, dishId, catalogue, group) {
   };
 }
 
-/** Everything the editor page needs from a read page. @param {Imported} found @param {string | null} dishId @param {{ id: string }[]} catalogue @param {string} group */
-export const planImport = (found, dishId, catalogue, group) => ({ key: draftKeyFor(dishId), restore: toRestore(found, dishId, catalogue, group), cover: found.image_url });
+/**
+ * Everything the editor page needs from a read page. `uuid` makes the import's own draft key (recipe/draft-keys.js), so it
+ * never writes over a draft kept for a blank new recipe or another import in that dish (fix-draft-key-1).
+ * @param {Imported} found @param {string | null} dishId @param {{ id: string }[]} catalogue @param {string} group @param {string} uuid
+ */
+export const planImport = (found, dishId, catalogue, group, uuid) => ({ key: importKey(dishId, uuid), restore: toRestore(found, dishId, catalogue, group), cover: found.image_url });

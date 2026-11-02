@@ -4,7 +4,7 @@
 
 const KEY = "rl-edit-handoff";
 
-/** @typedef {{ kind: "copy", preset: Record<string, any>, copyOf: string } | { kind: "import", dishId: string | null, restore: Record<string, any>, cover: string | null }} Handoff */
+/** `draftKey` is the copy's or the import's own draft key (recipe/draft-keys.js). @typedef {{ kind: "copy", preset: Record<string, any>, copyOf: string, draftKey?: string } | { kind: "import", dishId: string | null, restore: Record<string, any>, cover: string | null, draftKey?: string }} Handoff */
 
 /** Keep a handoff for the editor page. Throws when the browser refuses (the caller says so). @param {Pick<Storage, "setItem">} storage @param {Handoff} data */
 export const putHandoff = (storage, data) => storage.setItem(KEY, JSON.stringify(data));

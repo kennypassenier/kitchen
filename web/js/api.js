@@ -177,7 +177,7 @@ export async function restore(list, id, at) {
   return item;
 }
 
-export { readDraft, saveDraft, deleteDraft } from "./api/drafts.js";
+export { readDraft, readDrafts, saveDraft, deleteDraft } from "./api/drafts.js";
 
 /** A recipe read from a web page (`{ url }`) or pasted text (`{ text }`), normalised; a refusal's message is its code (src/import.rs). @param {{ url?: string, text?: string }} body */
 export const importRecipe = (body) => call("POST", "/data/import", body);

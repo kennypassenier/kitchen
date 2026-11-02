@@ -12,10 +12,19 @@ test("an id means edit, and wins over new and dish", () => {
 });
 
 test("new or dish means a new recipe; start and safe are read, an unknown start is ignored", () => {
-  assert.deepEqual(parseEdit(q("new=1")), { kind: "new", dishId: null, safe: false, start: null });
-  assert.deepEqual(parseEdit(q("dish=d1")), { kind: "new", dishId: "d1", safe: false, start: null });
-  assert.deepEqual(parseEdit(q("new=1&safe=1&start=import")), { kind: "new", dishId: null, safe: true, start: "import" });
+  assert.deepEqual(parseEdit(q("new=1")), { kind: "new", dishId: null, safe: false, start: null, draft: null });
+  assert.deepEqual(parseEdit(q("dish=d1")), { kind: "new", dishId: "d1", safe: false, start: null, draft: null });
+  assert.deepEqual(parseEdit(q("new=1&safe=1&start=import")), { kind: "new", dishId: null, safe: true, start: "import", draft: null });
   assert.equal(parseEdit(q("new=1&start=evil")).start, null);
+});
+
+test("a copy or an import carries its own draft key; any other key, or one without a copy or import, is ignored", () => {
+  const key = "import:d1:0b6c1f0e-1d2a-4c3b-9e8f-112233445566";
+  assert.equal(parseEdit(q(`dish=d1&start=import&draft=${encodeURIComponent(key)}`)).draft, key);
+  assert.equal(parseEdit(q(`dish=d1&draft=${encodeURIComponent(key)}`)).draft, null);
+  assert.equal(parseEdit(q("dish=d1&start=copy&draft=new%3Ad1")).draft, null);
+  assert.equal(editHref({ dish: "d1", start: "import", draft: key }), `/recipe/edit?new=1&dish=d1&start=import&draft=${encodeURIComponent(key)}`);
+  assert.equal(editHref({ dish: "d1", draft: key }), "/recipe/edit?new=1&dish=d1");
 });
 
 test("an address with neither is nothing", () => {
