@@ -40,4 +40,6 @@ export const EN_OFFLINE = {
   "off.logoutStay": "Stay signed in",
   // a POST (new item, draft, import, Undo's restore) without a connection (api/http.js); a freezer take queues instead
   "api.needsConnection": "This needs a connection: something new gets its number from the kitchen. Nothing you typed is lost; try again once you are online.",
+  // a kept recipe whose dish the kitchen no longer holds was dropped from the offline copy (api/recipe-gone.js)
+  "off.goneRecipe": "This recipe is no longer in the kitchen and has been removed from your offline copy.",
 };

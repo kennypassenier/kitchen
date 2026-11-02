@@ -72,6 +72,22 @@ export function ingredientPlan(dishes, items, dishId, on) {
   return own.filter((id) => !stillUsed.has(id)).map(ingredientPath);
 }
 
+const INGREDIENT_PATH = /^\/data\/ingredients\/[^/?#]+$/;
+
+/**
+ * The kept ingredient paths no kept dish uses any more: what is left over after a kept dish was dropped because the
+ * kitchen no longer holds it (its own recipe lines are no longer known, so this sweeps by what the remaining kept
+ * dishes use instead of by the dropped dish). A kept dish missing from `dishes` would count as using nothing, so the
+ * caller sweeps only when every kept dish is in `dishes`.
+ * @param {readonly Record<string, any>[]} dishes the kitchen's dishes @param {readonly string[]} items the kit's kept paths
+ * @returns {string[]} ingredient paths to pass to `keepItem(path, false)`
+ */
+export function orphanIngredientPaths(dishes, items) {
+  const kept = new Set(keptDishIds(items));
+  const used = new Set(dishes.filter((d) => kept.has(d.id)).flatMap(dishIngredientIds).map(ingredientPath));
+  return items.filter((p) => INGREDIENT_PATH.test(p) && !used.has(p));
+}
+
 /**
  * How many recipes are kept one by one: every recipe of every kept dish that the kitchen still holds. A kept dish the
  * kitchen no longer has counts as nothing (it shows nothing either).

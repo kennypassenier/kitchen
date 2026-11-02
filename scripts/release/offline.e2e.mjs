@@ -16,6 +16,8 @@
 //   6. signing out with an unsent edit asks first (the kit's confirmation)
 //   7. a freezer take (feat-offline-take-1): one whose answer is lost after it reached the kitchen is replayed with the
 //      same Idempotency-Key and takes ONE portion; one made offline shows at once and is sent when the connection is back
+//   8. a kept recipe whose dish is deleted on the server (feat-offline-gone): the next online read drops its keep, its
+//      copy and the ingredients no other kept dish uses, shows the notice once; a lost connection drops nothing
 // Exit code 1 on the first failed check; the measured duration is printed at the end.
 
 import { api, bandState, check, kitchenOf, launch, queueOf, settings, signedIn, synced } from "./offline-driver.mjs";
@@ -196,10 +198,39 @@ async function logoutAsks(browser) {
   await context.close();
 }
 
+/**
+ * Scenario 8 (feat-offline-gone, Kenny 02/11/2026 19:43). A dish made for the check is kept, deleted on the server and
+ * the kitchen read again: offline first (nothing is dropped, a copy never says "gone"), then online.
+ */
+async function keptDishGone(browser) {
+  const { context, page, errors } = await signedIn(browser, cfg);
+  await page.evaluate(() => /** @type {any} */ (window).chassisData.keepAll(false));
+  const dish = await api(page, "create", "dishes", { name: { nl: "E2E weg", en: "E2E gone" }, category: null, parents: false, ingredients: [], sides: [], recipes: [] });
+  const path = dishPath(dish.id);
+  await page.evaluate((p) => /** @type {any} */ (window).chassisData.keepItem(p, true), path);
+  await page.evaluate((p) => /** @type {any} */ (window).chassisData.get(p), path);
+  check(await keptByKit(page, path), "the new dish is kept");
+  await context.setOffline(true);
+  await page.evaluate(() => /** @type {any} */ (window).chassisData.get("/data/dishes/none").catch(() => {}));
+  await api(page, "loadKitchen", { force: true }).catch(() => {});
+  check(await keptByKit(page, path), "a lost connection drops nothing");
+  await context.setOffline(false);
+  await api(page, "remove", "dishes", dish.id);
+  await api(page, "loadKitchen", { force: true });
+  await page.waitForFunction((p) => /** @type {any} */ (window).chassisData.isKept(p).then((k) => !k), path);
+  const notice = page.getByText(/no longer in the kitchen|niet meer in de keuken/);
+  await notice.first().waitFor();
+  check((await notice.count()) === 1, "the notice shows once");
+  await api(page, "loadKitchen", { force: true });
+  check((await notice.count()) === 1, "a later read does not show it again");
+  check(errors.length === 0, `no page errors (${errors.join("; ")})`);
+  await context.close();
+}
+
 const browser = await launch(cfg);
 let failed = false;
 try {
-  for (const [name, run] of [["cook mode offline", cookOffline], ["only one recipe kept", oneRecipeKept], ["offline edit + replay", editAndReplay], ["conflict on replay", conflictToFailedList], ["clear copy", clearCopy], ["logout with unsent edits", logoutAsks], ["freezer take once", freezerTakeOnce]]) {
+  for (const [name, run] of [["cook mode offline", cookOffline], ["only one recipe kept", oneRecipeKept], ["offline edit + replay", editAndReplay], ["conflict on replay", conflictToFailedList], ["clear copy", clearCopy], ["logout with unsent edits", logoutAsks], ["freezer take once", freezerTakeOnce], ["kept dish gone", keptDishGone]]) {
     console.log(name);
     await run(browser);
   }

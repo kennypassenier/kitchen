@@ -38,4 +38,6 @@ export const NL_OFFLINE = {
   "off.logoutAccept": "Toch afmelden",
   "off.logoutStay": "Aangemeld blijven",
   "api.needsConnection": "Hiervoor is een verbinding nodig: iets nieuws krijgt zijn nummer van de keuken. Wat je typte, is niet verloren; probeer opnieuw zodra je online bent.",
+  // a kept recipe whose dish the kitchen no longer holds was dropped from the offline copy (api/recipe-gone.js)
+  "off.goneRecipe": "Dit recept staat niet meer in de keuken en is uit je offline kopie gehaald.",
 };
