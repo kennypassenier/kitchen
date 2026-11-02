@@ -29,3 +29,10 @@ export function outcomeOf(choice) {
   if (choice === DISCARD) return { saveDraft: false, dropDraft: true, dropPhotos: true };
   return { saveDraft: true, dropDraft: false, dropPhotos: false };
 }
+
+/**
+ * Whether the page going away (a reload, a closed tab) must still write the draft: only when a change waits for its
+ * autosave, the editor is still in use, and the form differs from how it opened. Both sides are the draft JSON.
+ * @param {{ pending: boolean, gone: boolean, now: string, opening: string }} o
+ */
+export const writesOnHide = ({ pending, gone, now, opening }) => pending && !gone && now !== opening;

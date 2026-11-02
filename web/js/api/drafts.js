@@ -12,9 +12,9 @@ export async function readDraft(key) {
   return (Array.isArray(all) ? all : []).find((/** @type {Item} */ d) => d.key === key) ?? null;
 }
 
-/** Save (or replace) the draft under `key`. @param {string} key @param {Item} data */
-export async function saveDraft(key, data) {
-  return call("POST", "/data/drafts", { key, data });
+/** Save (or replace) the draft under `key`. `keepalive`: sent while the page goes away. @param {string} key @param {Item} data @param {{ keepalive?: boolean }} [o] */
+export async function saveDraft(key, data, o = {}) {
+  return call("POST", "/data/drafts", { key, data }, o);
 }
 
 /** Delete the draft under `key`, if there is one. @param {string} key */

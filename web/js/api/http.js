@@ -13,8 +13,8 @@ export class ApiError extends Error {
 /** The words for an error: api.js messages are fit to show as they are. @param {unknown} e */
 export const reason = (e) => (e instanceof Error ? e.message : String(e));
 
-/** @param {string} method @param {string} path @param {unknown} [body] */
-export async function call(method, path, body) {
+/** `keepalive`: the request outlives the page (a draft written while the tab closes). @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean }} [o] */
+export async function call(method, path, body, { keepalive = false } = {}) {
   let res;
   try {
     res = await fetch(path, {
@@ -22,6 +22,7 @@ export async function call(method, path, body) {
       headers: body === undefined ? {} : { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: "same-origin",
+      keepalive,
     });
   } catch {
     throw new ApiError("The connection to the kitchen dropped. Nothing is lost; try again.", 0);

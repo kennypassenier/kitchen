@@ -5,6 +5,7 @@ import { saveDraft, deleteDraft, readDraft } from "../../api.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { stamp } from "../../format.js";
+import { writesOnHide } from "./leave.js";
 
 const DRAFT_MS = 1000;
 /** The events after which the draft is saved again. */
@@ -17,14 +18,17 @@ export function createDraft({ draftKey, collect }) {
   let chain = Promise.resolve();
   let gone = false;
   let opening = "";
+  // A change whose autosave has not run yet: a reload or a closed tab within that second still writes it (`hide`).
+  let pending = false;
   /** @param {boolean} force write even when the form equals how it opened (Keep as draft on a copy or an import) */
   const write = async (force = false) => {
+    pending = false;
     if (gone) return;
     const now = collect(true);
     if (!force && JSON.stringify(now) === opening) return;
     await saveDraft(draftKey, now).catch(() => {}); // a draft that cannot be saved must never get in the way of editing
   };
-  return {
+  const self = {
     /** The form as it opened: a draft equal to it is not worth keeping. @param {string} json */
     setOpening: (json) => void (opening = json),
     get opening() {
@@ -34,8 +38,17 @@ export function createDraft({ draftKey, collect }) {
       return gone;
     },
     queue: () => {
+      pending = true;
       clearTimeout(timer);
       timer = window.setTimeout(() => (chain = chain.then(() => write())), DRAFT_MS);
+    },
+    /** The page is going away: write a waiting change now, in a request that outlives the page. */
+    hide: () => {
+      const now = JSON.stringify(collect(true));
+      if (!writesOnHide({ pending, gone, now, opening })) return;
+      pending = false;
+      clearTimeout(timer);
+      void saveDraft(draftKey, JSON.parse(now), { keepalive: true }).catch((e) => console.error("the draft was not written on leaving", e));
     },
     /** Write the draft now (leaving must not lose the last second of typing). `force`: even when nothing changed since it opened. @param {boolean} [force] */
     flush: async (force = false) => {
@@ -45,6 +58,7 @@ export function createDraft({ draftKey, collect }) {
     },
     drop: async () => {
       gone = true;
+      removeEventListener("pagehide", self.hide);
       clearTimeout(timer);
       await chain;
       await deleteDraft(draftKey).catch(() => {});
@@ -52,14 +66,18 @@ export function createDraft({ draftKey, collect }) {
     /** Stop saving (the editor is being replaced by one on a restored draft, or the page is left for good). */
     abandon: () => {
       gone = true;
+      removeEventListener("pagehide", self.hide);
       clearTimeout(timer);
     },
   };
+  return self;
 }
 
 /** Save the draft after every change in the form. @param {HTMLElement} form @param {ReturnType<typeof createDraft>} draft */
 export function watchDraft(form, draft) {
   for (const type of DRAFT_EVENTS) form.addEventListener(type, draft.queue);
+  // A reload or a closed tab within the autosave's second (the kit's unsaved bar asks first) still keeps the typing.
+  addEventListener("pagehide", draft.hide);
 }
 
 /**
