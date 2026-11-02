@@ -58,6 +58,13 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
+- Fixed on chassis-rs main 073273f (unreleased, for the release after 4.3.0): the logout guard works on the kit's own pages
+  without `configure()` (and "Log out…" no longer sticks after "Stay"), the connection band's words follow
+  `kp-strings-change`, and the kit has its own failed-edits drawer (Discard / Save again / Discard all) opened from the
+  toast's Review, `chassisData.review()` or `[data-chassis-review]`; the `chassis-data-review` event is now cancelable.
+  At that bump: drop Kitchen's own failed-edits drawer (`web/js/offline/failed-list.js` and its wiring) for the kit's,
+  re-check the logout guard from a Kitchen page and a kit page with an unsent edit, and re-check the band words after a
+  language switch. Until then Kitchen calls `preventDefault()` on `chassis-data-review` only if both drawers would open.
 - Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
 - Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
   still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
