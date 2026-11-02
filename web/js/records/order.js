@@ -20,14 +20,18 @@ function renumbered(list) {
 export const closeUp = (items) => renumbered(byOrder(items));
 
 /**
- * After a category came back with its old `order`: it takes that place again and the ones from there move one down.
+ * After a category came back: it takes its place again and the ones from there move one down. The place is where the
+ * table showed it when it went (`shownAt`, 0-based); without it, its old `order`. The two differ when the numbers had
+ * gaps (orders typed by hand before 01/11/2026, or a category without one), where the old number would put it elsewhere.
  * @param {Item[]} items the categories, the restored one included or not
  * @param {Item} back the restored category
+ * @param {number} [shownAt] where it stood in the table, -1 or absent when unknown
  * @returns {Item[]} the ones to save with their new `order`
  */
-export function makeRoom(items, back) {
+export function makeRoom(items, back, shownAt = -1) {
   const rest = byOrder(items.filter((x) => x.id !== back.id));
-  const at = Math.min(Math.max(0, Number(back.order ?? rest.length + 1) - 1), rest.length);
+  const wanted = shownAt >= 0 ? shownAt : Number(back.order ?? rest.length + 1) - 1;
+  const at = Math.min(Math.max(0, wanted), rest.length);
   rest.splice(at, 0, back);
   return renumbered(rest);
 }

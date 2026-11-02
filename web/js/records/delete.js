@@ -14,7 +14,7 @@ import { copyToEditor } from "../recipe/edit-nav.js";
 import { deleteWithUndo } from "./undo-delete.js";
 import { releaseDishPhotos } from "./recipe-delete.js";
 import { placeOf } from "./undo-logic.js";
-import { closeUp, makeRoom } from "./order.js";
+import { byOrder, closeUp, makeRoom } from "./order.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
@@ -46,6 +46,8 @@ export function deleteRecord(_anchor, list, item, { after } = {}) {
     return;
   }
   const at = placeOf(/** @type {Item[]} */ (kitchenNow()?.[list] ?? []), item.id);
+  // Where the table showed it: a category returns there on Undo, whatever number it carried (records/order.js makeRoom).
+  const shownAt = placeOf(byOrder(/** @type {Item[]} */ (kitchenNow()?.[list] ?? [])), item.id);
   const rest = () => /** @type {Item[]} */ (kitchenNow()?.[list] ?? []);
   void deleteWithUndo({
     name: LISTS[list].name(item),
@@ -56,7 +58,7 @@ export function deleteRecord(_anchor, list, item, { after } = {}) {
     },
     restore: async () => {
       const back = await restore(list, item.id, at);
-      if (numbered(list)) await saveOrders(list, makeRoom(rest(), back));
+      if (numbered(list)) await saveOrders(list, makeRoom(rest(), back, shownAt));
     },
     settle: list === "dishes" ? () => releaseDishPhotos(item) : undefined,
   });

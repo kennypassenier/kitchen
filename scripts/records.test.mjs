@@ -29,6 +29,16 @@ test("makeRoom clamps a place past the end, and a missing order goes last", () =
   assert.deepEqual(orders(makeRoom(list, { id: "z", order: 0 })), { z: 1, a: 2 });
 });
 
+test("makeRoom puts a category back where the table showed it when its old number had gaps", () => {
+  // Shown A, B, C, D with orders 10, 11, 12, 13; B went (the rest closed up to 1, 2, 3), Undo brings B back with 11.
+  const after = [{ id: "a", order: 1 }, { id: "c", order: 2 }, { id: "d", order: 3 }];
+  const back = { id: "b", order: 11 };
+  assert.deepEqual(orders(makeRoom([...after, back], back, 1)), { b: 2, c: 3, d: 4 });
+  // Without the shown place the old number wins (and clamps to the end).
+  assert.deepEqual(orders(makeRoom([...after, back], back)), { b: 4 });
+  assert.deepEqual(orders(makeRoom(after, back, -1)), { b: 4 });
+});
+
 test("reordered reads a dragged order back into 1, 2, 3 and keeps unknown keys out", () => {
   const list = cats(1, 2, 3);
   assert.deepEqual(orders(reordered(list, ["c3", "c1", "c2"])), { c3: 1, c1: 2, c2: 3 });
