@@ -8,8 +8,7 @@
 // import and Undo's restore stay on api/http.js `call` and need a connection (the server issues the ids).
 //
 // The kit's runtime is a module the server puts into the page AFTER Kitchen's own main.js (chassis-rs injects it before
-// `</head>`), so `window.chassisData` exists only once every deferred module ran: the first call waits for
-// DOMContentLoaded, which fires after all of them. A page without the runtime is a broken deployment, not an offline
+// `</head>`), so `window.chassisData` exists only once that module ran: the first call waits for it (api/kit-ready.js). A page without the runtime is a broken deployment, not an offline
 // case: every call then rejects with an error that says so (no silent fallback around the kit).
 
 import { t } from "../i18n/index.js";
@@ -19,6 +18,7 @@ import { isSignedOut } from "./login-link.js";
 import { signedOutNotice } from "./signed-out.js";
 import { offlineOptions } from "../offline/config.js";
 import { applyKeepDefault, deviceStorage } from "../offline/keep.js";
+import { kitRuntimeRan } from "./kit-ready.js";
 
 /** The window event a read sends with `{ offline }`, so the connection band can say "offline" (offline/band.js). */
 export const READ_EVENT = "kitchen-data-read";
@@ -55,15 +55,9 @@ export const READ_EVENT = "kitchen-data-read";
 /** @type {Promise<KitData> | null} */
 let ready = null;
 
-/** Resolves once every deferred module of the page ran (the kit's runtime among them). @param {Document} doc */
-function modulesRan(doc) {
-  if (doc.readyState !== "loading") return Promise.resolve();
-  return new Promise((resolve) => doc.addEventListener("DOMContentLoaded", () => resolve(undefined), { once: true }));
-}
-
 /** Configure the kit once and hand it out. @returns {Promise<KitData>} */
 async function configureOnce() {
-  await modulesRan(document);
+  await kitRuntimeRan(window, document);
   const kit = /** @type {KitData | undefined} */ (/** @type {any} */ (window).chassisData);
   if (!kit) {
     throw new Error(
