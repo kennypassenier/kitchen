@@ -9,6 +9,7 @@
 import { attachForms, toast, VALID_EVENT } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
+import { uid } from "../ui/form-parts.js";
 
 /**
  * @typedef {object} AddField
@@ -47,9 +48,17 @@ function enterAdds(form) {
  */
 export function addRow({ label, fields, submit, check, add, reset }) {
   const summary = h("div", { class: "kp-form__summary dl-addrow__summary", "data-kp-form-summary": true, tabindex: "-1", hidden: true });
-  const button = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true }, submit);
-  // The button's column has a first line like the fields' labels, so it starts where they start: it says Enter adds.
-  const go = h("div", { class: "kp-field dl-addrow__go" }, h("span", { class: "kp-field__label", "aria-hidden": "true" }, t("rec.enterAdds")), button);
+  const helpId = uid("dl-addrow-help");
+  const button = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true, "aria-describedby": helpId }, submit);
+  // The button's column keeps an empty first line like the fields' labels, so it starts where they start; "Enter adds"
+  // stands under the button as its help, where a field keeps its own second line (Kenny, 02/11/2026 03:43).
+  const go = h(
+    "div",
+    { class: "kp-field dl-addrow__go" },
+    h("span", { class: "kp-field__label", "aria-hidden": "true" }, "\u00a0"),
+    button,
+    h("span", { class: "kp-field__help", id: helpId }, t("rec.enterAdds")),
+  );
   const form = /** @type {HTMLFormElement} */ (h("form", { class: "kp-form dl-addrow", "data-kp-form": true, novalidate: true, "aria-label": label }, summary, ...fields.map(fieldCell), go));
   const focus = () => focusable(fields[0].control).focus();
   // Runs before the kit's own listener: the page's rules become the fields' validity, which the kit then reports.

@@ -120,6 +120,14 @@
   margin: 0;
 }
 
+/* The button's empty label line only lines it up with the fields beside it; with the fields stacked (a phone) it would be
+   a gap above the button, so it goes. */
+@media (max-width: 47.99rem) {
+  .dl-addrow__go > .kp-field__label {
+    display: none;
+  }
+}
+
 @media (min-width: 48rem) {
   .dl-addrow {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
