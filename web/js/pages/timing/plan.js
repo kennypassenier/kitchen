@@ -1,10 +1,14 @@
-// The planning maths of the timing page: the Brussels wall clock and the plan counted back from dinner. Pure: no DOM,
+// The planning maths of the timing page: the plan counted back from dinner (the wall clock is clock.js). Pure: no DOM,
 // no words, so scripts can test it (the laying out itself is recipe/schedule.js).
 
 import { layout, lanesOf, paced } from "../../recipe/schedule.js";
-import { ZONE, pad, cap } from "../../format.js";
+import { cap } from "../../format.js";
+import { wall, at, hm } from "./clock.js";
 import { lang } from "../../i18n/index.js";
 import { pick } from "../../recipe/bilingual.js";
+
+// The wall clock lives in clock.js (pure, tested on its own); the pages import it from here.
+export { wall, at, hm };
 
 /** @typedef {import("../../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -17,25 +21,6 @@ export const SLOW = 1.25;
 export const DEFAULTS = { dinner_time: "18:30", pace: "normal", spare: 0 };
 export const SPARES = [0, 5, 10, 15];
 
-const parts = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-/** @param {number} ms @returns {Record<string, number>} the Brussels wall clock at that moment */
-export function wall(ms) {
-  return Object.fromEntries(parts.formatToParts(new Date(ms)).filter((p) => p.type !== "literal").map((p) => [p.type, Number(p.value)]));
-}
-/** @param {string} time `HH:MM` @returns {number} that time today in Brussels, epoch ms */
-export function at(time) {
-  const [hh, mm] = time.split(":").map(Number);
-  const w = wall(Date.now());
-  const guess = Date.UTC(w.year, w.month - 1, w.day, hh, mm);
-  const seen = wall(guess);
-  // The guess was read as UTC: move it by what Brussels shows against what was asked.
-  return guess - (Date.UTC(seen.year, seen.month - 1, seen.day, seen.hour, seen.minute) - guess);
-}
-/** @param {number} ms @returns {string} `HH:MM` in Brussels */
-export function hm(ms) {
-  const w = wall(ms);
-  return `${pad(w.hour)}:${pad(w.minute)}`;
-}
 /** Steps that can be counted back: a recipe needs at least one step with minutes. @param {Item} recipe */
 export const timedSteps = (recipe) => (recipe.steps ?? []).filter((/** @type {Item} */ s) => Number(s.mins) > 0);
 /** @param {Item} recipe */
