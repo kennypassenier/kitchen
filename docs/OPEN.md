@@ -35,6 +35,16 @@ Only pin + sync + checks should remain:
    long-name workaround of its own today (`web/eten/dishwheel*` only redraws and stops without rewind), so nothing to drop;
    just confirm the names read. Keep the in-use reason-tooltip workaround (`web/js/records/in-use.js`) until kp-themes ships
    its card-layout tooltip fix (on hold for Kenny's release decision).
+6b. Four more kp-themes fixes that ship with 12.2.0 (coordinator, 02/11/2026):
+   - Stepper: typing is never overwritten and removing `data-kp-quantity-disabled` unlocks it, so drop Kitchen's
+     quantity-lock workaround (`web/js/ui/quantity-lock.js`, its test `scripts/quantity-lock.test.mjs` and its callers).
+   - Autosize and `setSequencerItems` are batched: first MEASURE Kitchen's real long recipe (60 lines, 40 steps; perf
+     script `~/.cache/kitchen-editfix/perf.mjs`), and only then drop the lazy fold autosize (`web/js/ui/fold-autosize.js`)
+     and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`). A programmatic `area.value = x` now
+     re-measures at the end of the task: check Kitchen code that sets `.value` and then reads the height in the same task.
+   - The action list supports six columns: drop the fifth-column workaround in `web/css/pages/dishes.css`
+     (`.it-recipes:has(> li > .kp-row-actions > :nth-child(5))`).
+   - New opt-in class `kp-kv--center` for `dl.kp-kv`: add it and re-measure the label hang at 1280 and 390 px.
 7. Re-check Kitchen's imports against the new bundle with `/tmp/claude-1000/-home-kenny-Projects/cf5bc211-3b73-5e5c-b494-895e05e608c8/scratchpad/kp-names.mjs`.
 8. Then the release gate: the full suite (cargo test, node tests, check scripts), Firefox smoke at 1280 and 390 (EN and NL), measure-align and
    measure-gaps clear; only then the release decision.
