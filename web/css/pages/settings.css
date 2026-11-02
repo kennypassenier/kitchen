@@ -35,9 +35,12 @@
   min-inline-size: 0;
 }
 
-/* Every control in the settings is short, so the control track is capped and what each setting says now gets the room. */
+/* Every control in the settings is short, so the control track is capped and what each setting says now gets the room.
+   The name column stops at 30 % of the card (Kenny, 02/11/2026 03:43): at the kit's 40 % the "what it says now" column
+   was squeezed to a narrow strip at 1280 and wrapped every sentence over three lines. */
 .st-card .kp-formgrid {
   --kp-formgrid-control: 18rem;
+  --kp-formgrid-label-max: 30%;
 }
 
 /* A row whose value cell holds a second line (the "Use default puts back ..." hint) would be centred as one block and hang
@@ -45,6 +48,13 @@
    rows on their two-line name. */
 .st-card .kp-formgrid .kp-formgrid__row.kp-formgrid__row:has(> .st-value > .st-hint) {
   align-items: first baseline;
+}
+
+/* With the name column at 30 % a name block of three or four lines can run past the value cell beside it, and the row then
+   reads as hanging off its own name. The value cell keeps its first line on the title's line and runs to the foot of the
+   row, so the cells beside the name always span the whole name block. */
+.st-card .kp-formgrid .kp-formgrid__row.kp-formgrid__row:has(> .st-value > .st-hint) > .st-value {
+  min-block-size: 100%;
 }
 
 .st-name {
