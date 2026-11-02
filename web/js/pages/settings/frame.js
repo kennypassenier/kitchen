@@ -6,6 +6,7 @@ import { section as sectionOf } from "../../ui/cards.js";
 import { SPARES, SOUND_KEYS, ODDS_KEYS, DEFAULTS, soundName, oddsName } from "./consts.js";
 import { themeMenuMarkup } from "/static/kp/dist/js/picker.js";
 import { row, segmented, card, reset, resetText } from "./parts.js";
+import { offlineControls, offlineRow } from "./offline-row.js";
 
 /**
  * The kit's theme menu behind a labelled button that wears the current theme's name ("Formal ▾", Kenny 01/11/2026 20:21;
@@ -28,7 +29,7 @@ function calmControls() {
   const themeHost = themeHostOf();
   const langGroup = segmented(t("shell.language"), [["nl", "NL"], ["en", "EN"]], "st-lang");
   for (const item of langGroup.querySelectorAll(".kp-segmented__item")) item.setAttribute("aria-label", item.getAttribute("data-value") === "nl" ? "Nederlands" : "English");
-  return { calmInput, calmControl, themeHost, langGroup };
+  return { calmInput, calmControl, themeHost, langGroup, ...offlineControls() };
 }
 
 /** A package select with its options. @param {string} id @param {string} name @param {HTMLElement[]} options */
@@ -55,6 +56,7 @@ function calmGridOf(c) {
     row({ id: "calm", title: t("set.calmTitle"), text: t("set.calmText"), control: c.calmControl, said: t("set.calmOffShort") }),
     row({ id: "theme", title: t("shell.theme"), text: t("set.themeText"), control: c.themeHost, said: "" }),
     row({ id: "lang", title: t("shell.language"), text: t("set.langText"), control: c.langGroup, said: "", extra: resetText(t("set.langDefault")), action: reset("lang", t("set.langDefault")) }),
+    offlineRow(c),
   );
 }
 

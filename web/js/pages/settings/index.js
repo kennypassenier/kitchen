@@ -1,5 +1,6 @@
 // Calm settings: the approved design's settings section (research/audhd-recepten/recipe, as rebuilt in
-// grid-fix): one form grid with the calm switch, the theme and the language, each with what it says now.
+// grid-fix): one form grid with the calm switch, the theme and the language, each with what it says now, and since
+// feat-offline-kitchen the device's offline copy ("Keep everything offline", offline-row.js).
 // The same grid then holds the kitchen settings the other screens read: dinner time, pace, time to spare,
 // timer sound and the wheel's odds. Calm mode and the theme are kept per device by kp-themes itself; the
 // rest is saved with patchSettings and confirmed on the row's button the way the design confirms (flash).
@@ -21,6 +22,7 @@ import { buildFrame } from "./frame.js";
 import { watchCalmAndTheme } from "./calm-theme.js";
 import { settingRows } from "./rows.js";
 import { wireSaves, load } from "./save.js";
+import { wireOffline } from "./offline-row.js";
 
 /** @param {HTMLElement} root */
 export function mount(root) {
@@ -38,6 +40,7 @@ export function mount(root) {
   cleanups.push(attachCardStates(root));
   cleanups.push(attachSwitches(root), attachCalm(root), attachThemePickers(el.themeHost), attachSegmented(root), attachTimes(el.kitchenGrid), attachSelects(el.kitchenGrid), attachFlashButtons(root));
   cleanups.push(watchCalmAndTheme(root, el));
+  cleanups.push(wireOffline(root, el));
   wireSaves(ctx);
   root.addEventListener("kp-card-retry", () => void load(ctx, true));
   void load(ctx);

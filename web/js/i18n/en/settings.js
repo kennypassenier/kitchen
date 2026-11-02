@@ -5,7 +5,7 @@ export const EN_SETTINGS = {
   // settings
   "set.intro": "The few things that make the app quieter and fit your kitchen. Each change applies at once.",
   "set.calmCard": "Motion, theme and language",
-  "set.calmSecText": "The three settings a sensitive day reaches for first: one switch that turns movement and effects off, the theme, and the language.",
+  "set.calmSecText": "The settings a sensitive day reaches for first: one switch that turns movement and effects off, the theme and the language; and whether this device keeps the kitchen offline.",
   "set.kitchenCard": "Dinner, pace and timers",
   "set.kitchenSecText": "What the other screens read: when you eat, how fast you cook, how long the table can wait, the timer sound and how the wheel chooses.",
   "set.loading": "Reading your settings",
@@ -67,4 +67,16 @@ export const EN_SETTINGS = {
   "set.remedy": "Your choice is still set on this screen: try again in a minute.",
   "set.failedTitle": "Your settings could not be read",
   "set.failedText": "Your calm mode and theme are kept on this device and still work.",
+  // feat-offline-kitchen: the device's offline copy (pages/settings/offline-row.js)
+  "set.offlineTitle": "Keep everything offline",
+  "set.offlineText": "Keeps a copy of the whole kitchen on this device, so recipes, cook mode and your lists open without a connection. Changes you make offline are sent once the connection is back. Kept per device.",
+  "set.offlineSwitch": "Keep everything offline",
+  "set.offlineReading": "Reading what this device keeps",
+  "set.offlineOn": (used, max) => `On. The copy on this device takes ${used} of the ${max} it may use.`,
+  "set.offlineOff": (used) => `Off. Nothing new is kept offline on this device; what is kept now (${used}) stays until you clear it.`,
+  "set.offlineClear": "Clear offline copy",
+  "set.offlineClearHint": "Clear offline copy deletes the kitchen's copy from this device. Changes still waiting to be sent stay and are sent.",
+  "set.offlineCleared": "Cleared",
+  "set.offlineClearFailed": "The offline copy could not be cleared on this device.",
+  "set.offlineFailed": "What this device keeps offline could not be read. Reload the page to try again.",
 };

@@ -5,7 +5,7 @@ export const NL_SETTINGS = {
   // settings
   "set.intro": "De paar dingen die de app rustiger maken en bij je keuken laten passen. Elke wijziging werkt meteen.",
   "set.calmCard": "Beweging, thema en taal",
-  "set.calmSecText": "De drie instellingen waar je op een gevoelige dag eerst naar grijpt: één schakelaar die beweging en effecten uitzet, het thema en de taal.",
+  "set.calmSecText": "De instellingen waar je op een gevoelige dag eerst naar grijpt: één schakelaar die beweging en effecten uitzet, het thema en de taal; en of dit toestel de keuken offline bewaart.",
   "set.kitchenCard": "Eten, tempo en timers",
   "set.kitchenSecText": "Wat de andere schermen lezen: wanneer je eet, hoe snel je kookt, hoelang de tafel kan wachten, het geluid van de timer en hoe het wiel kiest.",
   "set.loading": "Je instellingen worden gelezen",
@@ -67,4 +67,16 @@ export const NL_SETTINGS = {
   "set.remedy": "Je keuze staat nog op dit scherm: probeer het over een minuut opnieuw.",
   "set.failedTitle": "Je instellingen konden niet gelezen worden",
   "set.failedText": "Je rustige stand en thema blijven op dit apparaat bewaard en werken nog.",
+  // feat-offline-kitchen: de offline kopie van dit toestel (pages/settings/offline-row.js)
+  "set.offlineTitle": "Alles offline bewaren",
+  "set.offlineText": "Bewaart een kopie van de hele keuken op dit toestel, zodat recepten, kookmodus en je lijsten zonder verbinding openen. Wat je offline wijzigt, wordt verstuurd zodra de verbinding terug is. Per toestel.",
+  "set.offlineSwitch": "Alles offline bewaren",
+  "set.offlineReading": "Lezen wat dit toestel bewaart",
+  "set.offlineOn": (used, max) => `Aan. De kopie op dit toestel neemt ${used} van de ${max} die ze mag gebruiken.`,
+  "set.offlineOff": (used) => `Uit. Er wordt niets nieuws offline bewaard op dit toestel; wat nu bewaard is (${used}), blijft tot je het wist.`,
+  "set.offlineClear": "Offline kopie wissen",
+  "set.offlineClearHint": "Offline kopie wissen verwijdert de kopie van de keuken van dit toestel. Wijzigingen die nog verstuurd moeten worden, blijven en worden verstuurd.",
+  "set.offlineCleared": "Gewist",
+  "set.offlineClearFailed": "De offline kopie kon op dit toestel niet gewist worden.",
+  "set.offlineFailed": "Wat dit toestel offline bewaart, kon niet gelezen worden. Herlaad de pagina om opnieuw te proberen.",
 };
