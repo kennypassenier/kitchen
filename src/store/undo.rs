@@ -44,6 +44,17 @@ impl Removals {
         });
     }
 
+    /// Add the photo ids of the removed items whose window is still open at `now` (Undo may still put them back).
+    pub(super) fn photo_ids_open(&self, now: Instant, out: &mut std::collections::HashSet<String>) {
+        let all = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        all.iter()
+            .filter(|r| now.duration_since(r.when) < UNDO_KEEP)
+            .for_each(|r| super::photo_gc::photo_ids(&r.item, out));
+    }
+
     /// Take the removed item `id` of `coll` out, if its window is still open.
     pub(super) fn take(&self, coll: &str, id: &str, now: Instant) -> Option<Removed> {
         let mut all = self

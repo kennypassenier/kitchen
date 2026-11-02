@@ -154,7 +154,13 @@ editor's own Save / Cancel clean-up.
 Who deletes: the editor deletes the photos a recipe no longer refers to when it
 saves (a removed photo, a removed step) and the ones it uploaded when it is
 cancelled; the recipes page deletes a recipe's photos when the recipe is
-deleted. Known limit: a photo that was uploaded and then never saved nor
+deleted, once its 10 s Undo is over. The server backs that up (fix-undo-photos-1, 02/11/2026, `src/store/photo_gc.rs`):
+on every `PUT /data/dishes/{id}` it notes the photo ids that dropped out of the dish (its recipes and their steps), and
+on a dish's `DELETE` all of the dish's ids; a sweep every 30 s (`SWEEP_EVERY`) deletes the noted files once Undo's
+120 s window (`UNDO_KEEP`) closed and only when nothing refers to them: no dish, no draft and no deleted item still in
+its window. A restore within the window (Undo's dish `PUT`, or `POST /data/restore/dishes/{id}`) refers to them again, so
+they stay. So a page reloaded or closed within the 10 s no longer leaves the photos of a deleted recipe behind. The
+noted ids live in memory: a restart within the window leaves those files as orphans. Known limit: a photo that was uploaded and then never saved nor
 cancelled and is in no draft (a draft saves about a second after a change, so a tab closed within that second)
 stays as an orphan file; nothing sweeps them.
 

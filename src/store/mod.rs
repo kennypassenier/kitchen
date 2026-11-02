@@ -22,6 +22,7 @@ mod drafts;
 mod limits;
 mod migrate;
 mod ops;
+mod photo_gc;
 mod seed;
 mod undo;
 mod validate;
@@ -30,6 +31,7 @@ use data::FORMAT;
 pub use data::{Data, Refused};
 pub use drafts::DRAFT_DAYS;
 pub use migrate::migrate;
+pub use photo_gc::SWEEP_EVERY;
 pub use seed::seed;
 use seed::sources_seed;
 
@@ -40,6 +42,8 @@ pub struct Store {
     data: RwLock<Data>,
     /// What was deleted lately, so Undo can put it back (undo.rs).
     removed: undo::Removals,
+    /// Photo ids that dropped out of a dish, swept once their undo window closed (photo_gc.rs).
+    dropped: photo_gc::Dropped,
 }
 
 impl Store {
@@ -79,6 +83,7 @@ impl Store {
             photos: Some(dir.join("photos")),
             data: RwLock::new(data),
             removed: undo::Removals::default(),
+            dropped: photo_gc::Dropped::default(),
         })
     }
 
@@ -90,6 +95,7 @@ impl Store {
             photos: None,
             data: RwLock::new(data),
             removed: undo::Removals::default(),
+            dropped: photo_gc::Dropped::default(),
         }
     }
 

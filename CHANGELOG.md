@@ -97,6 +97,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **A deleted recipe's photos no longer stay forever when the page reloads during Undo** [fix-undo-photos-1]: the server
+  notes the photos that dropped out of a dish (or went with a deleted dish) and deletes the files once its 2-minute Undo
+  window closed, unless a dish, a draft or a restorable item still refers to them.
 - **Two tabs on one recipe no longer overwrite each other silently** [fix-stale-save-1]: every item has a revision and a
   save names the one it read (`If-Match`); a recipe saved elsewhere in the meantime answers "This recipe was changed
   somewhere else in the meantime." with **Reload** or **Keep my version as a draft**. The dish drawer is guarded the same way.

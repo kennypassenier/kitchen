@@ -3,6 +3,7 @@
 use serde_json::Value;
 
 use super::caps::within_limits;
+use super::photo_gc::{dropped_photos, photo_ids_of};
 use super::validate::both_names;
 use super::{Refused, Store};
 
@@ -80,7 +81,8 @@ impl Store {
 
     /// Replace an item whole; `id` and `created` are kept and `rev` goes one up (absent counts as 0; fix-stale-save-1).
     /// `if_match` is the `rev` the page loaded: when given and the stored one differs, someone saved in between and the
-    /// change is refused ([`Refused::Stale`]) instead of silently winning.
+    /// change is refused ([`Refused::Stale`]) instead of silently winning. Photos the item no longer refers to are noted
+    /// for the sweep once their undo window closed (photo_gc.rs, fix-undo-photos-1).
     pub async fn replace_if(
         &self,
         coll: &str,
@@ -98,33 +100,38 @@ impl Store {
         {
             return Err(Refused::IdMismatch);
         }
-        self.change(|d| {
-            let c = d
-                .collection(coll)
-                .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
-            let slot = c
-                .iter_mut()
-                .find(|v| v.get("id").and_then(Value::as_str) == Some(id))
-                .ok_or(Refused::NotFound)?;
-            let have = rev_of(slot);
-            if let Some(want) = if_match
-                && want != have
-            {
-                return Err(Refused::Stale { have });
-            }
-            obj.insert("id".into(), Value::String(id.into()));
-            if let Some(created) = slot.get("created") {
-                obj.insert("created".into(), created.clone());
-            }
-            obj.insert(
-                "updated".into(),
-                Value::String(chassis::shell::time::now_rfc3339()),
-            );
-            obj.insert("rev".into(), Value::from(have + 1));
-            *slot = Value::Object(obj);
-            Ok(slot.clone())
-        })
-        .await
+        let (item, dropped) = self
+            .change(|d| {
+                let c = d
+                    .collection(coll)
+                    .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
+                let slot = c
+                    .iter_mut()
+                    .find(|v| v.get("id").and_then(Value::as_str) == Some(id))
+                    .ok_or(Refused::NotFound)?;
+                let have = rev_of(slot);
+                if let Some(want) = if_match
+                    && want != have
+                {
+                    return Err(Refused::Stale { have });
+                }
+                obj.insert("id".into(), Value::String(id.into()));
+                if let Some(created) = slot.get("created") {
+                    obj.insert("created".into(), created.clone());
+                }
+                obj.insert(
+                    "updated".into(),
+                    Value::String(chassis::shell::time::now_rfc3339()),
+                );
+                obj.insert("rev".into(), Value::from(have + 1));
+                let new = Value::Object(obj);
+                let dropped = dropped_photos(slot, &new);
+                *slot = new;
+                Ok((slot.clone(), dropped))
+            })
+            .await?;
+        self.dropped.note(dropped, std::time::Instant::now());
+        Ok(item)
     }
 
     /// Remove an item; it stays restorable for a while (`undo::UNDO_KEEP`).
@@ -144,11 +151,14 @@ impl Store {
         let (at, gone) = gone;
         // A discarded draft takes the photos only it referred to along (Kenny, 29/10/2026); anything else can be put
         // back for a while (undo.rs).
+        // A deleted dish's photos are noted too: they go once its window closed and nothing refers to them
+        // (fix-undo-photos-1).
         if coll == "drafts" {
             self.release_photos(std::slice::from_ref(&gone)).await;
         } else {
-            self.removed
-                .keep(coll, at, gone.clone(), std::time::Instant::now());
+            let now = std::time::Instant::now();
+            self.dropped.note(photo_ids_of(&gone), now);
+            self.removed.keep(coll, at, gone.clone(), now);
         }
         Ok(gone)
     }

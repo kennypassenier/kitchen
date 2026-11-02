@@ -7,6 +7,7 @@ use super::*;
 mod crud;
 mod limits;
 mod migrate;
+mod photo_gc;
 mod rev;
 mod undo;
 mod validate;

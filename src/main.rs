@@ -75,6 +75,15 @@ async fn main() -> std::process::ExitCode {
         // (found 29/10/2026).
         let pruned = store.prune_drafts(chassis::shell::time::now_epoch()).await;
         app.on_start(move || report_pruned(pruned));
+        // Photos that dropped out of a dish go once Undo can no longer bring them back (fix-undo-photos-1).
+        let sweeper = store.clone();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(store::SWEEP_EVERY);
+            loop {
+                tick.tick().await;
+                sweeper.sweep_photos().await;
+            }
+        });
         app.dashboard_routes(routes::router(store.clone(), &dir))
             .dashboard_routes(parents::english(store.clone()));
         let _ = slot.set(store);

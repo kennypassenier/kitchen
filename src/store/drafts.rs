@@ -1,4 +1,5 @@
-//! Drafts that nobody reopened: the week they are kept, the stamp they are compared by, and the photos only they refer to.
+//! Drafts that nobody reopened: the week they are kept and the stamp they are compared by; their photos go through
+//! photo_gc.rs.
 
 use serde_json::Value;
 
@@ -30,27 +31,6 @@ pub fn rfc3339_at(epoch: u64) -> String {
     )
 }
 
-/// Every photo id a value refers to: a `photo` string or a `photos` list of strings, at any depth.
-pub(super) fn photo_ids(v: &Value, out: &mut std::collections::HashSet<String>) {
-    match v {
-        Value::Object(o) => {
-            for (k, v) in o {
-                match (k.as_str(), v) {
-                    ("photo", Value::String(id)) => {
-                        out.insert(id.clone());
-                    }
-                    ("photos", Value::Array(a)) => {
-                        out.extend(a.iter().filter_map(Value::as_str).map(String::from));
-                    }
-                    _ => photo_ids(v, out),
-                }
-            }
-        }
-        Value::Array(a) => a.iter().for_each(|v| photo_ids(v, out)),
-        _ => {}
-    }
-}
-
 impl Store {
     /// Drop the drafts last saved more than [`DRAFT_DAYS`] before `now` (epoch seconds), and their photos. Runs when the
     /// kitchen starts; answers how many drafts went, or why the pruned list could not be saved (then every draft stays).
@@ -72,41 +52,5 @@ impl Store {
             .map_err(|e| e.to_string())?;
         self.release_photos(&gone).await;
         Ok(gone.len())
-    }
-
-    /// Delete the photo files the removed `drafts` refer to, except those a recipe or another draft still refers to.
-    pub(super) async fn release_photos(&self, drafts: &[Value]) {
-        let Some(dir) = self.photos.clone() else {
-            return;
-        };
-        let mut wanted = std::collections::HashSet::new();
-        drafts.iter().for_each(|v| photo_ids(v, &mut wanted));
-        if wanted.is_empty() {
-            return;
-        }
-        let mut kept = std::collections::HashSet::new();
-        {
-            let d = self.data.read().await;
-            photo_ids(&Value::Array(d.dishes.clone()), &mut kept);
-            photo_ids(&Value::Array(d.drafts.clone()), &mut kept);
-        }
-        let done = tokio::task::spawn_blocking(move || {
-            for id in wanted.difference(&kept) {
-                if crate::photos::valid_id(id) {
-                    remove_photo(&dir, id);
-                }
-            }
-        })
-        .await;
-        if let Err(e) = done {
-            tracing::warn!(error = %e, "the photos of removed drafts were not cleaned up");
-        }
-    }
-}
-
-/// Delete the files of photo `id`; a failure is logged (the file stays as an orphan: harmless, but not unseen).
-fn remove_photo(dir: &std::path::Path, id: &str) {
-    if let Err(e) = crate::photos::remove_files(dir, id) {
-        tracing::warn!(photo = id, error = %e, "a draft's photo could not be deleted");
     }
 }
