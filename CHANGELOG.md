@@ -86,6 +86,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   midnight until that dinner has come), the wheel shows the same time, and the next day starts from the default again.
 - **The recipe line on "When do I start?" counts the steps** (Kenny 02/11/2026 03:43): "… start to plate" is the total
   of the timed steps laid out on their tracks, the same figure as the plan, not the minutes stored with the recipe.
+- **"The link may be old" only when a link was followed** (Kenny 02/11/2026 03:43): when "When do I start?" opens on
+  tonight's wheel answer and that recipe is gone, it says so in its own words ("Tonight's wheel answer has no recipe in
+  the kitchen any more" / "Het recept van het antwoord van het wiel staat niet meer in de keuken").
 
 ### Fixed
 - **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the

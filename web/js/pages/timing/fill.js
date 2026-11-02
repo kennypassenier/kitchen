@@ -8,6 +8,7 @@ import { t } from "../../i18n/index.js";
 import { DEFAULTS, SPARES, hasTimes, timedSteps, countedMinutes } from "./plan.js";
 import { words } from "./text.js";
 import { readDinnerToday } from "../../dinner-today.js";
+import { notCountableKeys } from "./plates.js";
 
 /** @typedef {import("../../api.js").Item} Item */
 
@@ -91,8 +92,9 @@ function helpAction(d) {
 /** The recipe of the link is missing or has no step times: every card says so, with the one action that helps. @param {FillDeps} d */
 function showNotCountable(d) {
   const { ctx, frame, gantt } = d;
-  const title = ctx.recipe ? t("timing.thisNoTimes") : t("timing.notInKitchen");
-  const text = ctx.recipe ? t("timing.giveEveryStep") : t("timing.linkOld");
+  const keys = notCountableKeys({ found: Boolean(ctx.recipe), fromWheel: ctx.fromWheel });
+  const title = t(keys.title);
+  const text = t(keys.text);
   for (const c of [frame.sentenceCard, frame.timerCard, frame.nudgeCard]) setCardState(c, "empty", plate(title, text, helpAction(d)));
   if (gantt) setTimelineState(gantt, "ready");
   setCardState(frame.planCard, "empty", plate(title, text, helpAction(d)));

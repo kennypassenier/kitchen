@@ -117,6 +117,8 @@ export const NL_TIMING = {
   "timing.notInKitchen": "Dat recept staat niet in de keuken",
   "timing.giveEveryStep": "Voor het terugrekenen moet je weten hoelang elke stap duurt. Geef elke stap een tijd en de zin, het plan, de schijf en de herinnering vullen zich vanzelf.",
   "timing.linkOld": "De link is misschien oud. Kies een van je recepten om vanaf het eten terug te rekenen.",
+  // Tonight's wheel answer was opened, no link was followed (feat-stale-answer-1).
+  "timing.wheelAnswerGone": "Het recept van het antwoord van het wiel staat niet meer in de keuken. Kies een van je recepten om vanaf het eten terug te rekenen.",
   "timing.cookAtOnce": (n, list) => `${n} dingen koken tegelijk: ${list}.`,
   "timing.oneTrack": "Eén onderdeel, de ene stap na de andere.",
 };

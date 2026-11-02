@@ -117,6 +117,8 @@ export const EN_TIMING = {
   "timing.notInKitchen": "That recipe is not in the kitchen",
   "timing.giveEveryStep": "Counting back needs to know how long each step takes. Give every step a time and the sentence, the plan, the disc and the nudge fill themselves in.",
   "timing.linkOld": "The link may be old. Choose one of your recipes to count back from dinner.",
+  // Tonight's wheel answer was opened, no link was followed (feat-stale-answer-1).
+  "timing.wheelAnswerGone": "Tonight’s wheel answer has no recipe in the kitchen any more. Choose one of your recipes to count back from dinner.",
   "timing.cookAtOnce": (n, list) => `${n} things cook at once: ${list}.`,
   "timing.oneTrack": "One track, one step after the other.",
 };
