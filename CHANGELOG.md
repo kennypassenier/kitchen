@@ -26,6 +26,7 @@ Nothing here is released or deployed yet; no store format change, no new setting
   **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
+- **An empty Recipes card on a dish page offers one way in** (Kenny 02/11/2026): while the dish has no recipe, the card header's Add and Import are hidden and the empty state's own "Add the recipe" is the action; they come back with the first recipe (an Undo too).
 - **"Enter adds" moved under the Add button** (Kenny 02/11/2026): in the add row of What I ate (and of the category tables, which share it) the button's label line is empty and "Enter adds" / "Enter voegt toe" stands under the button as its help.
 - **The Bad days calendar sits in a card** (Kenny 02/11/2026): "When things went in" shows its month in a full-width card titled "This month in the freezer" / "Deze maand in de diepvries" with one line saying what a filled day means, like the other parts of the page.
 - **Calm settings give the "what it says now" column more room** (Kenny 02/11/2026): the name column stops at 30 % of the card, so at 1280 the current value reads on one or two lines instead of three.

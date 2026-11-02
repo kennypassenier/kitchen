@@ -51,15 +51,16 @@ function recipeRow(r, i, recipes, k) {
 function buildCard() {
   const add = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
   const importer = h("button", { type: "button", class: "kp-button" }, t("imp.button"));
+  const actions = h("div", { class: "kp-card__actions" }, importer, add);
   const listEl = h("ul", { class: "kp-action-list kp-action-list--lead it-recipes" });
   const card = h(
     "section",
     { class: "kp-card it-card", "data-kp-state": "loading", "data-kp-loading-words": t("it.readingRecipes"), "aria-labelledby": "it-recipes-t" },
-    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), h("div", { class: "kp-card__actions" }, importer, add)),
+    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), actions),
     h("p", { class: "kp-card__body" }, t("it.recipesLede")),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, listEl)),
   );
-  return { add, importer, listEl, card };
+  return { add, importer, actions, listEl, card };
 }
 
 /**
@@ -68,7 +69,7 @@ function buildCard() {
  * @param {HTMLElement} pageEl
  */
 export function dishRecipes(pageEl) {
-  const { add, importer, listEl, card } = buildCard();
+  const { add, importer, actions, listEl, card } = buildCard();
   pageEl.append(card);
   const stopCard = attachCardStates(card);
   /** @type {Item | null} */
@@ -86,6 +87,9 @@ export function dishRecipes(pageEl) {
       dish = d;
       card.hidden = false;
       const recipes = /** @type {Item[]} */ (d.recipes ?? []);
+      // An empty card offers one way in, its own "Add the recipe"; Add and Import in the header come back with the first
+      // recipe (Kenny, 02/11/2026 03:43).
+      actions.hidden = !recipes.length;
       if (!recipes.length) {
         const first = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
         first.addEventListener("click", () => add.click());
