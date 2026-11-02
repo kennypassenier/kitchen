@@ -156,6 +156,11 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **Store**: `kitchen.json` stays format 5 (`FORMAT` in `src/store/data.rs`; no migration step added since 5.0.0). One optional
   field is stored: `rev` on an item once it is saved (fix-stale-save-1; absent = 0, 5.0.0 ignores it). Undo lives in server memory only and is lost at a restart (an Undo after a restart
   answers "can no longer be undone"). The kit's own database stays at schema 2 (chassis 4.0.0, unchanged).
+- **Size limits** (fix-field-limits-1): the server now refuses a name half over 200 characters, any other text over
+  5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
+  limit can still be read, but saving it again asks to shorten the field first.
+- **Photo clean-up**: photos dropped from a dish are removed once the 120 s undo window closes (fix-undo-photos-1); a
+  restart inside that window leaves those files on disk (harmless, no data lost).
 - **Rollback to 5.0.0**: the data file is identical in shape, so 5.0.0 opens it as is; only the Undo route and the new
   screens go away. A backup is still good practice, but none is required for this step. Going further back than 5.0.0
   keeps the 5.0.0 rule (a backup taken before that update).
