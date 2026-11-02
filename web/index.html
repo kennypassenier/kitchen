@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kitchen</title>
     <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
-    <!-- The stored theme before the first paint (chassis' copy of
-         kp-themes' no-flash snippet; no inline script under the CSP). -->
-    <script src="/static/theme-boot.js"></script>
-    <link rel="stylesheet" href="/static/kp/css/fonts.css" />
-    <link rel="stylesheet" href="/static/kp/dist/kp-themes.css" />
+    <!-- kp-themes split delivery (chassis-rs 4.2.0): the base stylesheet (fonts included), then the kit's
+         no-flash snippet BELOW it, which writes the worn theme's register before the first paint (a parser-
+         inserted link, so it lands in the cascade layer the base states first). The attributes are what the
+         kit's own layout writes: the register pattern, kp-themes 12.2.0's twelve themes, and the fallback.
+         A theme picked later loads its register through attachLazyRegisters (/eten/registers.js). -->
+    <link rel="stylesheet" href="/static/kp/dist/kp-themes-base.min.css" />
+    <script src="/static/theme-boot.js" data-register-pattern="/static/kp/dist/css/{theme}-register.min.css"
+      data-themes="blueprint,brutalism,cyberpunk,dark,deco,forest,formal,nostromo,pastel,solstice,synthwave,titanium"
+      data-fallback="formal"></script>
+    <!-- kp-themes' page-wide behaviours (dialogs, effects, theme pickers present at load). -->
+    <script type="module" src="/static/kp/dist/js/auto.js"></script>
     <link rel="stylesheet" href="/css/app.css" />
     <!-- Every screen's sheet loads with the app, so a screen draws its
          loading state in its final geometry from the first frame. Each

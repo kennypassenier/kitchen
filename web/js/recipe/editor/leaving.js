@@ -2,7 +2,7 @@
 // dialog; an unchanged one goes at once. Only Save and Discard delete the draft (Kenny, 2026-11-01, ux-review fix 1); the
 // decision itself is pure and lives in leave.js.
 
-import { openConfirmation } from "/static/kp/dist/kp-themes.min.js";
+import { openConfirmation } from "/static/kp/dist/js/components.js";
 import { t } from "../../i18n/index.js";
 import { DISCARD, KEEP, onClose, outcomeOf } from "./leave.js";
 

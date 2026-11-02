@@ -1,6 +1,6 @@
 // Open the editor page from anywhere (a table row, a card, an import result), through go.js.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { reason } from "../api.js";
 import { t } from "../i18n/index.js";
 import { copyRecipe } from "./duplicate.js";

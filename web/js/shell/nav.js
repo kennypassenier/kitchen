@@ -2,7 +2,7 @@
 // (`GET /api/kit/pages`), split by shell/plan.js, so no second hand-written list exists. The More item is the kit's own
 // nav More item (`.kp-nav__more` holding a `.kp-menu-button`, the markup js/nav-fold builds) filled with kp's setMenu.
 
-import { attachMenuButtons, setMenu } from "/static/kp/dist/kp-themes.min.js";
+import { attachMenuButtons, setMenu } from "/static/kp/dist/js/menu-button.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 import { splitBar, FALLBACK } from "./plan.js";

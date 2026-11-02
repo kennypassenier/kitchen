@@ -14,10 +14,17 @@
     <meta name="theme-color" content="#2f5d50" />
     <title>Wat eten we vanavond?</title>
     <link rel="icon" href="/eten/icon.svg" type="image/svg+xml" />
-    <!-- The stored theme before the first paint (chassis' copy of kp-themes' no-flash snippet). -->
-    <script src="/static/theme-boot.js"></script>
-    <link rel="stylesheet" href="/static/kp/css/fonts.css" />
-    <link rel="stylesheet" href="/static/kp/dist/kp-themes.css" />
+    <!-- kp-themes split delivery (chassis-rs 4.2.0): the base stylesheet (fonts included), then the kit's
+         no-flash snippet BELOW it, which writes the worn theme's register before the first paint (a parser-
+         inserted link, so it lands in the cascade layer the base states first). The attributes are what the
+         kit's own layout writes: the register pattern, kp-themes 12.2.0's twelve themes, and the fallback.
+         A theme picked later loads its register through attachLazyRegisters (/eten/registers.js). -->
+    <link rel="stylesheet" href="/static/kp/dist/kp-themes-base.min.css" />
+    <script src="/static/theme-boot.js" data-register-pattern="/static/kp/dist/css/{theme}-register.min.css"
+      data-themes="blueprint,brutalism,cyberpunk,dark,deco,forest,formal,nostromo,pastel,solstice,synthwave,titanium"
+      data-fallback="formal"></script>
+    <!-- kp-themes' page-wide behaviours (dialogs, effects, theme pickers present at load). -->
+    <script type="module" src="/static/kp/dist/js/auto.js"></script>
     <link rel="stylesheet" href="/eten/dishwheel.css" />
     <link rel="stylesheet" href="/eten/wheel.css" />
     <link rel="stylesheet" href="/eten/eten.css" />

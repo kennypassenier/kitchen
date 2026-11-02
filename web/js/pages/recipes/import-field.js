@@ -3,7 +3,8 @@
 // field. The result opens the editor page as an unsaved draft (recipe/import.js). The sources page and a dish's page come
 // here with `?import=1` (recipe/import-plan.js `importHref`): the field is focused, and the hint names the site or the dish.
 
-import { attachCardStates, attachForms, setCardState, VALID_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachCardStates, setCardState } from "/static/kp/dist/js/card-state.js";
+import { attachForms, VALID_EVENT } from "/static/kp/dist/js/forms.js";
 import { h } from "../../dom.js";
 import { ApiError } from "../../api.js";
 import { t, nameOf } from "../../i18n/index.js";

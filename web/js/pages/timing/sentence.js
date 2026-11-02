@@ -2,7 +2,9 @@
 
 import { h, $ } from "../../dom.js";
 import { patchSettings } from "../../api.js";
-import { attachTimes, setTime, attachSelects, attachSentences, sentence, setSentenceWhy } from "/static/kp/dist/kp-themes.min.js";
+import { attachTimes, setTime } from "/static/kp/dist/js/timefield.js";
+import { attachSelects } from "/static/kp/dist/js/combobox.js";
+import { attachSentences, sentence, setSentenceWhy } from "/static/kp/dist/js/sentence.js";
 import { t } from "../../i18n/index.js";
 import { button } from "../../ui/cards.js";
 import { MIN, SPARES, hm, at } from "./plan.js";

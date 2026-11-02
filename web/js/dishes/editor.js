@@ -16,7 +16,7 @@
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): names.js (the name helpers), drawer.js (the drawer and `sec`), sides.js
 // (the sides block). The old names are re-exported from here, so no importer changes.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../dom.js";
 import { create, replace, reason } from "../api.js";
 import { ingredientsPicker } from "../ingredients/picker.js";

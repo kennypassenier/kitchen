@@ -2,7 +2,7 @@
 // "Rijmenu"). The menu is the kit's menu-button; the trigger is its icon button, named for the recipe. Delete is the
 // shared delete-with-Undo (records/recipe-delete.js): the recipe goes at once and the kit's toast offers it back for 10 s.
 
-import { setMenu, MENU_SELECT_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { setMenu, MENU_SELECT_EVENT } from "/static/kp/dist/js/menu-button.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { editHref } from "../../recipe/edit-route.js";

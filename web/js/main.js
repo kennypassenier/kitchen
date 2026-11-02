@@ -5,7 +5,10 @@
 // The bar renders from the kit's page registry (`GET /api/kit/pages`), so it
 // never carries a second hand-written list.
 
-import { attachNavToggles, attachSkipLinks, applyStoredCalm, attachThemePickers, themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
+import { attachNavToggles, attachSkipLinks } from "/static/kp/dist/js/components.js";
+import { applyStoredCalm } from "/static/kp/dist/js/calm.js";
+import { attachThemePickers, themeMenuMarkup } from "/static/kp/dist/js/picker.js";
+import { attachThemeRegisters } from "/eten/registers.js";
 import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
@@ -130,6 +133,8 @@ function failed(e) {
 // The theme picker, right of the bar. The language is chosen once, in Calm settings (Kenny, 01/11/2026 20:21); it writes
 // the kitchen's `settings.lang`, so the choice follows Kenny between devices, and the kitchen's value wins on load.
 // It is drawn again on a language change, so its name and the Light / Dark groups follow the language.
+// The registers first (once): the pickers below start a theme change, which must fetch the picked theme's register.
+attachThemeRegisters();
 let detachTheme = () => {};
 function drawTheme() {
   detachTheme();

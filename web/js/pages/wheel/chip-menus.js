@@ -3,7 +3,7 @@
 // and a word, so nothing hides in a press count any more. The model stays the truth (tri.js maps it); this file only
 // draws the chips of one group and reports a pick.
 
-import { attachMenuButtons, setMenu, MENU_SELECT_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachMenuButtons, setMenu, MENU_SELECT_EVENT } from "/static/kp/dist/js/menu-button.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { TRI_STATES, isTriState, stateOf, markOf } from "./tri.js";

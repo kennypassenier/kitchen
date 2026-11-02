@@ -8,23 +8,30 @@
 // shows is what the printer gets. The frame is its own document, so the app
 // around it never prints.
 
-import { setChecklistItems, preparePrint } from "/static/kp/dist/kp-themes.min.js";
+import { setChecklistItems } from "/static/kp/dist/js/checklist.js";
+import { preparePrint } from "/static/kp/dist/js/print.js";
 import { amountOf } from "./amounts.js";
 import { pick } from "./bilingual.js";
 import { ingredientName } from "../api.js";
 import { ZONE } from "../format.js";
 import { lang as appLang } from "../i18n/index.js";
 
-/** The package stylesheet with its print rules made unconditional, read once. @type {Promise<string> | null} */
+/** The package's paper styles: the split delivery's base sheet, then the formal register the frame wears (the frame is
+ * `data-theme="formal"`), in that order, as the page's own head links them. */
+const PAPER_SHEETS = ["/static/kp/dist/kp-themes-base.min.css", "/static/kp/dist/css/formal-register.min.css"];
+
+/** The package stylesheets with their print rules made unconditional, read once. @type {Promise<string> | null} */
 let paperCss = null;
 
+/** One stylesheet's text; a failed read names the file. @param {string} href */
+async function sheetText(href) {
+  const res = await fetch(href, { credentials: "same-origin" });
+  if (!res.ok) throw new Error(`${href}: ${res.status}`);
+  return res.text();
+}
+
 function loadPaperCss() {
-  paperCss ??= fetch("/static/kp/dist/kp-themes.css", { credentials: "same-origin" })
-    .then((res) => {
-      if (!res.ok) throw new Error(String(res.status));
-      return res.text();
-    })
-    .then((css) => css.replaceAll("@media print", "@media all"));
+  paperCss ??= Promise.all(PAPER_SHEETS.map(sheetText)).then((parts) => parts.join("\n").replaceAll("@media print", "@media all"));
   paperCss.catch(() => (paperCss = null));
   return paperCss;
 }

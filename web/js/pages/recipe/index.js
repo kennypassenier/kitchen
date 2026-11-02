@@ -14,7 +14,9 @@
 
 import { loadKitchen, onKitchen, kitchenNow, reason } from "../../api.js";
 import { h } from "../../dom.js";
-import { setCardState, attachCardStates, attachHoverCards, setQr } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState, attachCardStates } from "/static/kp/dist/js/card-state.js";
+import { attachHoverCards } from "/static/kp/dist/js/hovercard.js";
+import { setQr } from "/static/kp/dist/js/qr.js";
 import { wordsFor } from "../../recipe/words.js";
 import { createLog } from "../../recipe/log/index.js";
 import { paintStepPhotos } from "../../recipe/page-parts.js";

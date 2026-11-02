@@ -6,7 +6,8 @@
 // first one, so the next line can be typed at once. The kit has no add row for its data table (kp-gaps/kitchen.md); the
 // row is the kit's field, label, button and form parts on a grid of its own (css/pages/dishes.css, `dl-addrow`).
 
-import { attachForms, toast, VALID_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { attachForms, VALID_EVENT } from "/static/kp/dist/js/forms.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 import { uid } from "../ui/form-parts.js";

@@ -5,7 +5,9 @@
 //   - `showPhotos` is the same gallery read-only, for the recipe page and cook mode.
 
 import { h } from "../dom.js";
-import { setGallery, setGalleryUploading, GALLERY_ADD_EVENT, holdFootprint, toast } from "/static/kp/dist/kp-themes.min.js";
+import { setGallery, setGalleryUploading, GALLERY_ADD_EVENT } from "/static/kp/dist/js/gallery.js";
+import { holdFootprint } from "/static/kp/dist/js/footprint.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { t } from "../i18n/index.js";
 import { photoUrl, uploadPhoto, photoTracker } from "./photo-files.js";
 

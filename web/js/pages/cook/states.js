@@ -1,6 +1,9 @@
 // The loading and failed states of every data component on the screen, set together.
 
-import { setChecklistState, setFocusStepsState, setTimersState, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { setChecklistState } from "/static/kp/dist/js/checklist.js";
+import { setFocusStepsState } from "/static/kp/dist/js/focus-steps.js";
+import { setTimersState } from "/static/kp/dist/js/timer.js";
+import { setCardState } from "/static/kp/dist/js/card-state.js";
 import { setTimelineState } from "../../recipe/timeline.js";
 import { t } from "../../i18n/index.js";
 

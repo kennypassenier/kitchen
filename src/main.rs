@@ -118,7 +118,9 @@ async fn main() -> std::process::ExitCode {
         Some(dir) => WebApp::dir(dir),
         None => WebApp::embedded(FILES),
     };
-    app.webapp(web);
+    // Kenny 02/11/2026 17:24 ("Nu overstappen"): the pages import kp-themes' per-module
+    // entries, so the injected runtime must use them too (one copy of kp's state).
+    app.webapp(web.kp_modules());
     register_pages(&mut app);
     app.run().await
 }

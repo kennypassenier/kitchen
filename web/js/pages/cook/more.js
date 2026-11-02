@@ -6,7 +6,8 @@
 // again when the sheet opens, because a closed dialog has no width to draw in.
 
 import { h, $ } from "../../dom.js";
-import { closeDialog, motionAllowed } from "/static/kp/dist/kp-themes.min.js";
+import { closeDialog } from "/static/kp/dist/js/motion.js";
+import { motionAllowed } from "/static/kp/dist/js/calm.js";
 import { t } from "../../i18n/index.js";
 import { sheetTarget } from "./stage-state.js";
 

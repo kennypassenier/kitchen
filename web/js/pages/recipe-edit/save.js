@@ -1,6 +1,6 @@
 // Save of the editor page: one click at a time, the failure shown in the page's alert, a success leaving the page.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { SECTIONS } from "../../recipe/editor/sections.js";

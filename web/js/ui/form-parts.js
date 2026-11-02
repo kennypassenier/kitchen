@@ -2,7 +2,9 @@
 // number inputs, switch, segmented chips, select and the repeatable-rows list. They are plain builders; the editors
 // own what the controls mean. Moved out of recipe/editor.js on 30/10/2026 (docs/agent/MODULARITY.md) unchanged.
 
-import { attachSelects, attachQuantities, attachSwitches } from "/static/kp/dist/kp-themes.min.js";
+import { attachSelects } from "/static/kp/dist/js/combobox.js";
+import { attachQuantities } from "/static/kp/dist/js/quantity.js";
+import { attachSwitches } from "/static/kp/dist/js/forms.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 import { MAX_NAME_CHARS, MAX_TEXT_CHARS } from "../limits.js";

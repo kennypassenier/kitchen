@@ -4,7 +4,8 @@
 // (records/recipe-delete.js), so the Recipes page can use the same call. What only the end of the window may do (delete
 // a recipe's photo files) waits for it in `settle`; Undo skips it, so a restored recipe keeps its pictures.
 
-import { toast, undoToast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
+import { undoToast } from "/static/kp/dist/js/undo-toast.js";
 import { reason } from "../api.js";
 import { t } from "../i18n/index.js";
 import { saveFailed } from "../api/stale-notice.js";

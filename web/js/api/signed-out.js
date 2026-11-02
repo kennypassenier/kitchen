@@ -3,7 +3,7 @@
 // says why), so whatever was typed stays on screen and the call can be tried again here once signed in.
 // Several refused calls in a row (a burst of saves) show it once.
 
-import { toast } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
 import { LOGIN_PATH, signedOutWords } from "./login-link.js";

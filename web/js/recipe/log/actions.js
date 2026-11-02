@@ -1,6 +1,8 @@
 // What the log's buttons and the heat grid do: add a day, change its feeling, remove it (with an undo), pick a day.
 
-import { getSegmentedValues, runFlashButton, undoToast } from "/static/kp/dist/kp-themes.min.js";
+import { getSegmentedValues } from "/static/kp/dist/js/segmented.js";
+import { runFlashButton } from "/static/kp/dist/js/flash.js";
+import { undoToast } from "/static/kp/dist/js/undo-toast.js";
 import { create, remove, replace, reason } from "../../api.js";
 import { today } from "../../format.js";
 import { plus } from "./dates.js";

@@ -3,7 +3,8 @@
 // wheel answer; the empty state no longer has a button of its own that only scrolled back up to it).
 
 import { h, $ } from "../../dom.js";
-import { setCardState, attachCardStates, attachComboboxes } from "/static/kp/dist/kp-themes.min.js";
+import { setCardState, attachCardStates } from "/static/kp/dist/js/card-state.js";
+import { attachComboboxes } from "/static/kp/dist/js/combobox.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf, headedCard } from "../../ui/cards.js";
 

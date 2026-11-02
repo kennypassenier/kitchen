@@ -1,6 +1,9 @@
 // The form under the freezer: a real freezer gets filled. Both names, which dish it is, how many portions, which day.
 
-import { toast, datePicker, attachForms, VALID_EVENT, drawnSelect } from "/static/kp/dist/kp-themes.min.js";
+import { toast } from "/static/kp/dist/js/overlays.js";
+import { datePicker } from "/static/kp/dist/js/datepicker.js";
+import { attachForms, VALID_EVENT } from "/static/kp/dist/js/forms.js";
+import { drawnSelect } from "/static/kp/dist/js/combobox.js";
 import { create, kitchenNow, onKitchen, reason } from "../../api.js";
 import { h, $ } from "../../dom.js";
 import { t, nameOf, textOf } from "../../i18n/index.js";

@@ -15,7 +15,13 @@
 // live things (the package's attachments, the 10 s ticker, the discs, listeners on the document) are all taken down by the
 // functions in `ctx.cleanups`. logic.js is the pure part (scripts/cook.test.mjs).
 
-import { attachChecklists, setChecklistState, attachFocusSteps, setFocusStepsState, attachTimers, setTimersState, attachAttention, attachCardStates, attachCalm, memoryFor } from "/static/kp/dist/kp-themes.min.js";
+import { attachChecklists, setChecklistState } from "/static/kp/dist/js/checklist.js";
+import { attachFocusSteps, setFocusStepsState } from "/static/kp/dist/js/focus-steps.js";
+import { attachTimers, setTimersState } from "/static/kp/dist/js/timer.js";
+import { attachAttention } from "/static/kp/dist/js/attention.js";
+import { attachCardStates } from "/static/kp/dist/js/card-state.js";
+import { attachCalm } from "/static/kp/dist/js/calm.js";
+import { memoryFor } from "/static/kp/dist/js/remember.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { buildHeader, plateScreen } from "./parts.js";

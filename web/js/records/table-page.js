@@ -1,7 +1,8 @@
 // The shell the table screens share (/dishes, /ingredients, /sources, /log): a page header, and the data tables' life
 // cycle: loading state, the one kitchen read, filling the rows, the retry, the kitchen's change events and the clean-up.
 
-import { attachDataTables, attachDisabledReasons, dataTable } from "/static/kp/dist/kp-themes.min.js";
+import { attachDataTables, dataTable } from "/static/kp/dist/js/datatable.js";
+import { attachDisabledReasons } from "/static/kp/dist/js/reason.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
 

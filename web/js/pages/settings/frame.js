@@ -4,7 +4,7 @@ import { h, $ } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf } from "../../ui/cards.js";
 import { SPARES, SOUND_KEYS, ODDS_KEYS, DEFAULTS, soundName, oddsName } from "./consts.js";
-import { themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
+import { themeMenuMarkup } from "/static/kp/dist/js/picker.js";
 import { row, segmented, card, reset, resetText } from "./parts.js";
 
 /**

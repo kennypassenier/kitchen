@@ -6,7 +6,7 @@
 
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): template.js builds the page, rows.js the table rows.
 
-import { attachDataTables, dataTable } from "/static/kp/dist/kp-themes.min.js";
+import { attachDataTables, dataTable } from "/static/kp/dist/js/datatable.js";
 import { newRecipe } from "../../recipe/edit-nav.js";
 import { importAsk } from "../../recipe/import-plan.js";
 import { t } from "../../i18n/index.js";
