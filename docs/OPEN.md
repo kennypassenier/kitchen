@@ -1,54 +1,58 @@
 # Open
 
-4 items open: the deploy of 5.0.0, the four finished UX rounds that no release carries yet, and adopting the kp-themes gantt fit-to-width mode.
+3 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs 4.2.0), and two choices for Kenny.
+The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
+the release (list below).
 
 | Item | Waits on |
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
-| The four UX rounds of 01/11/2026 (bar and More menu, recipe page popovers, bad days, recipes row menu, delete with Undo, inline add rows, editor page, import field, cook stage, wheel filter menus; CHANGELOG [Unreleased]) are on main, together with the fixes of 02/11/2026 (security, bug hunts, UX pass, size limits, stale saves, quick-action revisions, the start-up photo sweep, nine UX choices; gate on 02/11/2026 after fix-photo-orphans-1: node 253/253, cargo test 74/74, clippy and fmt clean, checks 0), checked on 01/11/2026 (full suite green, every page walked in Firefox at 1280 and 390 in English and Dutch with 0 console errors, measure clear but for the accepted side-wheel kicker); nothing is released or deployed | Kenny's release decision (a form with the open items) |
-| Adopt the kp-themes gantt fit mode when it reaches chassis-rs (Kenny, 01/11/2026 "Passend maken"; `data-kp-gantt-scroll="fit"`, kp-themes main 6989f8cc6, not released). The attribute is already in: `ganttFitAttrs` in `web/js/recipe/timeline-fit.js` (scripts/timeline-fit.test.mjs) asks for "fit" from kp-themes `FIT_FROM` (12.2.0, assumed) and "off" before. What remains: the kit release through chassis-rs, then check `FIT_FROM` against the kp-themes CHANGELOG, re-measure cook mode at 390 px, and see whether the lower rows in `web/css/pages/cook.css` (`--kp-gantt-row-sub`) are still needed | a chassis-rs release that carries it |
-| The next chassis-rs bump: the checklist below | the first chassis-rs on kp-themes >= 12.2.0 |
+| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.2.0 with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | Kenny's release decision (a form with the open items), then the release checks below |
+| Two choices (section "Choices for Kenny" below): offline data for cook mode, and whether pages move to kp-themes' split delivery | Kenny (a form) |
 
-## Next chassis-rs bump (target: the first chassis-rs on kp-themes >= 12.2.0)
+## Release checks (not run on 02/11/2026: tests only at the release, with Kenny's ok)
 
-Only pin + sync + checks should remain:
+What ran on 02/11/2026 before Kenny stopped test runs (16:16): one full gate after the bump commits (node 256/256 in
+0.4 s, cargo test 74/74 in 13.4 s, clippy, fmt and the three checks clean) and one Firefox smoke at 1280 and 390 in
+English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothing after fix-cat-rename-stale-1 ran.
 
-1. Build the chassis CLI from the new tag.
-2. Pin the tag in `Cargo.toml` and `.chassis.toml`; `chassis sync --write`; `cargo update -p chassis` only (nothing else moves).
-3. Verify `FIT_FROM` in `web/js/recipe/timeline-fit.js` against the kp-themes 12.2.0 release notes (gantt fit mode and run packing,
-   `data-kp-gantt-spare`); adjust `scripts/timeline-fit.test.mjs` if it moved.
-4. Drop `--kp-gantt-row-sub: 1.625rem` in `web/css/pages/cook.css` if the cook rows look right with the kit's fit mode (390 px).
-5. At 12.2.0 drop the `--kp-calendar-nav-fit: 26rem` workaround in `web/css/pages/baddays.css` and re-measure `/bad-days` in NL at
-   390 px: kp-themes main e0aff5f7e (ships as 12.2.0) measures the calendar nav with the words it carries
-   (`--kp-calendar-nav-measured`; the Dutch 340 px nav overflowed 42 px, now fits).
-6. Re-check the chassis-rs gaps 23-25 workarounds against the new chassis (23 popover position: the `position: fixed` + flip in
-   `web/js/ui/popover.js`; 24 labelled theme trigger: `web/js/pages/settings/theme-button.js`; 25 More set in the folding bar:
-   `web/js/shell/plan.js`); see `~/Projects/kp-gaps/chassis-rs.md`. Two are fixed in kp-themes 12.2.0 (main 65baed252):
-   - 23: `.kp-popover[popover]` is `position: fixed` with flip fallbacks, so drop Kitchen's `.app-popover` override
-     (`web/js/ui/popover.js` and its CSS) and re-measure the Send to phone, Print options and More menus at 1280 and 390 px.
-   - 24: `themeMenuMarkup({ trigger: 'label', current })` draws "Formal ▾" and keeps the name and accessible name current, so
-     drop `web/js/pages/settings/theme-button.js` and re-measure the `/settings` theme button at 1280 and 390 px.
-   - The new chassis-rs also advertises the maskable and monochrome icons already in `web/pwa/` (kit manifest); check
-     `/manifest.webmanifest` lists them.
-6a. At 12.2.0 re-measure long wheel names (e.g. "Kippenwaterzooi") at 360 and 390 px on `/`, `/eten` and an ingredient page:
-   kp-themes main fa356ec67 breaks a long name without a space with a hyphen (9.1 to 12.9 px at 360 px). Kitchen has no
-   long-name workaround of its own today (`web/eten/dishwheel*` only redraws and stops without rewind), so nothing to drop;
-   just confirm the names read. Keep the in-use reason-tooltip workaround (`web/js/records/in-use.js`) until kp-themes ships
-   its card-layout tooltip fix (on hold for Kenny's release decision).
-6b. Four more kp-themes fixes that ship with 12.2.0 (coordinator, 02/11/2026):
-   - Stepper: typing is never overwritten and removing `data-kp-quantity-disabled` unlocks it, so drop Kitchen's
-     quantity-lock workaround (`web/js/ui/quantity-lock.js`, its test `scripts/quantity-lock.test.mjs` and its callers).
-   - Autosize and `setSequencerItems` are batched: first MEASURE Kitchen's real long recipe (60 lines, 40 steps; perf
-     script `~/.cache/kitchen-editfix/perf.mjs`), and only then drop the lazy fold autosize (`web/js/ui/fold-autosize.js`)
-     and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`). A programmatic `area.value = x` now
-     re-measures at the end of the task: check Kitchen code that sets `.value` and then reads the height in the same task.
-   - The action list supports six columns: drop the fifth-column workaround in `web/css/pages/dishes.css`
-     (`.it-recipes:has(> li > .kp-row-actions > :nth-child(5))`).
-   - New opt-in class `kp-kv--center` for `dl.kp-kv`: DONE 02/11/2026 (both lists carry it, guarded by
-     `scripts/kv-center.test.mjs`; inert until 12.2.0). Left for the bump: re-measure the label hang at 1280 and 390 px.
-7. Re-check Kitchen's imports against the new bundle with `/tmp/claude-1000/-home-kenny-Projects/cf5bc211-3b73-5e5c-b494-895e05e608c8/scratchpad/kp-names.mjs`.
-8. Then the release gate: the full suite (cargo test, node tests, check scripts), Firefox smoke at 1280 and 390 (EN and NL), measure-align and
-   measure-gaps clear; only then the release decision.
+1. The full suite: `node --test scripts/` (new: `scripts/signed-out.test.mjs`, `scripts/cat-rename-stale.test.mjs`;
+   changed: `scripts/shell-plan.test.mjs`; gone: `scripts/quantity-lock.test.mjs`), `cargo test`, clippy, fmt, the three checks.
+2. Smoke step `editor-save-leave` failed at 390 EN, 1280 NL and 390 NL (passed at 1280 EN): the smoke found no "Save"
+   button after typing in the gear field (`getByRole('button', { name: /Save|opslaan/i })`). Find out whether the
+   editor's unsaved bar or the smoke's locator is at fault before the release.
+3. Firefox smoke of every page at 1280 and 390, EN and NL, 0 console errors; also `/storage` (the kit's header and phone
+   tab bar now show the five places plus More; check no tab label needs `Page::short_label`).
+4. `node scripts/measure.mjs <path> formal,dark 1280,390` over the main pages (accepted: side-wheel kicker 64.7 px on / and /eten at 1280).
+5. The category rename's stale toast (fix-cat-rename-stale-1) in Firefox: rename a category in one tab after saving it in another;
+   expect the shared "changed elsewhere" toast with Reload and the cell's own refusal.
+6. Measured once on 02/11/2026 (no re-run needed unless the code moves): popovers, settings theme button, /bad-days NL nav,
+   the dish rows' five actions, `kp-kv--center`, long wheel names, Override switch, offline cook mode, photo upload, QR, the
+   401 notice (EN 1280, NL 390). Numbers in CHANGELOG [Unreleased] and `~/Projects/kp-gaps/kitchen.md`.
+
+## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
+
+- Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
+- Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
+  still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
+- `box-sizing: border-box` on the popover panel (`web/css/app.css`): `.kp-popover--panel` caps content-box (kp-gaps/kitchen.md).
+- Renaming the settings row's labelled theme trigger after a pick in the header's menu (`nameTrigger`, `web/js/pages/settings/calm-theme.js`; kp-gaps/kitchen.md).
+- The signed-out notice opens the login in a new tab because the kit's login reads no `next` (kp-gaps/chassis-rs.md).
+- The More item of the bar is built by hand (no `data-kp-nav-more` in kp-themes yet); the in-use reason-tooltip workaround
+  (`web/js/records/in-use.js`) until kp-themes ships its card-layout tooltip fix.
+
+## Choices for Kenny (not built)
+
+1. **Cook mode offline.** chassis-rs 4.2.0's worker no longer keeps `/data/*`; an open cook page keeps working offline,
+   but a reload while offline shows its failed states, where 5.0.0 showed a stale copy. Options: (a) leave it (the kit's
+   choice: never a stale kitchen); (b) Kitchen keeps the recipe being cooked in sessionStorage when cook mode opens, so a
+   reload offline shows that one recipe; (c) keep the whole kitchen in IndexedDB for offline reading. Recommendation: (b),
+   small and limited to the screen that is used in the kitchen.
+2. **kp-themes split delivery** (`kp-themes-base.min.css` + `dist/js/` entries, about a sixth of the CSS). Kitchen stays on
+   the one-file bundle: its 92 import lines and the kit's `webapp-runtime.js` use the bundle, and the two must never mix on
+   one page. Options: (a) stay on the bundle; (b) move all pages in one release (every import, the stylesheet links,
+   `theme-boot.js` with its data attributes, `attachLazyRegisters`), once the kit's runtime offers a split entry;
+   (c) move now and accept two copies of kp's state. Recommendation: (a) until the runtime moves, then (b).
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
 deliberate (Kenny, 30/10/2026 17:52, bottoms level; see `docs/DECISIONS.md`); "After 1.0: memory, sensory profile, low

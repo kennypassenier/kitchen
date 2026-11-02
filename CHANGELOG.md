@@ -8,6 +8,7 @@ carries a **Migration** section saying what an operator must do.
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
+Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`).
 
 ### Added
 - **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
@@ -26,6 +27,13 @@ Nothing here is released or deployed yet; no store format change, no new setting
   **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
+- **chassis-rs 4.2.0 / kp-themes 12.2.0** [meta-chassis-420-1]: only `chassis` moved in `Cargo.lock`. The cook timeline uses
+  the kit's fit mode (`data-kp-gantt-scroll="fit"`, `FIT_FROM` 12.2.0 confirmed). The bar's More pages (Dishes,
+  Ingredients, Parents' wheel, Recipe sources, Calm settings) are the kit's secondary pages (`Page::secondary`), so the
+  kit's own pages (Storage, the login) show the same five places plus More [app-more-secondary-1].
+- **Signed out while a page is open** [fix-signed-out-1]: the kit now answers a page's call without a login 401 instead
+  of the login page, and Kitchen no longer leaves the page for the login: a notice says so in Dutch or English with a
+  "Sign in (new tab)" link, so what was typed stays and the save can be repeated after signing in.
 - **An empty Recipes card on a dish page offers one way in** (Kenny 02/11/2026): while the dish has no recipe, the card header's Add and Import are hidden and the empty state's own "Add the recipe" is the action; they come back with the first recipe (an Undo too).
 - **"Enter adds" moved under the Add button** (Kenny 02/11/2026): in the add row of What I ate (and of the category tables, which share it) the button's label line is empty and "Enter adds" / "Enter voegt toe" stands under the button as its help.
 - **The Bad days calendar sits in a card** (Kenny 02/11/2026): "When things went in" shows its month in a full-width card titled "This month in the freezer" / "Deze maand in de diepvries" with one line saying what a filled day means, like the other parts of the page.
@@ -98,6 +106,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **A category renamed in its table cell answers a stale save like every other quick save** [fix-cat-rename-stale-1]:
+  when the category was saved elsewhere since the page read it, the shared "changed elsewhere" toast with Reload appears
+  and the kitchen is read again; the cell still shows its own refusal.
 - Key-value lists (the item page's Details, cook mode's Begin card) carry kp-themes' `kp-kv--center`, so a label that
   wraps lines up with its value once the kit ships it (12.2.0; harmless before). `scripts/kv-center.test.mjs` fails on a
   `dl.kp-kv` without it.
@@ -154,18 +165,26 @@ Nothing here is released or deployed yet; no store format change, no new setting
   other swallowed failures (draft and photo deletes, the recipe-move rollback, the start-up read) are logged.
 
 ### Internal
+- Workarounds dropped now that kp-themes 12.2.0 fixes them [fix-chassis-420-workarounds-1]: the Dutch calendar nav
+  width (`--kp-calendar-nav-fit`), the fifth action column on a dish's recipe rows, the popover plate's position and size
+  (now the kit's `.kp-popover--panel`; only `box-sizing` stays), `theme-button.js` (now `themeMenuMarkup({ trigger: 'label' })`)
+  and `quantity-lock.js` with its test. Each re-measured in Firefox at 1280 and 390: same place and size as before.
+  Kept because they still help: the lower cook-timeline rows (lanes 86/112 px with, 128/168 without), the lazy fold
+  autosize (long recipe opens in 2.9 s with, 8.2 s without) and the debounced timeline repaint (155 ms a key with, 350
+  without). Two new kp-themes gaps and one chassis-rs gap logged in `~/Projects/kp-gaps/`.
 - The unused safe-dish picker and its words are gone; the recipe editor page's Save and heading helpers, the recipes
   table's life and the page registrations moved into small modules (no behaviour change); functions the UX rounds grew
   were split under 40 lines.
 - `ganttFitAttrs` (`web/js/recipe/timeline-fit.js`) asks the kit for `data-kp-gantt-scroll="fit"` from kp-themes
-  `FIT_FROM` (12.2.0, assumed) and "off" before; tests in `scripts/`.
+  `FIT_FROM` (12.2.0, confirmed against its CHANGELOG) and "off" before; tests in `scripts/`.
 
 ### Migration / deploy notes (for the homelab thread)
 - **Environment**: no new or changed variable. `KITCHEN_TRUSTED_PROXIES` must still include Traefik (10.10.10.4) behind
   the home route, as in 5.0.0; `KITCHEN_TRUSTED_ADMINS`, `KITCHEN_PARENTS_ALLOW` and the rest are untouched.
 - **Store**: `kitchen.json` stays format 5 (`FORMAT` in `src/store/data.rs`; no migration step added since 5.0.0). One optional
   field is stored: `rev` on an item once it is saved (fix-stale-save-1; absent = 0, 5.0.0 ignores it). Undo lives in server memory only and is lost at a restart (an Undo after a restart
-  answers "can no longer be undone"). The kit's own database stays at schema 2 (chassis 4.0.0, unchanged).
+  answers "can no longer be undone"). **The kit's own database (`kitchen-kit.db`) moves from schema 2 to 3 on the first
+  start** (chassis-rs 4.2.0 adds the empty `kit_push_subscriptions` table; Kitchen sends no push).
 - **Size limits** (fix-field-limits-1): the server now refuses a name half over 200 characters, any other text over
   5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
   limit can still be read, but saving it again asks to shorten the field first.
@@ -173,9 +192,20 @@ Nothing here is released or deployed yet; no store format change, no new setting
   restart inside that window no longer leaves them: each start deletes the photo files nothing refers to that are older
   than 10 minutes (fix-photo-orphans-1) and logs "orphan photo files deleted at start" with the count. The first start
   of this version may delete older orphans from before it; files other than `<uuid>.jpg|webp` are never touched.
-- **Rollback to 5.0.0**: the data file is identical in shape, so 5.0.0 opens it as is; only the Undo route and the new
-  screens go away. A backup is still good practice, but none is required for this step. Going further back than 5.0.0
+- **Rollback to 5.0.0**: `kitchen.json` is identical in shape, so 5.0.0 opens it as is; but 5.0.0 (chassis 4.0.0)
+  refuses a kit database at schema 3 ("written by a newer build"), so **take a backup of `kitchen-kit.db` before the
+  update** and put it back on a rollback (it holds the sessions and synced browser keys only; without it the start fails). Going further back than 5.0.0
   keeps the 5.0.0 rule (a backup taken before that update).
+- **chassis-rs 4.2.0 behaviour the operator sees**: every answer carries `Permissions-Policy` (camera, microphone,
+  geolocation and the rest off; Kitchen asks for none: photos come through a file input, which the policy does not
+  touch), `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin` (the parents' host /eten, the QR
+  code, photos and PWA icons are all same-origin and load), and `Strict-Transport-Security` (one year) when Traefik
+  reports HTTPS, so `kitchen.kp-soft.dev` and `eten.kp-soft.dev` must stay HTTPS-only. JSON answers are `no-store`
+  (nothing in Kitchen relied on caching them). `/favicon.ico` answers a 308 to `/pwa/icon-192.png`; the manifest lists the
+  maskable and monochrome icons from `web/pwa/`.
+- **Offline**: the 4.2.0 service worker keeps pages and static files only, never `/data/*`. An open cook-mode page keeps
+  working offline (steps, timers); a reload while offline draws the page with its failed states ("could not be loaded")
+  instead of a stale copy of the kitchen, as 5.0.0's worker served.
 - Deploys the same way as 5.0.0 (no new dependency, no new port, no new file on disk).
 
 ## [5.0.0] - 2026-10-31
