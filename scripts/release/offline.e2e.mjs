@@ -230,8 +230,12 @@ async function keptDishGone(browser) {
 const browser = await launch(cfg);
 let failed = false;
 try {
-  for (const [name, run] of [["cook mode offline", cookOffline], ["only one recipe kept", oneRecipeKept], ["offline edit + replay", editAndReplay], ["conflict on replay", conflictToFailedList], ["clear copy", clearCopy], ["logout with unsent edits", logoutAsks], ["freezer take once", freezerTakeOnce], ["kept dish gone", keptDishGone]]) {
-    console.log(name);
+  // KITCHEN_E2E_ONLY=3,4,… runs only those scenarios (numbered as in the header), so a fix reruns only what failed.
+  const only = (process.env.KITCHEN_E2E_ONLY ?? "").split(",").map((n) => n.trim()).filter(Boolean);
+  const scenarios = [["cook mode offline", cookOffline, 1], ["only one recipe kept", oneRecipeKept, 2], ["offline edit + replay", editAndReplay, 3], ["conflict on replay", conflictToFailedList, 4], ["clear copy", clearCopy, 5], ["logout with unsent edits", logoutAsks, 6], ["freezer take once", freezerTakeOnce, 7], ["kept dish gone", keptDishGone, 8]];
+  for (const [name, run, n] of scenarios) {
+    if (only.length && !only.includes(String(n))) continue;
+    console.log(`${n}. ${name}`);
     await run(browser);
   }
 
