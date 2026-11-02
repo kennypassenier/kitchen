@@ -95,7 +95,9 @@ async function loadFrame(frame) {
   });
   const win = /** @type {Window & typeof globalThis} */ (frame.contentWindow);
   const doc = /** @type {Document} */ (frame.contentDocument);
-  const sheet = new win.CSSStyleSheet();
+  // The base sheet's fonts are relative (`../fonts/…`): without its own address as the base they resolved against the
+  // page and 404'd at /fonts/ (two console errors on every /recipe, fix-paper-fonts-1). The register has no urls.
+  const sheet = new win.CSSStyleSheet({ baseURL: new URL(PAPER_SHEETS[0], location.href).href });
   sheet.replaceSync(css);
   doc.adoptedStyleSheets = [sheet];
   return { win, doc };
