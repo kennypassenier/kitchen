@@ -8,10 +8,9 @@ carries a **Migration** section saying what an operator must do.
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change, no new server setting (see "Migration / deploy notes").
-Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`), pinned to chassis-rs main
-cd68fd9 for `WebApp::kp_modules()` (fcb993f), the fix that gives gzipped pages their preferences block (b08ecab), the login's
-`?next=` (0b541ca) and the offline data client with `IfMatch` / `Revisioned` / `Conflict` (cd68fd9) until its release
-(`[meta-chassis-fcb993f-1]`, `[meta-chassis-b08ecab-1]`, `[meta-chassis-cd68fd9-1]`).
+Built on **chassis-rs 4.3.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.3.0, `[meta-chassis-430-1]`): it carries
+`WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=` and the offline data
+client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased revs of chassis main for these on 02/11/2026).
 
 ### Added
 - **The whole kitchen offline** [feat-offline-kitchen-1..4] (Kenny 02/11/2026, "Hele keuken offline"): on the kit's offline

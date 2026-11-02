@@ -1,6 +1,6 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs rev cd68fd9), the kp-themes split delivery's release checks, the offline copy's release checks, and two choices for Kenny about the offline copy.
+5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs 4.3.0), the kp-themes split delivery's release checks, the offline copy's release checks, and two choices for Kenny about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
@@ -42,9 +42,8 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
-8. **Re-pin chassis-rs** from rev cd68fd9 (fcb993f `kp_modules()`, b08ecab gzip prefs-block fix, 0b541ca login `?next=`,
-   cd68fd9 offline data client; pinned 02/11/2026 [meta-chassis-cd68fd9-1]) to the release tag that carries all four before Kitchen's release (both
-   entries in `Cargo.toml`, `.chassis.toml` `chassis_tag`, `cargo update -p chassis`; only `chassis` may move in `Cargo.lock`).
+8. **Re-pin chassis-rs to its release tag: DONE 02/11/2026** [meta-chassis-430-1] (tag v4.3.0 = db11d10 carries
+   `kp_modules()`, the gzip prefs fix, the login `?next=` and the offline data client; only `chassis` moved in `Cargo.lock`).
 9. **The offline copy [feat-offline-kitchen-1..4], [refactor-rev-kit-1]** (nothing run on 02/11/2026): the new and changed
    unit tests `node --test scripts/offline-apply.test.mjs scripts/offline-keep.test.mjs scripts/offline-size.test.mjs
    scripts/offline-describe.test.mjs scripts/save-rev.test.mjs`, and `cargo test` (changed: `src/routes.rs` tests for the
@@ -95,7 +94,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
      any edit, but two devices taking a portion offline then conflict (the second goes to the failed list).
    - C. Ask chassis-rs for a queued `post()` (non-idempotent, never rebased): Kitchen keeps the relative take; kit change.
 
-Kit gaps found while building (chassis-rs cd68fd9; to file in kp-gaps/chassis-rs.md):
+Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026; re-check against 4.3.0, whose CHANGELOG says logout with unsent edits asks):
 - **Logout does not ask on Kitchen.** The sign-out button exists only on the kit's own pages (`layout.html`,
   `#chassis-logout`), which do not start `chassisData`, so the kit's "unsent edits" confirmation never runs there; Kitchen's
   pages have no sign-out of their own. Kitchen does not bypass the kit (no logout code in Kitchen). Fix in the kit (configure
