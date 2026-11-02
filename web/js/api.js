@@ -32,7 +32,7 @@ export { recipeById, daysSinceCooked, ingredientById, ingredientName, defaultRec
 let copy = null;
 /** @type {Promise<Kitchen> | null} */
 let pending = null;
-/** Whether `copy` came from the device's offline copy rather than from the kitchen (fix-offline-master-3). */
+/** Whether `copy` came from the device's offline copy, or holds an item Undo put back locally, rather than from the kitchen (fix-offline-master-3, -4). */
 let copyOffline = false;
 /** @type {Set<(k: Kitchen) => void>} */
 const listeners = new Set();
@@ -218,6 +218,10 @@ export async function remove(list, id) {
 export async function restore(list, id, at) {
   // A delete still waiting in the kit's queue is taken back there: the server never deleted the item (offline/undo.js).
   const unsent = await unqueueDelete(await kitData(), list, id);
+  // The item put back is the page's own, parked when the delete was queued; the server may have changed it since. So
+  // the held kitchen counts as local from here: the next page change or reconnect reads it again and the server's
+  // version wins (fix-offline-master-4).
+  if (unsent) copyOffline = true;
   const item = unsent ?? (await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`));
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
