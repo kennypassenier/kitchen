@@ -2,9 +2,9 @@
 // package's timers. The component's events are the only input; the memory keeps the timers for a reload.
 
 import { h, $ } from "../../dom.js";
-import { setAttention, goToStep, getTimers, stopTimer, attachTimerDiscs, timerDiscOf, setCardState } from "/static/kp/dist/kp-themes.min.js";
+import { setAttention, goToStep, getStepsPassed, getTimers, stopTimer, attachTimerDiscs, timerDiscOf, setCardState } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
-import { nextAfter } from "./logic.js";
+import { bandAction } from "./logic.js";
 
 /** The dial the discs measure: 60 minutes, the classic Time Timer (Kenny's default). */
 export const DIAL_MINUTES = 60;
@@ -14,19 +14,26 @@ function createBand(ctx) {
   const { band, steps, timers } = ctx.el;
   const refreshBand = () => {
     const done = getTimers(timers).filter((tm) => tm.state === "done");
+    const passed = new Set(getStepsPassed(steps).indexes);
     setAttention(
       band,
       done.map((tm) => {
-        const next = nextAfter(ctx.shown, tm);
+        // Never a jump back: once the cook is past the timer's step, the button stops the timer (logic.js bandAction).
+        const act = bandAction(ctx.shown, tm, passed);
+        const go = act.kind === "go";
         const action = h(
           "button",
-          { type: "button", class: "kp-button kp-button--sm", ...(next ? { "data-ck-from": ctx.shown.findIndex((x) => x.id === tm.id) } : { "data-ck-stop": tm.id }) },
-          next ? t("cook.goToStep", next.number) : t("cook.stopTimer", tm.name),
+          { type: "button", class: "kp-button kp-button--sm", ...(go ? { "data-ck-from": act.from } : { "data-ck-stop": tm.id }) },
+          go ? t("cook.goToStep", act.number) : t("cook.stopTimer", tm.name),
         );
-        return { key: tm.id, severity: /** @type {const} */ ("warning"), title: t("cook.timerDone", tm.name), text: next ? t("cook.nextIs", next.number, next.text) : t("cook.nothingLeft"), action };
+        const text = go ? t("cook.nextIs", act.number, act.text) : act.past ? t("cook.pastIt") : t("cook.nothingLeft");
+        return { key: tm.id, severity: /** @type {const} */ ("warning"), title: t("cook.timerDone", tm.name), text, action };
       }),
     );
   };
+  // The cook moving on can pass the timer's step, which changes what the button does; read once the package has moved.
+  const follow = () => window.setTimeout(() => ctx.alive && refreshBand(), 0);
+  for (const type of ["kp-focus-steps-change", "kp-focus-steps-track", "kp-focus-steps-done"]) steps.addEventListener(type, follow);
   band.addEventListener("click", (event) => {
     const button = event.target instanceof Element ? event.target.closest("button") : null;
     if (!button) return;

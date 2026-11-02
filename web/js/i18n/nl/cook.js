@@ -73,6 +73,7 @@ export const NL_COOK = {
   "cook.timerDone": (name) => `${name} is klaar`,
   "cook.nextIs": (n, text) => `Straks komt stap ${n}: ${text}`,
   "cook.nothingLeft": "Hierna is er niets meer. Hij rinkelt tot je hem stopt.",
+  "cook.pastIt": "Je bent deze stap al voorbij. Hij rinkelt tot je hem stopt.",
   "cook.noTimerTitle": "Geen timer actief",
   "cook.noTimerText": "Hier verschijnt een schijf voor elke timer die je bij een stap start.",
   "cook.goSteps": "Ga naar de stappen",

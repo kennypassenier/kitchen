@@ -73,6 +73,7 @@ export const EN_COOK = {
   "cook.timerDone": (name) => `${name} is done`,
   "cook.nextIs": (n, text) => `Next is step ${n}: ${text}`,
   "cook.nothingLeft": "Nothing is left after this one. It rings until you stop it.",
+  "cook.pastIt": "You are already past this step. It rings until you stop it.",
   "cook.noTimerTitle": "No timer running",
   "cook.noTimerText": "A disc appears here for every timer you start from a step.",
   "cook.goSteps": "Go to the steps",

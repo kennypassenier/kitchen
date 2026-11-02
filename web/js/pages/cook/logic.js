@@ -50,6 +50,20 @@ export function nextAfter(shown, timer) {
 }
 
 /**
+ * What the band's button does for a timer that rang [fix-cook-goto-1]: go on from the timer's step to the step after it, unless
+ * the cook has already passed the timer's step (then that jump would send them back): the button stops the timer instead.
+ * `past` says why, so the band can say so. @param {Item[]} shown @param {{ id: string }} timer @param {Set<number>} passed the steps passed
+ * @returns {{ kind: "go", from: number, number: number, text: string } | { kind: "stop", past: boolean }}
+ */
+export function bandAction(shown, timer, passed) {
+  const next = nextAfter(shown, timer);
+  if (!next) return { kind: "stop", past: false };
+  const from = shown.findIndex((s) => s.id === timer.id);
+  if (passed.has(from)) return { kind: "stop", past: true };
+  return { kind: "go", from, number: next.number, text: next.text };
+}
+
+/**
  * The real times: a step's start is when it came into hand, its end when it was passed. Changes `marks` in place: a passed
  * step gets its end, a step that is not passed any more loses it, the step in hand gets a start.
  * @param {Record<string, Mark>} marks @param {Item[]} shown @param {number} active @param {Set<number>} done @param {number} now

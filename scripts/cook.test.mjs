@@ -3,7 +3,7 @@
 // the real clock, the fixed start offsets with their planned waits, and the "n of m done" counts (Kenny, 24/10/2026 and 29/10/2026).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MIN, stepsOf, focusStepsOf, nextAfter, markSteps, firstOf, plannedStart, planStep, planRuns, laneCounts, clockAt } from "../web/js/pages/cook/logic.js";
+import { MIN, stepsOf, focusStepsOf, nextAfter, bandAction, markSteps, firstOf, plannedStart, planStep, planRuns, laneCounts, clockAt } from "../web/js/pages/cook/logic.js";
 
 const step = (id, extra = {}) => ({ id, text: `Do ${id}`, say: "", mins: 5, active: false, track: null, ...extra });
 const text = {
@@ -178,4 +178,28 @@ test("a row counts its done steps and all its steps", () => {
   const shown = [step("a", { track: "p" }), step("b", { track: "p" }), step("c", { track: "s" }), step("m")];
   assert.deepEqual(laneCounts(shown, rowsByTrack, "p", new Set([0, 3])), [2, 3]);
   assert.deepEqual(laneCounts(shown, rowsByTrack, "s", new Set()), [0, 2]);
+});
+
+// [fix-cook-goto-1] The band's button never sends the cook back: once the timer's step is passed, it stops the timer instead.
+test("band: the timer's step not passed yet: go on from it to the next step", () => {
+  const shown = [step("a"), step("b"), step("c")];
+  assert.deepEqual(bandAction(shown, { id: "a" }, new Set()), { kind: "go", from: 0, number: 2, text: "Do b" });
+});
+
+test("band: the cook already past the timer's step: no jump back, the timer is stopped", () => {
+  const shown = [step("a"), step("b"), step("c")];
+  assert.deepEqual(bandAction(shown, { id: "a" }, new Set([0, 1])), { kind: "stop", past: true });
+  assert.deepEqual(bandAction(shown, { id: "a" }, new Set([0])), { kind: "stop", past: true });
+});
+
+test("band: tracks count per track; a passed step on another track does not matter", () => {
+  const shown = [step("a", { track: "p" }), step("b", { track: "s" }), step("c", { track: "p" })];
+  assert.deepEqual(bandAction(shown, { id: "a" }, new Set([1])), { kind: "go", from: 0, number: 2, text: "Do c" });
+  assert.deepEqual(bandAction(shown, { id: "a" }, new Set([0])), { kind: "stop", past: true });
+});
+
+test("band: nothing after the timer's step, or an unknown timer: stop, not past", () => {
+  const shown = [step("a"), step("b")];
+  assert.deepEqual(bandAction(shown, { id: "b" }, new Set()), { kind: "stop", past: false });
+  assert.deepEqual(bandAction(shown, { id: "zzz" }, new Set([0])), { kind: "stop", past: false });
 });
