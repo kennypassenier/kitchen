@@ -155,6 +155,12 @@ Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (un
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **Every page could not read the kitchen** [fix-kit-ready-1]: Kitchen asked for the kit's data client while its own
+  main.js ran; the browser already says `readyState` "interactive" then, before the kit's runtime module (injected after
+  main.js) has run, so `window.chassisData` was not there yet and every page showed "the kit's data client is not on this
+  page". Kitchen now waits for the client itself, DOMContentLoaded or `load` (`web/js/api/kit-ready.js`).
+- **Print sheet fonts 404'd** [fix-paper-fonts-1]: the paper stylesheet adopted in the print frame had no base address, so
+  its `../fonts/…` urls resolved to `/fonts/` (two console errors on every `/recipe`); it now carries the base sheet's url.
 - **Offline: the server is always the master** (Kenny 02/11/2026 19:43, "de server is altijd de master, heeft altijd
   gelijk"; audit [fix-offline-master-1..4] on chassis-rs 67d593e, which now puts a refused edit's copy back to the
   server's version and drops a copy the server answers 404 for):

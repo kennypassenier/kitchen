@@ -18,11 +18,16 @@ What ran on 02/11/2026 before Kenny stopped test runs (16:16): one full gate aft
 0.4 s, cargo test 74/74 in 13.4 s, clippy, fmt and the three checks clean) and one Firefox smoke at 1280 and 390 in
 English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothing after fix-cat-rename-stale-1 ran.
 
-1. The full suite: `node --test scripts/` (new: `scripts/signed-out.test.mjs`, `scripts/cat-rename-stale.test.mjs`;
+1. The full suite: `node --test scripts/` (new: `scripts/signed-out.test.mjs`, `scripts/cat-rename-stale.test.mjs`, `scripts/kit-ready.test.mjs`, `scripts/paper-fonts.test.mjs`;
    changed: `scripts/shell-plan.test.mjs`; gone: `scripts/quantity-lock.test.mjs`), `cargo test`, clippy, fmt, the three checks.
-2. Smoke step `editor-save-leave` failed at 390 EN, 1280 NL and 390 NL (passed at 1280 EN): the smoke found no "Save"
-   button after typing in the gear field (`getByRole('button', { name: /Save|opslaan/i })`). Find out whether the
-   editor's unsaved bar or the smoke's locator is at fault before the release.
+2. ~~Smoke step `editor-save-leave`~~ **cleared 02/11/2026 (investigation only, no full run)**. Cause: the smoke script,
+   not the editor. The four runs shared one state and the step typed "2 pots" into the gear field; the first run (1280 EN)
+   saved it, so later runs changed nothing and the kit bar's Save stayed `aria-disabled` (the click timed out). Reproduced
+   on one shared state (1280 EN pass, then 390 EN and 1280 NL fail); with the step typing a value the recipe does not hold
+   yet (fixed in `~/.cache/kitchen-420/smoke.mjs` and `~/.cache/kitchen-wrap/smoke.mjs`) all four pass on one shared
+   state. The bar itself works: dirty shows "Save 1 change", docked to the viewport at 390. Found on the way and fixed:
+   at HEAD every page failed to read the kitchen (kit client looked up before the runtime module ran) [fix-kit-ready-1],
+   and `/recipe` logged two font 404s from the print sheet [fix-paper-fonts-1]; check 3 covers both.
 3. Firefox smoke of every page at 1280 and 390, EN and NL, 0 console errors; also `/storage` (the kit's header and phone
    tab bar now show the five places plus More; check no tab label needs `Page::short_label`).
 4. `node scripts/measure.mjs <path> formal,dark 1280,390` over the main pages (accepted: side-wheel kicker 64.7 px on / and /eten at 1280).
