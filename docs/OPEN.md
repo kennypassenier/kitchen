@@ -64,11 +64,12 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 ## Choices for Kenny (not built)
 
-1. **Cook mode offline.** chassis-rs 4.2.0's worker no longer keeps `/data/*`; an open cook page keeps working offline,
-   but a reload while offline shows its failed states, where 5.0.0 showed a stale copy. Options: (a) leave it (the kit's
-   choice: never a stale kitchen); (b) Kitchen keeps the recipe being cooked in sessionStorage when cook mode opens, so a
-   reload offline shows that one recipe; (c) keep the whole kitchen in IndexedDB for offline reading. Recommendation: (b),
-   small and limited to the screen that is used in the kitchen.
+1. **Offline copy (decided, waiting on chassis-rs).** Kenny chose "Hele keuken offline" (02/11/2026 17:23) and refined it
+   (17:25): a general setting "keep everything offline" and, when it is off, an opt-in toggle per item. Open for Kenny:
+   whether that toggle sits per recipe or per dish (asked 02/11/2026 17:25). The generic part (IndexedDB copy, queued
+   writes replayed with If-Match, state in the connection band, settings and clear button) belongs in chassis-rs and is
+   filed in kp-gaps/chassis-rs.md; Kitchen builds only its domain part once the kit has it. Also open for the kit: what
+   happens to the rest of the queue when one replayed edit is refused (stop / skip / reopen).
 
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
