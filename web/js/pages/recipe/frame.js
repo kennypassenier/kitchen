@@ -16,7 +16,8 @@ function qrParts() {
 /** The printable sheet: the preview frame and its options. */
 function sheetSection() {
   const paper = cardSection("rp-paper", "rp-sec", { "data-kp-state": "loading" }, stage());
-  const frame = h("iframe", { class: "rp-sheet" });
+  // A picture of the sheet, not a control: out of the Tab order (keyboard users went through 21 empty stops inside it).
+  const frame = h("iframe", { class: "rp-sheet", tabindex: "-1" });
   const printTitle = h("h3", { class: "kp-fw-semibold" });
   const printText = h("p");
   const printOptions = h("div", { class: "kp-formgrid" });
