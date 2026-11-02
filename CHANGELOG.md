@@ -90,6 +90,8 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **A meeting step follows back after a timeline drag** [fix-meet-pin-1]: a drop writes a start only for the bars it moved
   (the sequencer's `changed`), so a step where the tracks meet is no longer pinned at its old start and moves earlier again
   when a step before it shrinks.
+- **A new recipe with only its dish chosen can be saved** [fix-dish-only-save-1]: the bar counted "No changes" when the
+  editor opened from the dish; a new recipe with a dish now counts its dish section as changed.
 - **A long recipe edits without a freeze per key** [fix-long-recipe-1]: the editor's timeline is painted again when typing
   pauses (300 ms; a picked value, an added row or a stepper still at once), and a step's second-language text in its
   closed "More" fold is sized only when the fold opens. 60 lines / 40 steps in Firefox at 1280: a key press went from

@@ -98,7 +98,7 @@ export function createEditor({ recipe, mainOptions, preset = {}, restore = null,
     },
     save: saver,
     /** The sections whose fields differ from how the form opened. */
-    changed: () => changedSections(baseline, collector.collect(true)),
+    changed: () => changedSections(baseline, collector.collect(true), { isNew: !recipe }),
     /** Whether the form differs from how it opened (a copy or an import always does until it is saved). */
     dirty: () => isChanged(baseline ? JSON.stringify(baseline) : "", JSON.stringify(collector.collect(true))),
     /** Stop everything this editor wired. `keep`: write the draft once more first, so nothing typed is lost. @param {{ keep?: boolean }} [o] */

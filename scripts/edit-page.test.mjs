@@ -88,3 +88,12 @@ test("with nothing to compare with every section holding fields counts as change
   assert.deepEqual(changedSections(null, {}), ["dish", "time", "notes", "lists", "steps"]);
   assert.equal(SECTIONS.find((s) => s.key === "timeline")?.fields.length, 0);
 });
+
+test("a new recipe with only its dish chosen counts as changed, so it can be saved (fix-dish-only-save-1)", () => {
+  const opened = { dish_id: "d1", new_dish: null, summary: "", steps: [] };
+  assert.deepEqual(changedSections(opened, { ...opened }, { isNew: true }), ["dish"]);
+  assert.deepEqual(changedSections({ ...opened, dish_id: null }, { ...opened, dish_id: null, new_dish: { nl: "Soep", en: "Soup" } }, { isNew: true }), ["dish"]);
+  assert.deepEqual(changedSections({ ...opened, dish_id: null }, { ...opened, dish_id: null }, { isNew: true }), [], "no dish yet: nothing to save");
+  assert.deepEqual(changedSections(opened, { ...opened }), [], "a saved recipe as it opened has no changes");
+  assert.deepEqual(changedSections(opened, { ...opened, steps: [{ id: 1 }] }, { isNew: true }), ["steps"]);
+});
