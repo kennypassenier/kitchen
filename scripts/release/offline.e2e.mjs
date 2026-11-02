@@ -178,7 +178,8 @@ async function clearCopy(browser) {
   check(true, "clearing empties the copy");
   await context.setOffline(true);
   await page.goto(`${cfg.base}/recipes`).catch(() => {}); // the page itself comes from the worker
-  await page.locator('.kp-card[data-kp-state="error"]').first().waitFor();
+  // /recipes draws its list as the package's datatable, whose failed state is `data-kp-state="failed"`; a card says "error".
+  await page.locator('.kp-card[data-kp-state="error"], .kp-datatable[data-kp-state="failed"]').first().waitFor();
   check(true, "an offline reload after clearing shows the failed state, not old data");
   await context.close();
 }
