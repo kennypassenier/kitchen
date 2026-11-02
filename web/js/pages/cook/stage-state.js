@@ -31,3 +31,13 @@ export function stageParts({ started, finished, timers }) {
 
 /** The More sheet opens on the section asked for, or at its top. @param {string | null | undefined} target @param {string[]} ids */
 export const sheetTarget = (target, ids) => (target && ids.includes(target) ? target : ids[0] ?? null);
+
+/**
+ * The mise en place: how many items are still to take out, and whether Start cooking is on. A recipe with nothing to take
+ * out is ready at once (the readout says "Nothing to take out"); only Skip was left before. @param {{ checked?: boolean }[]} items
+ * @returns {{ ready: boolean, left: number, total: number }}
+ */
+export function miseState(items) {
+  const left = items.filter((i) => !i.checked).length;
+  return { ready: left === 0, left, total: items.length };
+}

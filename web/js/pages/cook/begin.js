@@ -7,6 +7,7 @@ import { t } from "../../i18n/index.js";
 import { actionRow } from "../../ui/cards.js";
 import { section } from "./parts.js";
 import { closeMore } from "./more.js";
+import { miseState } from "./stage-state.js";
 
 /** The checklist and the buttons under it. */
 function buildMise() {
@@ -65,11 +66,9 @@ export function buildBegin() {
 export function wireBegin(ctx) {
   const { mise, miseOpen, startBtn, skipBtn, beginBtn, readout, cook } = ctx.el;
   const paintStart = () => {
-    const items = getChecklistItems(mise);
-    const left = items.filter((i) => !i.checked).length;
-    const all = items.length > 0 && left === 0;
-    startBtn.setAttribute("aria-disabled", String(!all));
-    readout.textContent = !items.length ? t("cook.nothingOut") : all ? t("cook.everythingOut") : t("cook.stillOut", left, items.length);
+    const { ready, left, total } = miseState(getChecklistItems(mise));
+    startBtn.setAttribute("aria-disabled", String(!ready));
+    readout.textContent = !total ? t("cook.nothingOut") : ready ? t("cook.everythingOut") : t("cook.stillOut", left, total);
   };
   const openMise = () => {
     if (!miseOpen.hidden || !ctx.recipe) return;

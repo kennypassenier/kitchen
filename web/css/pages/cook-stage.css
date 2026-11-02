@@ -9,7 +9,9 @@
 .ck-screen {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* The step's row is at least the step's own height (a plain 1fr, not minmax(0, 1fr)), so the dinner card under it never
+     slides under the pinned Back and Next on a short phone screen. */
+  grid-template-rows: auto auto 1fr auto;
   gap: var(--kp-space-md, 1rem);
   min-block-size: calc(100dvh - var(--ck-above, 8rem) - var(--kp-space-md, 1rem));
   min-inline-size: 0;
@@ -57,7 +59,9 @@
 .ck-cook {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* The kit's floor for the steps is on the row itself: a percentage minimum on the steps does not count when the grid
+     sizes its rows. */
+  grid-template-rows: auto minmax(var(--kp-focus-steps-min, 24rem), 1fr) auto;
   gap: var(--kp-space-md, 1rem);
   min-inline-size: 0;
 }

@@ -2,7 +2,7 @@
 // Kenny 01/11/2026 "Volledig scherm").
 import test from "node:test";
 import assert from "node:assert/strict";
-import { stageParts, sheetTarget } from "../web/js/pages/cook/stage-state.js";
+import { stageParts, sheetTarget, miseState } from "../web/js/pages/cook/stage-state.js";
 
 test("before Begin: the step, the gather button, no timers bar, no dinner card", () => {
   assert.deepEqual(stageParts({ started: false, finished: false, timers: [] }), { steps: true, timers: false, gather: true, done: false, running: 0 });
@@ -40,4 +40,10 @@ test("the sheet opens on a known section, else at its top", () => {
   assert.equal(sheetTarget("nope", ids), "ck-begin");
   assert.equal(sheetTarget(null, ids), "ck-begin");
   assert.equal(sheetTarget(null, []), null);
+});
+
+test("Start cooking: on once every item is out, and at once when there is nothing to take out", () => {
+  assert.deepEqual(miseState([]), { ready: true, left: 0, total: 0 });
+  assert.deepEqual(miseState([{ checked: true }, { checked: false }]), { ready: false, left: 1, total: 2 });
+  assert.deepEqual(miseState([{ checked: true }, { checked: true }]), { ready: true, left: 0, total: 2 });
 });

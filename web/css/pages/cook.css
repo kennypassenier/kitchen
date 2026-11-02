@@ -77,6 +77,7 @@
 
 /* ---- Done ---------------------------------------------------------------------------------------- */
 .ck-donecard {
+  box-sizing: border-box;
   max-inline-size: 56rem;
   inline-size: 100%;
   margin-inline: auto;
