@@ -8,11 +8,11 @@ carries a **Migration** section saying what an operator must do.
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change (optional fields only), no new server setting (see "Migration / deploy notes").
-Built on **chassis-rs 4.3.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.3.0, `[meta-chassis-430-1]`): it carries
-`WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=` and the offline data
-client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased revs of chassis main for these on 02/11/2026).
-Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (unreleased: trimmed offline keeping, `chassisData.post()`,
-`IdempotencyKey`); re-pin to the release tag that carries it before the release.
+Built on **chassis-rs 4.4.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.4.0, `[meta-chassis-440-1]`): it carries
+`WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=`, the offline data
+client with `IfMatch` / `Revisioned` / `Conflict`, trimmed offline keeping, `chassisData.post()` with `IdempotencyKey`, the
+kit's failed-edits drawer and the server-is-master rules (Kitchen ran on unreleased revs of chassis main for these on
+02/11/2026, last 67d593e, which v4.4.0 carries; only `chassis` moved in `Cargo.lock`).
 
 ### Added
 - **The whole kitchen offline** [feat-offline-kitchen-1..4] (Kenny 02/11/2026, "Hele keuken offline"): on the kit's offline
@@ -258,6 +258,19 @@ Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (un
   after a language switch are the kit's now. `web/js/api.js` lost the recipe import and the wheel reads to
   `web/js/api/server-reads.js` (still exported from `api.js`) [refactor-api-split-1].
 
+### Migration
+6.0.0 is a major: the kit's own database moves to a schema 5.0.0 refuses, so a rollback is not free. What an operator does:
+- **Before the update, back up `kitchen-kit.db`** (in the state dir). It moves from schema 2 to 3 on the first start
+  (chassis-rs 4.2.0 and later); 5.0.0 refuses schema 3, so going back to 5.0.0 needs that backup put back.
+  `kitchen.json` stays format 5 and 5.0.0 opens it as is.
+- **Environment**: nothing new. Behind the home route `KITCHEN_TRUSTED_PROXIES` keeps Traefik's address (10.10.10.4).
+- **Store**: new optional fields only: `rev` on a saved item, `settings_rev`, and the freezer take's `answered` keys
+  (absent = 0 / empty; 5.0.0 ignores them on a rollback).
+- **Routes**: new read-only `GET /data/{list}/{id}` (one item with its `rev` as `ETag`, under the same `/data/` prefix and
+  login); `POST /data/freezer/{id}/take` reads an optional `Idempotency-Key` (a UUID); `DELETE /data/{list}/{id}` and
+  `PATCH /data/settings` honour `If-Match`. The proxy must pass `Idempotency-Key`, `If-Match` and `ETag` (Traefik does by
+  default). Details in the deploy notes below.
+
 ### Migration / deploy notes (for the homelab thread)
 - **Environment**: no new or changed variable. `KITCHEN_TRUSTED_PROXIES` must still include Traefik (10.10.10.4) behind
   the home route, as in 5.0.0; `KITCHEN_TRUSTED_ADMINS`, `KITCHEN_PARENTS_ALLOW` and the rest are untouched.
@@ -277,11 +290,10 @@ Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (un
   save). `DELETE /data/{list}/{id}` and `PATCH /data/settings` now honour `If-Match` (no header: unchecked, as before),
   and `GET`/`PATCH /data/settings` answer an `ETag`. The proxy must pass `If-Match` and `ETag` (Traefik does by default;
   `PUT` already relies on them).
-- **chassis-rs pinned to rev 67d593e** (unreleased, `[meta-chassis-67d593e-1]`, was 8042dbe `[meta-chassis-8042dbe-1]`):
-  trimmed offline keeping, `chassisData.post()`, and the server-is-master rules (a refused replay restores the server's
-  copy, a 404/410 drops it, "Save again" always sends `If-Match`, no overwrite policy, a list GET without a query string
-  prunes items it no longer holds; Kitchen makes no filtered list read); re-pin to the release tag that carries it
-  before the release.
+- **chassis-rs 4.4.0** (tag v4.4.0, `[meta-chassis-440-1]`; Kitchen ran on its unreleased revs 8042dbe and 67d593e
+  before the tag): trimmed offline keeping, `chassisData.post()`, and the server-is-master rules (a refused replay restores
+  the server's copy, a 404/410 drops it, "Save again" always sends `If-Match`, no overwrite policy, a list GET without a
+  query string prunes items it no longer holds; Kitchen makes no filtered list read).
 - **Size limits** (fix-field-limits-1): the server now refuses a name half over 200 characters, any other text over
   5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
   limit can still be read, but saving it again asks to shorten the field first.

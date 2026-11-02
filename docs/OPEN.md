@@ -1,14 +1,14 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs main 67d593e), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, waiting on the chassis-rs release tag and their checks) about the offline copy.
+5 items open: the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.4.0, tag v4.4.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
 | Item | Waits on |
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
-| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.2.0 with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | Kenny's release decision (a form with the open items), then the release checks below |
-| Per-recipe "Offline bewaren" [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1] (Kenny 17:25, 19:12, 19:13): built on chassis-rs main 8042dbe [meta-chassis-8042dbe-1], release check 11 below not run. **Re-pin to the chassis-rs release tag carrying 8042dbe** before the release (only `chassis` moves in `Cargo.lock`) | the chassis-rs release, then Kenny's release decision and release check 11 |
+| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | the release checks below (release word given 02/11/2026 20:15, version 6.0.0), then `chassis release` |
+| Per-recipe "Offline bewaren" [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1] (Kenny 17:25, 19:12, 19:13): built on chassis-rs main 8042dbe [meta-chassis-8042dbe-1], now on tag v4.4.0 [meta-chassis-440-1] (only `chassis` moved in `Cargo.lock`); release check 11 below | release check 11 |
 | The offline copy [feat-offline-kitchen-1..4] and the revision fold [refactor-rev-kit-1] (02/11/2026, on chassis-rs cd68fd9): built, release checks 9 and 10 below not run | Kenny's release decision, then release checks 9 and 10 |
 | kp-themes split delivery (Kenny 02/11/2026 17:24, "Nu overstappen"): merged on main 6f3fc0e [feat-kp-split-3] (branch `kp-split-entries`, 4ee6fbb), with Kitchen pinned to chassis-rs main fcb993f [meta-chassis-fcb993f-1], whose `WebApp::kp_modules()` makes the kit inject `webapp-runtime-modules.js` (imports only `remember.js`, `freshness.js`, `auto-refresh.js`), so a page holds one copy of kp's state. Release checks still to run (item 7 below) | Kenny's release decision, then release check 7 |
 
@@ -47,9 +47,11 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
-8. **Re-pin chassis-rs to the release tag carrying 67d593e** (OPEN again: [meta-chassis-67d593e-1] pinned rev 67d593e on
-   02/11/2026 evening, after [meta-chassis-8042dbe-1] pinned 8042dbe; before that done as [meta-chassis-430-1]: tag v4.3.0 = db11d10 carries
-   `kp_modules()`, the gzip prefs fix, the login `?next=` and the offline data client; only `chassis` moved in `Cargo.lock`).
+8. ~~Re-pin chassis-rs to the release tag carrying 67d593e~~ **done 02/11/2026 [meta-chassis-440-1]**: tag v4.4.0
+   (a37312e, carries 67d593e) in both `Cargo.toml` entries and `.chassis.toml`; only `chassis` moved in `Cargo.lock`
+   (4.3.0 rev 67d593e to 4.4.0 tag a37312e); `chassis sync --write` regenerated `docs/KIT.md`. chassis 4.4.0 has no
+   Migration item Kitchen had not done (`post()` / `IdempotencyKey`, the kit's failed-edits drawer, server-wins with no
+   `onConflict` set, trimmed keep with `keepAll` / `keepItem` awaited).
 9. **The offline copy [feat-offline-kitchen-1..4], [refactor-rev-kit-1]** (nothing run on 02/11/2026): the new and changed
    unit tests `node --test scripts/offline-apply.test.mjs scripts/offline-keep.test.mjs scripts/offline-size.test.mjs
    scripts/save-rev.test.mjs`, and `cargo test` (changed: `src/routes.rs` tests for the
@@ -83,10 +85,10 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    read drops the keep and the copy and shows the notice once; a later read stays quiet). By hand once: the notice reads
    right in NL and EN and is not sticky.
 
-13. **Offline: the server is the master [fix-offline-master-1..4]** on chassis-rs 67d593e (written 02/11/2026, nothing
+13. **Offline: the server is the master [fix-offline-master-1..4]** on chassis-rs 67d593e, now v4.4.0 (written 02/11/2026, nothing
    run): `node --test scripts/offline-sync.test.mjs scripts/offline-undo.test.mjs scripts/offline-kept.test.mjs` (new:
    offline-sync, offline-undo; `keptRefreshPlan` added to offline-kept), then the whole node suite and the existing
-   offline scenarios of `scripts/release/offline.e2e.mjs` against 67d593e (the kit now restores the server's copy on a
+   offline scenarios of `scripts/release/offline.e2e.mjs` against v4.4.0 (the kit now restores the server's copy on a
    refused replay and drops it on a 404). By hand in Firefox, or as new e2e scenarios: (a) take the last portion
    offline in two tabs, reconnect: the second take is refused and the freezer shows the server's count, not 0 below it;
    (b) keep one recipe with "keep everything" off, edit it on another device, open any page online, go offline and
@@ -126,8 +128,8 @@ change. The last two unchecked replays, a queued `DELETE` and a queued settings 
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
-- **Built on chassis-rs 8042dbe (unreleased)**: per-item keep [feat-offline-recipe] and the freezer take through
-  `chassisData.post()` [feat-offline-take-1]. At the release tag: re-pin, run release check 11. A kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
+- **Built on chassis-rs 8042dbe, released in 4.4.0 (re-pinned [meta-chassis-440-1])**: per-item keep [feat-offline-recipe] and the freezer take through
+  `chassisData.post()` [feat-offline-take-1]. Release check 11. A kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
   shows a queued take through its own overlay instead (filed for chassis-rs: an `optimistic` that names the path it
   amends).
 - Built on chassis-rs main 073273f (in 8042dbe) `[refactor-offline-drawer-1]` (written 02/11/2026, nothing run): Kitchen's own
