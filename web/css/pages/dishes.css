@@ -25,17 +25,6 @@
   min-inline-size: 0;
 }
 
-/* A dish's recipe rows hold five actions (the default mark, Cook, Edit, Duplicate, Delete); the package places four by
-   position, so the fifth, the default mark, fell into Delete's cell and was drawn under it. A fifth column, the same way
-   the package writes the other four (kp-gaps/kitchen.md, 02/11/2026). */
-.it-recipes:has(> li > .kp-row-actions > :nth-child(5)) {
-  --kp-action-count: 5;
-}
-
-.it-recipes .kp-row-actions > :nth-last-child(5) {
-  --kp-action-col: -6 / -5;
-}
-
 /* Links listed in a fact (a category's dishes, a shelf food's days): one per line. */
 .it-links {
   display: grid;

@@ -1,9 +1,11 @@
 // The two device-level rows: calm mode and the theme. The package keeps both per device; this only says what they are now.
 
 import { $ } from "../../dom.js";
-import { PICK_EVENT } from "/static/kp/dist/kp-themes.min.js";
+import { PICK_EVENT, THEMES } from "/static/kp/dist/kp-themes.min.js";
 import { t } from "../../i18n/index.js";
-import { themeLabel, paintThemeName } from "./theme-button.js";
+
+/** A theme's own name. @param {string} name */
+const themeLabel = (name) => THEMES.find((th) => th.name === name)?.label ?? name;
 
 /** The reading under a row. @param {HTMLElement} root @param {string} key */
 export const saidOf = (root, key) => /** @type {HTMLElement} */ ($(`#st-${key}-said`, root));
@@ -24,6 +26,21 @@ function paintCalm(root) {
 }
 
 /**
+ * Name the theme on the settings row's labelled trigger after a pick in ANOTHER menu (the header's). The kit renames the
+ * trigger only for a pick in its own menu (kp-themes 12.2.0, kp-gaps/kitchen.md), so the row said "Formal" while the page
+ * wore Dark. Same words and accessible name as the kit writes: the option's own text. Drop when the kit follows every pick.
+ * @param {HTMLElement} host @param {string} name
+ */
+function nameTrigger(host, name) {
+  const trigger = host.querySelector('[data-kp-theme-trigger="label"]');
+  const word = trigger?.querySelector(".kp-theme-menu__current");
+  const option = host.querySelector(`[data-kp-theme="${CSS.escape(name)}"]`)?.textContent?.trim();
+  if (!(trigger instanceof HTMLElement) || !word || !option) return;
+  word.textContent = option;
+  trigger.setAttribute("aria-label", `${trigger.dataset.kpThemeLabel ?? ""}: ${option}`);
+}
+
+/**
  * Keep the calm and theme readings current; returns the clean-up.
  * @param {HTMLElement} root @param {{ calmInput: HTMLInputElement, themeHost: HTMLElement }} el
  */
@@ -35,11 +52,14 @@ export function watchCalmAndTheme(root, el) {
   calm();
   const paintTheme = (/** @type {string} */ name) => {
     saidOf(root, "theme").textContent = t("set.themeOn", themeLabel(name));
-    paintThemeName(el.themeHost, name);
   };
   paintTheme(doc.getAttribute("data-theme") ?? "formal");
   // On the document: the header's menu changes the theme too, and the pick event bubbles.
-  const picked = (/** @type {Event} */ event) => paintTheme(/** @type {CustomEvent} */ (event).detail.theme);
+  const picked = (/** @type {Event} */ event) => {
+    const name = /** @type {CustomEvent} */ (event).detail.theme;
+    paintTheme(name);
+    if (!(event.target instanceof Node && el.themeHost.contains(event.target))) nameTrigger(el.themeHost, name);
+  };
   doc.addEventListener(PICK_EVENT, picked);
   return () => {
     doc.removeEventListener("kp-calm-change", calm);

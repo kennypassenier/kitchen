@@ -4,8 +4,20 @@ import { h, $ } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { section as sectionOf } from "../../ui/cards.js";
 import { SPARES, SOUND_KEYS, ODDS_KEYS, DEFAULTS, soundName, oddsName } from "./consts.js";
-import { themeButtonHost } from "./theme-button.js";
+import { themeMenuMarkup } from "/static/kp/dist/kp-themes.min.js";
 import { row, segmented, card, reset, resetText } from "./parts.js";
+
+/**
+ * The kit's theme menu behind a labelled button that wears the current theme's name ("Formal ▾", Kenny 01/11/2026 20:21;
+ * kp-themes 12.2.0 `trigger: 'label'`), where the header's menu is a bare palette icon. The kit draws the button, keeps its
+ * name and accessible name current on a pick in this menu, and owns the options, the preview and the stored choice.
+ * @returns {HTMLElement}
+ */
+function themeHostOf() {
+  const host = h("div", { id: "st-theme-host" });
+  host.innerHTML = themeMenuMarkup({ id: "st-theme-menu", label: t("shell.theme"), trigger: "label", current: document.documentElement.dataset.theme });
+  return host;
+}
 
 /** The calm switch, the theme menu and the language choice. */
 function calmControls() {
@@ -13,7 +25,7 @@ function calmControls() {
     h("input", { class: "kp-switch__input", type: "checkbox", role: "switch", id: "st-calm-switch", "data-kp-calm-switch": "" })
   );
   const calmControl = h("label", { class: "kp-switch" }, calmInput, h("span", { class: "kp-switch__state", "aria-hidden": "true" }), h("span", null, t("set.useCalm")));
-  const themeHost = themeButtonHost();
+  const themeHost = themeHostOf();
   const langGroup = segmented(t("shell.language"), [["nl", "NL"], ["en", "EN"]], "st-lang");
   for (const item of langGroup.querySelectorAll(".kp-segmented__item")) item.setAttribute("aria-label", item.getAttribute("data-value") === "nl" ? "Nederlands" : "English");
   return { calmInput, calmControl, themeHost, langGroup };

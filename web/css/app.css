@@ -66,7 +66,9 @@ html .kp-formgrid.kp-formgrid {
   column-gap: var(--kp-space-sm, 0.5rem);
 }
 
-/* A small popover opened by a button (ui/popover.js): the kit's plate, sized to what it holds and never wider than the window. */
+/* A small popover opened by a button (ui/popover.js). The plate is the kit's content panel (`.kp-popover--panel`, kp-themes
+   12.2.0): fixed on the top layer so it follows its button down a long page, flipped above near the bottom edge, as wide as
+   what it holds and never wider than the window. Kitchen only lays out what it holds. */
 .app-popover-wrap {
   display: inline-block;
   min-inline-size: 0;
@@ -75,17 +77,12 @@ html .kp-formgrid.kp-formgrid {
 /* Only while open: a display set on the closed plate would override the browser's `display: none` for a popover. */
 .app-popover:popover-open {
   display: grid;
+  gap: var(--kp-space-sm, 0.5rem);
 }
 
-/* Fixed, not the kit's absolute: an absolute plate is placed inside the initial containing block (the first screenful from
-   the top of the page), so a button further down the page got a plate pinned to that block's bottom (measured in Firefox
-   153, kp-gaps/chassis-rs.md). A fixed plate is placed in the viewport and follows its anchor. */
+/* The panel's cap, min(22rem, 100vw - 1rem), is meant for the whole plate, but the kit leaves it content-box, so its
+   padding and border come on top: 378 px on a 390 px phone, flush with the window's left edge (measured in Firefox,
+   kp-themes 12.2.0; kp-gaps/kitchen.md). Border-box keeps the plate inside the cap. Drop when the kit sets it. */
 .app-popover {
-  position: fixed;
-  position-try-fallbacks: flip-block;
   box-sizing: border-box;
-  gap: var(--kp-space-sm, 0.5rem);
-  inline-size: max-content;
-  max-inline-size: min(24rem, calc(100vw - 2rem));
-  padding: var(--kp-space-md, 1rem);
 }

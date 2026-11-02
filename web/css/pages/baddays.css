@@ -186,9 +186,3 @@
 .bd-calwrap {
   min-inline-size: 0;
 }
-
-/* The calendar's nav folds its title onto a row of its own below --kp-calendar-nav-fit (20.5rem, measured with the widest English
-   month). "Vorige maand", the month, "Volgende maand" and "Vandaag" need about 25rem, so a 350 px phone overflowed by 24 px. */
-.bd-calwrap:lang(nl) {
-  --kp-calendar-nav-fit: 26rem;
-}

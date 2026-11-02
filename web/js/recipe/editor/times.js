@@ -7,7 +7,6 @@ import { row, input, stepper, toggle, on, segmented } from "../../ui/form-parts.
 import { effective } from "../schedule.js";
 import { timeOverride, timesOf } from "./logic.js";
 import { prepItems } from "./consts.js";
-import { lockQuantity } from "../../ui/quantity-lock.js";
 
 /** A time row: the stepper, the Override switch under it, and a live sentence in the value track. @param {string} label @param {HTMLElement} q @param {HTMLElement} over @param {HTMLElement} hint */
 function timeRow(label, q, over, hint) {
@@ -65,11 +64,10 @@ export function timeFields(r, live) {
   const refreshTimes = () => {
     const now = timesNow();
     for (const [sw, q, computed] of /** @type {[HTMLElement, HTMLElement, number][]} */ ([[minutesOver, minutes, now.minutes], [handsOver, hands, now.hands_on]])) {
-      const turned = lockQuantity(q, !on(sw));
-      // A typed override is the person's: writing it back on every input would undo what they are typing (the kit keeps
-      // the figure it read last until the field is left). The computed figure is written; an unlocked one is painted once.
+      // The lock follows the attribute alone and lifting it unlocks field and buttons (kp-themes 12.2.0, stepper-1102).
+      // Only the computed figure is written: a typed override is the person's, and the kit leaves a focused field's text alone.
+      q.toggleAttribute("data-kp-quantity-disabled", !on(sw));
       if (!on(sw)) setQuantity(q, computed);
-      else if (turned) setQuantity(q, getQuantity(q));
     }
     minutesHint.textContent = on(minutesOver) ? t("edit.totalTyped", now.total) : t("edit.totalComputed", now.total);
     handsHint.textContent = on(handsOver) ? t("edit.handsTyped", now.handsOn) : t("edit.handsComputed", now.handsOn);

@@ -1,16 +1,15 @@
 // How a recipe timeline meets the width it is given: the one place where the page's wish ("fit" or "scroll") becomes the
 // kit gantt's attributes. Pure (scripts/timeline-fit.test.mjs).
 //
-// kp-themes main (6989f8cc6, not released) adds `data-kp-gantt-scroll="fit"`: the whole window shown, no sideways scroll,
-// labels never clipped, lanes only as tall as their rows. The kit in Kitchen today (12.0.0, chassis-rs 4.0.0) does not know
-// "fit" and would treat it as its default, a 30rem plot that scrolls sideways (the clipped last bar Kenny saw), so "fit" is
-// asked only from a kit that has it, and "off" (the plot takes the width it is given) before that. The first release with
-// it is not known yet; FIT_FROM is the next minor after 12.1.0. HOOK (docs/OPEN.md, ~/Projects/kp-gaps/kitchen.md): when a
-// chassis-rs release brings it, check FIT_FROM against the kp-themes CHANGELOG and re-measure cook mode at 390 px.
+// kp-themes 12.2.0 (gantt-fit-1101, checked against its CHANGELOG on 02/11/2026 with chassis-rs 4.2.0) adds
+// `data-kp-gantt-scroll="fit"`: the whole window shown, no sideways scroll, labels never clipped, lanes only as tall as
+// their rows. An older kit does not know "fit" and would treat it as its default, a 30rem plot that scrolls sideways (the
+// clipped last bar Kenny saw), so "fit" is asked only from a kit that has it, and "off" (the plot takes the width it is
+// given) before that. Cook mode at 390 px measured with it: 0 px sideways scroll, 0 clipped labels, 0 bars past the edge.
 
 /** @typedef {"fit" | "scroll"} TimelineFit */
 
-/** The first kp-themes version assumed to carry `data-kp-gantt-scroll="fit"`. */
+/** The first kp-themes version that carries `data-kp-gantt-scroll="fit"` (12.2.0, confirmed in its CHANGELOG). */
 export const FIT_FROM = "12.2.0";
 
 /** Whether version `v` is `min` or newer (major.minor.patch; anything unreadable counts as older). @param {string} v @param {string} min */
