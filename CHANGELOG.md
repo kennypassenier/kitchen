@@ -90,6 +90,8 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **A meeting step follows back after a timeline drag** [fix-meet-pin-1]: a drop writes a start only for the bars it moved
   (the sequencer's `changed`), so a step where the tracks meet is no longer pinned at its old start and moves earlier again
   when a step before it shrinks.
+- **The installed parents' app always opens the wheel** [fix-eten-scope-1]: its manifest's `start_url` and `scope` are
+  `/eten` (they were `/`, which is Kitchen itself when the app was added from Kitchen's own host).
 - **A restored draft or a copy counts only what changed** [fix-change-count-1]: it said "5 changes" (every section);
   a restored draft of a saved recipe is compared with the saved recipe, a copy or import counts what differs from how it
   opened (at least its dish section, so Save stays offered).

@@ -148,7 +148,7 @@ fn the_parents_page_is_a_web_app_and_kitchen_is_not() {
     let f = Files { dir: None };
     let manifest: Value = serde_json::from_slice(&f.read("manifest.webmanifest").unwrap()).unwrap();
     assert_eq!(manifest["display"], "standalone");
-    assert_eq!(manifest["start_url"], "/");
+    assert_eq!(manifest["start_url"], "/eten");
     for size in ["180", "192", "512"] {
         assert!(f.read(&format!("icon-{size}.png")).is_some(), "{size}");
     }

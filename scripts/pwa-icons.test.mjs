@@ -45,3 +45,10 @@ test("web/pwa holds the same seven files with the kit's names, same bytes as ete
     assert.ok(readFileSync(new URL(`pwa/${n}`, web)).equals(readFileSync(new URL(`eten/${n}`, web))), n);
   }
 });
+
+test("the installed parents' app always opens the wheel, from either host (fix-eten-scope-1)", () => {
+  const m = JSON.parse(readFileSync(new URL("eten/manifest.webmanifest", web), "utf8"));
+  // "/" on Kitchen's own host is Kitchen; "/eten" is the wheel on both hosts (src/parents/guard.rs).
+  assert.equal(m.start_url, "/eten");
+  assert.equal(m.scope, "/eten");
+});
