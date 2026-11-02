@@ -3,7 +3,7 @@ name = "kitchen"
 description = "AuDHD-friendly recipes: a wheel that chooses, cook mode with parallel tracks, backward timing, bad days"
 repo = "kennypassenier/kitchen"
 toolchain = "1.97"
-# The kit is pinned by rev fcb993f (unreleased chassis main, WebApp::kp_modules()) on top of v4.2.0; re-pin to the release tag before Kitchen's release.
+# The kit is pinned by rev b08ecab (unreleased chassis main: WebApp::kp_modules() and the gzip prefs-block fix) on top of v4.2.0; re-pin to the release tag before Kitchen's release.
 chassis_tag = "v4.2.0"
 chassis_repo = "https://github.com/kennypassenier/chassis-rs"
 kp_themes = "12.2.0"

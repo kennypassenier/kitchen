@@ -9,7 +9,7 @@ carries a **Migration** section saying what an operator must do.
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
 Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`), pinned to chassis-rs main
-fcb993f for `WebApp::kp_modules()` until its release (`[meta-chassis-fcb993f-1]`).
+b08ecab for `WebApp::kp_modules()` (fcb993f) and the fix that gives gzipped pages their preferences block (b08ecab) until its release (`[meta-chassis-fcb993f-1]`, `[meta-chassis-b08ecab-1]`).
 
 ### Added
 - **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
