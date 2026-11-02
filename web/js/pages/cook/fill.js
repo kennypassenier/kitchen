@@ -9,6 +9,8 @@ import { localStep } from "../../recipe/bilingual.js";
 import { link } from "../../ui/cards.js";
 import { stepsOf, focusStepsOf } from "./logic.js";
 import { miseItems } from "./mise.js";
+import { showLogged } from "./done.js";
+import { startAt } from "./memo.js";
 
 /** The photos of the step the cook is on. @param {import("./index.js").CookCtx} ctx */
 export function paintPhotos(ctx) {
@@ -74,7 +76,7 @@ export function fill(ctx, r) {
   ctx.view.paintStart();
 
   setFocusStepsState(steps, "ready");
-  setFocusSteps(steps, focusStepsOf(r, ctx.shown));
+  setFocusSteps(steps, focusStepsOf(r, ctx.shown), { start: startAt(ctx.memo, ctx.shown.length) });
   steps.setAttribute("aria-label", r.name);
   delete stepPhotos.dataset.key;
   paintPhotos(ctx);
@@ -82,7 +84,9 @@ export function fill(ctx, r) {
   restoreTimersOf(ctx);
   ctx.view.paintDiscCard();
   ctx.view.refreshBand();
-  ctx.finished = false;
+  // A cook that was finished stays finished on a reload (memo.js), with the dinner card and, once logged, its plate.
+  ctx.finished = Boolean(ctx.memo.finished);
   ctx.view.paintTimeline();
   ctx.view.paintStage();
+  if (ctx.memo.logged) showLogged(ctx);
 }

@@ -82,6 +82,14 @@ Nothing here is released or deployed yet; no store format change, no new setting
   browser for the day); the empty state no longer has a button of its own.
 
 ### Fixed
+- **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the
+  "Log tonight's dinner" card (the kit forgets the place once the flow is done, so it opened on step 1 with no card); a logged
+  dinner stays logged, so it cannot be logged twice. Kept per recipe in this tab until cooking starts fresh.
+- **The timer band never sends the cook back** [fix-cook-goto-1]: once the cook is past the step that started a timer, its
+  button is "Stop <timer>" ("You are already past this step") instead of "Go to step N"; the band follows each step move.
+- **A meeting step follows back after a timeline drag** [fix-meet-pin-1]: a drop writes a start only for the bars it moved
+  (the sequencer's `changed`), so a step where the tracks meet is no longer pinned at its old start and moves earlier again
+  when a step before it shrinks.
 - **Closing the recipe editor never throws work away**: Escape, the close button and Cancel keep the draft; leaving a
   changed page asks Keep as draft / Discard.
 - **The wheel's filter and "what counts as easy" panels fit inside their card** (they stuck out at the edge), and the

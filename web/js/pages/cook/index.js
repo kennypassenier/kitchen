@@ -7,8 +7,8 @@
 // Everything is the package's own component with its standard behaviour; this file gives them the recipe.
 //
 // The place in the recipe (active step, every track, the steps done) is kept by focus-steps itself (data-kp-remember). The
-// page keeps only what the package does not cover (memo.js): the running timers, whether Begin was pressed and when each
-// step really started and ended.
+// page keeps only what the package does not cover (memo.js): the running timers, whether Begin was pressed, when each step
+// really started and ended, and whether the last step was done (the package forgets the place then).
 //
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): this file joins the parts. The page's state is one `ctx` object that every
 // part reads (the recipe, the steps shown, the elements, the memory); the parts call each other through `ctx.view`, and the
