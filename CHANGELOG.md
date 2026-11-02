@@ -7,13 +7,28 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
-Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
+Nothing here is released or deployed yet; no store format change, no new server setting (see "Migration / deploy notes").
 Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`), pinned to chassis-rs main
 cd68fd9 for `WebApp::kp_modules()` (fcb993f), the fix that gives gzipped pages their preferences block (b08ecab), the login's
 `?next=` (0b541ca) and the offline data client with `IfMatch` / `Revisioned` / `Conflict` (cd68fd9) until its release
 (`[meta-chassis-fcb993f-1]`, `[meta-chassis-b08ecab-1]`, `[meta-chassis-cd68fd9-1]`).
 
 ### Added
+- **The whole kitchen offline** [feat-offline-kitchen-1..4] (Kenny 02/11/2026, "Hele keuken offline"): on the kit's offline
+  data client (`window.chassisData`, chassis-rs cd68fd9). Every read of the kitchen goes through it and a copy is kept on the
+  device in IndexedDB, so recipes, cook mode and the lists open without a connection after a reload. Edits made without a
+  connection (any list's save or delete, a recipe saved as its dish, the settings) wait in the kit's queue, show at once and
+  after an offline reload, and are sent in order when the kitchen answers again; Undo of a waiting delete takes it back from
+  the queue. The kit's connection band (kp-themes) shows offline, reconnecting and "N changes waiting" on every page.
+  - **Calm settings: "Keep everything offline" / "Alles offline bewaren"**, on by default on every device, with how much room
+    the copy takes and **"Clear offline copy" / "Offline kopie wissen"** (deletes the copy; edits still waiting stay).
+  - **Edits the kitchen refused** (Kenny's kit decision: skip and continue): an edit refused when it is sent (changed
+    elsewhere meanwhile) goes to a list opened from the kit's toast ("Review"), with "Keep the kitchen's version" or "Save
+    mine over it"; the other edits are sent.
+  - Signing out with edits not yet sent is meant to ask first (the kit's confirmation, given Kitchen's words); the sign-out
+    button lives on the kit's own pages, which do not start the data client, so it does not ask yet (docs/OPEN.md).
+  - Creating something new, a draft, an import, a freezer portion and Undo's restore still need a connection (the kitchen
+    gives new things their number); without one they now say so ("This needs a connection ...").
 - **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
 - **New Kitchen app icon** (pot with steam, approved 01/11/2026): the full set (180/192/512, maskable 192/512, monochrome 512, SVG) in `web/pwa` and on the parents' page (`web/eten`, whose manifest now lists maskable and monochrome icons); the kit's own manifest picks up maskable/monochrome with the next chassis-rs.
 - **Undo for every delete that can come back**: a dish, recipe, recipe source, ingredient, dish or ingredient category,
@@ -30,6 +45,11 @@ cd68fd9 for `WebApp::kp_modules()` (fcb993f), the fix that gives gzipped pages t
   **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
+- **Revisions are the kit's** [refactor-rev-kit-1]: `PUT /data/{list}/{id}` reads `If-Match` with chassis-rs' `IfMatch`
+  (`5`, `"5"`, `W/"5"` and now `*`; a malformed header is the kit's 400 `{error, remedy}`), and a stale save is the kit's
+  409 `{error, remedy, code: "stale", rev}` with `ETag: "<rev>"` (was `{error, code, rev}` without `remedy`; the words of
+  `error` changed, `code` and `rev` did not). A saved item answers with `ETag: "<rev>"` too; `rev` stays in the body. The
+  pages send `If-Match` through the kit's client; Kitchen's own header code is gone.
 - **kp-themes split delivery on every page** [feat-kp-split-1] (Kenny 02/11/2026 17:24, "Nu overstappen"): `web/index.html`
   and the parents' page `web/eten/index.html` link `kp-themes-base.min.css` (fonts included) instead of `fonts.css` plus the
   4.4 MB `kp-themes.css`; `/static/theme-boot.js` sits below it with `data-register-pattern`, `data-themes` and
@@ -219,9 +239,13 @@ cd68fd9 for `WebApp::kp_modules()` (fcb993f), the fix that gives gzipped pages t
   reports HTTPS, so `kitchen.kp-soft.dev` and `eten.kp-soft.dev` must stay HTTPS-only. JSON answers are `no-store`
   (nothing in Kitchen relied on caching them). `/favicon.ico` answers a 308 to `/pwa/icon-192.png`; the manifest lists the
   maskable and monochrome icons from `web/pwa/`.
-- **Offline**: the 4.2.0 service worker keeps pages and static files only, never `/data/*`. An open cook-mode page keeps
-  working offline (steps, timers); a reload while offline draws the page with its failed states ("could not be loaded")
-  instead of a stale copy of the kitchen, as 5.0.0's worker served.
+- **Offline**: the service worker still keeps pages and static files only, never `/data/*`. The offline copy is the page's
+  own (feat-offline-kitchen): IndexedDB `chassis-data:kitchen` per browser, on by default, capped at the kit's 50 MB. A reload
+  while offline draws the kitchen from that copy with the edits that wait to be sent; with the copy off or cleared it draws
+  the failed states as before. Logout deletes the copy and the waiting edits (page and worker). No server setting.
+- **Server answers changed by the revision fold** (refactor-rev-kit-1): a stale save's 409 body now carries `remedy` and the
+  kit's `error` sentence (clients read `code: "stale"` and `rev`, unchanged), plus `ETag`; `If-Match: *` is accepted; a
+  malformed `If-Match` answers the kit's 400 shape. `kitchen.json` is untouched (format 5, `rev` as before).
 - Deploys the same way as 5.0.0 (no new dependency, no new port, no new file on disk).
 
 ## [5.0.0] - 2026-10-31

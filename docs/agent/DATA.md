@@ -14,23 +14,65 @@ Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 fix-stale-save-1, 02/11/2026 (two tabs on one recipe: the last Save silently won). Every item of a collection carries an
 optional `rev` (a whole number): absent counts as 0, and every `PUT /data/{list}/{id}` stores the old value plus one (a `rev`
 in the body is ignored). Optional, so the format stays 5 and an older file opens as it is. A `PUT` may send
-`If-Match: <rev>` (`5` or `"5"`): when the stored `rev` differs, someone saved the item since the page read it and the
-answer is 409 `{"error": "<words>", "code": "stale", "rev": <stored>}`, with nothing changed; a header that is no whole
-number is 400. Without the header a save behaves as before (the last one wins). A recipe lives in its dish, so the dish's
+`If-Match: <rev>` (`5`, `"5"`, `W/"5"`, or `*` for any): when the stored `rev` differs, someone saved the item since the
+page read it and the answer is 409 `{"error", "remedy", "code": "stale", "rev": <stored>}` with `ETag: "<stored>"`, with
+nothing changed; a header that is no revision is 400 `{error, remedy}`. Since refactor-rev-kit-1 (02/11/2026) these are
+the kit's (chassis-rs `IfMatch`, `chassis::core::revision::check`, `Conflict`; `src/routes.rs`, `Refused::Stale` wraps the
+kit's `Stale`), and a saved item answers with `ETag: "<rev>"` (`Revisioned`) as well as `rev` in its body. Without the header a save behaves as before (the last one wins). A recipe lives in its dish, so the dish's
 `rev` covers its recipes: the recipe view carries it as `dish_rev` (never stored; `recipeBody` strips it), the recipe editor
 sends the `dish_rev` it opened with, and on a 409 the page offers "Reload" (this version, its draft and its new photos go)
 or "Keep my version as a draft" (the reloaded page offers the draft back) in an alert above the form
 (`web/js/pages/recipe-edit/stale.js`). The dish drawer sends the `rev` of the dish it opened (its recipes ride along in its
 body) and shows the refusal as its error. Since fix-quick-rev-1 (02/11/2026) every other save sends one too: `replace` in
 `web/js/api.js` takes the revision from the body it saves (`rev`, or a recipe's `dish_rev`), which is the one the page
-read, else from the page's copy of the item (`ifMatchFor` in `web/js/api/save.js`, the one place that builds the header
-and maps the refusal). So the quick actions (safe toggle on Bad days, a category reorder or rename, make a recipe the
+read, else from the page's copy of the item (`ifMatchFor` in `web/js/api/save.js`, the one place that decides the
+revision and words the refusal; the header itself is sent by the kit's client, `web/js/api/kit-data.js`). So the quick actions (safe toggle on Bad days, a category reorder or rename, make a recipe the
 dish's default, a recipe's Undo, which is a dish save) are refused instead of silently overwriting; they answer with one
 kit toast, "This changed elsewhere in the meantime. Reload the page and try again." with **Reload**, and read the kitchen
 again (`saveFailed` in `web/js/api/stale-notice.js`; a category renamed in its table cell through `noticeIfStale`,
 which raises the same toast and leaves the cell its own refusal line, fix-cat-rename-stale-1). Undo's restore (`POST /data/restore/{list}/{id}`) sends no
 `If-Match`, by decision: a deleted item has no newer version to overwrite, the server puts back exactly what it removed
 (with the `rev` it had), and it answers 409 when the id is back already.
+
+## Offline copy (feat-offline-kitchen, `web/js/offline/`, `web/js/api/kit-data.js`)
+
+Kenny, 02/11/2026: "Hele keuken offline", a general setting "Alles offline bewaren" (on by default) and "Offline kopie
+wissen". Built on the kit's offline data client, `window.chassisData` (chassis-rs cd68fd9, `docs/OFFLINE_DESIGN.md` there),
+which the server injects into every page and which stays inert until `web/js/api/kit-data.js` configures it.
+
+**Transport.** Every `GET`, `PUT`, `PATCH` and `DELETE` of the pages goes through the kit (`readJson`, `writeJson`): the
+kit sends `If-Match` (the revision `ifMatchFor` chose), keeps the copy and queues what cannot be sent. The kit has no
+`POST`, so a create, a draft save, an import, a freezer take and Undo's restore stay on `web/js/api/http.js` and need a
+connection; without one they say so (`api.needsConnection`: the kitchen gives new things their id). A 401 from the kit
+raises the same sign-in notice as before; a read with neither a connection nor a copy says so (`api.offlineNoCopy`).
+
+**What is kept.** One answer: `GET /data/kitchen` (`OFFLINE_ROUTES` in `web/js/offline/config.js`), which every screen draws
+from; per device in IndexedDB `chassis-data:kitchen`, under the kit's 50 MB cap. "Keep everything offline" is the kit's
+per-device `keepAll`: the kit starts it off, Kitchen turns it on once per device before the first read
+(`web/js/offline/keep.js`, mark `kitchen:offline-default-applied` in localStorage), so a person who turns it off keeps it
+off. Turning it off keeps no new copy and leaves the present one until "Clear offline copy" (`clearCopy`: the copy goes,
+waiting edits stay). Photos are files, not JSON: offline they show only as far as the browser's own cache holds them.
+Drafts and the parents' wheel are read through the kit but not kept.
+
+**Edits while offline.** A save the kitchen cannot take joins the kit's queue (with its `If-Match`) and the kit answers
+`queued`; `web/js/api.js` then applies it to the shared copy as it was sent, keeping the revision it was read at. The kit
+cannot know that a dish `PUT` changes the kitchen answer, so `web/js/api/kitchen-read.js` lays the queue over every kitchen
+read (`applyQueued`, `web/js/offline/apply.js`, pure): list `PUT` (the item replaced whole, a recipe being its dish's
+`PUT`), list `DELETE`, the settings `PATCH` (`null` removes a key); edits in the failed list are not laid over (the
+kitchen's version stands); anything else is reported in the console, not guessed. Undo of a delete that still waits drops
+it from the queue and puts the parked item back (`web/js/offline/undo.js`); a delete already sent is restored by the
+server as before.
+
+**Replay** (the kit's rules). In order; on a network failure it stops and retries (online event, 30 s timer, the band's
+Retry). Edits behind a sent one for the same item get its new revision (the kit's rebase). A 409 or another 4xx moves the
+edit to the failed list and the rest continues (Kenny's kit decision "Overslaan"); 401 and 5xx stop and retry later.
+After a replay that sent anything, Kitchen reads the kitchen again (`web/js/offline/sync.js`), so the next save names the
+server's new revision. The failed list (`web/js/offline/failed-list.js`, opened by the kit toast's "Review") offers "Keep
+the kitchen's version" (`drop`) or "Save mine over it" (`resave` with the server's current revision).
+
+**On screen.** The kit's connection band (`[data-kp-connection]` in `web/index.html`): the kit paints the queue (pending
+count, reconnecting while a replay runs), `web/js/offline/band.js` paints reads from the copy as offline. The kit's own
+toasts and its logout question take Kitchen's words (`kitMessages`); logout deletes the copy and the queue.
 
 ## Size limits
 
