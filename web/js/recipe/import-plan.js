@@ -13,6 +13,18 @@ const PASTE_INSTEAD = new Set(["no_recipe", "http_status", "not_html", "unreacha
 export const shouldOfferPaste = (code, usedPaste) => PASTE_INSTEAD.has(code) && !usedPaste;
 
 /**
+ * What a failed import says: a dropped connection (no answer at all, status 0, or no kitchen error) says so, a page or
+ * text without a recipe points at the pasted text, any other error code is said by its own words (`code`).
+ * @param {{ fromKitchen: boolean, code: string, status: number, usedPaste: boolean }} o
+ * @returns {{ key: string } | { code: string }}
+ */
+export function failureOf({ fromKitchen, code, status, usedPaste }) {
+  if (!fromKitchen || status === 0) return { key: "photo.dropped" };
+  if (code === "no_recipe") return { key: usedPaste ? "imp.noText" : "imp.fallback" };
+  return { code };
+}
+
+/**
  * The request for what was typed: pasted text wins when its fold is open and has text, else the web address.
  * @param {{ address: string, pasted: string, pasteOpen: boolean }} o
  * @returns {{ ok: true, usePaste: boolean, body: { url: string } | { text: string } } | { ok: false }}

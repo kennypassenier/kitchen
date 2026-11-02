@@ -1,7 +1,7 @@
 // node --test scripts/import-plan.test.mjs: an import becomes an unsaved draft for the editor page (web/js/recipe/import-plan.js).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { importInput, draftKeyFor, planImport, shouldOfferPaste, importHref, importAsk } from "../web/js/recipe/import-plan.js";
+import { importInput, draftKeyFor, planImport, shouldOfferPaste, importHref, importAsk, failureOf } from "../web/js/recipe/import-plan.js";
 
 const found = (extra = {}) => ({ name: "Carbonara", portions: 4, ingredients: ["200 g spaghetti", "1 handvol rucola"], steps: ["Kook de pasta 10 minuten.", "Meng alles."], minutes: { prep: 5, cook: 10, total: null }, image_url: "https://example.org/c.jpg", source_url: "https://example.org/carbonara", ...extra });
 const catalogue = [{ id: "i1", name: { nl: "Spaghetti", en: "Spaghetti" } }];
@@ -61,4 +61,15 @@ test("the Recipes address that focuses the import field round-trips its dish and
   assert.equal(href, "/recipes?import=1&dish=d+1&site=s1");
   assert.deepEqual(importAsk(new URL(href, "http://x").searchParams), { focus: true, dishId: "d 1", siteId: "s1" });
   assert.deepEqual(importAsk(new URLSearchParams("")), { focus: false, dishId: null, siteId: null });
+});
+
+test("a dropped connection says so, not that the import failed", () => {
+  assert.deepEqual(failureOf({ fromKitchen: true, code: "The connection to the kitchen dropped.", status: 0, usedPaste: false }), { key: "photo.dropped" });
+  assert.deepEqual(failureOf({ fromKitchen: false, code: "", status: 0, usedPaste: true }), { key: "photo.dropped" });
+});
+
+test("no recipe points at the pasted text; other codes keep their own words", () => {
+  assert.deepEqual(failureOf({ fromKitchen: true, code: "no_recipe", status: 422, usedPaste: false }), { key: "imp.fallback" });
+  assert.deepEqual(failureOf({ fromKitchen: true, code: "no_recipe", status: 422, usedPaste: true }), { key: "imp.noText" });
+  assert.deepEqual(failureOf({ fromKitchen: true, code: "timeout", status: 504, usedPaste: false }), { code: "timeout" });
 });

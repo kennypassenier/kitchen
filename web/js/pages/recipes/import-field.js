@@ -9,7 +9,7 @@ import { ApiError } from "../../api.js";
 import { t, nameOf } from "../../i18n/index.js";
 import { externalLink, hostOf } from "../../links.js";
 import { input, area, uid } from "../../ui/form-parts.js";
-import { importInput, shouldOfferPaste } from "../../recipe/import-plan.js";
+import { importInput, shouldOfferPaste, failureOf } from "../../recipe/import-plan.js";
 import { importReason } from "../../recipe/cover.js";
 import { runImport } from "../../recipe/import.js";
 
@@ -47,7 +47,8 @@ function fail(f, body) {
 function showFailure(f, e, usedPaste) {
   const code = e instanceof ApiError ? e.message : "";
   setCardState(f.card, "ready");
-  fail(f, code === "no_recipe" ? (usedPaste ? t("imp.noText") : t("imp.fallback")) : e instanceof ApiError ? importReason(code) : t("photo.dropped"));
+  const said = failureOf({ fromKitchen: e instanceof ApiError, code, status: e instanceof ApiError ? e.status : 0, usedPaste });
+  fail(f, "key" in said ? t(said.key) : importReason(said.code));
   if (shouldOfferPaste(code, usedPaste)) {
     f.fold.open = true;
     f.text.focus();
