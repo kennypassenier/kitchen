@@ -207,8 +207,10 @@ export function mountDishWheel(host, { words = {}, sides = true, answer = true, 
       s.dishes = new Map(items.map((d) => [d.id, d]));
       s.dish = null;
       clearSide(s, words.sideFirst);
+      // "idle" first: kp stops a wheel with one dish on it at once (inside setWheelItems), and that answer must come last.
+      // Not while the big wheel turns: kp puts the new dishes on once it stops, and its answer settles it.
+      if (!big.hasAttribute("data-kp-wheel-spinning")) emit(s, "idle");
       give(big, items.map(({ sides: _sides, ...rest }) => rest));
-      emit(s, "idle");
     },
     /** Spin the big wheel, as a press on Spin does. */
     spin: () => spinWheel(big),

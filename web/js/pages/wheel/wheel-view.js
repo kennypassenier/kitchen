@@ -24,7 +24,14 @@ const sidesOf = (d) => d.sides.map((s) => sideName(s)).filter(Boolean);
  */
 function onWheelChange(ctx, vs, repaint, say, change) {
   const { part } = vs;
-  if (change.phase === "turning") {
+  if (change.phase === "idle") {
+    // New dishes on the wheel (a dish set aside, a filter), or a stop on a dish that a filter took off meanwhile: the wheel
+    // stands still with nothing chosen, and the side said for the old answer goes with it.
+    vs.spinning = false;
+    vs.chosen = null;
+    part.sideline.textContent = "";
+    repaint();
+  } else if (change.phase === "turning") {
     vs.spinning = true;
     vs.chosen = null;
     part.sideline.textContent = "";
