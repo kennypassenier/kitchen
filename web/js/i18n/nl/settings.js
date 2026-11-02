@@ -74,6 +74,7 @@ export const NL_SETTINGS = {
   "set.offlineReading": "Lezen wat dit toestel bewaart",
   "set.offlineOn": (used, max) => `Aan. De kopie op dit toestel neemt ${used} van de ${max} die ze mag gebruiken.`,
   "set.offlineOff": (used) => `Uit. Er wordt niets nieuws offline bewaard op dit toestel; wat nu bewaard is (${used}), blijft tot je het wist.`,
+  "set.offlineKept": (n) => (n === 1 ? "1 recept wordt apart bewaard (Offline bewaren op zijn pagina)." : `${n} recepten worden apart bewaard (Offline bewaren op hun pagina).`),
   "set.offlineClear": "Offline kopie wissen",
   "set.offlineClearHint": "Offline kopie wissen verwijdert de kopie van de keuken van dit toestel. Wijzigingen die nog verstuurd moeten worden, blijven en worden verstuurd.",
   "set.offlineCleared": "Gewist",

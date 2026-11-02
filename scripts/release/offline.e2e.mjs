@@ -6,7 +6,10 @@
 // Use a test Kitchen (its own state dir): the run edits the settings' pace and one dish's name and puts both back.
 // Scenarios, each on a fresh signed-in context (a new device to the kit):
 //   1. cook mode reloads offline with "Keep everything offline" on (Kenny's default)
-//   2. only one recipe kept: SKIPPED until Kenny chose the per-recipe toggle's shape (docs/OPEN.md)
+//   2. only one recipe kept (feat-offline-recipe): "Keep everything" off, the recipe page's "Keep offline" on; the kit
+//      keeps that dish and not the whole kitchen; the recipe and cook mode open offline, another dish does not; the
+//      settings row counts it; clearing the copy clears it. SKIPPED while offline/config.js PER_RECIPE_KEEP is false
+//      (the kit release with per-item keep, docs/OPEN.md bump row)
 //   3. an offline edit shows after an offline reload and is replayed when the connection is back
 //   4. a conflict on replay lands in the list of refused edits; "Keep the kitchen's version" empties it
 //   5. "Clear offline copy" clears it: an offline reload then shows the page's failed state
@@ -14,6 +17,7 @@
 // Exit code 1 on the first failed check; the measured duration is printed at the end.
 
 import { api, bandState, check, kitchenOf, launch, queueOf, settings, signedIn, synced } from "./offline-driver.mjs";
+import { PER_RECIPE_KEEP, dishPath } from "../../web/js/offline/config.js";
 
 const cfg = settings();
 const started = Date.now();
@@ -33,6 +37,50 @@ async function cookOffline(browser) {
   check((await page.locator('.kp-card[data-kp-state="error"]').count()) === 0, "cook mode reloads offline without a failed card");
   await page.waitForFunction(() => document.querySelector("[data-kp-connection]")?.getAttribute("data-kp-state") === "offline");
   check((await bandState(page)) === "offline", "the connection band says offline");
+  check(errors.length === 0, `no page errors (${errors.join("; ")})`);
+  await context.close();
+}
+
+/** Is `path` kept on this device, as the kit says. @param {any} page @param {string} path */
+const keptByKit = (page, path) => page.evaluate((p) => /** @type {any} */ (window).chassisData.isKept(p), path);
+
+async function oneRecipeKept(browser) {
+  const { context, page, errors } = await signedIn(browser, cfg);
+  await page.evaluate(async () => {
+    const kit = /** @type {any} */ (window).chassisData;
+    await kit.keepAll(false);
+    await kit.clearCopy();
+  });
+  const k = await kitchenOf(page);
+  const recipe = someRecipe(k);
+  const other = k.recipes.find((/** @type {any} */ r) => r.dish_id !== recipe.dish_id);
+  check(recipe && other, "the kitchen has recipes in two dishes");
+  await page.goto(`${cfg.base}/recipe?id=${encodeURIComponent(recipe.id)}`);
+  await page.locator("#rp-keep").waitFor({ state: "attached" });
+  await page.locator(".rp-keep .kp-switch").click();
+  await page.locator(".rp-keep__said", { hasText: /Kept on this device|Bewaard op dit toestel/ }).waitFor();
+  check(await keptByKit(page, dishPath(recipe.dish_id)), "the kit keeps the recipe's dish");
+  check(!(await keptByKit(page, "/data/kitchen")), "the kit does NOT keep the whole kitchen for one recipe");
+  await context.setOffline(true);
+  await page.reload();
+  await page.locator('.rp-card[data-kp-state="ready"]').waitFor();
+  check((await page.locator("#rp-title").textContent())?.trim() === recipe.name, "the kept recipe opens offline");
+  await page.goto(`${cfg.base}/cook?id=${encodeURIComponent(recipe.id)}`).catch(() => {});
+  await page.locator(".ck-screen").first().waitFor();
+  check((await page.locator('.kp-card[data-kp-state="error"]').count()) === 0, "cook mode opens the kept recipe offline");
+  await page.goto(`${cfg.base}/recipe?id=${encodeURIComponent(other.id)}`).catch(() => {});
+  await page.locator('.rp-card[data-kp-state="empty"]').waitFor();
+  check(true, "a recipe of a dish that is not kept is not there offline");
+  await context.setOffline(false);
+  await page.goto(`${cfg.base}/settings`);
+  await page.locator("#st-offline-said", { hasText: /kept on (its|their) own|apart bewaard/ }).waitFor();
+  check(true, "the settings row counts the recipes kept one by one");
+  await page.click("#st-offline-clear");
+  await page.waitForFunction(async () => (await /** @type {any} */ (window).chassisData.usage()).used === 0);
+  await context.setOffline(true);
+  await page.goto(`${cfg.base}/recipe?id=${encodeURIComponent(recipe.id)}`).catch(() => {});
+  await page.locator('.rp-card[data-kp-state="error"]').waitFor();
+  check(true, "clearing the copy clears the kept recipe too");
   check(errors.length === 0, `no page errors (${errors.join("; ")})`);
   await context.close();
 }
@@ -119,7 +167,10 @@ try {
     console.log(name);
     await run(browser);
   }
-  console.log("only one recipe kept: SKIPPED (the per-recipe toggle waits on Kenny's choice, docs/OPEN.md)");
+  if (PER_RECIPE_KEEP) {
+    console.log("only one recipe kept");
+    await oneRecipeKept(browser);
+  } else console.log("only one recipe kept: SKIPPED (PER_RECIPE_KEEP is false until the kit's per-item keep, docs/OPEN.md)");
 } catch (e) {
   failed = true;
   console.error(e instanceof Error ? e.message : e);

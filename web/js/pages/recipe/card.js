@@ -93,7 +93,7 @@ function recipeBlock(ctx, r, k, { begin, quantity, list }) {
     // The title row spans both columns, so the two columns under it start on one line.
     h("div", { class: "rp-recipe__head" }, h("h1", { id: "rp-title" }, r.name), h("div", { class: "rp-recipe__tools" }, h("span", { class: "kp-badge" }, words.effortBadge(effort)), phoneButton(ctx), editLink(ctx.id, r.name))),
     r.photo ? h("div", { class: "rp-recipe__photo" }, showPhotos(null, [r.photo], STEP_WORDS[lang()].photo)) : null,
-    h("div", { class: "rp-recipe__main" }, ledeOf(ctx, r, total), factsOf(ctx, r, total, effort), beginBlock(ctx, begin, things), lastNote(ctx, r, k)),
+    h("div", { class: "rp-recipe__main" }, ledeOf(ctx, r, total), factsOf(ctx, r, total, effort), beginBlock(ctx, begin, things), lastNote(ctx, r, k), ctx.el.keep.el),
     h("div", { class: "rp-recipe__side" }, h("div", { class: "rp-portions" }, h("h3", { class: "kp-fw-semibold" }, words.portions), quantity), list),
   );
 }

@@ -24,6 +24,7 @@ import { lang } from "../../i18n/index.js";
 import { buildFrame, paintWords } from "./frame.js";
 import { createCardView } from "./card.js";
 import { createShare, drawPrintOptions } from "./share-sheet.js";
+import { paintKeepRow, wireKeepRow } from "./keep-row.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 
@@ -82,6 +83,7 @@ function show(ctx, k, lastJson, cardView, share, log) {
   }
   lower(ctx, true);
   setCardState(ctx.el.card, "ready");
+  void paintKeepRow(ctx.el.keep, found.dish_id);
   log.show(k, ctx.words);
   return json;
 }
@@ -131,7 +133,7 @@ export function mount(root, { params, navigate }) {
   const log = createLog(logSec.el, { recipeId: ctx.id, retry: () => void load(true) });
   root.replaceChildren(page);
   attachCardStates(page);
-  const cleanups = [attachHoverCards(page)];
+  const cleanups = [attachHoverCards(page), wireKeepRow(ctx.el.keep)];
   const share = createShare(ctx);
   const cardView = createCardView(ctx, share.paintSheet);
   paintLoading(ctx, log);

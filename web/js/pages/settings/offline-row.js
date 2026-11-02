@@ -3,12 +3,20 @@
 // is not saved in the kitchen. The row says how much room the copy takes on this device (`usage()`), and its button
 // "Clear offline copy" deletes the copy; edits still waiting to be sent are not touched (the kit's `clearCopy` keeps
 // the queue), so nothing typed is lost by clearing.
+//
+// With the setting off, the row also says how many recipes are kept one by one (feat-offline-recipe, the recipe page's
+// "Keep offline" toggle), once per-recipe keeping is live (offline/config.js PER_RECIPE_KEEP). "Clear offline copy"
+// clears those copies too (the kit's `clearCopy` clears every kept answer); the recipes stay marked, so the next read
+// with a connection copies them again.
 
 import { h, $ } from "../../dom.js";
 import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { kitData } from "../../api/kit-data.js";
 import { lang, t } from "../../i18n/index.js";
 import { sizeText } from "../../offline/size.js";
+import { PER_RECIPE_KEEP } from "../../offline/config.js";
+import { keptCount } from "../../offline/kept.js";
+import { loadKitchen } from "../../api.js";
 import { row } from "./parts.js";
 
 /** The switch and the clear button of the row. */
@@ -30,13 +38,26 @@ export const offlineRow = (c) =>
   row({ id: "offline", title: t("set.offlineTitle"), text: t("set.offlineText"), control: c.offlineControl, said: t("set.offlineReading"), extra: h("small", { class: "st-hint" }, t("set.offlineClearHint")), action: c.clearButton });
 
 /**
- * Say what the setting does now and how much room the copy takes.
+ * Say what the setting does now, how much room the copy takes and, with the setting off, how many recipes are kept
+ * one by one (null: not counted, per-recipe keeping is not live).
  * @param {HTMLElement} root @param {boolean} on @param {{ used: number, max: number }} usage
+ * @param {{ recipes: number, dishes: number } | null} kept
  */
-function paint(root, on, usage) {
+function paint(root, on, usage, kept) {
   const said = /** @type {HTMLElement} */ ($("#st-offline-said", root));
   const used = sizeText(usage.used, lang());
-  said.textContent = on ? t("set.offlineOn", used, sizeText(usage.max, lang())) : t("set.offlineOff", used);
+  const base = on ? t("set.offlineOn", used, sizeText(usage.max, lang())) : t("set.offlineOff", used);
+  said.textContent = !on && kept ? `${base} ${t("set.offlineKept", kept.recipes)}` : base;
+}
+
+/**
+ * How many recipes are kept one by one, counted on the kitchen as last read; null while per-recipe keeping is not live
+ * or "keep everything" is on.
+ * @param {{ all: boolean, items: string[] }} settings @returns {Promise<{ recipes: number, dishes: number } | null>}
+ */
+async function countKept(settings) {
+  if (!PER_RECIPE_KEEP || settings.all) return null;
+  return keptCount(settings.items, await loadKitchen());
 }
 
 /** Read the device's setting and usage into the row; a failure is said on the row and in the console. @param {HTMLElement} root @param {HTMLInputElement} input */
@@ -45,7 +66,7 @@ async function refresh(root, input) {
     const kit = await kitData();
     const [settings, usage] = await Promise.all([kit.settings(), kit.usage()]);
     input.checked = settings.all;
-    paint(root, settings.all, usage);
+    paint(root, settings.all, usage, await countKept(settings));
   } catch (e) {
     console.warn("Kitchen: the offline setting could not be read", e);
     /** @type {HTMLElement} */ ($("#st-offline-said", root)).textContent = t("set.offlineFailed");

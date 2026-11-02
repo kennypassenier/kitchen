@@ -5,6 +5,7 @@ import { h } from "../../dom.js";
 import { stage, dataOf, cardSection } from "../../ui/cards.js";
 import { popoverButton } from "../../ui/popover.js";
 import { t } from "../../i18n/index.js";
+import { buildKeepRow } from "./keep-row.js";
 
 /** The code that opens cook mode on a phone and its one sentence: they live in the "Send to phone" popover (card.js). */
 function qrParts() {
@@ -42,7 +43,7 @@ function stepPhotosSection() {
 
 /**
  * Every element of the page, not yet in the document (the page attaches it once the log is made).
- * @returns {ReturnType<typeof qrParts> & ReturnType<typeof sheetSection> & ReturnType<typeof stepPhotosSection> & { card: HTMLElement, logSec: ReturnType<typeof cardSection>, page: HTMLElement }}
+ * @returns {ReturnType<typeof qrParts> & ReturnType<typeof sheetSection> & ReturnType<typeof stepPhotosSection> & { card: HTMLElement, logSec: ReturnType<typeof cardSection>, page: HTMLElement, keep: ReturnType<typeof buildKeepRow> }}
  */
 export function buildFrame() {
   const card = h("section", { class: "kp-card rp-card", "data-kp-state": "loading", "aria-label": t("recipe.cardLabel") }, stage());
@@ -51,7 +52,8 @@ export function buildFrame() {
   const logSec = cardSection("rp-log", "rp-logcard", { "data-kp-state": "loading" }, stage());
   const steps = stepPhotosSection();
   const page = h("div", { class: "rp-page" }, card, steps.stepCard.el, sheet.paper.el, logSec.el);
-  return { card, logSec, page, ...qr, ...sheet, ...steps };
+  // The per-recipe offline toggle (keep-row.js): made once, placed in the card's main column on every draw (card.js).
+  return { card, logSec, page, keep: buildKeepRow(), ...qr, ...sheet, ...steps };
 }
 
 /** The words that do not depend on the recipe. @param {ReturnType<typeof buildFrame>} f @param {import("../../recipe/words.js").Words} words */
