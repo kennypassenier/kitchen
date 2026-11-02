@@ -84,6 +84,8 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **A dinner time moved on "When do I start?" is for today only** (Kenny 02/11/2026 03:43): "Eat at 00:22 instead" or a
   typed dinner or start time no longer changes the default in Calm settings; this browser keeps it for the day (and after
   midnight until that dinner has come), the wheel shows the same time, and the next day starts from the default again.
+- **The recipe line on "When do I start?" counts the steps** (Kenny 02/11/2026 03:43): "… start to plate" is the total
+  of the timed steps laid out on their tracks, the same figure as the plan, not the minutes stored with the recipe.
 
 ### Fixed
 - **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the

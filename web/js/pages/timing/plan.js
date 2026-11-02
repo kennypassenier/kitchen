@@ -4,11 +4,14 @@
 import { layout, lanesOf, paced } from "../../recipe/schedule.js";
 import { cap } from "../../format.js";
 import { wall, at, hm } from "./clock.js";
+import { timedSteps, hasTimes, countedMinutes } from "./count.js";
 import { lang } from "../../i18n/index.js";
 import { pick } from "../../recipe/bilingual.js";
 
 // The wall clock lives in clock.js (pure, tested on its own); the pages import it from here.
 export { wall, at, hm };
+// Which steps count and their counted total live in count.js (pure, tested on its own).
+export { timedSteps, hasTimes, countedMinutes };
 
 /** @typedef {import("../../api.js").Item} Item */
 /** @typedef {{ id: string, label: string, steps: Step[], start: number, series: 1 | 2 | 3 | 4 | 5 }} Lane */
@@ -21,10 +24,6 @@ export const SLOW = 1.25;
 export const DEFAULTS = { dinner_time: "18:30", pace: "normal", spare: 0 };
 export const SPARES = [0, 5, 10, 15];
 
-/** Steps that can be counted back: a recipe needs at least one step with minutes. @param {Item} recipe */
-export const timedSteps = (recipe) => (recipe.steps ?? []).filter((/** @type {Item} */ s) => Number(s.mins) > 0);
-/** @param {Item} recipe */
-export const hasTimes = (recipe) => timedSteps(recipe).length > 0;
 
 /**
  * Count back from dinner: every lane ends `spare` minutes before it, each step takes its minutes (hands-on ones

@@ -5,7 +5,7 @@ import { loadKitchen, recipeById } from "../../api.js";
 import { setCardState, combobox, drawnSelect, setTime } from "/static/kp/dist/kp-themes.min.js";
 import { setTimelineState } from "../../recipe/timeline.js";
 import { t } from "../../i18n/index.js";
-import { DEFAULTS, SPARES, hasTimes, timedSteps } from "./plan.js";
+import { DEFAULTS, SPARES, hasTimes, timedSteps, countedMinutes } from "./plan.js";
 import { words } from "./text.js";
 import { readDinnerToday } from "../../dinner-today.js";
 
@@ -68,12 +68,12 @@ function fillPicker({ ctx, frame }, list) {
   return { handle, said, actions };
 }
 
-/** What the picker says about the recipe of the link. @param {FillDeps} d @param {ReturnType<typeof fillPicker>} picker */
+/** What the picker says about the recipe of the link: its steps counted as the plan counts them (feat-timing-durations-1). @param {FillDeps} d @param {ReturnType<typeof fillPicker>} picker */
 function sayRecipe({ ctx }, { handle, said, actions }) {
   if (ctx.recipe && hasTimes(ctx.recipe)) {
     handle?.set([String(ctx.recipe.id)]);
     const lanes = /** @type {Item[]} */ (ctx.recipe.tracks ?? []).length;
-    const line = t("timing.said", timedSteps(ctx.recipe).length, lanes, words(Number(ctx.recipe.minutes) || 0));
+    const line = t("timing.said", timedSteps(ctx.recipe).length, lanes, words(countedMinutes(ctx.recipe)));
     said.textContent = ctx.fromWheel ? t("timing.fromWheel", line) : line;
     actions.append(h("a", { class: "kp-button kp-button--sm", href: `/recipe?id=${encodeURIComponent(String(ctx.recipe.id))}` }, t("timing.openRecipe")));
   } else {
