@@ -143,7 +143,8 @@ onLang(() => {
   void bar.draw();
   void render();
 });
-void loadKitchen().catch(() => {});
+// Each page shows its own failed state when it reads the kitchen; this early read only warms the copy.
+void loadKitchen().catch((e) => console.warn("the kitchen could not be read at start", e));
 attachNavToggles(document);
 attachSkipLinks(document);
 

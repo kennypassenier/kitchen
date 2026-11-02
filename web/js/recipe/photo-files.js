@@ -84,8 +84,9 @@ export async function deletePhoto(id) {
   if (referenced(id)) return;
   try {
     await deleteRaw(photoUrl(id));
-  } catch {
-    /* an orphan file is harmless (docs/agent/DATA.md, known limits) */
+  } catch (e) {
+    // An orphan file is harmless (docs/agent/DATA.md, known limits), but the failure is logged so it can be found.
+    console.warn(`photo ${id} was not deleted`, e);
   }
 }
 

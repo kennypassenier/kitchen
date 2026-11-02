@@ -126,7 +126,8 @@ export async function replace(list, item) {
       try {
         await replace("dishes", { ...dish, recipes: rest });
       } catch (e) {
-        await replace("dishes", { ...target, recipes: there }).catch(() => {}); // not in both dishes
+        // Take the copy out of the target again (not in both dishes); if that fails too, say so where it can be found.
+        await replace("dishes", { ...target, recipes: there }).catch((undo) => console.warn(`moving recipe ${item.id}: the copy in dish ${target.id} could not be taken back`, undo));
         throw e;
       }
     } else {

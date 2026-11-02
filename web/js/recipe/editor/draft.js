@@ -1,11 +1,13 @@
 // The draft: saved in the database about a second after the last change (Kenny, 29/10/2026). Deleted on Save and on an
 // explicit Discard (never by leaving: recipe/editor/leaving.js); what stays is what a closed tab or a dropped connection left.
 
+import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { saveDraft, deleteDraft, readDraft } from "../../api.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { stamp } from "../../format.js";
 import { writesOnHide } from "./leave.js";
+import { createDraftNotice } from "./draft-notice.js";
 
 const DRAFT_MS = 1000;
 /** The events after which the draft is saved again. */
@@ -20,13 +22,15 @@ export function createDraft({ draftKey, collect }) {
   let opening = "";
   // A change whose autosave has not run yet: a reload or a closed tab within that second still writes it (`hide`).
   let pending = false;
+  // A draft that cannot be saved must never get in the way of editing: a quiet toast, once until a save succeeds again.
+  const notice = createDraftNotice({ show: () => toast(t("edit.draftNotSaved")) });
   /** @param {boolean} force write even when the form equals how it opened (Keep as draft on a copy or an import) */
   const write = async (force = false) => {
     pending = false;
     if (gone) return;
     const now = collect(true);
     if (!force && JSON.stringify(now) === opening) return;
-    await saveDraft(draftKey, now).catch(() => {}); // a draft that cannot be saved must never get in the way of editing
+    await saveDraft(draftKey, now).then(notice.succeeded, (e) => notice.failed(draftKey, e));
   };
   const self = {
     /** The form as it opened: a draft equal to it is not worth keeping. @param {string} json */
@@ -61,7 +65,7 @@ export function createDraft({ draftKey, collect }) {
       removeEventListener("pagehide", self.hide);
       clearTimeout(timer);
       await chain;
-      await deleteDraft(draftKey).catch(() => {});
+      await deleteDraft(draftKey).catch((e) => console.warn(`the draft ${draftKey} was not deleted`, e));
     },
     /** Stop saving (the editor is being replaced by one on a restored draft, or the page is left for good). */
     abandon: () => {
@@ -98,8 +102,8 @@ export function offerEarlierDraft({ draftKey, draft, offer, host, restoreWith })
       });
       discardButton.addEventListener("click", () => {
         offer.hidden = true;
-        void deleteDraft(draftKey).catch(() => {});
+        void deleteDraft(draftKey).catch((e) => console.warn(`the discarded draft ${draftKey} was not deleted`, e));
       });
     })
-    .catch(() => {});
+    .catch((e) => console.warn(`the earlier draft ${draftKey} could not be read`, e));
 }
