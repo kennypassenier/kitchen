@@ -7,6 +7,7 @@ import { row, input, stepper, toggle, on, segmented } from "../../ui/form-parts.
 import { effective } from "../schedule.js";
 import { timeOverride, timesOf } from "./logic.js";
 import { prepItems } from "./consts.js";
+import { lockQuantity } from "../../ui/quantity-lock.js";
 
 /** A time row: the stepper, the Override switch under it, and a live sentence in the value track. @param {string} label @param {HTMLElement} q @param {HTMLElement} over @param {HTMLElement} hint */
 function timeRow(label, q, over, hint) {
@@ -64,9 +65,11 @@ export function timeFields(r, live) {
   const refreshTimes = () => {
     const now = timesNow();
     for (const [sw, q, computed] of /** @type {[HTMLElement, HTMLElement, number][]} */ ([[minutesOver, minutes, now.minutes], [handsOver, hands, now.hands_on]])) {
-      if (on(sw)) q.removeAttribute("data-kp-quantity-disabled");
-      else q.setAttribute("data-kp-quantity-disabled", "");
-      setQuantity(q, on(sw) ? getQuantity(q) : computed);
+      const turned = lockQuantity(q, !on(sw));
+      // A typed override is the person's: writing it back on every input would undo what they are typing (the kit keeps
+      // the figure it read last until the field is left). The computed figure is written; an unlocked one is painted once.
+      if (!on(sw)) setQuantity(q, computed);
+      else if (turned) setQuantity(q, getQuantity(q));
     }
     minutesHint.textContent = on(minutesOver) ? t("edit.totalTyped", now.total) : t("edit.totalComputed", now.total);
     handsHint.textContent = on(handsOver) ? t("edit.handsTyped", now.handsOn) : t("edit.handsComputed", now.handsOn);
