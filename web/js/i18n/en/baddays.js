@@ -63,6 +63,8 @@ export const EN_BADDAYS = {
   "bad.noSteps": "None of your safe dishes has written steps yet. Add the steps to one of them and its small version appears here.",
   "bad.secMonth": "When things went in",
   "bad.secMonthText": "A month of days: the days you froze something are filled, every other day is quiet. It helps you remember cooking days, and it can never show a day as missed.",
+  "bad.monthTitle": "This month in the freezer",
+  "bad.monthBody": "Every filled day is a day something went into the freezer.",
   "bad.calLabel": "Days something went into the freezer",
   "bad.loadingFreezer": "Looking in the freezer…",
   "bad.loadingRecipe": "Opening the recipe…",

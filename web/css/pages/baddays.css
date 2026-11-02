@@ -182,10 +182,9 @@
   }
 }
 
-/* ---- 5 · the month */
+/* ---- 5 · the month: a full-width card like the other parts (Kenny, 02/11/2026 03:43); the calendar fills the card. */
 .bd-calwrap {
   min-inline-size: 0;
-  max-inline-size: 44rem;
 }
 
 /* The calendar's nav folds its title onto a row of its own below --kp-calendar-nav-fit (20.5rem, measured with the widest English

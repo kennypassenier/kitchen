@@ -63,6 +63,8 @@ export const NL_BADDAYS = {
   "bad.noSteps": "Geen van je veilige gerechten heeft al stappen. Voeg stappen toe aan een van hen en zijn kleine versie staat hier.",
   "bad.secMonth": "Wanneer dingen erin gingen",
   "bad.secMonthText": "Een maand vol dagen: de dagen dat je iets invroor zijn gevuld, elke andere dag blijft stil. Het helpt je kookdagen te onthouden en toont nooit een dag als gemist.",
+  "bad.monthTitle": "Deze maand in de diepvries",
+  "bad.monthBody": "Elke gevulde dag is een dag waarop er iets de diepvries in ging.",
   "bad.calLabel": "Dagen waarop iets de diepvries in ging",
   "bad.loadingFreezer": "Er wordt in de diepvries gekeken…",
   "bad.loadingRecipe": "Het recept wordt geopend…",

@@ -26,6 +26,7 @@ Nothing here is released or deployed yet; no store format change, no new setting
   **"Add a safe dish"** as a list; **"From the dish"** in the freezer form.
 
 ### Changed
+- **The Bad days calendar sits in a card** (Kenny 02/11/2026): "When things went in" shows its month in a full-width card titled "This month in the freezer" / "Deze maand in de diepvries" with one line saying what a filled day means, like the other parts of the page.
 - **Calm settings give the "what it says now" column more room** (Kenny 02/11/2026): the name column stops at 30 % of the card, so at 1280 the current value reads on one or two lines instead of three.
 - **The bar keeps five places and a More menu** (Kenny 01/11/2026): What do we eat?, When do I start?, Bad days, Recipes and
   What I ate stay in the bar; Dishes, Ingredients, Parents' wheel, Recipe sources, Storage and Calm settings sit under

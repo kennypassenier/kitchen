@@ -215,9 +215,17 @@ export const sections = () => `
         ${t("bad.secMonthText")}
       </p>
     </div>
-    <div class="bd-calwrap">
-      <section class="kp-calendar kp-calendar--busy-whole" id="bd-cal" data-kp-calendar data-kp-tones="calm"
-        aria-label="${t("bad.calLabel")}"></section>
-    </div>
+    <section class="kp-card bd-card bd-month" id="bd-month-card" data-kp-state="ready" aria-labelledby="bd-month-t">
+      <div class="kp-card__header">
+        <h3 class="kp-card__title" id="bd-month-t">${t("bad.monthTitle")}</h3>
+      </div>
+      <p class="kp-card__body">${t("bad.monthBody")}</p>
+      <div class="kp-card__stage">
+        <div class="kp-card__data bd-calwrap">
+          <section class="kp-calendar kp-calendar--busy-whole" id="bd-cal" data-kp-calendar data-kp-tones="calm"
+            aria-label="${t("bad.calLabel")}"></section>
+        </div>
+      </div>
+    </section>
   </section>
 `;
