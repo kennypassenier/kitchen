@@ -18,6 +18,18 @@
 
 /* The import field at the top of the Recipes page (Kenny, 01/11/2026): one card, the field and its button on a form-grid row,
    the pasted-text fold under it. */
+/* Its heading and sentence (Kenny, 02/11/2026 03:43) stand on the same rhythm as the All recipes card under it. */
+.rl-import {
+  display: grid;
+  gap: var(--kp-space-md, 1rem);
+  min-inline-size: 0;
+}
+
+.rl-import > .kp-lede,
+.rl-import > .kp-card__stage {
+  margin: 0;
+}
+
 .rl-import .kp-card__data,
 .rl-import__form {
   display: grid;

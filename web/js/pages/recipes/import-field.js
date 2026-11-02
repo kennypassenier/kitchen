@@ -31,7 +31,15 @@ export function buildImportField({ dishId }) {
   const fold = h("details", { class: "ri-fold" }, h("summary", null, t("imp.pasteSummary")), h("div", { class: "ri-fold__body" }, h("p", { class: "rl-formsec__text" }, t("imp.secTextText")), h("div", { class: "kp-formgrid" }, formRow(t("imp.textLabel"), text, h("p", { class: "kp-formgrid__value" }, t("imp.textHint"))))));
   const summary = h("div", { class: "kp-form__summary", "data-kp-form-summary": true, tabindex: "-1", hidden: true });
   const form = h("form", { class: "rl-import__form", id: uid("ri-form"), "data-kp-form": true, novalidate: true }, summary, alert, h("div", { class: "kp-formgrid" }, formRow(t("imp.linkLabel"), h("div", { class: "ri-control" }, h("div", { class: "rl-many" }, url, go), h("span", { class: "kp-field__error", "data-kp-field-error": true, hidden: true })), hint)), context, fold);
-  const card = h("section", { class: "kp-card rl-import", "data-kp-state": "ready", "aria-label": t("imp.button"), "data-kp-loading-words": t("imp.reading") }, h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, form)));
+  // A visible heading and one sentence, like every other card on the page (Kenny, 02/11/2026 03:43).
+  const titleId = uid("ri-title");
+  const card = h(
+    "section",
+    { class: "kp-card rl-import", "data-kp-state": "ready", "aria-labelledby": titleId, "data-kp-loading-words": t("imp.reading") },
+    h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: titleId }, t("imp.title"))),
+    h("p", { class: "kp-lede" }, t("imp.lede")),
+    h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, form)),
+  );
   return { card, form, url, text, go, fold, alert, context, hint };
 }
 

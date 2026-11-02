@@ -25,4 +25,6 @@ export const EN_RECIPES = {
   "recs.loading": "Reading your recipes",
   "recs.safe": "Safe",
   "recs.never": "Never",
+  "imp.title": "Import a recipe",
+  "imp.lede": "Paste the link to a recipe page: Kitchen reads it and opens it in the editor, so you check it before anything is saved.",
 };

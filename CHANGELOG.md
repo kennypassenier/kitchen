@@ -10,6 +10,7 @@ Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fix
 Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
 
 ### Added
+- **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
 - **New Kitchen app icon** (pot with steam, approved 01/11/2026): the full set (180/192/512, maskable 192/512, monochrome 512, SVG) in `web/pwa` and on the parents' page (`web/eten`, whose manifest now lists maskable and monochrome icons); the kit's own manifest picks up maskable/monochrome with the next chassis-rs.
 - **Undo for every delete that can come back**: a dish, recipe, recipe source, ingredient, dish or ingredient category,
   freezer portion, shelf food, log line or resting mark goes at once and a 10 s "Undo" toast puts it back at its place

@@ -25,4 +25,6 @@ export const NL_RECIPES = {
   "recs.loading": "Je recepten worden gelezen",
   "recs.safe": "Veilig",
   "recs.never": "Nooit",
+  "imp.title": "Recept importeren",
+  "imp.lede": "Plak de link naar een receptpagina: Kitchen leest die en opent het recept in de editor, zodat je het nakijkt voor er iets bewaard wordt.",
 };
