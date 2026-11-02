@@ -1,8 +1,8 @@
 // "When do I start?": backward timing. Say when dinner is and the screen counts back through the recipe's
 // step times to the moment each track starts: the two-way sentence, the plan as lanes, the start as a disc
 // and one gentle nudge. The approved design is research/audhd-recepten/timing (4 of 4 approved; the disc is
-// a 60-minute dial). The clock is the real one; dinner time, pace and time to spare come from the settings
-// and a change in the sentence saves them.
+// a 60-minute dial). The clock is the real one; dinner time, pace and time to spare come from the settings.
+// A change of pace or spare time in the sentence saves it; a dinner time changed here is for today only (js/dinner-today.js).
 
 // Split on 30/10/2026 (docs/agent/MODULARITY.md): this file joins the parts; the page's state is one `ctx` object that
 // every part reads (the recipe, the sentence's state, the snooze) and the parts call each other through `ctx.view`.

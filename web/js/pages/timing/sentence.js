@@ -7,6 +7,7 @@ import { t } from "../../i18n/index.js";
 import { button } from "../../ui/cards.js";
 import { MIN, SPARES, hm, at } from "./plan.js";
 import { words, startsInWords } from "./text.js";
+import { keepDinnerToday } from "../../dinner-today.js";
 
 /**
  * @typedef {object} SentenceParts
@@ -78,11 +79,11 @@ function save(s, patch) {
   });
 }
 
-/** Dinner moves to `ms`; shown and saved. @param {import("./index.js").TimingCtx} ctx @param {SentenceParts} s @param {number} ms */
+/** Dinner moves to `ms` for today only (the default in the settings stays, feat-timing-today-1); shown and kept. @param {import("./index.js").TimingCtx} ctx @param {SentenceParts} s @param {number} ms */
 function moveDinner(ctx, s, ms) {
   ctx.state.eat = hm(ms);
   if (s.eatEl) setTime(s.eatEl, ctx.state.eat);
-  save(s, { dinner_time: ctx.state.eat });
+  keepDinnerToday(ctx.state.eat);
   ctx.state.dropped.clear();
   ctx.snoozedUntil = null;
   ctx.view.draw();
@@ -111,7 +112,7 @@ function drawSentence(ctx, s) {
   if (s.form) sentence(s.form)?.refresh();
 }
 
-/** A time field changed: dinner or the start was typed. @param {import("./index.js").TimingCtx} ctx @param {SentenceParts} s @param {Event} event */
+/** A time field changed: dinner or the start was typed; the new dinner time is for today only. @param {import("./index.js").TimingCtx} ctx @param {SentenceParts} s @param {Event} event */
 function onTime(ctx, s, event) {
   const { state } = ctx;
   const { value } = /** @type {CustomEvent} */ (event).detail;
@@ -120,14 +121,14 @@ function onTime(ctx, s, event) {
   if (source === s.eatEl) {
     if (value === state.eat) return;
     state.eat = value;
-    save(s, { dinner_time: value });
+    keepDinnerToday(value);
   } else if (source === s.startEl) {
     const p = ctx.current();
     if (!p || value === hm(p.start)) return;
     // The start was typed: dinner is where the steps and the spare time end after it.
     state.eat = hm(at(value) + p.total + state.spare * MIN);
     if (s.eatEl) setTime(s.eatEl, state.eat);
-    save(s, { dinner_time: state.eat });
+    keepDinnerToday(state.eat);
   }
   state.dropped.clear();
   ctx.snoozedUntil = null;

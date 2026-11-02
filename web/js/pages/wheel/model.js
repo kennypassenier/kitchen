@@ -6,12 +6,14 @@ import { nameOf, t } from "../../i18n/index.js";
 import * as L from "./logic.js";
 import * as C from "./constraints.js";
 import { constraintWords } from "./labels.js";
+import { readDinnerToday } from "../../dinner-today.js";
 
 /** @typedef {import("./logic.js").Dish} Dish */
 /** @typedef {import("./logic.js").Model} Model */
 
 export const odds = (/** @type {import("./index.js").WheelCtx} */ ctx) => String(ctx.kitchen?.settings?.odds ?? "equal");
-export const dinnerTime = (/** @type {import("./index.js").WheelCtx} */ ctx) => L.dinnerTimeOf(ctx.kitchen?.settings?.dinner_time);
+/** Today's own dinner time (moved on "When do I start?", js/dinner-today.js), else the settings' default. */
+export const dinnerTime = (/** @type {import("./index.js").WheelCtx} */ ctx) => L.dinnerTimeOf(readDinnerToday() ?? ctx.kitchen?.settings?.dinner_time);
 
 /** Read the dishes and the resting items from the kitchen again. @param {import("./index.js").WheelCtx} ctx */
 export function derive(ctx) {

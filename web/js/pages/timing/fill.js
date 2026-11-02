@@ -7,6 +7,7 @@ import { setTimelineState } from "../../recipe/timeline.js";
 import { t } from "../../i18n/index.js";
 import { DEFAULTS, SPARES, hasTimes, timedSteps } from "./plan.js";
 import { words } from "./text.js";
+import { readDinnerToday } from "../../dinner-today.js";
 
 /** @typedef {import("../../api.js").Item} Item */
 
@@ -97,11 +98,13 @@ function showNotCountable(d) {
   setCardState(frame.planCard, "empty", plate(title, text, helpAction(d)));
 }
 
-/** The dinner time, pace and time to spare from the settings, shown in the sentence's controls. @param {FillDeps} d @param {Record<string, any>} s */
+/** The dinner time (today's own, else the settings' default), pace and time to spare from the settings, shown in the sentence's controls. @param {FillDeps} d @param {Record<string, any>} s */
 function readSettings({ ctx, sentence }, s) {
   const { state } = ctx;
   const { eatEl, paceEl, spareEl } = sentence;
-  state.eat = typeof s.dinner_time === "string" && /^\d{1,2}:\d{2}$/.test(s.dinner_time) ? s.dinner_time : DEFAULTS.dinner_time;
+  // Today's own dinner time wins over the default (feat-timing-today-1); tomorrow starts from the default again.
+  const usual = typeof s.dinner_time === "string" && /^\d{1,2}:\d{2}$/.test(s.dinner_time) ? s.dinner_time : DEFAULTS.dinner_time;
+  state.eat = readDinnerToday() ?? usual;
   state.pace = s.pace === "slow" ? "slow" : "normal";
   state.spare = Number.isFinite(Number(s.spare)) ? Number(s.spare) : DEFAULTS.spare;
   if (spareEl && !SPARES.includes(state.spare)) spareEl.append(h("option", { value: state.spare }, t("timing.minutes", state.spare)));

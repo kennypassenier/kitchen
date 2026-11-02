@@ -81,6 +81,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
   the same size, on `/`, `/eten` and `/parents`.
 - **When do I start?** has one recipe picker, in the page header, and opens on tonight's wheel answer (kept in this
   browser for the day); the empty state no longer has a button of its own.
+- **A dinner time moved on "When do I start?" is for today only** (Kenny 02/11/2026 03:43): "Eat at 00:22 instead" or a
+  typed dinner or start time no longer changes the default in Calm settings; this browser keeps it for the day (and after
+  midnight until that dinner has come), the wheel shows the same time, and the next day starts from the default again.
 
 ### Fixed
 - **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the
