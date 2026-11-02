@@ -157,8 +157,11 @@ fn the_seed_holds_only_the_categories() {
 fn a_new_kitchen_starts_with_the_verified_sites() {
     let sources = seed().recipe_sources.unwrap();
     assert_eq!(sources.len(), 6);
-    assert!(sources.iter().all(
-        |s| s["url"].as_str().is_some_and(|u| u.starts_with("https://"))
+    assert!(sources.iter().all(|s| {
+        s["url"].as_str().is_some_and(|u| u.starts_with("https://"))
             && s["verified"] == "2026-10-29"
-    ));
+            // How it was checked is the recipe address imported, no developer's wording
+            // (feat-source-text-1); the page words it in Dutch or English.
+            && s["verified_by"].as_str().is_some_and(|u| u.starts_with("https://"))
+    }));
 }

@@ -7,6 +7,7 @@ import { row, input, select, NAME_LIMIT } from "../ui/form-parts.js";
 import { today } from "../format.js";
 import { ordered } from "../dishes/editor.js";
 import { pair, choiceOf, dateField, openForm } from "./drawer.js";
+import { checkedWithField } from "./source-check.js";
 
 /** @typedef {import("./lists.js").List} List */
 /** @typedef {import("./lists.js").Item} Item */
@@ -39,7 +40,8 @@ function sourceFields(v) {
   const language = choiceOf({ nl: t("src.nl"), en: t("src.en") }, String(v.language ?? lang()), t("src.language"));
   const note = pair(v.note, "area", "");
   const verified = dateField(String(v.verified ?? ""), { max: today(), label: t("src.verified") });
-  const how = input(String(v.verified_by ?? ""), "text", { autocomplete: "off" });
+  // The old seed's developer's wording opens as the bare recipe address (feat-source-text-1).
+  const how = input(checkedWithField(v.verified_by), "text", { autocomplete: "off" });
   return { name, url, language, note, verified, how };
 }
 

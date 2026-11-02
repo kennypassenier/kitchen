@@ -22,6 +22,8 @@ export const NL_SOURCES = {
   "src.comes": "Wat er meekomt",
   "src.verified": "Gecontroleerd op",
   "src.how": "Hoe gecontroleerd",
+  // Before the link to the recipe the import was tested with (feat-source-text-1).
+  "src.checkedImport": (day) => (day ? `Getest op ${day} met een echte import van ` : "Getest met een echte import van "),
   "src.actions": "Acties",
   "src.newTab": "opent in een nieuw tabblad",
   "src.openSite": (n) => `${n} openen`,

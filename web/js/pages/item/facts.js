@@ -8,6 +8,7 @@ import { t, textOf } from "../../i18n/index.js";
 import { dmy, brusselsDay } from "../../format.js";
 import { names, languages, ordered } from "../../dishes/editor.js";
 import { ingLink, linkList, dishLink, stamps, inRecipe } from "./links.js";
+import { checkedWith } from "../../records/source-check.js";
 
 /** @typedef {import("../../api.js").Kitchen} Kitchen */
 /** @typedef {import("../../records/index.js").List} List */
@@ -118,6 +119,14 @@ function shelfFacts(item, k) {
   ];
 }
 
+/** How a source was checked in plain words: "Checked on 29/10/2026 by importing <recipe>" (feat-source-text-1). @param {Item} item */
+function howChecked(item) {
+  const c = checkedWith(item.verified_by);
+  if (!c) return "–";
+  if (c.kind === "text") return c.text;
+  return h("span", null, t("src.checkedImport", item.verified ? dmy(item.verified) : ""), externalLink(c.url, c.label), ".");
+}
+
 /** @param {Item} item @returns {[string, Node | string][]} */
 function sourceFacts(item) {
   return [
@@ -126,7 +135,7 @@ function sourceFacts(item) {
     [t("src.language"), t(`src.${item.language === "nl" ? "nl" : "en"}`)],
     [t("src.comes"), textOf(item.note) || "–"],
     [t("src.verified"), item.verified ? dmy(item.verified) : t("src.none")],
-    [t("src.how"), item.verified_by || "–"],
+    [t("src.how"), howChecked(item)],
     ...stamps(item),
   ];
 }

@@ -22,6 +22,8 @@ export const EN_SOURCES = {
   "src.comes": "What comes through",
   "src.verified": "Checked on",
   "src.how": "How it was checked",
+  // Before the link to the recipe the import was tested with (feat-source-text-1).
+  "src.checkedImport": (day) => (day ? `Checked on ${day} by importing ` : "Checked by importing "),
   "src.actions": "Actions",
   "src.newTab": "opens in a new tab",
   "src.openSite": (n) => `Open ${n}`,

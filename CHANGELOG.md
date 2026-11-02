@@ -89,6 +89,9 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **"The link may be old" only when a link was followed** (Kenny 02/11/2026 03:43): when "When do I start?" opens on
   tonight's wheel answer and that recipe is gone, it says so in its own words ("Tonight's wheel answer has no recipe in
   the kitchen any more" / "Het recept van het antwoord van het wiel staat niet meer in de keuken").
+- **"How it was checked" on a recipe source reads plainly** (Kenny 02/11/2026 03:43): "Checked on 29/10/2026 by
+  importing Perfect guacamole" / "Getest op 29/10/2026 met een echte import van Perfect guacamole", the recipe a link.
+  The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
 - **A reload after the last step keeps cook mode finished** [fix-cook-finished-1]: the steps open on the last one with the

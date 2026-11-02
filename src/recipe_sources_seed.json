@@ -9,7 +9,7 @@
    "nl": "Ingrediënten, alle stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://dagelijksekost.vrt.be/gerechten/daube-varkenswangen-geglaceerde-wortel",
+  "verified_by": "https://dagelijksekost.vrt.be/gerechten/daube-varkenswangen-geglaceerde-wortel",
   "created": "2026-10-29T16:00:00+02:00"
  },
  {
@@ -22,7 +22,7 @@
    "nl": "Ingrediënten, stappen, porties, totale tijd en de foto komen mee."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://www.24kitchen.nl/recepten/spaghetti-carbonara",
+  "verified_by": "https://www.24kitchen.nl/recepten/spaghetti-carbonara",
   "created": "2026-10-29T16:00:00+02:00"
  },
  {
@@ -35,7 +35,7 @@
    "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://www.leukerecepten.nl/recepten/pasta-carbonara/",
+  "verified_by": "https://www.leukerecepten.nl/recepten/pasta-carbonara/",
   "created": "2026-10-29T16:00:00+02:00"
  },
  {
@@ -48,7 +48,7 @@
    "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://www.bbcgoodfood.com/recipes/easy-pancakes",
+  "verified_by": "https://www.bbcgoodfood.com/recipes/easy-pancakes",
   "created": "2026-10-29T16:00:00+02:00"
  },
  {
@@ -61,7 +61,7 @@
    "nl": "Ingrediënten, stappen, porties, voorbereidingstijd en de foto komen mee (de pagina geeft geen bereidingstijd)."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://www.simplyrecipes.com/recipes/perfect_guacamole/",
+  "verified_by": "https://www.simplyrecipes.com/recipes/perfect_guacamole/",
   "created": "2026-10-29T16:00:00+02:00"
  },
  {
@@ -74,7 +74,7 @@
    "nl": "Ingrediënten, stappen, porties, voorbereidings- en bereidingstijd en de foto komen mee."
   },
   "verified": "2026-10-29",
-  "verified_by": "Real import fetch (POST /data/import) of https://www.recipetineats.com/chicken-fried-rice/",
+  "verified_by": "https://www.recipetineats.com/chicken-fried-rice/",
   "created": "2026-10-29T16:00:00+02:00"
  }
 ]
