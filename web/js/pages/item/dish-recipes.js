@@ -54,7 +54,7 @@ function buildCard() {
   const listEl = h("ul", { class: "kp-action-list kp-action-list--lead it-recipes" });
   const card = h(
     "section",
-    { class: "kp-card it-card", "data-kp-state": "ready", "aria-labelledby": "it-recipes-t" },
+    { class: "kp-card it-card", "data-kp-state": "loading", "data-kp-loading-words": t("it.readingRecipes"), "aria-labelledby": "it-recipes-t" },
     h("div", { class: "kp-card__header" }, h("h2", { class: "kp-card__title", id: "it-recipes-t" }, t("nav.recipes")), h("div", { class: "kp-card__actions" }, importer, add)),
     h("p", { class: "kp-card__body" }, t("it.recipesLede")),
     h("div", { class: "kp-card__stage" }, h("div", { class: "kp-card__data" }, listEl)),
@@ -84,6 +84,7 @@ export function dishRecipes(pageEl) {
     /** @param {Kitchen} k @param {Item} d */
     show(k, d) {
       dish = d;
+      card.hidden = false;
       const recipes = /** @type {Item[]} */ (d.recipes ?? []);
       if (!recipes.length) {
         const first = h("button", { type: "button", class: "kp-button kp-button--primary" }, t("it.addRecipe"));
@@ -93,6 +94,15 @@ export function dishRecipes(pageEl) {
       }
       listEl.replaceChildren(...recipes.map((r, i) => recipeRow(r, i, recipes, k)));
       setCardState(card, "ready");
+    },
+    /** The dish is not (any more) in the kitchen: no recipes card, so Add and Import cannot act on nothing. */
+    hide() {
+      dish = null;
+      card.hidden = true;
+    },
+    /** @param {string} why */
+    fail(why) {
+      setCardState(card, "error", { title: t("it.recipesNotRead"), text: why });
     },
     stop: stopCard,
   };

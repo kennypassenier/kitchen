@@ -59,6 +59,8 @@ export const NL_ITEM = {
   "it.wheelTitle": "Een wiel met zijn gerechten",
   "it.wheelText": "Tik op het wiel en het kiest een van de gerechten met dit ingrediënt, zoals het wiel van de ouders dat met alle gerechten doet.",
   "it.readingDishes": "De gerechten worden gelezen",
+  "it.readingRecipes": "De recepten worden gelezen",
+  "it.recipesNotRead": "De recepten konden niet gelezen worden",
   "it.everyCategory": "Elke categorie",
   "it.details": "Gegevens",
   "it.detailsLede": "Elk gegeven met zijn waarde; Bewerken bovenaan de pagina past ze aan.",

@@ -59,6 +59,8 @@ export const EN_ITEM = {
   "it.wheelTitle": "A wheel of its dishes",
   "it.wheelText": "Tap the wheel and it picks one of the dishes with this ingredient, as the parents' wheel does with all of them.",
   "it.readingDishes": "Reading the dishes",
+  "it.readingRecipes": "Reading the recipes",
+  "it.recipesNotRead": "The recipes could not be read",
   "it.everyCategory": "Every category",
   "it.details": "Details",
   "it.detailsLede": "Every field and its value; Edit at the top of the page changes them.",

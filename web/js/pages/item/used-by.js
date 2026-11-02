@@ -135,8 +135,14 @@ export function usedBy(pageEl, id) {
     /** @param {Kitchen} k */
     show(k) {
       kitchen = k;
+      table.card.hidden = wheelCard.hidden = false;
       fillCategories(filters.cat, k);
       draw();
+    },
+    /** The ingredient is not (any more) in the kitchen: its dishes and wheel go, so nothing waits on them. */
+    hide() {
+      kitchen = null;
+      table.card.hidden = wheelCard.hidden = true;
     },
     /** @param {string} why */
     fail: (why) => handle?.fail(why),

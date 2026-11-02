@@ -74,11 +74,14 @@ function setActions({ edit, copy, del, fromSite }, on) {
 /** @typedef {{ list: Exclude<List, "recipes">, id: string, meta: (typeof LISTS)[keyof typeof LISTS], p: ReturnType<typeof buildPage>, cur: { item: Item | null }, extra: ReturnType<typeof usedBy> | null, recipesCard: ReturnType<typeof dishRecipes> | null, reasons: (() => void)[] }} ItemView */
 
 /** The item is not (any more) in the kitchen: an empty plate with the way back. @param {ItemView} v */
-function showMissing({ meta, p }) {
+function showMissing(v) {
+  const { meta, p } = v;
   const [homeHref, homeName] = meta.home;
   p.title.textContent = t("it.notThere", meta.this);
   document.title = `${t("shell.notFoundTitle")} · Kitchen`;
   setActions(p, false);
+  v.extra?.hide();
+  v.recipesCard?.hide();
   const back = h("a", { class: "kp-button kp-button--primary", href: homeHref }, t("it.open", homeName));
   setCardState(p.card, "empty", { title: t("it.noneHere", meta.noun), text: t("it.noneHereText", homeName), action: back });
 }
@@ -131,6 +134,7 @@ export function mount(root, { params, navigate }) {
       (e) => {
         if (!alive) return;
         v.extra?.fail(e instanceof Error ? e.message : String(e));
+        v.recipesCard?.fail(e instanceof Error ? e.message : String(e));
         setActions(p, false);
         setCardState(p.card, "error", { title: t("it.notRead", v.meta.the), text: e instanceof Error ? e.message : String(e) });
       },
