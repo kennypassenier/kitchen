@@ -89,6 +89,21 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    band leaves "offline" and the page shows the server's data without Retry; (d) delete a shelf item offline, Undo,
    change that item on another device, reconnect and navigate: the other device's version shows.
 
+14. **A checked delete and settings change [fix-offline-master-5]** (written 02/11/2026, nothing run): `cargo test` (new:
+   `src/store/tests/rev_delete_settings.rs`, seven tests: a stale delete refused and the newer item kept, a delete at the
+   stored rev goes and Undo still restores it, a delete without `If-Match` as before, every settings merge bumps
+   `settings_rev`, a stale settings merge refused and nothing changed, a merge without `If-Match` as before, an old file
+   without `settings_rev` opens at format 5 and counts from 0; `src/routes_tests.rs`: a stale delete is the kit's 409 with
+   the dish as `current`, a delete without `If-Match` or at the stored rev goes, the settings answer `ETag` and a stale
+   PATCH is refused with the settings as `current`); `node --test scripts/save-rev.test.mjs` (new: `deleteRevFor`,
+   `settingsRevFor`, the stale 409 recognised). Firefox, two devices (or two browsers) A and B: (a) on A go offline and
+   delete a shelf item; on B change that item online; bring A back: A's replay is refused, lands in the kit's failed list
+   (Review), and A shows B's version of the item, not a gap; (b) the same with a settings change (pace on A offline, pace
+   or dinner time on B online): A's replay is refused and A's settings page shows B's values after the reread; (c) online,
+   two tabs: delete an item in tab 1 that tab 2 saved after tab 1 read it: the "changed elsewhere" toast with Reload, the
+   item stays; (d) on the settings page change two rows in quick succession: both save (merges run one after the other),
+   no stale toast; (e) Undo right after an online delete still puts the item back.
+
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
 "De server is altijd de master, heeft altijd gelijk." Online answers always replace the local copy; a server deletion
@@ -101,8 +116,8 @@ next online read to win [fix-offline-master-4]. Checked and fine: Kitchen sets n
 overwrite answer no longer exists); "Save again" only from the kit's drawer; no list read carries a filter (a list GET
 without a query string is the whole collection to the kit); local per-device values (language, calm mode, tonight's
 wheel answer, today's dinner time, the timer's digits) never reach the server, and the settings page saves only on a
-change. Two paths still let a queued edit win without a check, because the server checks nothing for them: see
-"Choices for Kenny".
+change. The last two unchecked replays, a queued `DELETE` and a queued settings `PATCH`, are checked since
+[fix-offline-master-5] (option A, following from Kenny's rule; release check 14).
 
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
@@ -136,15 +151,7 @@ change. Two paths still let a queued edit win without a check, because the serve
 
 ## Choices for Kenny (not built)
 
-- **Unchecked replays (server-is-master audit, 02/11/2026)**: a queued `DELETE /data/{list}/{id}` and a queued
-  `PATCH /data/settings` carry no revision the server checks, so when they are replayed after someone changed the item
-  or the same setting elsewhere, the offline edit wins silently. Options: (A, recommended) `DELETE` takes `If-Match`
-  like `PUT` (store `delete_if`, Kitchen sends the revision it read; a stale delete lands in the failed list) and the
-  settings get a revision of their own checked on `PATCH` (one more field in `kitchen.json`); (B) only the delete is
-  checked, settings stay last-writer-wins per key (a setting is one person's preference); (C) leave both as they are.
-  Needs Kenny's form before it is built (a data-shape change and online deletes become checkable as stale).
-
-None else open: the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
+None open: the unchecked replays are built as option A [fix-offline-master-5] (it follows from Kenny's rule of 19:43); the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
 
 Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026):
 - [x] Logout did not ask on the kit's pages, the band's words read once, no `post()`, no failed-edits view: all four fixed in

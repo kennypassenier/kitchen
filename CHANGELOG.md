@@ -7,7 +7,7 @@ carries a **Migration** section saying what an operator must do.
 ## [Unreleased]
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
-Nothing here is released or deployed yet; no store format change, no new server setting (see "Migration / deploy notes").
+Nothing here is released or deployed yet; no store format change (optional fields only), no new server setting (see "Migration / deploy notes").
 Built on **chassis-rs 4.3.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.3.0, `[meta-chassis-430-1]`): it carries
 `WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=` and the offline data
 client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased revs of chassis main for these on 02/11/2026).
@@ -168,6 +168,12 @@ Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (un
     page never keeps showing the offline copy once the kitchen answers [fix-offline-master-3].
   - Undo of a delete that was still waiting: the item put back is the page's own, so the next online read replaces it
     with the kitchen's version [fix-offline-master-4].
+  - A delete and a settings change are checked like a save [fix-offline-master-5] (option A of the audit, which follows
+    from Kenny's rule): `DELETE /data/{list}/{id}` and `PATCH /data/settings` honour `If-Match`, and the pages send the
+    revision they read. A delete or settings change made offline and sent after someone changed the item or the settings
+    elsewhere is refused and lands in the list of refused edits, and the copy goes back to the kitchen's version; online,
+    the same refusal shows the "changed elsewhere" toast with Reload. Since the settings carry one revision, a settings
+    change made over any newer settings change elsewhere is refused, even when it touched another key.
 - **A category renamed in its table cell answers a stale save like every other quick save** [fix-cat-rename-stale-1]:
   when the category was saved elsewhere since the page read it, the shared "changed elsewhere" toast with Reload appears
   and the kitchen is read again; the cell still shows its own refusal.
@@ -260,6 +266,11 @@ Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (un
   else 400) and `kitchen.json` gains an optional `answered` list (at most 200 keys with their first answer; absent when
   empty, format stays 5). 5.0.0 ignores the field on a rollback and drops it at its next save, which only means a replay
   queued before the rollback could take twice. The proxy must pass the `Idempotency-Key` header (Traefik does by default).
+- **Settings revision** (fix-offline-master-5): `kitchen.json` gains `settings_rev` (a whole number, raised on every
+  settings change; absent in an older file = 0, format stays 5; 5.0.0 ignores it on a rollback and drops it at its next
+  save). `DELETE /data/{list}/{id}` and `PATCH /data/settings` now honour `If-Match` (no header: unchecked, as before),
+  and `GET`/`PATCH /data/settings` answer an `ETag`. The proxy must pass `If-Match` and `ETag` (Traefik does by default;
+  `PUT` already relies on them).
 - **chassis-rs pinned to rev 67d593e** (unreleased, `[meta-chassis-67d593e-1]`, was 8042dbe `[meta-chassis-8042dbe-1]`):
   trimmed offline keeping, `chassisData.post()`, and the server-is-master rules (a refused replay restores the server's
   copy, a 404/410 drops it, "Save again" always sends `If-Match`, no overwrite policy, a list GET without a query string

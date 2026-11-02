@@ -30,7 +30,19 @@ revision and words the refusal; the header itself is sent by the kit's client, `
 dish's default, a recipe's Undo, which is a dish save) are refused instead of silently overwriting; they answer with one
 kit toast, "This changed elsewhere in the meantime. Reload the page and try again." with **Reload**, and read the kitchen
 again (`saveFailed` in `web/js/api/stale-notice.js`; a category renamed in its table cell through `noticeIfStale`,
-which raises the same toast and leaves the cell its own refusal line, fix-cat-rename-stale-1). Undo's restore (`POST /data/restore/{list}/{id}`) sends no
+which raises the same toast and leaves the cell its own refusal line, fix-cat-rename-stale-1). **Deletes and the settings** (fix-offline-master-5, Kenny 02/11/2026 19:43 "de server is altijd de master"): a
+`DELETE /data/{list}/{id}` honours `If-Match` the same way (store `delete_if`): stale, it is the kit's 409 with the stored
+item as `current` and nothing is removed; without the header it is unchecked as before, and a removed item stays
+restorable for Undo's window either way. `remove` in `web/js/api.js` sends the revision of the item as the page holds
+it (`deleteRevFor` in `web/js/api/save.js`). The settings carry one revision of their own, `settings_rev` in
+`kitchen.json` and in `GET /data/kitchen` (optional, absent = 0, format stays 5), raised on every `PATCH /data/settings`;
+`GET`/`PATCH /data/settings` answer it as `ETag` (the body stays the plain object of keys), and a `PATCH` with a stale
+`If-Match` is the kit's 409 with the stored settings as `current` (`src/store/settings.rs`). `patchSettings` sends the
+kitchen read's `settings_rev` (`settingsRevFor`), runs merges one after the other so each names the revision the one
+before answered, and keeps the answer's new revision. One revision for all keys: a change over any newer settings change
+is refused, even on another key. Online, a stale delete or settings change raises the shared stale toast with Reload
+(`saveFailed` / `noticeIfStale`); queued, it lands in the kit's failed list and the kit puts its copy back. Undo's
+restore (`POST /data/restore/{list}/{id}`) sends no
 `If-Match`, by decision: a deleted item has no newer version to overwrite, the server puts back exactly what it removed
 (with the `rev` it had), and it answers 409 when the id is back already.
 
@@ -440,6 +452,9 @@ The wheel leaves a resting dish out until `until` has passed (format 4: a
 mark whose recipe no dish carried was dropped).
 
 ## settings (one object, `PATCH /data/settings`)
+
+Checked against `settings_rev` (a field of the kitchen file next to `settings`, not a key in it): see "Revisions and
+stale saves".
 
 | Key | Meaning |
 |---|---|
