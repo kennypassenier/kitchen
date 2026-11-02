@@ -113,6 +113,19 @@ impl Store {
             .ok_or_else(|| Refused::UnknownCollection(coll.into()))
     }
 
+    /// One item of a list by its id (feat-offline-recipe: `GET /data/{list}/{id}`, so the offline copy can keep a
+    /// single dish). An unknown list is `UnknownCollection`, an id the list does not hold is `NotFound`.
+    pub async fn item(&self, coll: &str, id: &str) -> Result<Value, Refused> {
+        let mut d = self.data.write().await;
+        let list = d
+            .collection(coll)
+            .ok_or_else(|| Refused::UnknownCollection(coll.into()))?;
+        list.iter()
+            .find(|x| x.get("id").and_then(Value::as_str) == Some(id))
+            .cloned()
+            .ok_or(Refused::NotFound)
+    }
+
     pub async fn settings(&self) -> Map<String, Value> {
         self.data.read().await.settings.clone()
     }

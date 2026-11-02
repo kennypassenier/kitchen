@@ -7,6 +7,7 @@
 //! |---|---|
 //! | `GET /data/{list}` | the list |
 //! | `POST /data/{list}` | add an item; the answer carries its new `id` |
+//! | `GET /data/{list}/{id}` | one item, with its revision as `ETag` (feat-offline-recipe: the offline copy keeps a single dish); 404 when the list does not hold it |
 //! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since; the answer carries `ETag: "<rev>"` |
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
@@ -30,7 +31,7 @@ use std::sync::Arc;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post, put};
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use chassis::{Conflict, IfMatch, Revisioned};
 use serde_json::{Value, json};
@@ -47,7 +48,7 @@ pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
         .route("/data/freezer/{id}/take", post(take))
         .route("/data/restore/{list}/{id}", post(restore))
         .route("/data/{list}", get(list).post(create))
-        .route("/data/{list}/{id}", put(replace).delete(delete))
+        .route("/data/{list}/{id}", get(item).put(replace).delete(delete))
         .with_state(store)
         // Static segments win over `/data/{list}`, so the photo routes sit beside it.
         .merge(crate::photos::router(state_dir))
@@ -94,6 +95,15 @@ async fn kitchen(State(s): Shared) -> Response {
 
 async fn list(State(s): Shared, Path(list): Path<String>) -> Response {
     answer(s.list(&list).await)
+}
+
+/// One item with its revision (`ETag` and the body's `rev`), the shape the offline client keeps per path. Read-only:
+/// the same login and guards as every other data route (`dashboard_routes`).
+async fn item(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
+    match s.item(&list, &id).await {
+        Ok(found) => Revisioned::new(rev_of(&found), found).into_response(),
+        Err(e) => answer(Err::<Value, _>(e)),
+    }
 }
 
 async fn create(State(s): Shared, Path(list): Path<String>, Json(body): Json<Value>) -> Response {
@@ -154,6 +164,37 @@ mod tests {
         assert_eq!(body["code"], "stale");
         assert_eq!(body["rev"], 4);
         assert!(body["error"].is_string() && body["remedy"].is_string());
+    }
+
+    /// A kitchen with one dish (rev 3) holding one recipe, for the item route.
+    fn one_dish() -> State<Arc<Store>> {
+        let data: crate::store::Data = serde_json::from_value(json!({
+            "format": 5,
+            "dishes": [{ "id": "d1", "rev": 3, "name": { "nl": "Stoofvlees", "en": "Stew" },
+                         "recipes": [{ "id": "r1", "default": true, "steps": [] }] }],
+        }))
+        .unwrap();
+        State(Arc::new(Store::in_memory(data)))
+    }
+
+    #[tokio::test]
+    async fn an_item_answers_the_dish_with_its_recipes_and_its_rev_as_etag() {
+        let res = item(one_dish(), Path(("dishes".into(), "d1".into()))).await;
+        assert_eq!(res.status(), StatusCode::OK);
+        assert_eq!(res.headers()["etag"], "\"3\"");
+        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["id"], "d1");
+        assert_eq!(body["rev"], 3);
+        assert_eq!(body["recipes"][0]["id"], "r1");
+    }
+
+    #[tokio::test]
+    async fn a_missing_item_or_list_is_404() {
+        let gone = item(one_dish(), Path(("dishes".into(), "nope".into()))).await;
+        assert_eq!(gone.status(), StatusCode::NOT_FOUND);
+        let no_list = item(one_dish(), Path(("nolist".into(), "d1".into()))).await;
+        assert_eq!(no_list.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
