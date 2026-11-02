@@ -1,6 +1,6 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs main 8042dbe), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, waiting on the chassis-rs release tag and their checks) about the offline copy.
+5 items open: the deploy of 5.0.0, the release of what is on main (now on chassis-rs main 67d593e), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, waiting on the chassis-rs release tag and their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
@@ -42,8 +42,8 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    second browser (the kit's preference store); the printable sheet still prints with its checklist boxes; `auto.js`
    and Kitchen's own `attachThemePickers` do not wire the theme menu twice (one change per pick); `measure.mjs` on the
    main pages (CSS order moved: base + register instead of the full sheet).
-8. **Re-pin chassis-rs to the release tag carrying 8042dbe** (OPEN again: [meta-chassis-8042dbe-1] pinned rev 8042dbe on
-   02/11/2026 evening; before that done as [meta-chassis-430-1]: tag v4.3.0 = db11d10 carries
+8. **Re-pin chassis-rs to the release tag carrying 67d593e** (OPEN again: [meta-chassis-67d593e-1] pinned rev 67d593e on
+   02/11/2026 evening, after [meta-chassis-8042dbe-1] pinned 8042dbe; before that done as [meta-chassis-430-1]: tag v4.3.0 = db11d10 carries
    `kp_modules()`, the gzip prefs fix, the login `?next=` and the offline data client; only `chassis` moved in `Cargo.lock`).
 9. **The offline copy [feat-offline-kitchen-1..4], [refactor-rev-kit-1]** (nothing run on 02/11/2026): the new and changed
    unit tests `node --test scripts/offline-apply.test.mjs scripts/offline-keep.test.mjs scripts/offline-size.test.mjs
@@ -78,6 +78,32 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    read drops the keep and the copy and shows the notice once; a later read stays quiet). By hand once: the notice reads
    right in NL and EN and is not sticky.
 
+13. **Offline: the server is the master [fix-offline-master-1..4]** on chassis-rs 67d593e (written 02/11/2026, nothing
+   run): `node --test scripts/offline-sync.test.mjs scripts/offline-undo.test.mjs scripts/offline-kept.test.mjs` (new:
+   offline-sync, offline-undo; `keptRefreshPlan` added to offline-kept), then the whole node suite and the existing
+   offline scenarios of `scripts/release/offline.e2e.mjs` against 67d593e (the kit now restores the server's copy on a
+   refused replay and drops it on a 404). By hand in Firefox, or as new e2e scenarios: (a) take the last portion
+   offline in two tabs, reconnect: the second take is refused and the freezer shows the server's count, not 0 below it;
+   (b) keep one recipe with "keep everything" off, edit it on another device, open any page online, go offline and
+   reload: the kept recipe shows the other device's edit; (c) go offline, navigate, come back online, navigate: the
+   band leaves "offline" and the page shows the server's data without Retry; (d) delete a shelf item offline, Undo,
+   change that item on another device, reconnect and navigate: the other device's version shows.
+
+## Offline: the server is always the master (Kenny 02/11/2026 19:43)
+
+"De server is altijd de master, heeft altijd gelijk." Online answers always replace the local copy; a server deletion
+removes the local item; a refused queued edit never overrides the server: it stays in the kit's failed list (Discard /
+Save again, which sends `If-Match` with the newest revision held). No path may let the local copy win silently.
+Audited 02/11/2026 on chassis-rs 67d593e (which enforces the kit's half): a refused replay rereads the kitchen
+[fix-offline-master-1]; kept recipes are re-read on every online kitchen read [fix-offline-master-2]; a kitchen read
+from the copy is read again on a page change or reconnect [fix-offline-master-3]; Undo of a queued delete leaves the
+next online read to win [fix-offline-master-4]. Checked and fine: Kitchen sets no `onConflict` (the kit's skip; the
+overwrite answer no longer exists); "Save again" only from the kit's drawer; no list read carries a filter (a list GET
+without a query string is the whole collection to the kit); local per-device values (language, calm mode, tonight's
+wheel answer, today's dinner time, the timer's digits) never reach the server, and the settings page saves only on a
+change. Two paths still let a queued edit win without a check, because the server checks nothing for them: see
+"Choices for Kenny".
+
 ## Waiting on kp-themes or chassis-rs (workarounds kept; drop each when its fix ships)
 
 - **Built on chassis-rs 8042dbe (unreleased)**: per-item keep [feat-offline-recipe] and the freezer take through
@@ -110,7 +136,15 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 ## Choices for Kenny (not built)
 
-None open: the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
+- **Unchecked replays (server-is-master audit, 02/11/2026)**: a queued `DELETE /data/{list}/{id}` and a queued
+  `PATCH /data/settings` carry no revision the server checks, so when they are replayed after someone changed the item
+  or the same setting elsewhere, the offline edit wins silently. Options: (A, recommended) `DELETE` takes `If-Match`
+  like `PUT` (store `delete_if`, Kitchen sends the revision it read; a stale delete lands in the failed list) and the
+  settings get a revision of their own checked on `PATCH` (one more field in `kitchen.json`); (B) only the delete is
+  checked, settings stay last-writer-wins per key (a setting is one person's preference); (C) leave both as they are.
+  Needs Kenny's form before it is built (a data-shape change and online deletes become checkable as stale).
+
+None else open: the per-recipe toggle (option B, Kenny 19:12) and the freezer take ("Kit krijgt post()", 19:13) are decided and built on chassis-rs 8042dbe (rows above).
 
 Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026):
 - [x] Logout did not ask on the kit's pages, the band's words read once, no `post()`, no failed-edits view: all four fixed in

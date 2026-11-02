@@ -11,7 +11,7 @@ Nothing here is released or deployed yet; no store format change, no new server 
 Built on **chassis-rs 4.3.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.3.0, `[meta-chassis-430-1]`): it carries
 `WebApp::kp_modules()`, the fix that gives gzipped pages their preferences block, the login's `?next=` and the offline data
 client with `IfMatch` / `Revisioned` / `Conflict` (Kitchen ran on unreleased revs of chassis main for these on 02/11/2026).
-Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trimmed offline keeping, `chassisData.post()`,
+Since 02/11/2026 evening pinned to chassis-rs main **67d593e** (was 8042dbe) (unreleased: trimmed offline keeping, `chassisData.post()`,
 `IdempotencyKey`); re-pin to the release tag that carries it before the release.
 
 ### Added
@@ -155,6 +155,19 @@ Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trim
   The seed now stores just the recipe address; kitchens seeded earlier keep their stored text and show the same words.
 
 ### Fixed
+- **Offline: the server is always the master** (Kenny 02/11/2026 19:43, "de server is altijd de master, heeft altijd
+  gelijk"; audit [fix-offline-master-1..4] on chassis-rs 67d593e, which now puts a refused edit's copy back to the
+  server's version and drops a copy the server answers 404 for):
+  - A queued edit the kitchen refused on replay (a freezer take with no portions left, a stale save) no longer stays on
+    screen: the kitchen is read again after a replay that refused anything, not only after one that sent something
+    [fix-offline-master-1].
+  - A recipe kept offline on its own now follows the kitchen: every online kitchen read reads each kept dish and the
+    ingredients again, keeps the ingredients a kept dish names since and lets go of the ones none names any more
+    [fix-offline-master-2] (one extra request per kept dish; a kit gap is filed for doing it from the kitchen's answer).
+  - A kitchen read from the device's copy is read again on every page change and when the browser is back online, so a
+    page never keeps showing the offline copy once the kitchen answers [fix-offline-master-3].
+  - Undo of a delete that was still waiting: the item put back is the page's own, so the next online read replaces it
+    with the kitchen's version [fix-offline-master-4].
 - **A category renamed in its table cell answers a stale save like every other quick save** [fix-cat-rename-stale-1]:
   when the category was saved elsewhere since the page read it, the shared "changed elsewhere" toast with Reload appears
   and the kitchen is read again; the cell still shows its own refusal.
@@ -247,8 +260,11 @@ Since 02/11/2026 evening pinned to chassis-rs main **8042dbe** (unreleased: trim
   else 400) and `kitchen.json` gains an optional `answered` list (at most 200 keys with their first answer; absent when
   empty, format stays 5). 5.0.0 ignores the field on a rollback and drops it at its next save, which only means a replay
   queued before the rollback could take twice. The proxy must pass the `Idempotency-Key` header (Traefik does by default).
-- **chassis-rs pinned to rev 8042dbe** (unreleased, `[meta-chassis-8042dbe-1]`): trimmed offline keeping and
-  `chassisData.post()`; re-pin to the release tag that carries it before the release.
+- **chassis-rs pinned to rev 67d593e** (unreleased, `[meta-chassis-67d593e-1]`, was 8042dbe `[meta-chassis-8042dbe-1]`):
+  trimmed offline keeping, `chassisData.post()`, and the server-is-master rules (a refused replay restores the server's
+  copy, a 404/410 drops it, "Save again" always sends `If-Match`, no overwrite policy, a list GET without a query string
+  prunes items it no longer holds; Kitchen makes no filtered list read); re-pin to the release tag that carries it
+  before the release.
 - **Size limits** (fix-field-limits-1): the server now refuses a name half over 200 characters, any other text over
   5,000 and more than 200 steps, lines, tools or tracks in a recipe. Data already stored is not touched; an item over a
   limit can still be read, but saving it again asks to shorten the field first.

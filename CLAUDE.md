@@ -3,7 +3,7 @@
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
 ES modules on kp-themes, which comes only through chassis-rs (`/static/kp/`, Kenny 19/10/2026). Owner Kenny; chat Dutch, code and docs English.
 
-State (02/11/2026): 5.0.0 released and signed (chassis 4.0.0, kp-themes 12.0.0); main is pinned to chassis-rs main 8042dbe (after tag v4.3.0: trimmed offline keeping, `chassisData.post()`, `IdempotencyKey`; re-pin to its release tag) / kp-themes 12.2.0 split delivery, unreleased; live is still 4.1.0,
+State (02/11/2026): 5.0.0 released and signed (chassis 4.0.0, kp-themes 12.0.0); main is pinned to chassis-rs main 67d593e (after tag v4.3.0: trimmed offline keeping, `chassisData.post()`, `IdempotencyKey`, the server-is-master rules; re-pin to its release tag) / kp-themes 12.2.0 split delivery, unreleased; live is still 4.1.0,
 the deploy waits on the homelab thread (docs/OPEN.md).
 
 Read first: README.md, docs/OPEN.md, docs/DECISIONS.md. Data shapes:
@@ -19,6 +19,8 @@ Rules that keep breaking:
   measure-gaps from kp-themes `research/_review/`): zero findings.
 - No test runs without Kenny's ok; a commit runs fmt and clippy only.
 - Choices for Kenny go in one form, never a question in prose.
+- Offline: the server is always the master; online answers replace the local copy; refused queued edits never win
+  (failed list). No path may let the local copy win silently (Kenny 02/11/2026 19:43; docs/OPEN.md "Offline").
 - Modular code, one responsibility per file, aim at 400 lines / 20 KB at most: see `docs/agent/MODULARITY.md` (standing rule 30/10/2026 plus the split plan).
 
 Commits carry an ID in brackets (`[app-wheel-1]`, `[meta]`); hooks:

@@ -103,8 +103,18 @@ server as before.
 **Replay** (the kit's rules). In order; on a network failure it stops and retries (online event, 30 s timer, the band's
 Retry). Edits behind a sent one for the same item get its new revision (the kit's rebase). A 409 or another 4xx moves the
 edit to the failed list and the rest continues (Kenny's kit decision "Overslaan"); 401 and 5xx stop and retry later.
-After a replay that sent anything, Kitchen reads the kitchen again (`web/js/offline/sync.js`), so the next save names the
-server's new revision. The kit's own failed-edits drawer (opened by the toast's "Review", `chassisData.review()` or
+After a replay that sent or refused anything, Kitchen reads the kitchen again (`web/js/offline/sync.js`, the kit's
+`chassis-data-conflict` then `chassis-data-synced`), so the next save names the server's new revision and an edit the
+server refused (a take with no portions left) leaves the screen; since chassis-rs 67d593e the kit itself puts the
+refused edit's item copy back to the server's version and drops a copy the server answers 404/410 for.
+
+**The server is the master** (Kenny 02/11/2026 19:43, docs/OPEN.md "Offline"). The shared copy in `web/js/api.js`
+remembers whether it came from the device's copy (or holds an item Undo put back from the queue); such a copy is read
+again on every page change (`main.js` `render`) and on the browser's `online` event (`refreshIfOffline`), so it never
+outlives a reachable kitchen. After every online kitchen read with "keep everything" off, every kept dish the answer
+still lists is read through its item route and the ingredients list once (`web/js/api/kept-refresh.js`,
+`keptRefreshPlan` in `kept.js`), after the gone check: the kit stores those answers over its copies; ingredients a kept
+dish names since are kept, those none names are let go when every kept dish is in the answer. The kit's own failed-edits drawer (opened by the toast's "Review", `chassisData.review()` or
 `[data-chassis-review]`; Kitchen's words come in through `kitMessages`) offers "Discard" (`drop`), "Save again" (`resave`
 with the server's current revision) and "Discard all".
 
