@@ -8,7 +8,8 @@ carries a **Migration** section saying what an operator must do.
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change, no new setting (see "Migration / deploy notes").
-Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`).
+Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[meta-chassis-420-1]`), pinned to chassis-rs main
+fcb993f for `WebApp::kp_modules()` until its release (`[meta-chassis-fcb993f-1]`).
 
 ### Added
 - **A heading on the import card** (Kenny 02/11/2026): the Recipes page's import field sits under "Import a recipe" / "Recept importeren" and one sentence saying what it does; the field row is unchanged.
@@ -37,8 +38,9 @@ Built on **chassis-rs 4.2.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; `[me
   `openConfirmation`, which have no smaller entry). The printable sheet reads the base sheet plus the formal register
   instead of `kp-themes.css`. `scripts/kp-entries.test.mjs` fails on any path back to the bundle, a page that mixes the two,
   or a name an entry does not export; `scripts/check-wheels.mjs` also knows `dist/js/wheel.js`.
-  **Not mergeable while chassis-rs injects `webapp-runtime.js` on the bundle** (docs/OPEN.md): that would put two copies
-  of kp's state on the main app's pages.
+  Merged on main [feat-kp-split-3] with Kitchen pinned to chassis-rs main fcb993f [meta-chassis-fcb993f-1] (unreleased,
+  still 4.2.0; re-pin to its release tag before Kitchen's release): Kitchen's `WebApp` calls `kp_modules()`, so the kit
+  injects `webapp-runtime-modules.js` on the same per-module entries and a page holds one copy of kp's state.
 - **chassis-rs 4.2.0 / kp-themes 12.2.0** [meta-chassis-420-1]: only `chassis` moved in `Cargo.lock`. The cook timeline uses
   the kit's fit mode (`data-kp-gantt-scroll="fit"`, `FIT_FROM` 12.2.0 confirmed). The bar's More pages (Dishes,
   Ingredients, Parents' wheel, Recipe sources, Calm settings) are the kit's secondary pages (`Page::secondary`), so the
