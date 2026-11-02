@@ -16,8 +16,10 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value};
 use tokio::sync::RwLock;
 
+mod caps;
 mod data;
 mod drafts;
+mod limits;
 mod migrate;
 mod ops;
 mod seed;

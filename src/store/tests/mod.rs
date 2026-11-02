@@ -5,6 +5,7 @@ use super::migrate::{migrate, to_2, to_3};
 use super::*;
 
 mod crud;
+mod limits;
 mod migrate;
 mod undo;
 mod validate;

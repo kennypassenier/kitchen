@@ -10,6 +10,7 @@ import { NL_SOURCES } from "./nl/sources.js";
 import { NL_INGREDIENTS_DISHES } from "./nl/ingredients-dishes.js";
 import { NL_DISH_EDITOR } from "./nl/dish-editor.js";
 import { NL_LATER } from "./nl/later.js";
+import { NL_LIMITS } from "./nl/limits.js";
 
 export const NL = {
   ...NL_SHELL,
@@ -21,4 +22,5 @@ export const NL = {
   ...NL_INGREDIENTS_DISHES,
   ...NL_DISH_EDITOR,
   ...NL_LATER,
+  ...NL_LIMITS,
 };

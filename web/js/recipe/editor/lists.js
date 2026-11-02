@@ -15,7 +15,7 @@ const nameColumn = ({ label, cell, ph }) => ({
   label,
   width: "minmax(0, 1fr)",
   make: (/** @type {any} */ tk) => {
-    const c = textCell(cell, tk.name ?? "", ph);
+    const c = textCell(cell, tk.name ?? "", ph, true);
     return { el: c.el, get: () => ({ id: tk.id ?? (tk.id = newId()), name: c.get() }) };
   },
 });

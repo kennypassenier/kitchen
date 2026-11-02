@@ -10,7 +10,7 @@ import { h } from "../dom.js";
 import { create, replace, kitchenNow } from "../api.js";
 import { t, nameOf } from "../i18n/index.js";
 import { names } from "../dishes/names.js";
-import { input } from "../ui/form-parts.js";
+import { input, NAME_LIMIT } from "../ui/form-parts.js";
 import { tableCard } from "./table-card.js";
 import { addRow } from "./add-row.js";
 import { detailHref } from "./lists.js";
@@ -85,8 +85,8 @@ async function onReorder(list, ids, event) {
 
 /** The add row: a Dutch and an English name. @param {CategoryList} list */
 function categoryEntry(list) {
-  const nl = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", lang: "nl", placeholder: list === "dish_categories" ? "Speciaal" : "Vlees" }));
-  const en = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", placeholder: list === "dish_categories" ? "Special" : "Meat" }));
+  const nl = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", lang: "nl", placeholder: list === "dish_categories" ? "Speciaal" : "Vlees", ...NAME_LIMIT }));
+  const en = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", placeholder: list === "dish_categories" ? "Special" : "Meat", ...NAME_LIMIT }));
   return addRow({
     label: t(`list.${list}.add`),
     submit: t("rec.addInRow"),

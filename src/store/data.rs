@@ -105,6 +105,16 @@ pub enum Refused {
     BadSource(String),
     /// A recipe source that misses its name, address or language (the sentence a page shows).
     BadRecipeSource(String),
+    /// A text longer than its limit (`limits.rs`): the field, as `recipes[0].steps[3].text.nl`, and the limit in characters.
+    TooLong {
+        field: String,
+        limit: usize,
+    },
+    /// A list with more entries than its limit (`limits.rs`): the field, as `recipes[0].steps`, and the limit.
+    TooMany {
+        field: String,
+        limit: usize,
+    },
     /// Undo came after the deleted item's window closed (or after a restart).
     UndoClosed,
     /// Undo found an item with that id in the list again.
@@ -136,12 +146,30 @@ impl std::fmt::Display for Refused {
                 "{field} must be a web address starting with http:// or https://, or empty"
             ),
             Refused::BadRecipeSource(why) => write!(f, "{why}"),
+            Refused::TooLong { field, limit } => {
+                write!(f, "{field} is too long: at most {limit} characters")
+            }
+            Refused::TooMany { field, limit } => {
+                write!(f, "{field} has too many entries: at most {limit}")
+            }
             Refused::UndoClosed => write!(
                 f,
                 "that delete can no longer be undone: too much time has passed"
             ),
             Refused::Exists => write!(f, "that item is already back"),
             Refused::Disk(e) => write!(f, "could not save: {e}"),
+        }
+    }
+}
+
+impl Refused {
+    /// The machine-readable side of a size refusal, `(reason, field, limit)`, which the answer carries next to the
+    /// words so a page can put its own message at the field; `None` for every other refusal.
+    pub fn limit(&self) -> Option<(&'static str, &str, usize)> {
+        match self {
+            Refused::TooLong { field, limit } => Some(("too_long", field, *limit)),
+            Refused::TooMany { field, limit } => Some(("too_many", field, *limit)),
+            _ => None,
         }
     }
 }

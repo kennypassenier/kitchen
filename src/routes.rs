@@ -61,9 +61,17 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 | Refused::NoKey
                 | Refused::MissingName(_)
                 | Refused::BadSource(_)
-                | Refused::BadRecipeSource(_) => StatusCode::BAD_REQUEST,
+                | Refused::BadRecipeSource(_)
+                | Refused::TooLong { .. }
+                | Refused::TooMany { .. } => StatusCode::BAD_REQUEST,
             };
-            (code, Json(json!({ "error": e.to_string() }))).into_response()
+            let mut body = json!({ "error": e.to_string() });
+            if let Some((reason, field, limit)) = e.limit() {
+                body["reason"] = json!(reason);
+                body["field"] = json!(field);
+                body["limit"] = json!(limit);
+            }
+            (code, Json(body)).into_response()
         }
     }
 }

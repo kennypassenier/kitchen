@@ -10,6 +10,7 @@ import { EN_SOURCES } from "./en/sources.js";
 import { EN_INGREDIENTS_DISHES } from "./en/ingredients-dishes.js";
 import { EN_DISH_EDITOR } from "./en/dish-editor.js";
 import { EN_LATER } from "./en/later.js";
+import { EN_LIMITS } from "./en/limits.js";
 
 export const EN = {
   ...EN_SHELL,
@@ -21,4 +22,5 @@ export const EN = {
   ...EN_INGREDIENTS_DISHES,
   ...EN_DISH_EDITOR,
   ...EN_LATER,
+  ...EN_LIMITS,
 };

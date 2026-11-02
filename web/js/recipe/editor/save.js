@@ -5,6 +5,8 @@ import { create, replace, kitchenNow, ApiError } from "../../api.js";
 import { t, lang } from "../../i18n/index.js";
 import { on } from "../../ui/form-parts.js";
 import { photosOf } from "../photos.js";
+import { limitWords, withinRecipe } from "../../api/refusal.js";
+import { sectionOf } from "./sections.js";
 import { recipeBody, labelOut, dishText as dishNameOf } from "./logic.js";
 
 /**
@@ -82,6 +84,11 @@ export function createSaver({ recipe, collector, details, lists, tracker, draft 
     try {
       saved = recipe ? await replace("recipes", body) : await create("recipes", body);
     } catch (e) {
+      if (e instanceof ApiError && e.limit) {
+        // A size refusal names the field within this recipe and the section it sits in (fix-field-limits-1).
+        const field = withinRecipe(e.limit.field);
+        return refuse(sectionOf(field), limitWords({ ...e.limit, field }, t));
+      }
       return refuse("dish", e instanceof ApiError ? e.message : String(e));
     }
     await tracker.settle(photosOf(body));

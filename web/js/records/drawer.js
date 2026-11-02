@@ -5,7 +5,7 @@ import { attachDatePickers, datePicker, toast } from "/static/kp/dist/kp-themes.
 import { h } from "../dom.js";
 import { create, replace, kitchenNow, reason } from "../api.js";
 import { t, nameOf } from "../i18n/index.js";
-import { area, input } from "../ui/form-parts.js";
+import { area, input, NAME_LIMIT } from "../ui/form-parts.js";
 import { dmy } from "../format.js";
 import { openDrawer, sec } from "../dishes/editor.js";
 import { LISTS } from "./lists.js";
@@ -50,12 +50,13 @@ export function dateField(iso, { max, label }) {
 /**
  * A text in both languages (Kenny, 24/10/2026 10:04): a Dutch and an English field, each filled from `v` (`{nl, en}`,
  * or a plain string from before, which fills both).
- * @param {unknown} v @param {"input" | "area"} kind @param {string} placeholder
+ * `named`: the pair is a name or a title, capped at the name limit (web/js/limits.js); otherwise the text limit.
+ * @param {unknown} v @param {"input" | "area"} kind @param {string} placeholder @param {boolean} [named]
  */
-export function pair(v, kind, placeholder) {
+export function pair(v, kind, placeholder, named = false) {
   const o = /** @type {Record<string, string>} */ (v && typeof v === "object" ? v : { nl: String(v ?? ""), en: String(v ?? "") });
   const make = (/** @type {"nl" | "en"} */ l) => {
-    const el = kind === "area" ? area(String(o[l] ?? ""), 2) : input(String(o[l] ?? ""), "text", { autocomplete: "off", ...(placeholder ? { placeholder } : {}) });
+    const el = kind === "area" ? area(String(o[l] ?? ""), 2) : input(String(o[l] ?? ""), "text", { autocomplete: "off", ...(placeholder ? { placeholder } : {}), ...(named ? NAME_LIMIT : {}) });
     if (l === "nl") el.setAttribute("lang", "nl");
     return el;
   };

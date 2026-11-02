@@ -2,6 +2,7 @@
 
 use serde_json::Value;
 
+use super::caps::within_limits;
 use super::validate::both_names;
 use super::{Refused, Store};
 
@@ -12,6 +13,7 @@ impl Store {
             return Err(Refused::NotAnObject);
         };
         both_names(coll, &obj)?;
+        within_limits(&obj)?;
         if coll == "drafts" {
             return self.save_draft(obj).await;
         }
@@ -76,6 +78,7 @@ impl Store {
             return Err(Refused::NotAnObject);
         };
         both_names(coll, &obj)?;
+        within_limits(&obj)?;
         if let Some(given) = obj.get("id")
             && given.as_str() != Some(id)
         {

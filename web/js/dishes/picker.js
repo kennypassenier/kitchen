@@ -8,6 +8,7 @@ import { attachComboboxes, combobox } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { kitchenNow, onKitchen } from "../api.js";
 import { nameOf, t, lang } from "../i18n/index.js";
+import { MAX_NAME_CHARS } from "../limits.js";
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {{ id: string | null, name: { nl: string, en: string } | null }} DishChoice */
@@ -36,8 +37,8 @@ function buildBox(n, label, id) {
 
 /** The inline step that asks the new dish's two names. */
 function buildAsks() {
-  const nlField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", lang: "nl", autocomplete: "off", "aria-label": t("rec.dutchName"), placeholder: "Stoofvlees" }));
-  const enField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", autocomplete: "off", "aria-label": t("rec.englishName"), placeholder: "Flemish beef stew" }));
+  const nlField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", lang: "nl", autocomplete: "off", "aria-label": t("rec.dutchName"), maxlength: String(MAX_NAME_CHARS), placeholder: "Stoofvlees" }));
+  const enField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", autocomplete: "off", "aria-label": t("rec.englishName"), maxlength: String(MAX_NAME_CHARS), placeholder: "Flemish beef stew" }));
   const add = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("dp.useIt"));
   const cancel = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("common.cancel"));
   const missing = h("p", { class: "ip-picker__ask", role: "status", "aria-live": "polite" });

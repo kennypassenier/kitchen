@@ -9,6 +9,24 @@ that needs it; add it here in the same change.
 Dates and times shown to a person are `dd/mm/yyyy HH:mm`, Europe/Brussels.
 Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
 
+## Size limits
+
+Kenny's standing "fixes go in", 02/11/2026 (`[fix-field-limits-1]`): the server refuses an item (create, replace, draft)
+with a string or a list over its limit, at any depth, with 400 and
+`{"error": "<words>", "reason": "too_long" | "too_many", "field": "recipes[0].steps[3].text.nl", "limit": 5000}`.
+The numbers live in one place, `src/store/limits.rs` (the check is `src/store/caps.rs`), mirrored in `web/js/limits.js`
+for the fields' `maxlength`; the pages turn the refusal into "Step 4, text (Dutch) is too long: at most 5000 characters."
+(`web/js/api/refusal.js`).
+
+| What | Limit |
+|---|---|
+| A name: each `nl` / `en` half (or the plain string) under `name`, `title`, `label`, `dish`, `new_dish`, `short`, at any depth: a dish, category, ingredient, shelf title, freezer item, recipe or side label, a recipe's short name, a tool, track or timer name, a step's `uses[].name`, a recipe source's name | 200 characters |
+| Any other string: a step's `text`, `note` and `say`, `summary`, `gear`, `last_note`, `mini_note`, an ingredient line's `note`, `unit` and `group`, a shelf `text` and `gear`, a log `note`, a source's `note`, `url` and `verified_by`, ids | 5,000 characters (a recipe's `source` keeps its own 2,000) |
+| `steps`, `ingredients` (a recipe's lines, and a dish's fixed ingredients), `tools`, `tracks` | 200 entries each |
+
+Characters are counted, not bytes. Undo's restore is not checked (it puts back what was stored). `settings` has its own
+fixed keys and is not checked.
+
 ## a dish's recipes (`dish.recipes`)
 
 Since format 4 (Kenny, 24/10/2026 09:18, 09:27: "the recipe belongs to the

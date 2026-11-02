@@ -4,7 +4,7 @@
 import { drawnSelect, getQuantity, setQuantity, toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
-import { row, input, area, stepper, toggle, on, select, rows, textCell } from "../../ui/form-parts.js";
+import { row, input, area, stepper, toggle, on, select, rows, textCell, NAME_LIMIT } from "../../ui/form-parts.js";
 import { photoField } from "../photos.js";
 import { stepFromFields, partnerChoices } from "./logic.js";
 import { newId } from "./ids.js";
@@ -34,7 +34,7 @@ function makeFields(s, { tracker, trackOptions }) {
     active: toggle(t("edit.activeSwitch"), s.active !== false),
     mini: toggle(t("edit.miniSwitch"), s.mini !== false),
     hasTimer: toggle(t("edit.timerSwitch"), Boolean(s.timer)),
-    timerName: input(s.timer?.name ?? "", "text", { "aria-label": t("edit.timerName"), placeholder: t("edit.timerNamePh") }),
+    timerName: input(s.timer?.name ?? "", "text", { "aria-label": t("edit.timerName"), placeholder: t("edit.timerNamePh"), ...NAME_LIMIT }),
     timerSecs: input(s.timer?.seconds ?? "", "number", { "aria-label": t("edit.timerSeconds"), min: "1", step: "1", placeholder: "600" }),
     textOther: area(words.other, 1),
     note: input(noted.main, "text", { placeholder: t("edit.notePh") }),
@@ -46,7 +46,7 @@ function makeFields(s, { tracker, trackOptions }) {
     uses: rows({
       columns: [
         { label: t("edit.amount"), width: "7rem", make: (u) => textCell(t("edit.amountWritten"), u.amount ?? "", t("edit.amountPh")) },
-        { label: t("edit.what"), width: "minmax(0, 1fr)", make: (u) => textCell(t("edit.whatItIs"), u.name ?? "", t("edit.whatPh")) },
+        { label: t("edit.what"), width: "minmax(0, 1fr)", make: (u) => textCell(t("edit.whatItIs"), u.name ?? "", t("edit.whatPh"), true) },
       ],
       items: s.uses ?? [], add: t("edit.addUse"), noun: "item", blank: () => ({ amount: "", name: "" }),
     }),

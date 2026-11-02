@@ -21,3 +21,13 @@ export function changedSections(opening, now) {
   if (!opening) return held.map((s) => s.key);
   return held.filter((s) => s.fields.some((f) => JSON.stringify(opening[f]) !== JSON.stringify(now[f]))).map((s) => s.key);
 }
+
+/**
+ * The section a refused field of the recipe body sits in (fix-field-limits-1): its first key decides; a dish's name, or
+ * anything the sections do not hold, belongs to the first section. `field` as the server names it, without `recipes[i].`.
+ * @param {string} field @returns {string}
+ */
+export function sectionOf(field) {
+  const top = field.split(/[.[]/)[0];
+  return SECTIONS.find((s) => s.fields.includes(top))?.key ?? "dish";
+}

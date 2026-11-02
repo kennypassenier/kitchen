@@ -1,12 +1,18 @@
 // The JSON calls: one fetch wrapper, its error type and the words for an error. No state; api.js holds the data.
 
 import { toLogin } from "../raw.js";
+import { t } from "../i18n/index.js";
+import { limitOf, limitWords } from "./refusal.js";
 
 export class ApiError extends Error {
-  /** @param {string} message @param {number} status */
-  constructor(message, status) {
+  /**
+   * `limit`: a size refusal's field and limit (api/refusal.js), so an editor can show it at that field.
+   * @param {string} message @param {number} status @param {import("./refusal.js").LimitRefusal | null} [limit]
+   */
+  constructor(message, status, limit = null) {
     super(message);
     this.status = status;
+    this.limit = limit;
   }
 }
 
@@ -38,6 +44,10 @@ export async function call(method, path, body, { keepalive = false } = {}) {
   } catch {
     /* not JSON: handled below */
   }
-  if (!res.ok) throw new ApiError(data?.error ?? `The kitchen answered ${res.status}.`, res.status);
+  if (!res.ok) {
+    // A size refusal is said in the page's language and names the field (fix-field-limits-1); any other keeps the server's words.
+    const limit = limitOf(data);
+    throw new ApiError(limit ? limitWords(limit, t) : (data?.error ?? `The kitchen answered ${res.status}.`), res.status, limit);
+  }
   return data;
 }

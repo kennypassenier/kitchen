@@ -22,7 +22,7 @@ function formRow(label, control, value) {
 /** @param {{ dishId: string | null }} o */
 export function buildImportField({ dishId }) {
   const url = input("", "text", { autocomplete: "off", inputmode: "url", placeholder: t("imp.urlPh"), spellcheck: "false" });
-  const text = area("", 8);
+  const text = area("", 8, null);
   text.setAttribute("placeholder", t("imp.textPh"));
   const go = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true }, t("imp.go"));
   const hint = h("p", { class: "kp-formgrid__value ri-hint" }, t("imp.urlHint"), " ", h("a", { class: "ri-sites__link", href: "/sources", title: t("imp.whichHint") }, t("imp.which")));

@@ -4,7 +4,7 @@ import { h } from "../../dom.js";
 import { dishPicker } from "../../dishes/picker.js";
 import { t, lang } from "../../i18n/index.js";
 import { cap } from "../../format.js";
-import { row, input, area, segmented } from "../../ui/form-parts.js";
+import { row, input, area, segmented, NAME_LIMIT } from "../../ui/form-parts.js";
 import { photoField } from "../photos.js";
 import { mealItems, MAIN } from "./consts.js";
 
@@ -16,8 +16,8 @@ export function detailFields({ r, preset, restore, mainOptions, tracker }) {
   const recipePhoto = photoField({ ids: r.photo ? [r.photo] : [], max: 1, label: t("edit.recipePhoto"), tracker });
   const dishField = dishPicker(restore ? restore.dish_id ?? null : r.dish_id ?? preset.dish_id ?? null, { label: t("edit.dish"), id: "rl-dish", fresh: restore?.new_dish ?? null });
   const ownLabel = String(r.label?.[lang()] || r.label?.[lang() === "nl" ? "en" : "nl"] || "").trim();
-  const label = input(ownLabel, "text", { autocomplete: "off", placeholder: t("edit.labelPh") });
-  const short = input(r.short ?? "", "text", { autocomplete: "off" });
+  const label = input(ownLabel, "text", { autocomplete: "off", placeholder: t("edit.labelPh"), ...NAME_LIMIT });
+  const short = input(r.short ?? "", "text", { autocomplete: "off", ...NAME_LIMIT });
   const summary = area(r.summary ?? "", 3);
   // Where the recipe came from (Kenny, 29/10/2026): set by an import, editable, empty clears it.
   const source = input(typeof r.source === "string" ? r.source : "", "url", { autocomplete: "off", inputmode: "url", placeholder: t("edit.sourcePh"), spellcheck: "false" });

@@ -12,6 +12,7 @@ import { attachComboboxes, attachSelects, combobox, toast } from "/static/kp/dis
 import { h } from "../dom.js";
 import { create, kitchenNow, onKitchen, ingredientName, ApiError } from "../api.js";
 import { t, lang as shownLang } from "../i18n/index.js";
+import { MAX_NAME_CHARS } from "../limits.js";
 
 /** @typedef {Record<string, any>} Item */
 
@@ -60,8 +61,8 @@ function buildBox(n, label, multi) {
 
 /** The inline "new ingredient" step: both names (Kenny, 24/10/2026 10:04: every name in Dutch and English; the typed text fills the language shown), its category, Add and Cancel, on the form grid. */
 function buildAsks() {
-  const nlField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", lang: "nl", autocomplete: "off", "aria-label": t("rec.dutchName"), placeholder: "Frieten" }));
-  const enField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", autocomplete: "off", "aria-label": t("rec.englishName"), placeholder: "Fries" }));
+  const nlField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", lang: "nl", autocomplete: "off", "aria-label": t("rec.dutchName"), maxlength: String(MAX_NAME_CHARS), placeholder: "Frieten" }));
+  const enField = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", autocomplete: "off", "aria-label": t("rec.englishName"), maxlength: String(MAX_NAME_CHARS), placeholder: "Fries" }));
   const cat = /** @type {HTMLSelectElement} */ (h("select", { class: "kp-field__input", "aria-label": t("ip.catAria") }));
   const add = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--primary" }, t("ip.addIt"));
   const cancel = h("button", { type: "button", class: "kp-button kp-button--sm" }, t("common.cancel"));

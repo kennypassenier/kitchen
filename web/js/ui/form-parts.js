@@ -5,6 +5,7 @@
 import { attachSelects, attachQuantities, attachSwitches } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { t } from "../i18n/index.js";
+import { MAX_NAME_CHARS, MAX_TEXT_CHARS } from "../limits.js";
 
 let serial = 0;
 /** @param {string} p */
@@ -23,14 +24,21 @@ export function row(label, control, hint = "", labelId = uid("rl-l")) {
   return h("div", { class: "kp-formgrid__row" }, labelEl, h("div", { class: "kp-formgrid__control" }, control), hint ? h("p", { class: "kp-formgrid__value" }, hint) : null);
 }
 
-/** @param {string} value @param {string} [type] @param {Record<string, string>} [attrs] */
+/** The attribute that stops typing at a name's limit (web/js/limits.js; the server's is src/store/limits.rs). */
+export const NAME_LIMIT = Object.freeze({ maxlength: String(MAX_NAME_CHARS) });
+
+/**
+ * A text or address input stops at the text limit unless `attrs` sets its own `maxlength` (a name: `...NAME_LIMIT`).
+ * @param {string} value @param {string} [type] @param {Record<string, string>} [attrs]
+ */
 export function input(value, type = "text", attrs = {}) {
-  return h("input", { class: "kp-field__input", type, id: uid("rl-i"), value, ...attrs });
+  const capped = type === "text" || type === "url" ? { maxlength: String(MAX_TEXT_CHARS) } : {};
+  return h("input", { class: "kp-field__input", type, id: uid("rl-i"), value, ...capped, ...attrs });
 }
 
-/** @param {string} value @param {number} rows */
-export function area(value, rows = 3) {
-  const el = h("textarea", { class: "kp-field__input kp-field__input--multiline", id: uid("rl-t"), rows, "data-kp-autosize": true });
+/** `max`: the most characters it takes; null for none (the import's pasted page, which is not stored). @param {string} value @param {number} rows @param {number | null} [max] */
+export function area(value, rows = 3, max = MAX_TEXT_CHARS) {
+  const el = h("textarea", { class: "kp-field__input kp-field__input--multiline", id: uid("rl-t"), rows, "data-kp-autosize": true, ...(max ? { maxlength: String(max) } : {}) });
   el.textContent = value;
   return el;
 }
@@ -152,8 +160,8 @@ export function rows({ columns, items, add, noun, blank }) {
   };
 }
 
-/** @param {string} label @param {string} value @param {string} placeholder */
-export const textCell = (label, value, placeholder = "") => {
-  const el = input(value, "text", { "aria-label": label, placeholder });
+/** `named`: the cell holds a name (a tool, a track, what a step uses), capped at the name limit. @param {string} label @param {string} value @param {string} placeholder @param {boolean} [named] */
+export const textCell = (label, value, placeholder = "", named = false) => {
+  const el = input(value, "text", { "aria-label": label, placeholder, ...(named ? NAME_LIMIT : {}) });
   return { el, get: () => /** @type {HTMLInputElement} */ (el).value.trim() };
 };

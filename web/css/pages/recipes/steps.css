@@ -152,6 +152,14 @@
   align-items: center;
 }
 
+/* On a phone the two buttons leave the Save button's flash line (the kit puts a refusal there, "Name (Dutch) is too long:
+   …") a sliver of the first column, one word a line. There it takes the whole row under the buttons (fix-field-limits-1). */
+@media (max-width: 40rem) {
+  .rl-editor .kp-drawer__foot > .kp-flash__line {
+    grid-column: 1 / -1;
+  }
+}
+
 /* Every stepper in the editor takes the same step, wide enough for the longest unit ("portions"), so the controls end on one edge. */
 .rl-editor .kp-formgrid {
   --kp-formgrid-short: 17rem;

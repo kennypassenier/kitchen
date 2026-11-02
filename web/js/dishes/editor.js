@@ -20,7 +20,7 @@ import { toast } from "/static/kp/dist/kp-themes.min.js";
 import { h } from "../dom.js";
 import { create, replace, reason } from "../api.js";
 import { ingredientsPicker } from "../ingredients/picker.js";
-import { row, input, toggle, on, select } from "../ui/form-parts.js";
+import { row, input, toggle, on, select, NAME_LIMIT } from "../ui/form-parts.js";
 import { t } from "../i18n/index.js";
 import { names, label, languages, ordered } from "./names.js";
 import { sec, openDrawer } from "./drawer.js";
@@ -34,8 +34,8 @@ export { names, label, languages, ordered, sec, openDrawer };
 function dishForm(d, categories) {
   const n = names(d);
   const f = {
-    nl: input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees" }),
-    en: input(n.en, "text", { autocomplete: "off", placeholder: t("de.phEn") }),
+    nl: input(n.nl, "text", { autocomplete: "off", lang: "nl", placeholder: "Stoofvlees", ...NAME_LIMIT }),
+    en: input(n.en, "text", { autocomplete: "off", placeholder: t("de.phEn"), ...NAME_LIMIT }),
     category: select([["", t("it.noCategory")], ...categories.map((c) => /** @type {[string, string]} */ ([c.id, label(c)]))], d.category ?? "", t("rec.category")),
     parents: toggle(t("it.onParents"), d.parents === true),
     fixed: ingredientsPicker(Array.isArray(d.ingredients) ? d.ingredients : [], { label: t("de.fixedAria") }),

@@ -92,6 +92,13 @@ Nothing here is released or deployed yet; no store format change, no new setting
 - **Calm settings** rows whose value cell has a hint keep what the setting says on the line of its name (they hung 9 to
   19 px under it); the Dutch calendar on Bad days no longer scrolls a 390 px phone sideways (its nav folds below 26rem).
 
+- **Runaway input is refused, and the page says where**: a name half over 200 characters, any other text over 5,000 and
+  a recipe with more than 200 steps, ingredient lines, tools or tracks is refused by the server (400 with the field and
+  the limit); the editors stop typing at the limit (`maxlength`) and name the field in their error ("Step 4, text
+  (Dutch) is too long: at most 5000 characters.") in Dutch and English.
+- **A draft that could not be saved shows "Draft not saved"** once (until a save works again) instead of nothing; the
+  other swallowed failures (draft and photo deletes, the recipe-move rollback, the start-up read) are logged.
+
 ### Internal
 - The unused safe-dish picker and its words are gone; the recipe editor page's Save and heading helpers, the recipes
   table's life and the page registrations moved into small modules (no behaviour change); functions the UX rounds grew

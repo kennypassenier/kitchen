@@ -12,7 +12,7 @@ import { pair, choiceOf, dateField, dishOptions, openForm } from "./drawer.js";
 
 /** The fields of the freezer form. @param {Item} v */
 function freezerFields(v) {
-  const dish = pair(v.dish, "input", t("rec.phDish"));
+  const dish = pair(v.dish, "input", t("rec.phDish"), true);
   const from = select([["", t("rec.noDish")], ...dishOptions()], v.dish_id ?? "", t("rec.dish"));
   const portions = stepper(Number(v.portions ?? 2), { min: 0, max: 99, unit: "portions", one: "portion", label: t("rec.portions") });
   portions.classList.add("kp-formgrid__fill");
@@ -54,7 +54,7 @@ export function openFreezerEditor(list, item, v) {
 
 /** The fields of the shelf form. @param {Item} v */
 function shelfFields(v) {
-  const title = pair(v.title, "input", t("rec.phFood"));
+  const title = pair(v.title, "input", t("rec.phFood"), true);
   const text = pair(v.text, "area", "");
   const minutes = stepper(Number(v.minutes ?? 2), { min: 0, max: 60, unit: "min", label: t("rec.minutes") });
   minutes.classList.add("kp-formgrid__fill");

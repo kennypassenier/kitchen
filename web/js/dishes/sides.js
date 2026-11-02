@@ -3,7 +3,7 @@
 
 import { h } from "../dom.js";
 import { ingredientsPicker } from "../ingredients/picker.js";
-import { row, input } from "../ui/form-parts.js";
+import { row, input, NAME_LIMIT } from "../ui/form-parts.js";
 import { t } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
@@ -12,8 +12,8 @@ import { t } from "../i18n/index.js";
 /** One side's group: the picker, the two labels and the three buttons. @param {Item} side @returns {SideEntry & { remove: HTMLElement }} */
 function buildSide(side) {
   const picker = ingredientsPicker(Array.isArray(side.ingredients) ? side.ingredients : [], { label: t("de.sideIngs") });
-  const nl = input(String(side.label?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("de.phLabelNl"), "aria-label": t("de.labelNlAria") });
-  const en = input(String(side.label?.en ?? ""), "text", { autocomplete: "off", placeholder: t("de.phLabelEn"), "aria-label": t("de.labelEnAria") });
+  const nl = input(String(side.label?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("de.phLabelNl"), "aria-label": t("de.labelNlAria"), ...NAME_LIMIT });
+  const en = input(String(side.label?.en ?? ""), "text", { autocomplete: "off", placeholder: t("de.phLabelEn"), "aria-label": t("de.labelEnAria"), ...NAME_LIMIT });
   const up = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "up", "aria-label": t("de.upLabel") }, t("de.up"));
   const down = h("button", { type: "button", class: "kp-button kp-button--sm", "data-dl-move": "down", "aria-label": t("de.downLabel") }, t("de.down"));
   const remove = h("button", { type: "button", class: "kp-button kp-button--sm kp-button--ghost" }, t("de.remove"));

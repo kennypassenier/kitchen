@@ -3,6 +3,7 @@
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { row } from "../../ui/form-parts.js";
+import { MAX_TEXT_CHARS } from "../../limits.js";
 import { trackChoices, liveRows } from "./logic.js";
 import { stepEditor } from "./step-row.js";
 import { attachControls } from "./controls.js";
@@ -90,7 +91,7 @@ function syncTrackChoices(s) {
  * @param {{ r: Record<string, any>, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, tracker: any }} o
  */
 export function stepFields({ r, tracks, tracker }) {
-  const quick = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", id: "rl-quick", autocomplete: "off", enterkeyhint: "next", placeholder: t("edit.quickPh"), "aria-label": t("edit.quickLabel") }));
+  const quick = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", id: "rl-quick", autocomplete: "off", enterkeyhint: "next", maxlength: String(MAX_TEXT_CHARS), placeholder: t("edit.quickPh"), "aria-label": t("edit.quickLabel") }));
   /** @type {StepsState} */
   const s = { tracker, tracks, list: [], stepsBox: h("ol", { class: "rl-steps" }), stepsEmpty: h("p", { class: "rl-rows__empty" }, t("edit.noSteps")), quick };
   for (const step of r.steps ?? []) addStep(s, step);

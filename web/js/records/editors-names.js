@@ -3,7 +3,7 @@
 import { getSegmentedValues } from "/static/kp/dist/kp-themes.min.js";
 import { kitchenNow } from "../api.js";
 import { t, lang, nameOf } from "../i18n/index.js";
-import { row, input, select } from "../ui/form-parts.js";
+import { row, input, select, NAME_LIMIT } from "../ui/form-parts.js";
 import { today } from "../format.js";
 import { ordered } from "../dishes/editor.js";
 import { pair, choiceOf, dateField, openForm } from "./drawer.js";
@@ -13,8 +13,8 @@ import { pair, choiceOf, dateField, openForm } from "./drawer.js";
 
 /** @param {List} list @param {Item | null} item @param {Item} v */
 export function openIngredientEditor(list, item, v) {
-  const nl = input(String(v.name?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("rec.phIngNl") });
-  const en = input(String(v.name?.en ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phIngEn") });
+  const nl = input(String(v.name?.nl ?? ""), "text", { autocomplete: "off", lang: "nl", placeholder: t("rec.phIngNl"), ...NAME_LIMIT });
+  const en = input(String(v.name?.en ?? ""), "text", { autocomplete: "off", placeholder: t("rec.phIngEn"), ...NAME_LIMIT });
   const cats = ordered(kitchenNow()?.ingredient_categories ?? []);
   const cat = select(cats.map((c) => /** @type {[string, string]} */ ([c.id, nameOf(c).text])), v.category ?? cats.find((c) => c.name?.en === "Other")?.id ?? cats[0]?.id ?? "", t("rec.category"));
   openForm({
@@ -34,7 +34,7 @@ export function openIngredientEditor(list, item, v) {
 
 /** The fields of the source form. @param {Item} v */
 function sourceFields(v) {
-  const name = input(String(v.name ?? ""), "text", { autocomplete: "off", placeholder: t("src.name") });
+  const name = input(String(v.name ?? ""), "text", { autocomplete: "off", placeholder: t("src.name"), ...NAME_LIMIT });
   const url = input(String(v.url ?? ""), "text", { autocomplete: "off", inputmode: "url", placeholder: "https://…", spellcheck: "false" });
   const language = choiceOf({ nl: t("src.nl"), en: t("src.en") }, String(v.language ?? lang()), t("src.language"));
   const note = pair(v.note, "area", "");
