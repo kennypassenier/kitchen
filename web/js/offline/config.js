@@ -38,9 +38,40 @@ export const ingredientPath = (id) => `/data/ingredients/${encodeURIComponent(id
 export const OFFLINE_ROUTES = Object.freeze([KITCHEN_PATH, DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE]);
 
 /**
- * The kit's own words (its connection-band toasts and its logout confirmation) in the page's language. Getters, so the
- * logout dialog, which reads them each time it opens, follows a language change; the band's toasts read them once
- * when the kit binds them, so they keep the language the page started in until the next load (a kit gap, docs/OPEN.md).
+ * The words of the kit's failed-edits drawer, under the kit's own `FAILED_MESSAGES` keys.
+ * @param {(key: string, ...args: any[]) => string} t
+ */
+function failedMessages(t) {
+  return {
+    title: t("off.kitFailedTitle"),
+    intro: t("off.kitFailedIntro"),
+    close: t("off.kitFailedClose"),
+    discard: t("off.kitDiscard"),
+    saveAgain: t("off.kitSaveAgain"),
+    discardAll: t("off.kitDiscardAll"),
+    emptyTitle: t("off.kitEmptyTitle"),
+    emptyBody: t("off.kitEmptyBody"),
+    when: t("off.kitWhen"),
+    why: t("off.kitWhy"),
+    state: t("off.kitState"),
+    stateFailed: t("off.kitStateFailed"),
+    stateHeld: t("off.kitStateHeld"),
+    reasonStale: t("off.kitReasonStale"),
+    reasonOther: t("off.kitReasonOther"),
+    verbs: { POST: t("off.kitVerbAdd"), PUT: t("off.kitVerbChange"), PATCH: t("off.kitVerbChange"), DELETE: t("off.kitVerbDelete") },
+    confirmTitle: (/** @type {number} */ n) => t("off.kitConfirmTitle", n),
+    confirmBody: t("off.kitConfirmBody"),
+    confirmAccept: t("off.kitConfirmAccept"),
+    confirmCancel: t("off.kitConfirmCancel"),
+    count: (/** @type {number} */ n) => t("off.kitCount", n),
+  };
+}
+
+/**
+ * The kit's own words (its connection-band toasts, its logout confirmation and its failed-edits drawer) in the page's
+ * language. Getters, so the logout dialog, which reads them each time it opens, follows a language change. The band's
+ * words are redrawn by the kit on `kp-strings-change` (chassis-rs 073273f); the drawer (kit `FAILED_MESSAGES` keys)
+ * reads them when the kit starts, so it keeps the language the page started in until the next load.
  * @param {(key: string, ...args: any[]) => string} t
  */
 export function kitMessages(t) {
@@ -56,6 +87,7 @@ export function kitMessages(t) {
     body: (/** @type {number} */ n) => t("off.logoutBody", n),
     get accept() { return t("off.logoutAccept"); },
     get stay() { return t("off.logoutStay"); },
+    ...failedMessages(t),
   };
 }
 

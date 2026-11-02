@@ -47,15 +47,15 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    `kp_modules()`, the gzip prefs fix, the login `?next=` and the offline data client; only `chassis` moved in `Cargo.lock`).
 9. **The offline copy [feat-offline-kitchen-1..4], [refactor-rev-kit-1]** (nothing run on 02/11/2026): the new and changed
    unit tests `node --test scripts/offline-apply.test.mjs scripts/offline-keep.test.mjs scripts/offline-size.test.mjs
-   scripts/offline-describe.test.mjs scripts/save-rev.test.mjs`, and `cargo test` (changed: `src/routes.rs` tests for the
+   scripts/save-rev.test.mjs`, and `cargo test` (changed: `src/routes.rs` tests for the
    kit's 409 shape, `src/store/tests/rev.rs` on `Precondition`, new `if_match_star_saves_over_any_revision`).
 10. **The offline release script** `KITCHEN_BASE=… KITCHEN_TOKEN=… node scripts/release/offline.e2e.mjs` (Firefox, a test
    Kitchen; it edits the pace and one dish's name and puts both back): cook mode reloaded offline with "Keep everything
    offline" on; only one recipe kept (release check 11); an offline edit shown after an offline reload,
    then replayed; a conflict on replay landing in the list of refused edits and "Keep the kitchen's version" emptying it;
    "Clear offline copy" then an offline reload showing the failed state; signing out with an unsent edit asking first
-   (expected to FAIL until the logout kit gap is fixed). Then the Firefox smoke and `measure.mjs` on `/settings` (the new
-   Calm row) at 1280 and 390, EN and NL, and the failed-list drawer at 390.
+   (the kit's guard since 073273f); the refused edit shown and discarded in the kit's drawer (`dialog.chassis-failed`). Then the Firefox smoke and `measure.mjs` on `/settings` (the new
+   Calm row) at 1280 and 390, EN and NL, and the kit's failed-edits drawer at 390.
 
 11. **Keep one recipe offline [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1]** (written
    02/11/2026 on chassis-rs 8042dbe, nothing run): `cargo test` (new: `src/routes_tests.rs`
@@ -65,7 +65,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    last 200 keys, keys survive a reopen; the route tests moved from `src/routes.rs` to `src/routes_tests.rs`);
    `node --test scripts/offline-kept.test.mjs` (new: dish paths, kept ids, the switch's state, a dish's ingredients, the
    ingredient plan, the count, the partial kitchen, the route table) and the take tests added to
-   `scripts/offline-apply.test.mjs` and `scripts/offline-describe.test.mjs`; scenarios 2 and 7 of
+   `scripts/offline-apply.test.mjs`; scenarios 2 and 7 of
    `scripts/release/offline.e2e.mjs` (2: the kit keeps the dish and NOT `/data/kitchen`, the recipe and cook mode open
    offline, another dish does not, the Calm row counts it, clearing clears it; 7: a take whose answer is lost is replayed
    with the same key and takes ONE portion, an offline take shows at once and reaches the kitchen once). Also the existing
@@ -81,13 +81,16 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
   the kitchen"); and a kit gap: `post(path, body, { optimistic })` amends only the copy of the POST's own path, so Kitchen
   shows a queued take through its own overlay instead (filed for chassis-rs: an `optimistic` that names the path it
   amends).
-- Fixed on chassis-rs main 073273f (in 8042dbe, which Kitchen is now pinned to; not yet acted on): the logout guard works on the kit's own pages
-  without `configure()` (and "Log out…" no longer sticks after "Stay"), the connection band's words follow
-  `kp-strings-change`, and the kit has its own failed-edits drawer (Discard / Save again / Discard all) opened from the
-  toast's Review, `chassisData.review()` or `[data-chassis-review]`; the `chassis-data-review` event is now cancelable.
-  At that bump: drop Kitchen's own failed-edits drawer (`web/js/offline/failed-list.js` and its wiring) for the kit's,
-  re-check the logout guard from a Kitchen page and a kit page with an unsent edit, and re-check the band words after a
-  language switch. Until then Kitchen calls `preventDefault()` on `chassis-data-review` only if both drawers would open.
+- Built on chassis-rs main 073273f (in 8042dbe) `[refactor-offline-drawer-1]` (written 02/11/2026, nothing run): Kitchen's own
+  failed-edits drawer (`web/js/offline/failed-list.js`, `describe.js`, `scripts/offline-describe.test.mjs`, `off.failed*` /
+  `off.what*` words) is gone; the kit's drawer (Discard / Save again / Discard all) opens from the toast's Review,
+  `chassisData.review()` or `[data-chassis-review]`, with Kitchen's NL/EN words through `kitMessages` (`off.kit*`).
+  Release check 12: (a) from a Kitchen page AND a kit page (`/status`) sign out with an unsent edit: the kit asks first, "Stay"
+  leaves Log out usable; (b) switch language NL/EN with the band showing offline/reconnecting/refused: its words follow at once
+  (the drawer's words follow at the next load); (c) a refused replay (scenario 3 of `scripts/release/offline.e2e.mjs`, adjusted
+  to `dialog.chassis-failed`): Review opens the kit drawer, Discard empties it, Save again resends; then `measure.mjs` of the
+  drawer at 390 and 1280, EN and NL; `node scripts/check-words.mjs` 0 (it was).
+
 - Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
 - Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
   still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
@@ -113,7 +116,7 @@ Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.m
   the data client's logout hook on its own pages from the app's name) or give Kitchen a sign-out form (a choice).
 - **The kit's band toasts read their words once** (`bindBand` spreads `messages` at bind time): after a language switch
   they stay in the start language until the next load. The logout question follows (it reads them each time).
-- **No `post()` in the client**: added in chassis-rs 8042dbe and used for the freezer take; **no failed-list view**: added in 073273f (Kitchen still draws its own until that bump row is done).
+- **No `post()` in the client**: added in chassis-rs 8042dbe and used for the freezer take. The failed-edits view (073273f) is used; the logout and band gaps above are fixed in 8042dbe (re-check: release check 12).
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is
 deliberate (Kenny, 30/10/2026 17:52, bottoms level; see `docs/DECISIONS.md`); "After 1.0: memory, sensory profile, low

@@ -95,8 +95,9 @@ server as before.
 Retry). Edits behind a sent one for the same item get its new revision (the kit's rebase). A 409 or another 4xx moves the
 edit to the failed list and the rest continues (Kenny's kit decision "Overslaan"); 401 and 5xx stop and retry later.
 After a replay that sent anything, Kitchen reads the kitchen again (`web/js/offline/sync.js`), so the next save names the
-server's new revision. The failed list (`web/js/offline/failed-list.js`, opened by the kit toast's "Review") offers "Keep
-the kitchen's version" (`drop`) or "Save mine over it" (`resave` with the server's current revision).
+server's new revision. The kit's own failed-edits drawer (opened by the toast's "Review", `chassisData.review()` or
+`[data-chassis-review]`; Kitchen's words come in through `kitMessages`) offers "Discard" (`drop`), "Save again" (`resave`
+with the server's current revision) and "Discard all".
 
 **On screen.** The kit's connection band (`[data-kp-connection]` in `web/index.html`): the kit paints the queue (pending
 count, reconnecting while a replay runs), `web/js/offline/band.js` paints reads from the copy as offline. The kit's own

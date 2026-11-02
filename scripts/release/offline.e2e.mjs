@@ -155,12 +155,12 @@ async function conflictToFailedList(browser) {
   await done;
   check((await queueOf(a.page))[1] === 1, "the refused edit is in the failed list and the queue went on");
   await a.page.getByRole("button", { name: /Review|Bekijken/ }).click();
-  const sheet = a.page.locator("#off-failed");
+  const sheet = a.page.locator("dialog.chassis-failed"); // the kit's drawer (chassis-rs 073273f)
   await sheet.waitFor();
-  check((await sheet.locator(".kp-formgrid__row").count()) === 1, "the list of refused edits shows it");
-  await sheet.getByRole("button", { name: /Keep the kitchen's version|Versie van de keuken houden/ }).click();
-  await sheet.locator(".kp-empty").waitFor();
-  check((await queueOf(a.page))[1] === 0, "keeping the kitchen's version drops the edit");
+  check((await sheet.locator("[data-chassis-failed-item]").count()) === 1, "the kit's list of refused edits shows it");
+  await sheet.locator('[data-chassis-failed-act="discard"]').click();
+  await sheet.locator(".chassis-failed__empty").waitFor();
+  check((await queueOf(a.page))[1] === 0, "discarding the edit drops it and keeps the kitchen's version");
   const fresh = (await kitchenOf(b.page)).dishes.find((/** @type {any} */ d) => d.id === dish.id);
   await api(b.page, "replace", "dishes", { ...fresh, name });
   await a.context.close();
@@ -188,11 +188,11 @@ async function logoutAsks(browser) {
   await context.route("**/data/settings", (r) => (r.request().method() === "PATCH" ? r.abort("internetdisconnected") : r.continue()));
   await api(page, "patchSettings", { pace });
   check((await queueOf(page))[0] === 1, "one edit waits unsent");
-  // The kit's logout form lives on its own pages (layout.html). The confirmation needs a configured chassisData there.
+  // The kit's logout form lives on its own pages (layout.html). The guard works there without configure() since chassis-rs 073273f.
   await page.goto(`${cfg.base}/status`);
   await page.locator("#chassis-logout").evaluate((form) => /** @type {HTMLFormElement} */ (form).requestSubmit());
   const asked = await page.getByText(/not been sent yet|not sent to the kitchen yet|nog niet naar de keuken/).first().waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false);
-  check(asked, "signing out with an unsent edit asks first (known kit gap if this fails: docs/OPEN.md)");
+  check(asked, "signing out with an unsent edit asks first (kit logout guard, chassis-rs 073273f)");
   await context.close();
 }
 

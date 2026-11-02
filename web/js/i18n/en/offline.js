@@ -1,5 +1,5 @@
-// The offline copy (feat-offline-kitchen): the kit's band toasts and logout question, the settings row, the recipe
-// page's toggle and the list of edits the kitchen refused, in English. Part of en.js; js/i18n/index.js merges the parts.
+// The offline copy (feat-offline-kitchen): the kit's band toasts and logout question, the settings row and the recipe
+// page's toggle, in English. Part of en.js; js/i18n/index.js merges the parts.
 
 export const EN_OFFLINE = {
   // the kit's own words (offline/config.js kitMessages)
@@ -10,33 +10,34 @@ export const EN_OFFLINE = {
   "off.kitFull": "The offline copy is full: nothing new is kept offline until you clear it in Settings.",
   "off.kitRefused": "The kitchen answered with an error; your edits will be sent again.",
   "off.kitExpired": "You are signed out; your edits are sent once you sign in again.",
+  // the kit's failed-edits drawer (chassis-rs 073273f; offline/config.js kitMessages)
+  "off.kitFailedTitle": "Edits the kitchen refused",
+  "off.kitFailedIntro": "These edits were made without a connection. When they were sent, the kitchen already had a newer version, so they were not saved. Discard one to keep the kitchen's version, or save it again to replace it.",
+  "off.kitFailedClose": "Close the list of refused edits",
+  "off.kitDiscard": "Discard",
+  "off.kitSaveAgain": "Save again",
+  "off.kitDiscardAll": "Discard all",
+  "off.kitEmptyTitle": "No refused edits",
+  "off.kitEmptyBody": "Everything you changed reached the kitchen.",
+  "off.kitWhen": "Made",
+  "off.kitWhy": "Why",
+  "off.kitState": "Status",
+  "off.kitStateFailed": "Set aside; later edits were sent",
+  "off.kitStateHeld": "Waiting for you; later edits wait too",
+  "off.kitReasonStale": "Changed elsewhere after you read it.",
+  "off.kitReasonOther": "The kitchen did not accept this edit.",
+  "off.kitVerbAdd": "Add",
+  "off.kitVerbChange": "Change",
+  "off.kitVerbDelete": "Delete",
+  "off.kitConfirmTitle": (n) => `Discard ${n === 1 ? "this edit" : `all ${n} edits`}?`,
+  "off.kitConfirmBody": "They are removed from this device and cannot be sent later.",
+  "off.kitConfirmAccept": "Discard",
+  "off.kitConfirmCancel": "Keep them",
+  "off.kitCount": (n) => `${n} ${n === 1 ? "edit" : "edits"}`,
   "off.logoutTitle": "Sign out with edits that were not sent?",
   "off.logoutBody": (n) => `${n} ${n === 1 ? "edit was" : "edits were"} not sent to the kitchen yet. Signing out deletes ${n === 1 ? "it" : "them"} from this device.`,
   "off.logoutAccept": "Sign out anyway",
   "off.logoutStay": "Stay signed in",
   // a POST (new item, draft, import, Undo's restore) without a connection (api/http.js); a freezer take queues instead
   "api.needsConnection": "This needs a connection: something new gets its number from the kitchen. Nothing you typed is lost; try again once you are online.",
-  // the refused edits (offline/failed-list.js)
-  "off.failedTitle": "Edits the kitchen refused",
-  "off.failedText": "These edits were made without a connection. When they were sent, the kitchen already had a newer version, so they were not saved. Keep the kitchen's version, or save yours over it.",
-  "off.failedEmpty": "No refused edits. Everything you changed reached the kitchen.",
-  "off.failedClose": "Close the list of refused edits",
-  "off.failedWhen": (when) => `Made ${when}`,
-  "off.failedWhyStale": "Changed elsewhere after you read it.",
-  "off.failedWhyOther": (words) => `The kitchen said: ${words}`,
-  "off.failedDrop": "Keep the kitchen's version",
-  "off.failedDropHint": "Your edit is thrown away; the page shows what the kitchen has.",
-  "off.failedResave": "Save mine over it",
-  "off.failedResaveHint": "Your edit is sent again and replaces the kitchen's newer version.",
-  "off.failedDropped": "Your edit was thrown away.",
-  "off.failedResaved": "Your edit is being sent again.",
-  "off.failedActionFailed": (words) => `That did not work. ${words}`,
-  "off.failedReadFailed": "The list of refused edits could not be read on this device.",
-  "off.whatSettings": "Your settings",
-  "off.whatChange": (what) => `Change to ${what}`,
-  "off.whatDelete": (what) => `Delete of ${what}`,
-  "off.whatItem": (list, name) => `${list} “${name}”`,
-  "off.whatTake": (dish) => `A portion of “${dish}” taken from the freezer`,
-  "off.whatTakeUnnamed": "A portion taken from the freezer",
-  "off.whatUnknown": "An item that is no longer in the kitchen",
 };
