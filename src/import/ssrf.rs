@@ -30,8 +30,11 @@ fn allowed_v6(a: Ipv6Addr) -> bool {
     if let Some(v4) = a.to_ipv4_mapped() {
         return allowed_v4(v4);
     }
-    // ::a.b.c.d (deprecated IPv4-compatible) and 64:ff9b::/96 (NAT64).
-    if s[..6] == [0, 0, 0, 0, 0, 0] || s[..6] == [0x64, 0xff9b, 0, 0, 0, 0] {
+    // ::a.b.c.d (deprecated IPv4-compatible), ::ffff:0:a.b.c.d (IPv4-translated) and 64:ff9b::/96 (NAT64).
+    if s[..6] == [0, 0, 0, 0, 0, 0]
+        || s[..6] == [0, 0, 0, 0, 0xffff, 0]
+        || s[..6] == [0x64, 0xff9b, 0, 0, 0, 0]
+    {
         let v4 = Ipv4Addr::new((s[6] >> 8) as u8, s[6] as u8, (s[7] >> 8) as u8, s[7] as u8);
         return allowed_v4(v4) && !a.is_unspecified() && !a.is_loopback();
     }
@@ -50,7 +53,10 @@ fn allowed_v6(a: Ipv6Addr) -> bool {
         || (s[0] & 0xFFC0) == 0xFE80 // fe80::/10 link-local
         || (s[0] & 0xFFC0) == 0xFEC0 // fec0::/10 site-local (deprecated)
         || (s[0] & 0xFE00) == 0xFC00 // fc00::/7 unique-local
-        || (s[0] == 0x2001 && s[1] == 0x0db8)) // documentation
+        || (s[0] == 0x2001 && s[1] == 0x0db8) // documentation
+        || (s[0] == 0x2001 && s[1] == 0) // 2001::/32 Teredo (an obfuscated IPv4 address inside)
+        || (s[0] == 0x64 && s[1] == 0xff9b && s[2] == 1) // 64:ff9b:1::/48 local-use NAT64
+        || (s[..4] == [0x100, 0, 0, 0])) // 100::/64 discard-only
 }
 
 /// Whether an address is a public one that may be connected to.

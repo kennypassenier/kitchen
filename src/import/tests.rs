@@ -52,6 +52,13 @@ fn every_blocked_range_is_refused() {
         "2002:0a00:0001::1",
         "2002:7f00:1::1",
         "2001:db8::1",
+        // IPv4-translated (::ffff:0:0/96), local-use NAT64 (64:ff9b:1::/48), discard-only (100::/64) and Teredo
+        // (2001::/32, which carries an obfuscated IPv4 address) (sec review 02/11/2026).
+        "::ffff:0:7f00:1",
+        "::ffff:0:a00:1",
+        "64:ff9b:1::a00:1",
+        "100::1",
+        "2001:0:4136:e378:8000:63bf:3fff:fdd2",
     ] {
         assert!(!allowed_ip(ip(bad)), "{bad} must be refused");
     }

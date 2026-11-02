@@ -17,7 +17,8 @@
 //! * the host is resolved here and every address it resolves to must be a
 //!   public one ([`allowed_ip`]: not loopback, private, link-local,
 //!   unique-local, unspecified, multicast, shared/CGNAT, reserved, nor any
-//!   IPv4-mapped, NAT64 or 6to4 form of those) BEFORE anything connects;
+//!   IPv4-mapped, IPv4-translated, NAT64 (also local-use) or 6to4 form of those,
+//!   nor Teredo or the IPv6 discard prefix) BEFORE anything connects;
 //! * the connection goes to the checked address (`ClientBuilder::resolve`
 //!   pins it, so a second DNS answer cannot replace it; TLS still verifies
 //!   the host name), and the system proxy is switched off so nothing can
