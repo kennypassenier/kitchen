@@ -1,6 +1,8 @@
 //! fix-stale-save-1: an item's `rev`, bumped on every replace, and the `If-Match` check that refuses a stale save.
+//! Since refactor-rev-kit-1 the precondition and the refusal are the kit's (`chassis::core::revision`).
 
 use super::*;
+use chassis::core::revision::Precondition;
 
 fn dish(nl: &str) -> serde_json::Value {
     serde_json::json!({"name": {"nl": nl, "en": nl}, "recipes": []})
@@ -21,7 +23,7 @@ async fn every_replace_bumps_the_revision_and_ignores_a_sent_one() {
     let one = s.replace("dishes", id, body).await.unwrap();
     assert_eq!(one["rev"], 1, "the server's count, not the page's");
     let two = s
-        .replace_if("dishes", id, dish("c"), Some(1))
+        .replace_if("dishes", id, dish("c"), Some(Precondition::Rev(1)))
         .await
         .unwrap();
     assert_eq!(two["rev"], 2);
@@ -35,11 +37,16 @@ async fn a_stale_revision_is_refused_and_changes_nothing() {
         .unwrap()
         .to_string();
     // Tab A and tab B both opened it at rev 0; A saves first.
-    s.replace_if("dishes", &id, dish("from A"), Some(0))
+    s.replace_if("dishes", &id, dish("from A"), Some(Precondition::Rev(0)))
         .await
         .unwrap();
-    let b = s.replace_if("dishes", &id, dish("from B"), Some(0)).await;
-    assert_eq!(b, Err(Refused::Stale { have: 1 }));
+    let b = s
+        .replace_if("dishes", &id, dish("from B"), Some(Precondition::Rev(0)))
+        .await;
+    assert!(
+        matches!(b, Err(Refused::Stale(stale)) if stale.current == 1),
+        "{b:?}"
+    );
     let now = s.list("dishes").await.unwrap();
     assert_eq!(now[0]["name"]["nl"], "from A");
     assert_eq!(now[0]["rev"], 1);
@@ -73,10 +80,28 @@ async fn an_old_file_without_revisions_opens_at_format_5_and_counts_from_0() {
     let s = Store::open(dir.path()).unwrap();
     assert_eq!(s.snapshot().await.format, 5);
     let body = serde_json::json!({"name": {"nl": "Stoofvlees", "en": "Beef stew"}, "recipes": []});
-    let saved = s.replace_if("dishes", "d1", body, Some(0)).await.unwrap();
+    let saved = s
+        .replace_if("dishes", "d1", body, Some(Precondition::Rev(0)))
+        .await
+        .unwrap();
     assert_eq!(saved["rev"], 1);
     let back: serde_json::Value =
         serde_json::from_slice(&std::fs::read(dir.path().join("kitchen.json")).unwrap()).unwrap();
     assert_eq!(back["format"], 5);
     assert_eq!(back["dishes"][0]["rev"], 1);
+}
+
+#[tokio::test]
+async fn if_match_star_saves_over_any_revision() {
+    let s = Store::in_memory(empty());
+    let id = s.create("dishes", dish("a")).await.unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    s.replace("dishes", &id, dish("b")).await.unwrap();
+    let c = s
+        .replace_if("dishes", &id, dish("c"), Some(Precondition::Any))
+        .await
+        .unwrap();
+    assert_eq!(c["rev"], 2, "`*` (the kit's Any) passes and still bumps");
 }

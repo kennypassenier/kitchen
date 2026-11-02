@@ -1,5 +1,6 @@
 // node --test scripts/save-rev.test.mjs: the revision check every save goes through (web/js/api/save.js,
-// fix-quick-rev-1). A quick action sends the revision it read as If-Match, and the server's 409 "stale" becomes the
+// fix-quick-rev-1, refactor-rev-kit-1). A quick action names the revision it read (the kit's client sends it as
+// If-Match), and the kit's 409 "stale" (chassis-rs `Conflict`, the body the kit's error carries) becomes the
 // stale refusal the pages recognise.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -11,7 +12,8 @@ test("a quick action on a recipe sends its dish's revision as read", () => {
   // The safe toggle spreads the recipe it read: `{ ...r, safe: false }`.
   const r = { id: "r1", dish_id: "d", dish_rev: 4, rev: 9, safe: true };
   assert.equal(ifMatchFor("recipes", { ...r, safe: false }), 4);
-  assert.deepEqual(headersFor({ ...r, safe: false }, ifMatchFor("recipes", r)), { "Content-Type": "application/json", "If-Match": "4" });
+  // The header itself is the kit's now (window.chassisData quotes it); a POST's headers never carry one.
+  assert.deepEqual(headersFor({ ...r, safe: false }), { "Content-Type": "application/json" });
 });
 
 test("any other list sends the item's own revision; never saved counts as 0", () => {
@@ -37,9 +39,14 @@ test("a revision that is no whole number counts as 0, so the save is still check
   for (const rev of [-1, 1.5, "3", null, NaN, Infinity]) assert.equal(revOf({ rev }), 0, String(rev));
 });
 
-test("a call without a body or revision sends no such headers", () => {
+test("a POST without a body sends no headers, and no If-Match ever comes from Kitchen's own headers", () => {
   assert.deepEqual(headersFor(undefined), {});
-  assert.deepEqual(headersFor(undefined, 0), { "If-Match": "0" });
+  assert.equal("If-Match" in headersFor({ a: 1 }), false);
+});
+
+test("the kit's 409 body (error, remedy, code, rev) still maps to the stale refusal", () => {
+  const kit = { error: "this item was changed since you read it", remedy: "reload the item ...", code: "stale", rev: 5 };
+  assert.deepEqual(failureOf(409, kit, t), { words: "<api.stale>", limit: null, code: "stale" });
 });
 
 test("409 with code stale maps to the stale refusal in the page's words", () => {

@@ -1,5 +1,6 @@
 //! The shape of the kitchen file: its format version, the collections, the data itself and why a change is refused.
 
+use chassis::core::revision::Stale;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -120,12 +121,10 @@ pub enum Refused {
     /// Undo found an item with that id in the list again.
     Exists,
     /// `If-Match` named another revision than the stored one: the item was saved elsewhere since the page read it
-    /// (fix-stale-save-1); `have` is the stored revision.
-    Stale {
-        have: u64,
-    },
-    /// An `If-Match` header that is not a revision number.
-    BadIfMatch,
+    /// (fix-stale-save-1). The kit's own refusal (refactor-rev-kit-1), so the route answers it with the kit's
+    /// `Conflict` (409 `{error, remedy, code: "stale", rev}`); `.current` is the stored revision. A malformed
+    /// `If-Match` never reaches the store: the kit's `IfMatch` extractor answers it with 400.
+    Stale(Stale),
     Disk(String),
 }
 
@@ -164,13 +163,10 @@ impl std::fmt::Display for Refused {
                 "that delete can no longer be undone: too much time has passed"
             ),
             Refused::Exists => write!(f, "that item is already back"),
-            Refused::Stale { .. } => write!(
+            Refused::Stale(_) => write!(
                 f,
                 "this item was changed elsewhere since it was opened: reload it before saving"
             ),
-            Refused::BadIfMatch => {
-                write!(f, "If-Match must be the item's revision, a whole number")
-            }
             Refused::Disk(e) => write!(f, "could not save: {e}"),
         }
     }

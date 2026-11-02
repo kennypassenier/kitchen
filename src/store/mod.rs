@@ -32,6 +32,7 @@ use data::FORMAT;
 pub use data::{Data, Refused};
 pub use drafts::DRAFT_DAYS;
 pub use migrate::migrate;
+pub(crate) use ops::rev_of;
 pub use photo_gc::SWEEP_EVERY;
 pub use photo_orphans::{ORPHAN_MIN_AGE, OrphanSweep};
 pub use seed::seed;

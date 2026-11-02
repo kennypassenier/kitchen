@@ -1,4 +1,7 @@
-// The JSON calls: one fetch wrapper, its error type and the words for an error. No state; api.js holds the data.
+// The JSON calls outside the kit: one fetch wrapper, its error type and the words for an error. No state; api.js holds
+// the data. Since refactor-rev-kit-1 every PUT, PATCH and DELETE goes through the kit's data client (api/kit-data.js),
+// which owns If-Match and the write queue; the kit has no POST, so a create, a draft, an import, a freezer take and
+// Undo's restore come through here and need a connection (the server issues the ids).
 
 import { t } from "../i18n/index.js";
 import { failureOf, headersFor } from "./save.js";
@@ -23,13 +26,11 @@ export class ApiError extends Error {
 export const reason = (e) => (e instanceof Error ? e.message : String(e));
 
 /**
- * `keepalive`: the request outlives the page (a draft written while the tab closes). `ifMatch`: the item's `rev` as the
- * page read it; the server refuses the change (409, code "stale") when it was saved since (fix-stale-save-1).
- * @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean, ifMatch?: number }} [o]
+ * `keepalive`: the request outlives the page (a draft written while the tab closes).
+ * @param {string} method @param {string} path @param {unknown} [body] @param {{ keepalive?: boolean }} [o]
  */
-export async function call(method, path, body, { keepalive = false, ifMatch } = {}) {
-  // The If-Match and the refusal's words come from one place for every save (api/save.js, fix-quick-rev-1).
-  const headers = headersFor(body, ifMatch);
+export async function call(method, path, body, { keepalive = false } = {}) {
+  const headers = headersFor(body);
   let res;
   try {
     res = await fetch(path, {

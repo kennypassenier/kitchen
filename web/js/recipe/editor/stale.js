@@ -1,5 +1,5 @@
 // A save refused because the recipe was saved elsewhere since this editor opened it (fix-stale-save-1): two tabs on one
-// recipe, the second Save no longer wins silently. The server answers 409 with `"code": "stale"` (src/routes.rs); the
+// recipe, the second Save no longer wins silently. The server answers the kit's 409 with `"code": "stale"` (src/routes.rs, chassis-rs `Conflict`); the
 // editor turns that into its own result so the page can offer Reload or Keep as a draft (pages/recipe-edit/stale.js).
 // Pure: tested by scripts/stale-save.test.mjs.
 

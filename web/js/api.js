@@ -1,5 +1,9 @@
 // The kitchen's JSON API (src/routes.rs) and the one copy of its data.
 //
+// Writes that name a revision (PUT), the settings PATCH and a DELETE go through the kit's data client
+// (api/kit-data.js, refactor-rev-kit-1): it sends If-Match and, when the service cannot be reached, queues the edit and
+// answers `queued`. A queued edit is applied to the shared copy as it was sent, so every screen shows it at once.
+//
 // Every screen reads the kitchen through `loadKitchen()` and changes it
 // through the calls below; a change updates the shared copy and tells every
 // listener, so two screens never disagree. A failure is an `ApiError` whose
@@ -13,9 +17,11 @@ import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
 import { ifMatchFor } from "./api/save.js";
+import { writeJson } from "./api/kit-data.js";
 
 export { ApiError, reason } from "./api/http.js";
 export { recipeLabel } from "./api/recipe-view.js";
+export { recipeById, daysSinceCooked, ingredientById, ingredientName, defaultRecipe } from "./api/lookups.js";
 
 /** @type {Kitchen | null} */
 let copy = null;
@@ -147,7 +153,10 @@ export async function replace(list, item, { ifMatch } = {}) {
     return copy?.recipes.find((r) => r.id === item.id) ?? item;
   }
   const held = /** @type {Item[] | undefined} */ (copy?.[/** @type {keyof Kitchen} */ (list)])?.find?.((x) => x.id === item.id);
-  const saved = await call("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item, { ifMatch: ifMatchFor(list, item, { explicit: ifMatch, held }) });
+  const rev = ifMatchFor(list, item, { explicit: ifMatch, held });
+  const { data, queued } = await writeJson("PUT", `/data/${list}/${encodeURIComponent(item.id)}`, item, rev);
+  // Queued: the copy shows the edit as sent; its revision stays the one it was read at, which the queued edit names.
+  const saved = queued ? { ...item } : data;
   put(list, saved);
   return saved;
 }
@@ -164,7 +173,10 @@ export async function remove(list, id) {
     await replace("dishes", { ...dish, recipes: rest });
     return was;
   }
-  const gone = await call("DELETE", `/data/${list}/${encodeURIComponent(id)}`);
+  const held = /** @type {Item[] | undefined} */ (copy?.[/** @type {keyof Kitchen} */ (list)])?.find?.((x) => x.id === id);
+  const { data, queued } = await writeJson("DELETE", `/data/${list}/${encodeURIComponent(id)}`);
+  // Queued: what the page held is what will be removed, so Undo has it.
+  const gone = queued ? held : data;
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
     const at = arr.findIndex((x) => x.id === id);
@@ -209,42 +221,29 @@ export async function takePortions(id, portions = 1) {
   return item;
 }
 
+/**
+ * The settings with `patch` merged in as the server merges it: a key set to `null` is removed.
+ * @param {Record<string, unknown>} settings @param {Record<string, unknown>} patch
+ */
+export function mergeSettings(settings, patch) {
+  const next = { ...settings };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete next[key];
+    else next[key] = value;
+  }
+  return next;
+}
+
 /** Merge keys into the settings (`null` removes one). @param {Record<string, unknown>} patch */
 export async function patchSettings(patch) {
-  const settings = await call("PATCH", "/data/settings", patch);
+  const { data, queued } = await writeJson("PATCH", "/data/settings", patch);
+  // Queued: merged here the way the server merges (`null` removes a key).
+  const settings = queued ? mergeSettings(copy?.settings ?? {}, patch) : data;
   if (copy) {
     copy.settings = settings;
     tell();
   }
   return settings;
-}
-
-/** A recipe by id from the shared copy. @param {string | null} id */
-export const recipeById = (id) => copy?.recipes.find((r) => r.id === id) ?? null;
-
-/**
- * Days since a dish (or its recipe, which has the dish's id) was last cooked, from the log; Infinity when never.
- * @param {Kitchen} k @param {string} dishId @param {Date} [now]
- */
-export function daysSinceCooked(k, dishId, now = new Date()) {
-  let last = -Infinity;
-  for (const e of k.log) if (e.dish_id === dishId) last = Math.max(last, Date.parse(e.date));
-  if (last === -Infinity) return Infinity;
-  return Math.floor((now.getTime() - last) / 86_400_000);
-}
-
-/** An ingredient by id (Kenny, 24/10/2026 05:15: sides and recipe lines point at one list). @param {string | null | undefined} id */
-export const ingredientById = (id) => (id ? copy?.ingredients?.find((i) => i.id === id) ?? null : null);
-
-/**
- * An ingredient's name in `lang`, else its other half; an id that points at nothing says so.
- * @param {string | null | undefined} id @param {"en" | "nl"} [lang]
- */
-export function ingredientName(id, lang = "en") {
-  const i = ingredientById(id);
-  if (!i) return lang === "nl" ? "(verwijderd ingrediënt)" : "(deleted ingredient)";
-  const other = lang === "nl" ? "en" : "nl";
-  return String(i.name?.[lang] || i.name?.[other] || "").trim() || "(no name)";
 }
 
 /** Make a recipe its dish's default (the wheel's and Cook this's). @param {string} id */
@@ -253,9 +252,3 @@ export async function makeDefaultRecipe(id) {
   if (!dish) throw new ApiError("That recipe does not exist (any more).", 404);
   await replace("dishes", { ...dish, recipes: dish.recipes.map((/** @type {Item} */ r) => ({ ...r, default: r.id === id })) });
 }
-
-/** A dish's default recipe, or null when it has none. @param {Item | null | undefined} dish */
-export const defaultRecipe = (dish) => {
-  const list = Array.isArray(dish?.recipes) ? dish.recipes : [];
-  return list.find((r) => r.default === true) ?? list[0] ?? null;
-};

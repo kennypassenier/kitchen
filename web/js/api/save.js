@@ -1,11 +1,15 @@
-// The revision check every save goes through (fix-stale-save-1, fix-quick-rev-1): which `If-Match` a save sends, the
-// headers of a JSON call, and how a refused answer becomes words and a machine code. Pure (no fetch, no DOM, no kit), so
-// scripts/save-rev.test.mjs tests it; api/http.js does the fetch with it and api.js decides the revision per list.
+// The revision check every save goes through (fix-stale-save-1, fix-quick-rev-1, refactor-rev-kit-1): which revision a
+// save names, the headers of a POST, and how a refused answer becomes words and a machine code. Pure (no fetch, no DOM,
+// no kit), so scripts/save-rev.test.mjs tests it.
 //
 // Every item of a collection carries an optional whole-number `rev` (absent counts as 0); a `PUT /data/{list}/{id}` with
-// `If-Match: <rev>` is refused with 409 `{"code": "stale", "rev": <stored>}` when the stored revision differs, so a page
-// that read the item before someone else saved it never overwrites that save (docs/agent/DATA.md "Revisions and stale
-// saves"). A recipe lives in its dish, so a recipe's revision is its dish's (`dish_rev` in the recipe view).
+// `If-Match: <rev>` is refused with the kit's 409 `{"code": "stale", "rev": <stored>}` when the stored revision differs, so
+// a page that read the item before someone else saved it never overwrites that save (docs/agent/DATA.md "Revisions and
+// stale saves"). A recipe lives in its dish, so a recipe's revision is its dish's (`dish_rev` in the recipe view).
+//
+// Since refactor-rev-kit-1 the header itself, its quoting and the 409's revision are the kit's (`window.chassisData`,
+// api/kit-data.js): Kitchen only decides WHICH revision a save names (`ifMatchFor`, the domain rule a recipe adds) and
+// says a refusal in the page's language (`failureOf`), which the kit's English sentence cannot.
 
 import { limitOf, limitWords } from "./refusal.js";
 
@@ -39,20 +43,19 @@ export function ifMatchFor(list, item, { explicit, held } = {}) {
 }
 
 /**
- * The headers of a JSON call: the content type when there is a body, and `If-Match` when a revision is given.
- * @param {unknown} body @param {number} [ifMatch]
+ * The headers of a JSON POST (api/http.js `call`): the content type when there is a body. A POST is never checked
+ * against a revision; every checked write goes through the kit (api/kit-data.js `writeJson`), which sends `If-Match`.
+ * @param {unknown} body
  * @returns {Record<string, string>}
  */
-export function headersFor(body, ifMatch) {
-  /** @type {Record<string, string>} */
-  const headers = body === undefined ? {} : { "Content-Type": "application/json" };
-  if (typeof ifMatch === "number") headers["If-Match"] = String(ifMatch);
-  return headers;
+export function headersFor(body) {
+  return body === undefined ? {} : { "Content-Type": "application/json" };
 }
 
 /**
  * A refused answer as the page shows it: a size refusal in the page's language naming the field (fix-field-limits-1), a
- * stale save in the page's language (fix-stale-save-1), any other in the server's own words.
+ * stale save in the page's language (fix-stale-save-1; the kit's 409 body, `code: "stale"`), any other in the server's
+ * own words. `data` is the body the kit's error carries (`err.body`) or the one api/http.js parsed.
  * @param {number} status @param {any} data the parsed body, or null @param {Words} t
  * @returns {{ words: string, limit: import("./refusal.js").LimitRefusal | null, code: string }}
  */

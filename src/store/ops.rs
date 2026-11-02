@@ -1,5 +1,6 @@
 //! Changing a collection: add, replace and remove an item, and take portions out of the freezer.
 
+use chassis::core::revision::{self, Precondition};
 use serde_json::Value;
 
 use super::caps::within_limits;
@@ -80,15 +81,16 @@ impl Store {
     }
 
     /// Replace an item whole; `id` and `created` are kept and `rev` goes one up (absent counts as 0; fix-stale-save-1).
-    /// `if_match` is the `rev` the page loaded: when given and the stored one differs, someone saved in between and the
-    /// change is refused ([`Refused::Stale`]) instead of silently winning. Photos the item no longer refers to are noted
+    /// `if_match` is the precondition the page sent (the kit's `IfMatch`, refactor-rev-kit-1: the `rev` it loaded, or
+    /// `*`): when given and the stored revision differs, someone saved in between and the change is refused
+    /// ([`Refused::Stale`]) instead of silently winning. The comparison is the kit's (`chassis::core::revision::check`). Photos the item no longer refers to are noted
     /// for the sweep once their undo window closed (photo_gc.rs, fix-undo-photos-1).
     pub async fn replace_if(
         &self,
         coll: &str,
         id: &str,
         body: Value,
-        if_match: Option<u64>,
+        if_match: Option<Precondition>,
     ) -> Result<Value, Refused> {
         let Value::Object(mut obj) = body else {
             return Err(Refused::NotAnObject);
@@ -110,11 +112,7 @@ impl Store {
                     .find(|v| v.get("id").and_then(Value::as_str) == Some(id))
                     .ok_or(Refused::NotFound)?;
                 let have = rev_of(slot);
-                if let Some(want) = if_match
-                    && want != have
-                {
-                    return Err(Refused::Stale { have });
-                }
+                revision::check(if_match, have).map_err(Refused::Stale)?;
                 obj.insert("id".into(), Value::String(id.into()));
                 if let Some(created) = slot.get("created") {
                     obj.insert("created".into(), created.clone());
@@ -185,6 +183,6 @@ impl Store {
 }
 
 /// An item's revision: how many times it was replaced; absent (an item stored before fix-stale-save-1) counts as 0.
-pub(super) fn rev_of(item: &Value) -> u64 {
+pub(crate) fn rev_of(item: &Value) -> u64 {
     item.get("rev").and_then(Value::as_u64).unwrap_or(0)
 }

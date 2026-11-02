@@ -23,6 +23,8 @@ export const NL_RECORDS = {
   "api.signedOutNote": "Je bent afgemeld. Meld je aan in een nieuw tabblad, kom dan hier terug en probeer opnieuw; wat je typte blijft staan.",
   "api.signIn": "Aanmelden (nieuw tabblad)",
   "api.dropped": "De verbinding met de keuken viel weg. Er is niets verloren; probeer opnieuw.",
+  // refactor-rev-kit-1: lezen via de kit zonder verbinding en zonder offline kopie (api/kit-data.js).
+  "api.offlineNoCopy": "Er is geen verbinding en dit is niet offline bewaard op dit toestel. Het verschijnt weer zodra de verbinding terug is.",
   "rec.saved": "Bewaard",
   "rec.savedName": (n) => `${n} bewaard`,
   "rec.addedName": (n) => `${n} toegevoegd`,

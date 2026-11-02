@@ -7,7 +7,7 @@
 //! |---|---|
 //! | `GET /data/{list}` | the list |
 //! | `POST /data/{list}` | add an item; the answer carries its new `id` |
-//! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since |
+//! | `PUT /data/{list}/{id}` | replace the item; `If-Match: <rev>` refuses it (409, `"code": "stale"`) when it was saved since; the answer carries `ETag: "<rev>"` |
 //! | `DELETE /data/{list}/{id}` | remove the item; the answer is what was removed (Undo) |
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back) |
@@ -17,18 +17,25 @@
 //!
 //! A refusal is HTTP 4xx (5xx for a failed save) with `{"error": "…"}` in
 //! words a page shows as they are.
+//!
+//! Revisions are the kit's (refactor-rev-kit-1, chassis-rs `IfMatch` /
+//! `Revisioned` / `Conflict`): the `If-Match` header is parsed by the kit's
+//! extractor (`5`, `"5"`, `W/"5"`, `*`; anything else is the kit's 400), the
+//! store compares with the kit's `check`, and a stale save is answered with
+//! the kit's 409 `{error, remedy, code: "stale", rev}` plus `ETag`, which the
+//! page's offline client (`window.chassisData`) and `web/js/api/save.js` read.
 
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
-use axum::http::header::IF_MATCH;
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
+use chassis::{Conflict, IfMatch, Revisioned};
 use serde_json::{Value, json};
 
-use crate::store::{Refused, Store};
+use crate::store::{Refused, Store, rev_of};
 
 type Shared = State<Arc<Store>>;
 
@@ -51,10 +58,12 @@ pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
 fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
     match r {
         Ok(v) => Json(v).into_response(),
+        // The kit's 409, the one shape every data route of every kit app answers a stale save with.
+        Err(Refused::Stale(stale)) => Conflict::from(stale).into_response(),
         Err(e) => {
             let code = match e {
                 Refused::NotFound | Refused::UnknownCollection(_) => StatusCode::NOT_FOUND,
-                Refused::NoPortionsLeft | Refused::Exists | Refused::Stale { .. } => {
+                Refused::NoPortionsLeft | Refused::Exists | Refused::Stale(_) => {
                     StatusCode::CONFLICT
                 }
                 Refused::UndoClosed => StatusCode::GONE,
@@ -62,7 +71,6 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 Refused::NotAnObject
                 | Refused::IdMismatch
                 | Refused::NoKey
-                | Refused::BadIfMatch
                 | Refused::MissingName(_)
                 | Refused::BadSource(_)
                 | Refused::BadRecipeSource(_)
@@ -74,10 +82,6 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
                 body["reason"] = json!(reason);
                 body["field"] = json!(field);
                 body["limit"] = json!(limit);
-            }
-            if let Refused::Stale { have } = e {
-                body["code"] = json!("stale");
-                body["rev"] = json!(have);
             }
             (code, Json(body)).into_response()
         }
@@ -96,29 +100,21 @@ async fn create(State(s): Shared, Path(list): Path<String>, Json(body): Json<Val
     answer(s.create(&list, body).await)
 }
 
+/// A replace checked against the revision the page read (`If-Match`, parsed by the kit). The saved item answers with
+/// its new revision as `ETag` as well as in its body, so the offline client reads it either way.
 async fn replace(
     State(s): Shared,
     Path((list, id)): Path<(String, String)>,
-    headers: HeaderMap,
+    if_match: IfMatch,
     Json(body): Json<Value>,
 ) -> Response {
-    match if_match(&headers) {
-        Ok(rev) => answer(s.replace_if(&list, &id, body, rev).await),
+    match s
+        .replace_if(&list, &id, body, if_match.precondition())
+        .await
+    {
+        Ok(item) => Revisioned::new(rev_of(&item), item).into_response(),
         Err(e) => answer(Err::<Value, _>(e)),
     }
-}
-
-/// The revision a page loaded, from `If-Match` (`5` or `"5"`); absent is no check (the behaviour before fix-stale-save-1).
-pub(crate) fn if_match(headers: &HeaderMap) -> Result<Option<u64>, Refused> {
-    let Some(raw) = headers.get(IF_MATCH) else {
-        return Ok(None);
-    };
-    let text = raw.to_str().map_err(|_| Refused::BadIfMatch)?.trim();
-    let bare = text
-        .strip_prefix('"')
-        .and_then(|t| t.strip_suffix('"'))
-        .unwrap_or(text);
-    bare.parse().map(Some).map_err(|_| Refused::BadIfMatch)
 }
 
 async fn delete(State(s): Shared, Path((list, id)): Path<(String, String)>) -> Response {
@@ -145,29 +141,28 @@ async fn patch_settings(State(s): Shared, Json(body): Json<Value>) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn with(value: &str) -> HeaderMap {
-        let mut h = HeaderMap::new();
-        h.insert(IF_MATCH, value.parse().unwrap());
-        h
-    }
-
-    #[test]
-    fn if_match_reads_a_bare_or_quoted_revision_and_refuses_anything_else() {
-        assert_eq!(if_match(&HeaderMap::new()), Ok(None));
-        assert_eq!(if_match(&with("3")), Ok(Some(3)));
-        assert_eq!(if_match(&with("\"7\"")), Ok(Some(7)));
-        assert_eq!(if_match(&with("*")), Err(Refused::BadIfMatch));
-        assert_eq!(if_match(&with("-1")), Err(Refused::BadIfMatch));
-    }
+    use chassis::core::revision::Precondition;
 
     #[tokio::test]
-    async fn a_stale_refusal_is_409_with_its_code() {
-        let res = answer(Err::<Value, _>(Refused::Stale { have: 4 }));
+    async fn a_stale_refusal_is_the_kits_409_with_code_rev_and_etag() {
+        let stale = Precondition::Rev(3).check(4).unwrap_err();
+        let res = answer(Err::<Value, _>(Refused::Stale(stale)));
         assert_eq!(res.status(), StatusCode::CONFLICT);
+        assert_eq!(res.headers()["etag"], "\"4\"");
         let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
         let body: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(body["code"], "stale");
         assert_eq!(body["rev"], 4);
+        assert!(body["error"].is_string() && body["remedy"].is_string());
+    }
+
+    #[tokio::test]
+    async fn any_other_refusal_keeps_kitchens_own_shape() {
+        let res = answer(Err::<Value, _>(Refused::NotFound));
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+        let bytes = axum::body::to_bytes(res.into_body(), 4096).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert!(body.get("code").is_none());
+        assert!(body["error"].is_string());
     }
 }

@@ -23,6 +23,8 @@ export const EN_RECORDS = {
   "api.signedOutNote": "You are signed out. Sign in in a new tab, then come back here and try again; what you typed stays.",
   "api.signIn": "Sign in (new tab)",
   "api.dropped": "The connection to the kitchen dropped. Nothing is lost; try again.",
+  // refactor-rev-kit-1: a read through the kit with neither a connection nor an offline copy of it (api/kit-data.js).
+  "api.offlineNoCopy": "There is no connection and this was not kept offline on this device. It shows again once the connection is back.",
   "rec.saved": "Saved",
   "rec.savedName": (n) => `Saved ${n}`,
   "rec.addedName": (n) => `Added ${n}`,
