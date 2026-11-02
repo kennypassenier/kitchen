@@ -1,8 +1,10 @@
 // The kitchen's JSON API (src/routes.rs) and the one copy of its data.
 //
-// Writes that name a revision (PUT), the settings PATCH and a DELETE go through the kit's data client
-// (api/kit-data.js, refactor-rev-kit-1): it sends If-Match and, when the service cannot be reached, queues the edit and
-// answers `queued`. A queued edit is applied to the shared copy as it was sent, so every screen shows it at once.
+// Reads, writes that name a revision (PUT), the settings PATCH and a DELETE go through the kit's data client
+// (api/kit-data.js, refactor-rev-kit-1, feat-offline-kitchen): it keeps the device's offline copy, sends If-Match and,
+// when the service cannot be reached, queues the edit and answers `queued`. A queued edit is applied to the shared copy
+// as it was sent, so every screen shows it at once; a reload lays the queue over the copy again (api/kitchen-read.js).
+// A POST (create, draft, import, freezer take, restore) needs a connection: the kit has no POST.
 //
 // Every screen reads the kitchen through `loadKitchen()` and changes it
 // through the calls below; a change updates the shared copy and tells every
@@ -17,7 +19,10 @@ import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
 import { ifMatchFor } from "./api/save.js";
-import { writeJson } from "./api/kit-data.js";
+import { kitData, readJson, writeJson } from "./api/kit-data.js";
+import { readKitchen } from "./api/kitchen-read.js";
+import { mergeSettings } from "./offline/apply.js";
+import { parkDeleted, unqueueDelete } from "./offline/undo.js";
 
 export { ApiError, reason } from "./api/http.js";
 export { recipeLabel } from "./api/recipe-view.js";
@@ -49,8 +54,8 @@ onLang(() => {
 export function loadKitchen({ force = false } = {}) {
   if (copy && !force) return Promise.resolve(copy);
   if (pending && !force) return pending;
-  pending = call("GET", "/data/kitchen").then(
-    (k) => {
+  pending = readKitchen().then(
+    ({ kitchen: k }) => {
       copy = k;
       copy.recipes = recipeView(k);
       pending = null;
@@ -175,8 +180,9 @@ export async function remove(list, id) {
   }
   const held = /** @type {Item[] | undefined} */ (copy?.[/** @type {keyof Kitchen} */ (list)])?.find?.((x) => x.id === id);
   const { data, queued } = await writeJson("DELETE", `/data/${list}/${encodeURIComponent(id)}`);
-  // Queued: what the page held is what will be removed, so Undo has it.
+  // Queued: what the page held is what will be removed, so Undo has it (and can take the waiting delete back).
   const gone = queued ? held : data;
+  if (queued) parkDeleted(list, held);
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
     const at = arr.findIndex((x) => x.id === id);
@@ -195,7 +201,9 @@ export async function remove(list, id) {
  * @param {string} list @param {string} id @param {number} at
  */
 export async function restore(list, id, at) {
-  const item = await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`);
+  // A delete still waiting in the kit's queue is taken back there: the server never deleted the item (offline/undo.js).
+  const unsent = await unqueueDelete(await kitData(), list, id);
+  const item = unsent ?? (await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`));
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
     if (!arr.some((x) => x.id === id)) arr.splice(Math.min(Math.max(0, at), arr.length), 0, item);
@@ -210,28 +218,15 @@ export { readDraft, readDrafts, saveDraft, deleteDraft } from "./api/drafts.js";
 export const importRecipe = (body) => call("POST", "/data/import", body);
 
 /** The parents' wheel in English, made by the server from the dishes (src/parents.rs). */
-export const readWheelEnglish = () => call("GET", "/data/wheel/en");
+export const readWheelEnglish = async () => (await readJson("/data/wheel/en")).data;
 /** The same list in Dutch, behind the login: Kitchen's /parents in Dutch, also away from home. */
-export const readWheelDutch = () => call("GET", "/data/wheel/nl");
+export const readWheelDutch = async () => (await readJson("/data/wheel/nl")).data;
 
 /** Take portions out of the freezer (negative puts them back). @param {string} id @param {number} [portions] */
 export async function takePortions(id, portions = 1) {
   const item = await call("POST", `/data/freezer/${encodeURIComponent(id)}/take`, { portions });
   put("freezer", item);
   return item;
-}
-
-/**
- * The settings with `patch` merged in as the server merges it: a key set to `null` is removed.
- * @param {Record<string, unknown>} settings @param {Record<string, unknown>} patch
- */
-export function mergeSettings(settings, patch) {
-  const next = { ...settings };
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === null) delete next[key];
-    else next[key] = value;
-  }
-  return next;
 }
 
 /** Merge keys into the settings (`null` removes one). @param {Record<string, unknown>} patch */

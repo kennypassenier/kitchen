@@ -56,5 +56,9 @@
       </nav>
     </div>
     <main class="app-shell kp-page" id="page" tabindex="-1"></main>
+    <!-- The kit's connection band (kp-themes connection.js, as chassis-rs' own layout draws it): no room while online;
+         offline, reconnecting and the count of edits waiting to be sent (feat-offline-kitchen). The kit's data client
+         paints the queue, web/js/offline/band.js the reads; retries are the kit's own timer, so no band timer. -->
+    <div class="kp-connection" data-kp-connection data-kp-connection-source="both" data-kp-retry-delays="off"></div>
   </body>
 </html>

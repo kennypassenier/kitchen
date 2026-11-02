@@ -17,6 +17,10 @@ import { failureOf } from "./save.js";
 import { isSignedOut } from "./login-link.js";
 import { signedOutNotice } from "./signed-out.js";
 import { offlineOptions } from "../offline/config.js";
+import { applyKeepDefault, deviceStorage } from "../offline/keep.js";
+
+/** The window event a read sends with `{ offline }`, so the connection band can say "offline" (offline/band.js). */
+export const READ_EVENT = "kitchen-data-read";
 
 /**
  * The part of `window.chassisData` Kitchen uses (chassis-rs docs/OFFLINE_DESIGN.md).
@@ -65,6 +69,8 @@ async function configureOnce() {
     );
   }
   await kit.configure(offlineOptions(t));
+  // Before the first read, so the very first kitchen answer on a new device is already kept (Kenny: default on).
+  await applyKeepDefault(kit, deviceStorage());
   return kit;
 }
 
@@ -106,10 +112,18 @@ export async function readJson(path) {
   const kit = await kitData();
   try {
     const got = await kit.get(path);
+    dispatchEvent(new CustomEvent(READ_EVENT, { detail: { offline: got.offline } }));
     return { data: got.data, offline: got.offline, savedAt: got.savedAt };
   } catch (e) {
-    throw toApiError(e);
+    const err = toApiError(e);
+    if (err instanceof ApiError && err.status === 0) dispatchEvent(new CustomEvent(READ_EVENT, { detail: { offline: true } }));
+    throw err;
   }
+}
+
+/** The kit's queue: edits waiting to be sent, held, or refused on replay (failed), oldest first. @returns {Promise<KitEntry[]>} */
+export async function queuedEdits() {
+  return (await kitData()).queue();
 }
 
 /**

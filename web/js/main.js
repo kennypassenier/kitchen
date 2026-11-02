@@ -13,6 +13,7 @@ import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
 import { onKitchen, loadKitchen } from "./api.js";
+import { startOffline } from "./offline/start.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
 /** @typedef {(root: HTMLElement, ctx: Ctx) => (void | (() => void))} Mount */
@@ -163,6 +164,8 @@ onLang(() => {
   void bar.draw();
   void render();
 });
+// The offline copy first (feat-offline-kitchen): the kit is configured before the first read, so that read is kept.
+startOffline();
 // Each page shows its own failed state when it reads the kitchen; this early read only warms the copy.
 void loadKitchen().catch((e) => console.warn("the kitchen could not be read at start", e));
 attachNavToggles(document);

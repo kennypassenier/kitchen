@@ -11,6 +11,7 @@ import { EN_INGREDIENTS_DISHES } from "./en/ingredients-dishes.js";
 import { EN_DISH_EDITOR } from "./en/dish-editor.js";
 import { EN_LATER } from "./en/later.js";
 import { EN_LIMITS } from "./en/limits.js";
+import { EN_OFFLINE } from "./en/offline.js";
 
 export const EN = {
   ...EN_SHELL,
@@ -23,4 +24,5 @@ export const EN = {
   ...EN_DISH_EDITOR,
   ...EN_LATER,
   ...EN_LIMITS,
+  ...EN_OFFLINE,
 };

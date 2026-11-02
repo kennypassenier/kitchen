@@ -1,6 +1,6 @@
 // The JSON calls outside the kit: one fetch wrapper, its error type and the words for an error. No state; api.js holds
-// the data. Since refactor-rev-kit-1 every PUT, PATCH and DELETE goes through the kit's data client (api/kit-data.js),
-// which owns If-Match and the write queue; the kit has no POST, so a create, a draft, an import, a freezer take and
+// the data. Since refactor-rev-kit-1 and feat-offline-kitchen every GET, PUT, PATCH and DELETE goes through the kit's data client (api/kit-data.js),
+// which owns If-Match, the offline copy and the write queue; the kit has no POST, so a create, a draft, an import, a freezer take and
 // Undo's restore come through here and need a connection (the server issues the ids).
 
 import { t } from "../i18n/index.js";
@@ -40,8 +40,11 @@ export async function call(method, path, body, { keepalive = false } = {}) {
       credentials: "same-origin",
       keepalive,
     });
-  } catch {
-    throw new ApiError(t("api.dropped"), 0);
+  } catch (e) {
+    // No answer: every call here is a POST the kit cannot queue (it has no POST), so the words say a connection is
+    // needed rather than that the edit waits. `keepalive` drafts during a page close end here too and are reported.
+    console.warn(`Kitchen: ${method} ${path} got no answer`, e);
+    throw new ApiError(t("api.needsConnection"), 0, null, "offline");
   }
   // Signed out (chassis-rs 4.2.0 answers a script call 401 JSON): the page stays, the notice offers the login.
   if (isSignedOut(res.status)) {
