@@ -4,8 +4,9 @@
 //
 // The kit stores a copy only of an answer it READS on a kept path, and the pages read the whole kitchen
 // (`/data/kitchen`), never a dish's own route. So a kept dish's copy stayed as it was when the switch was turned on: an
-// edit made on another device, or a queued edit the server refused (the kit amends the kept copy while an edit waits and
-// does not take that back on a refusal), would show offline as if it were the kitchen's. After every online kitchen read
+// edit made on another device showed offline as if it were the kitchen's. (A queued edit the server refuses is the
+// kit's: since chassis-rs 67d593e it puts the item's copy back to the server's version itself, and a 404 on a read
+// drops the copy; Kitchen does not repeat either.) After every online kitchen read
 // with "keep everything" off, this reads each kept dish the answer still lists and the ingredients list again, so the
 // kit stores the server's answers over its copies, and it keeps the ingredients a kept dish names now and lets go of
 // those none names any more. The dishes the answer no longer lists are api/recipe-gone.js's (run first).
