@@ -72,8 +72,8 @@ impl Files {
     }
 }
 
-/// The store, filled in once it has opened. The kit takes its public routes
-/// when the app is built, before the state directory is known, so the
+/// The store, filled in once it has read the kitchen from `kitchen.db` (`boot.rs`). The kit takes its public
+/// routes when the app is built, before the state directory is known and before the database opens, so the
 /// router holds this slot and answers 503 until the store is in it.
 pub type Slot = Arc<OnceLock<Arc<Store>>>;
 
@@ -109,6 +109,11 @@ pub fn english(store: Arc<Store>) -> Router {
                 axum::Json(wheel(&s.snapshot().await, Lang::Nl))
             }),
         )
+        // 503 until the store has read the kitchen from kitchen.db (feat-db-store-1).
+        .route_layer(axum::middleware::from_fn_with_state(
+            store.clone(),
+            crate::routes::ready_gate,
+        ))
         .with_state(store)
 }
 

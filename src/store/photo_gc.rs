@@ -1,4 +1,4 @@
-//! Photo files nobody refers to any more. A photo is a file next to `kitchen.json` (see `photos/`), referred to by id from
+//! Photo files nobody refers to any more. A photo is a file in the state directory's `photos/` (see `photos/`), referred to by id from
 //! a recipe (`photo`, a step's `photos`) or a draft's form. Two ways a file loses its last reference:
 //!
 //! - a draft is discarded or pruned: its own photos go at once ([`Store::release_photos`]);

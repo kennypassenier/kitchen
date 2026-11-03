@@ -66,7 +66,7 @@ async fn without_if_match_the_last_save_wins_as_before() {
 }
 
 #[tokio::test]
-async fn an_old_file_without_revisions_opens_at_format_5_and_counts_from_0() {
+async fn an_old_file_without_revisions_imports_at_rev_0_and_counts_from_there() {
     let dir = tempfile::tempdir().unwrap();
     let old = serde_json::json!({"format": 5, "dishes": [
         {"id": "d1", "name": {"nl": "Stoofvlees", "en": "Beef stew"}, "recipes": [{"id": "r1", "steps": []}]}
@@ -77,18 +77,21 @@ async fn an_old_file_without_revisions_opens_at_format_5_and_counts_from_0() {
     )
     .unwrap();
     assert_eq!(FORMAT, 5, "rev is optional: no format bump");
-    let s = Store::open(dir.path()).unwrap();
+    let s = Store::on_db(file_db(dir.path())).await.unwrap();
     assert_eq!(s.snapshot().await.format, 5);
+    assert_eq!(
+        s.item("dishes", "d1").await.unwrap()["rev"],
+        0,
+        "absent → 0 on import"
+    );
     let body = serde_json::json!({"name": {"nl": "Stoofvlees", "en": "Beef stew"}, "recipes": []});
     let saved = s
         .replace_if("dishes", "d1", body, Some(Precondition::Rev(0)))
         .await
         .unwrap();
     assert_eq!(saved["rev"], 1);
-    let back: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(dir.path().join("kitchen.json")).unwrap()).unwrap();
-    assert_eq!(back["format"], 5);
-    assert_eq!(back["dishes"][0]["rev"], 1);
+    let reopened = Store::on_db(file_db(dir.path())).await.unwrap();
+    assert_eq!(reopened.item("dishes", "d1").await.unwrap()["rev"], 1);
 }
 
 #[tokio::test]

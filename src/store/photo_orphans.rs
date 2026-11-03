@@ -3,7 +3,7 @@
 //! The undo-window sweep (photo_gc.rs) keeps the ids it is waiting on in memory, so a restart inside Undo's 120 s window
 //! left those files behind; so did a photo uploaded in a tab that closed before its draft was written. Persisting the
 //! pending ids would cover only the first case and adds a file to keep in step; this sweep covers both: at start no item
-//! can be restored any more (Undo lives in memory too), so a photo file that no item of `kitchen.json` refers to (a dish,
+//! can be restored any more (Undo lives in memory too), so a photo file that no item of the kitchen refers to (a dish,
 //! its recipes and steps, a draft, any collection, at any depth) is an orphan. Claude's choice, reversible.
 //!
 //! An upload in flight is never removed: only files last written more than [`ORPHAN_MIN_AGE`] ago are swept (an editor

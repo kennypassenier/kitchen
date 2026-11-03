@@ -13,11 +13,13 @@
 //! | `POST /data/restore/{list}/{id}` | Undo of a delete: the removed item back at its place, within `UNDO_KEEP` |
 //! | `POST /data/freezer/{id}/take` | `{"portions": n}` out of the freezer (negative puts back); an `Idempotency-Key` (UUID) applies it once, a repeated key answers the first result (`store/idempotent.rs`) |
 //! | `GET`/`PATCH /data/settings` | the settings with their revision as `ETag`; PATCH merges, `null` removes a key, raises `settings_rev` and honours `If-Match` like `PUT` |
+//! | `GET`/`PATCH /data/settings/kitchen` | the same settings as the one item of the `settings` collection, `{id, rev, ..keys}` (`routes_settings.rs`) |
 //! | `POST /data/photos`, `GET`/`DELETE /data/photos/{id}` | recipe photos, see `photos.rs` |
 //! | `POST /data/import`, `POST /data/import/image` | a recipe from a web page or pasted text, see `import.rs` |
 //!
 //! A refusal is HTTP 4xx (5xx for a failed save) with `{"error": "…"}` in
-//! words a page shows as they are.
+//! words a page shows as they are. Until the store has read the kitchen from
+//! `kitchen.db` at start (feat-db-store-1), every store route answers 503.
 //!
 //! Revisions are the kit's (refactor-rev-kit-1, chassis-rs `IfMatch` /
 //! `Revisioned` / `Conflict`): the `If-Match` header is parsed by the kit's
@@ -28,8 +30,9 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Request, State};
 use axum::http::StatusCode;
+use axum::middleware::{Next, from_fn_with_state};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -38,17 +41,36 @@ use serde_json::{Value, json};
 
 use crate::store::{Refused, Store, rev_of};
 
+#[path = "routes_settings.rs"]
+mod settings_routes;
+use settings_routes::{patch_settings, patch_settings_item, settings, settings_item_route};
+
 type Shared = State<Arc<Store>>;
 
-/// `state_dir` is where the photos directory lives, next to `kitchen.json`.
+/// 503 for every store route until the store has read the kitchen from the database (`Store::load`, run from the
+/// start hook once the kit opened `kitchen.db`). The window is the first moments of a start; a page retries.
+pub async fn ready_gate(State(s): Shared, req: Request, next: Next) -> Response {
+    if s.is_ready() {
+        return next.run(req).await;
+    }
+    let body = json!({ "error": "the kitchen is starting; try again in a moment" });
+    (StatusCode::SERVICE_UNAVAILABLE, Json(body)).into_response()
+}
+
+/// `state_dir` is where the photos directory lives, next to `kitchen.db`.
 pub fn router(store: Arc<Store>, state_dir: &std::path::Path) -> Router {
     Router::new()
         .route("/data/kitchen", get(kitchen))
         .route("/data/settings", get(settings).patch(patch_settings))
+        .route(
+            "/data/settings/{id}",
+            get(settings_item_route).patch(patch_settings_item),
+        )
         .route("/data/freezer/{id}/take", post(take))
         .route("/data/restore/{list}/{id}", post(restore))
         .route("/data/{list}", get(list).post(create))
         .route("/data/{list}/{id}", get(item).put(replace).delete(delete))
+        .route_layer(from_fn_with_state(store.clone(), ready_gate))
         .with_state(store)
         // Static segments win over `/data/{list}`, so the photo routes sit beside it.
         .merge(crate::photos::router(state_dir))
@@ -165,25 +187,6 @@ async fn take(
     let n = body.get("portions").and_then(Value::as_i64).unwrap_or(1);
     let key = key.get().map(|k| k.to_string());
     answer(s.take_portions_once(&id, n, key.as_deref()).await)
-}
-
-/// The settings, with their revision as `ETag` (fix-offline-master-5; the body stays the plain object of keys).
-async fn settings(State(s): Shared) -> Response {
-    let (settings, rev) = s.settings().await;
-    Revisioned::new(rev, settings).into_response()
-}
-
-/// A merge checked against the settings' revision the page read (`If-Match`, fix-offline-master-5): stale, it is the
-/// kit's 409 with the stored settings as `current`; merged, the settings answer with their new revision as `ETag`.
-async fn patch_settings(State(s): Shared, if_match: IfMatch, Json(body): Json<Value>) -> Response {
-    match s.merge_settings_if(body, if_match.precondition()).await {
-        Ok((settings, rev)) => Revisioned::new(rev, settings).into_response(),
-        Err(Refused::Stale(stale)) => {
-            let (current, _) = s.settings().await;
-            Conflict::from(stale).with_item(current).into_response()
-        }
-        Err(e) => answer(Err::<Value, _>(e)),
-    }
 }
 
 #[cfg(test)]

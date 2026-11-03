@@ -3,11 +3,12 @@
 //!
 //! Built on chassis: configuration, logging, login, health, metrics,
 //! graceful shutdown, the static web app, signed self-update and webhooks
-//! all come from the kit. This file wires the kitchen's store and its JSON
+//! all come from the kit. This file wires the kitchen's store (`boot.rs`) and its JSON
 //! routes into it; the screens are the ES modules under `web/`.
 
 #![forbid(unsafe_code)]
 
+mod boot;
 mod import;
 mod parents;
 mod photos;
@@ -19,7 +20,7 @@ use std::sync::Arc;
 
 use chassis::shell::pages::Page;
 use chassis::shell::webapp::WebApp;
-use chassis::storage::{AppDbSpec, BrowserKeys};
+use chassis::storage::BrowserKeys;
 use chassis::{App, AppSpec};
 
 // The web files, generated from web/ by build.rs.
@@ -60,40 +61,20 @@ async fn main() -> std::process::ExitCode {
         }
     };
 
-    // The store opens only for a run that serves (`--version` and friends
-    // have no state directory).
+    // The app database (feat-db-store-1): the kitchen's lists, settings and answered take keys, imported once from
+    // kitchen.json (store/db/import), beside the kit's synced preferences: a person's browser choices (the timing
+    // page's numbers, where cook mode stands) follow them from the phone to the PC; the theme key stays out because
+    // it must work before the login. The file opens when the service starts, not here.
+    let db = match app.app_db(store::db::app_db_spec()) {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("kitchen: {e}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    // The store and its routes exist only for a run that serves (`--version` and friends have no state directory).
     if let Some(dir) = app.loaded.as_ref().map(|l| l.state_dir.clone()) {
-        let store = match store::Store::open(&dir) {
-            Ok(s) => Arc::new(s),
-            Err(e) => {
-                eprintln!("kitchen: {e}");
-                return std::process::ExitCode::FAILURE;
-            }
-        };
-        // Drafts nobody reopened for a week go, with the photos only they refer to (Kenny, 29/10/2026).
-        // The count is logged from the start hook: the kit's logging comes up after this point, so a line written here is lost
-        // (found 29/10/2026).
-        let pruned = store.prune_drafts(chassis::shell::time::now_epoch()).await;
-        // Photo files nothing refers to any more (a restart inside Undo's window, a tab closed before its draft) go too,
-        // once they are older than an upload in flight could be (fix-photo-orphans-1). After the drafts, so a pruned
-        // draft's photos are not counted twice; before the routes, so no upload races it.
-        let orphans = store.sweep_orphan_photos().await;
-        app.on_start(move || {
-            report_pruned(pruned);
-            report_orphans(orphans);
-        });
-        // Photos that dropped out of a dish go once Undo can no longer bring them back (fix-undo-photos-1).
-        let sweeper = store.clone();
-        tokio::spawn(async move {
-            let mut tick = tokio::time::interval(store::SWEEP_EVERY);
-            loop {
-                tick.tick().await;
-                sweeper.sweep_photos().await;
-            }
-        });
-        app.dashboard_routes(routes::router(store.clone(), &dir))
-            .dashboard_routes(parents::english(store.clone()));
-        let _ = slot.set(store);
+        boot::wire(&mut app, db, &dir, slot);
     }
     let (host, allow) = match parents_settings() {
         Ok(s) => s,
@@ -104,14 +85,6 @@ async fn main() -> std::process::ExitCode {
     };
     app.request_guard(parents::parents_guard(host, allow, files));
 
-    // The app database holds only the kit's synced preferences: the recipes
-    // stay in kitchen.json. A person's browser choices (the timing page's
-    // numbers, where cook mode stands) follow them from the phone to the PC;
-    // the theme key stays out because it must work before the login.
-    if let Err(e) = app.app_db(AppDbSpec::new(Vec::new())) {
-        eprintln!("kitchen: {e}");
-        return std::process::ExitCode::FAILURE;
-    }
     app.sync_browser_keys(BrowserKeys::new().prefix("kitchen:").prefix("kp-remember:"));
 
     let web = match web_dir {
@@ -123,38 +96,6 @@ async fn main() -> std::process::ExitCode {
     app.webapp(web.kp_modules());
     register_pages(&mut app);
     app.run().await
-}
-
-/// Say how many old drafts the start dropped (silent when none went), or that dropping them failed.
-fn report_pruned(pruned: Result<usize, String>) {
-    match pruned {
-        Ok(0) => {}
-        Ok(pruned) => tracing::info!(
-            pruned,
-            days = store::DRAFT_DAYS,
-            "old recipe drafts dropped"
-        ),
-        Err(error) => tracing::warn!(%error, "old recipe drafts could not be dropped; they stay"),
-    }
-}
-
-/// Say how many orphan photo files the start deleted (always, so the sweep is seen to run), and any it could not delete.
-fn report_orphans(swept: Result<store::OrphanSweep, String>) {
-    match swept {
-        Ok(store::OrphanSweep { removed, failed: 0 }) => tracing::info!(
-            removed,
-            min_age_mins = store::ORPHAN_MIN_AGE.as_secs() / 60,
-            "orphan photo files deleted at start"
-        ),
-        Ok(store::OrphanSweep { removed, failed }) => tracing::warn!(
-            removed,
-            failed,
-            "orphan photo files deleted at start; some could not be (see the lines above)"
-        ),
-        Err(error) => {
-            tracing::warn!(%error, "the start-up photo sweep did not run; every photo file stays")
-        }
-    }
 }
 
 /// The host the parents' wheel is kept to and the clients it answers, from the environment.

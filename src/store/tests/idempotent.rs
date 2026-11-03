@@ -80,15 +80,15 @@ async fn only_the_last_keys_are_kept() {
 }
 
 #[tokio::test]
-async fn the_keys_survive_a_reopen_of_the_file() {
+async fn the_keys_survive_a_reopen_of_the_database() {
     let dir = tempfile::tempdir().unwrap();
     let id = {
-        let s = Store::open(dir.path()).unwrap();
+        let s = Store::on_db(file_db(dir.path())).await.unwrap();
         let id = soup(&s, 2).await;
         s.take_portions_once(&id, 1, Some("k-1")).await.unwrap();
         id
     };
-    let s = Store::open(dir.path()).unwrap();
+    let s = Store::on_db(file_db(dir.path())).await.unwrap();
     assert_eq!(
         s.take_portions_once(&id, 1, Some("k-1")).await.unwrap()["portions"],
         1

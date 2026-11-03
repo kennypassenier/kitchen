@@ -96,7 +96,7 @@ async fn a_settings_merge_without_if_match_behaves_as_before() {
 }
 
 #[tokio::test]
-async fn an_old_file_without_a_settings_revision_opens_at_format_5_and_counts_from_0() {
+async fn an_old_file_without_a_settings_revision_imports_at_0_and_counts_from_there() {
     let dir = tempfile::tempdir().unwrap();
     let old = json!({"format": 5, "settings": {"pace": "calm"}, "recipe_sources": []});
     std::fs::write(
@@ -104,15 +104,14 @@ async fn an_old_file_without_a_settings_revision_opens_at_format_5_and_counts_fr
         serde_json::to_vec(&old).unwrap(),
     )
     .unwrap();
-    let s = Store::open(dir.path()).unwrap();
+    let s = Store::on_db(file_db(dir.path())).await.unwrap();
     assert_eq!(s.snapshot().await.format, 5);
     assert_eq!(s.settings().await.1, 0);
     s.merge_settings_if(json!({"pace": "fast"}), Some(Precondition::Rev(0)))
         .await
         .unwrap();
-    let back: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(dir.path().join("kitchen.json")).unwrap()).unwrap();
-    assert_eq!(back["format"], 5);
-    assert_eq!(back["settings_rev"], 1);
-    assert_eq!(back["settings"]["pace"], "fast");
+    let reopened = Store::on_db(file_db(dir.path())).await.unwrap();
+    let (settings, rev) = reopened.settings().await;
+    assert_eq!(rev, 1);
+    assert_eq!(settings["pace"], "fast");
 }

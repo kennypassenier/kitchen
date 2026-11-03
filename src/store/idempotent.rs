@@ -3,10 +3,11 @@
 //! (chassis-rs `chassisData.post`, `IdempotencyKey`); a replay whose first try reached the kitchen but whose answer was
 //! lost must not take a second portion.
 //!
-//! The key is recorded in the same `kitchen.json` write as the take ([`Store::change`]: one lock, one atomic write),
-//! as the kit's pattern asks, so the answer and the data can never disagree. A repeated key answers the item as the
+//! The key is recorded in the same database transaction as the take ([`Store::change`]: one lock, one transaction;
+//! the `answered` table of `kitchen.db` since feat-db-store-1), as the kit's pattern asks, so the answer and the data
+//! can never disagree. A repeated key answers the item as the
 //! first take left it, without touching the freezer again. A refused take (no portions left, an unknown item) records
-//! nothing: it changed nothing, so a retry is judged afresh. Only the last [`ANSWERS_KEEP`] keys are kept, so the file
+//! nothing: it changed nothing, so a retry is judged afresh. Only the last [`ANSWERS_KEEP`] keys are kept, so the table
 //! cannot grow without bound (the kit replays within minutes or days, never hundreds of takes later).
 
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,7 @@ use serde_json::Value;
 
 use super::{Data, Refused, Store};
 
-/// How many answered keys `kitchen.json` keeps, oldest dropped first.
+/// How many answered keys the kitchen keeps, oldest dropped first.
 pub const ANSWERS_KEEP: usize = 200;
 
 /// One answered `Idempotency-Key` and the answer its first request got.

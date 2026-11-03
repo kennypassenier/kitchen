@@ -6,6 +6,7 @@ use chassis::storage::{AppDb, AppDbSpec};
 use super::super::Data;
 
 mod codec;
+mod import_refused;
 mod import_roundtrip;
 mod schema;
 
