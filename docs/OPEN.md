@@ -1,14 +1,14 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.4.0, tag v4.4.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
+5 items open: the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.5.0, tag v4.5.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
 | Item | Waits on |
 |---|---|
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
-| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 02/11/2026 chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | release checks run 02/11/2026 (below): the datatable footprints got a Kitchen stand-in (Kenny 22:03 "Tijdelijke oplossing", [fix-table-footprint-1]), measure clear; then `chassis release` |
-| Bump: when Kitchen's chassis-rs carries the kp-themes release with 2bc105c2b and e1406eddb: remove the table-footprint stand-in (`web/js/ui/datatable-footprint.js` and its call in `web/js/main.js`), the popover box-sizing rule and `nameTrigger`; re-measure | a chassis-rs release with those kp-themes commits |
+| On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 03/11/2026 chassis-rs 4.5.0 (tag v4.5.0 [meta-chassis-450-1]) with kp-themes 12.3.0 (stand-ins dropped, check 15), before that chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | release checks run 02/11/2026 (below): the datatable footprints got a Kitchen stand-in (Kenny 22:03 "Tijdelijke oplossing", [fix-table-footprint-1]), measure clear; then `chassis release` |
+| ~~Bump: chassis-rs release with kp-themes 2bc105c2b and e1406eddb~~ **done 03/11/2026**: chassis-rs 4.5.0 (tag v4.5.0, kp-themes 12.3.0) [meta-chassis-450-1]; the table-footprint stand-in, the popover box-sizing rule and `nameTrigger` removed [refactor-drop-stand-ins-1]; re-measure is release check 15 | release check 15 |
 | Per-recipe "Offline bewaren" [feat-offline-recipe-1..3] and the offline freezer take [feat-offline-take-1] (Kenny 17:25, 19:12, 19:13): built on chassis-rs main 8042dbe [meta-chassis-8042dbe-1], now on tag v4.4.0 [meta-chassis-440-1] (only `chassis` moved in `Cargo.lock`); release check 11 below | release check 11 |
 | The offline copy [feat-offline-kitchen-1..4] and the revision fold [refactor-rev-kit-1] (02/11/2026, on chassis-rs cd68fd9): built, release checks 9 and 10 below not run | Kenny's release decision, then release checks 9 and 10 |
 | kp-themes split delivery (Kenny 02/11/2026 17:24, "Nu overstappen"): merged on main 6f3fc0e [feat-kp-split-3] (branch `kp-split-entries`, 4ee6fbb), with Kitchen pinned to chassis-rs main fcb993f [meta-chassis-fcb993f-1], whose `WebApp::kp_modules()` makes the kit inject `webapp-runtime-modules.js` (imports only `remember.js`, `freshness.js`, `auto-refresh.js`), so a page holds one copy of kp's state. Release checks still to run (item 7 below) | Kenny's release decision, then release check 7 |
@@ -134,6 +134,12 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    two tabs: delete an item in tab 1 that tab 2 saved after tab 1 read it: the "changed elsewhere" toast with Reload, the
    item stays; (d) on the settings page change two rows in quick succession: both save (merges run one after the other),
    no stale toast; (e) Undo right after an online delete still puts the item back.
+15. **The dropped stand-ins [refactor-drop-stand-ins-1]** (03/11/2026 on chassis-rs 4.5.0 / kp-themes 12.3.0, nothing run): at the next
+   release, in Firefox at 1280 and 390, formal and dark: (a) re-measure the five data-table pages (`node scripts/measure.mjs <path>
+   formal,dark 1280,390`): an empty or failed table keeps the loaded footprint (the removed `datatable-footprint.js` made it 9-41 px
+   taller before; 0 findings); (b) the Send to phone and Print options popovers at 390: the plate stays inside the window, no
+   overflow at 320; (c) the /settings theme button: pick a theme in the header's menu and the row's labelled trigger names it at once;
+   (d) `node --test scripts/` still green (no test referenced the removed files) and `node scripts/check-words.mjs` 0 (it was).
 
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
@@ -169,12 +175,7 @@ change. The last two unchecked replays, a queued `DELETE` and a queued settings 
 - Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
 - Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
   still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
-- `box-sizing: border-box` on the popover panel (`web/css/app.css`): `.kp-popover--panel` caps content-box (kp-gaps/kitchen.md).
-  Fixed on kp-themes main e1406eddb (panel is border-box, 352 px at 390, no overflow at 320): drop the rule once that
-  kp-themes release reaches Kitchen through chassis-rs, then re-measure the Send to phone / Print options popovers at 390.
-- Renaming the settings row's labelled theme trigger after a pick in the header's menu (`nameTrigger`, `web/js/pages/settings/calm-theme.js`; kp-gaps/kitchen.md).
-  Fixed on kp-themes main e1406eddb (the labelled trigger follows every theme change): drop `nameTrigger` once that
-  kp-themes release reaches Kitchen through chassis-rs, then check the /settings theme button after a pick in the header.
+- ~~`box-sizing: border-box` on the popover panel and `nameTrigger`~~ **dropped 03/11/2026 [refactor-drop-stand-ins-1]** (kp-themes 12.3.0 has both fixes, e1406eddb); re-check in release check 15.
 - The signed-out notice opens the login in a new tab because the kit's login read no `next` (kp-gaps/chassis-rs.md).
   With chassis login `?next=` (chassis-rs main 0b541ca) the signed-out notice can link back to the same tab; decide at the release.
 - The More item of the bar is built by hand (no `data-kp-nav-more` in kp-themes yet); the in-use reason-tooltip workaround

@@ -6,6 +6,15 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+Built on **chassis-rs 4.5.0 with kp-themes 12.3.0** (was 4.4.0 with 12.2.0; tag v4.5.0, `[meta-chassis-450-1]`). The 4.5.0
+changelog has no Migration section; `Cargo.lock` moved only `chassis`, `docs/KIT.md` got the new `sync_retain_days` knob.
+
+### Removed
+
+- The stand-ins kp-themes 12.3.0 makes redundant `[refactor-drop-stand-ins-1]`: the data-table footprint script
+  (`web/js/ui/datatable-footprint.js`, kp 2bc105c2b), the popover panel `box-sizing` rule and the settings row's
+  `nameTrigger` (kp e1406eddb). Re-measured at the next release (docs/OPEN.md, release check 15).
+
 ## [6.0.0] - 2026-11-03
 
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
