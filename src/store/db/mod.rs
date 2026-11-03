@@ -13,9 +13,10 @@
 //! - `import/`: the one-time import of `kitchen.json` with its backup and value-for-value check;
 //! - `sync.rs`: the collections the pages' local database syncs and the feed's loader.
 
-use chassis::storage::Migration;
+use chassis::storage::{AppDbSpec, Migration};
 
 mod codec;
+pub mod import;
 pub mod plan;
 mod recipe_tables;
 pub mod rows;
@@ -30,4 +31,9 @@ mod tests;
 /// `schema_v1.sql`.
 pub fn migrations() -> Vec<Migration> {
     vec![Migration::sql(include_str!("schema_v1.sql"))]
+}
+
+/// What `App::app_db` gets: the schema and the one-time import of `kitchen.json`.
+pub fn app_db_spec() -> AppDbSpec {
+    AppDbSpec::new(migrations()).with_import(import::run)
 }
