@@ -1,20 +1,20 @@
 // The Calm settings row "Keep everything offline" / "Alles offline bewaren" (feat-offline-kitchen, Kenny 02/11/2026:
-// on by default). A device-level setting like calm mode and the theme: the kit keeps it per device (`keepAll`), so it
-// is not saved in the kitchen. The row says how much room the copy takes on this device (`usage()`), and its button
-// "Clear offline copy" deletes the copy; edits still waiting to be sent are not touched (the kit's `clearCopy` keeps
-// the queue), so nothing typed is lost by clearing.
+// on by default). A device-level setting like calm mode and the theme: the kit keeps it per device (`keepAll`, which
+// since feat-db-pages-1 also decides what its local database stores: everything, or only the kept keys), so it is not
+// saved in the kitchen. The row says how much room the copy takes on this device (`usage()`: the local database and
+// the queue together). Its button "Clear offline copy" calls the kit's `clearCopy`, which empties the kit's response
+// cache and keeps the queue; the kit has no call that empties its local database without the queue (held question,
+// docs/OPEN.md release check 16), so the button is unchanged until that is decided.
 //
 // With the setting off, the row also says how many recipes are kept one by one (feat-offline-recipe, the recipe page's
-// "Keep offline" toggle). "Clear offline copy" clears those copies too (the kit's `clearCopy` clears every kept
-// answer); the recipes stay marked, so the next read with a connection copies them again.
+// "Keep offline" toggle): the dishes the local database holds (api/recipe-keep.js `keptRecipeCount`).
 
 import { h, $ } from "../../dom.js";
 import { runFlashButton } from "/static/kp/dist/js/flash.js";
 import { kitData } from "../../api/kit-data.js";
 import { lang, t } from "../../i18n/index.js";
 import { sizeText } from "../../offline/size.js";
-import { keptCount } from "../../offline/kept.js";
-import { loadKitchen } from "../../api.js";
+import { keptRecipeCount } from "../../api/recipe-keep.js";
 import { row } from "./parts.js";
 
 /** The switch and the clear button of the row. */
@@ -61,13 +61,10 @@ function paint(root, on, usage, kept) {
 }
 
 /**
- * How many recipes are kept one by one, counted on the kitchen as last read; null while "keep everything" is on.
- * @param {{ all: boolean, items: string[] }} settings @returns {Promise<{ recipes: number, dishes: number } | null>}
+ * How many recipes are kept one by one; null while "keep everything" is on.
+ * @param {{ all: boolean }} settings @returns {Promise<{ recipes: number, dishes: number } | null>}
  */
-async function countKept(settings) {
-  if (settings.all) return null;
-  return keptCount(settings.items, await loadKitchen());
-}
+const countKept = async (settings) => (settings.all ? null : keptRecipeCount());
 
 /** Read the device's setting and usage into the row; a failure is said on the row and in the console. @param {HTMLElement} root @param {HTMLInputElement} input */
 async function refresh(root, input) {

@@ -1,15 +1,14 @@
 // The kitchen's JSON API (src/routes.rs) and the one copy of its data.
 //
-// Reads, writes that name a revision (PUT), the settings PATCH and a DELETE go through the kit's data client
-// (api/kit-data.js, refactor-rev-kit-1, feat-offline-kitchen): it keeps the device's offline copy, sends If-Match and,
-// when the service cannot be reached, queues the edit and answers `queued`. A queued edit is applied to the shared copy
-// as it was sent, so every screen shows it at once; a reload lays the queue over the copy again (api/kitchen-read.js).
-// A POST (create, draft, import, restore) needs a connection: the server issues the ids. The freezer take is the one
-// POST through the kit (feat-offline-take-1): queued offline with an Idempotency-Key, so the server takes it once.
+// The kitchen is READ from the kit's local database (`chassisData.db`, api/kitchen-read.js, feat-db-pages-1), which the
+// kit keeps in step with the server and lays its waiting edits over. Writes that name a revision (PUT), the settings
+// PATCH and a DELETE go through the kit's queue (api/kit-data.js): If-Match, and `queued` when the service cannot be
+// reached; a queued edit is applied to the shared copy as it was sent. A POST (create, draft, import, restore) needs a
+// connection (the server issues the ids); the freezer take is the one POST through the kit (api/quick-writes.js).
 //
 // Every screen reads the kitchen through `loadKitchen()` and changes it through the calls below; a change updates the
-// shared copy and tells every listener, so two screens never disagree. A failure is an `ApiError` whose message is fit
-// to show as it is: the server's own words, or that the connection dropped (never that anything is gone).
+// shared copy and tells every listener; a pull the kit made by itself builds the copy again (offline/start.js). A
+// failure is an `ApiError` whose message is fit to show as it is.
 
 /** @typedef {Record<string, any>} Item */
 /** @typedef {{ format: number, recipes: Item[], freezer: Item[], shelf: Item[], log: Item[], resting: Item[], dishes: Item[], dish_categories: Item[], ingredients: Item[], ingredient_categories: Item[], drafts?: Item[], recipe_sources?: Item[], settings: Record<string, any>, settings_rev?: number }} Kitchen */
@@ -17,12 +16,11 @@
 import { onLang } from "./i18n/index.js";
 import { ApiError, call } from "./api/http.js";
 import { recipeBody, recipeView } from "./api/recipe-view.js";
-import { deleteRevFor, ifMatchFor, settingsRevFor } from "./api/save.js";
+import { deleteRevFor, ifMatchFor } from "./api/save.js";
 import { kitData, writeJson } from "./api/kit-data.js";
 import { readKitchen } from "./api/kitchen-read.js";
-import { mergeSettings, takeFrom, takePath } from "./offline/apply.js";
+import { leftHere } from "./api/recipe-gone.js";
 import { parkDeleted, unqueueDelete } from "./offline/undo.js";
-import { refreshNeeded } from "./offline/sync.js";
 
 export { ApiError, reason } from "./api/http.js";
 export { recipeLabel } from "./api/recipe-view.js";
@@ -32,8 +30,6 @@ export { recipeById, daysSinceCooked, ingredientById, ingredientName, defaultRec
 let copy = null;
 /** @type {Promise<Kitchen> | null} */
 let pending = null;
-/** Whether `copy` came from the device's offline copy, or holds an item Undo put back locally, rather than from the kitchen (fix-offline-master-3, -4). */
-let copyOffline = false;
 /** @type {Set<(k: Kitchen) => void>} */
 const listeners = new Set();
 
@@ -49,18 +45,18 @@ onLang(() => {
 });
 
 /**
- * The whole kitchen; read once and shared. `force` reads it again (Retry).
- * @param {{ force?: boolean }} [opts]
+ * The whole kitchen; read once and shared. `force` reads it again (Retry): the kit pulls the server's changes first.
+ * `pull: false` (with `force`) builds it again from what the local database holds now, after the kit pulled by itself.
+ * @param {{ force?: boolean, pull?: boolean }} [opts]
  * @returns {Promise<Kitchen>}
  */
-export function loadKitchen({ force = false } = {}) {
-  // A read in flight is newer than the held copy (refreshIfOffline may have started one), so it goes first.
+export function loadKitchen({ force = false, pull = true } = {}) {
+  // A read in flight is newer than the held copy, so it goes first.
   if (pending && !force) return pending;
   if (copy && !force) return Promise.resolve(copy);
-  pending = readKitchen().then(
-    ({ kitchen: k, offline }) => {
+  pending = readKitchen({ pull }).then(
+    ({ kitchen: k }) => {
       copy = k;
-      copyOffline = offline;
       copy.recipes = recipeView(k);
       pending = null;
       tell();
@@ -72,17 +68,6 @@ export function loadKitchen({ force = false } = {}) {
     },
   );
   return pending;
-}
-
-/**
- * Read the kitchen again when the held copy came from the device's copy (fix-offline-master-3): the server is the master,
- * so a copy read offline is never served from memory once the kitchen may answer again. Called on every page change
- * (main.js) and when the browser says it is back online (offline/start.js); without a connection the read falls back
- * to the device's copy as before. Never from a kitchen listener, so a read cannot start another.
- */
-export function refreshIfOffline() {
-  if (!refreshNeeded(copyOffline, pending !== null)) return;
-  void loadKitchen({ force: true }).catch((e) => console.warn("Kitchen: reading the kitchen again after an offline read failed", e));
 }
 
 /** The kitchen as last read, or null. */
@@ -97,13 +82,27 @@ export function onKitchen(fn) {
   return () => listeners.delete(fn);
 }
 
-/** @param {string} list @param {Item} item */
-function put(list, item) {
+/**
+ * Put `item` in the shared copy's `list` (replacing the one with its id, or at the end) and tell every listener.
+ * Exported for api/quick-writes.js. @param {string} list @param {Item} item
+ */
+export function put(list, item) {
   if (!copy) return;
   const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
   const at = arr.findIndex((x) => x.id === item.id);
   if (at >= 0) arr[at] = item;
   else arr.push(item);
+  tell();
+}
+
+/**
+ * Put the settings (and, when known, their revision) in the shared copy and tell every listener. Exported for
+ * api/quick-writes.js. @param {Record<string, unknown>} settings @param {number | null} rev
+ */
+export function putSettings(settings, rev) {
+  if (!copy) return;
+  copy.settings = settings;
+  if (rev !== null) copy.settings_rev = rev;
   tell();
 }
 
@@ -204,6 +203,7 @@ export async function remove(list, id) {
   // Queued: what the page held is what will be removed, so Undo has it (and can take the waiting delete back).
   const gone = queued ? held : data;
   if (queued) parkDeleted(list, held);
+  if (list === "dishes") leftHere(id); // its leaving the local database is this device's doing: no "gone" notice
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
     const at = arr.findIndex((x) => x.id === id);
@@ -222,13 +222,12 @@ export async function remove(list, id) {
  * @param {string} list @param {string} id @param {number} at
  */
 export async function restore(list, id, at) {
-  // A delete still waiting in the kit's queue is taken back there: the server never deleted the item (offline/undo.js).
-  const unsent = await unqueueDelete(await kitData(), list, id);
-  // The item put back is the page's own, parked when the delete was queued; the server may have changed it since. So
-  // the held kitchen counts as local from here: the next page change or reconnect reads it again and the server's
-  // version wins (fix-offline-master-4).
-  if (unsent) copyOffline = true;
-  const item = unsent ?? (await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`));
+  // A delete still waiting in the kit's queue is taken back there: the server never deleted the item (offline/undo.js),
+  // and the item comes back as the local database holds it, which is the server's version (fix-offline-master-4).
+  const kit = await kitData();
+  const unsent = await unqueueDelete(kit, (l, key) => kit.db.collection(l).get(key), list, id);
+  if (unsent.dropped && !unsent.item) return { id };
+  const item = unsent.item ?? (await call("POST", `/data/restore/${list}/${encodeURIComponent(id)}`));
   if (copy) {
     const arr = /** @type {Item[]} */ (copy[/** @type {keyof Kitchen} */ (list)]);
     if (!arr.some((x) => x.id === id)) arr.splice(Math.min(Math.max(0, at), arr.length), 0, item);
@@ -240,50 +239,7 @@ export async function restore(list, id, at) {
 export { readDraft, readDrafts, saveDraft, deleteDraft } from "./api/drafts.js";
 export { importRecipe, readWheelEnglish, readWheelDutch } from "./api/server-reads.js";
 
-/**
- * Take portions out of the freezer (negative puts them back), through the kit: without a connection the take waits in
- * its queue and the shared copy shows it at once (the kitchen read lays it over too, offline/apply.js), never below
- * zero; the server applies a replay once (`Idempotency-Key`). Resolves to the item as it now stands.
- * @param {string} id @param {number} [portions]
- */
-export async function takePortions(id, portions = 1) {
-  const { data, queued } = await writeJson("POST", takePath(id), { portions });
-  const item = queued ? (takeFrom(copy?.freezer ?? [], id, portions) ?? []).find((x) => x.id === id) : data;
-  if (item) put("freezer", item);
-  // Only the freezer page takes, from items its copy holds; said if that ever breaks (the take itself still waits).
-  else console.warn(`Kitchen: a queued take of freezer item ${id} is not in the page's copy; it shows after the next read.`);
-  return item ?? { id };
-}
-
-/** The settings PATCHes in flight, one after the other, so each names the revision the one before it answered. */
-let settingsChain = Promise.resolve();
-
-/**
- * Merge keys into the settings (`null` removes one). Checked against the settings' revision the page read
- * (`settings_rev`, fix-offline-master-5): a merge made over a newer change elsewhere is refused with an ApiError of code
- * "stale", sent now or replayed from the queue later. Merges run one after the other (two rows changed in quick
- * succession would otherwise both name the same revision and the second be refused).
- * @param {Record<string, unknown>} patch
- */
-export function patchSettings(patch) {
-  const run = settingsChain.then(() => sendSettings(patch));
-  settingsChain = run.catch(() => undefined); // a refusal is the caller's; the next merge still runs
-  return run;
-}
-
-/** One settings PATCH and what it does to the shared copy. @param {Record<string, unknown>} patch */
-async function sendSettings(patch) {
-  const { data, queued, rev } = await writeJson("PATCH", "/data/settings", patch, settingsRevFor(copy));
-  // Queued: merged here the way the server merges (`null` removes a key); the revision stays the one read, which the
-  // queued merge names (the kit moves the merges behind it on once it went through).
-  const settings = queued ? mergeSettings(copy?.settings ?? {}, patch) : data;
-  if (copy) {
-    copy.settings = settings;
-    if (!queued && rev !== null) copy.settings_rev = Number(rev);
-    tell();
-  }
-  return settings;
-}
+export { takePortions, patchSettings } from "./api/quick-writes.js";
 
 /** Make a recipe its dish's default (the wheel's and Cook this's). @param {string} id */
 export async function makeDefaultRecipe(id) {

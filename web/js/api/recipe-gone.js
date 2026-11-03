@@ -1,66 +1,91 @@
-// Dropping a kept recipe whose dish the kitchen no longer holds (feat-offline-gone, Kenny 02/11/2026 19:43, "Uit kopie
-// halen"). The decisions are offline/gone.js and offline/kept.js (pure); this file talks to the kit.
+// The notice for a kept recipe whose dish the server deleted (feat-offline-gone, Kenny 02/11/2026 19:43, "Uit kopie
+// halen"; on `chassisData.db` since feat-db-pages-2). The kit applies the feed's delete to its local database itself
+// (deletes are always applied, kept or not); Kitchen only notices that a dish it kept left the database, says so once,
+// lets go of the key and of the ingredients no other kept dish names. The decisions are offline/keep-plan.js (pure).
 //
-// Where the 404 is seen: the one read path of kept dishes online is the kitchen read (api/kitchen-read.js). When that
-// answer no longer lists a dish the device keeps, the dish's own item route is asked; a real 404 there drops the keep
-// mark (`keepItem(path, false)`: the kit trims its stored copy before it resolves) and the ingredient keeps no other
-// kept dish uses, then shows one notice per dish. A lost connection or any other refusal changes nothing.
+// Only while "keep everything" is off: with it on nothing is kept one by one, and a deleted dish simply leaves every
+// page, as any other deletion. A dish this device deleted or stopped keeping itself is the person's own: no notice.
 
 import { toast } from "/static/kp/dist/js/overlays.js";
 import { t } from "../i18n/index.js";
-import { dishPath } from "../offline/config.js";
-import { classifyDishRead, createNoticeOnce, missingKeptDishIds } from "../offline/gone.js";
-import { keptDishIds, orphanIngredientPaths } from "../offline/kept.js";
+import { createNoticeOnce, goneDishIds, orphanIngredientIds } from "../offline/keep-plan.js";
+import { SEEN_KEY, deviceStorage } from "../offline/keep.js";
 import { kitData } from "./kit-data.js";
 
+/** @typedef {import("./kit-data.js").KitData} KitData */
+
 const noticed = createNoticeOnce();
+/** Dish ids that left the database by this device's own doing (deleted here, or no longer kept here): no notice. @type {Set<string>} */
+const ownDeletes = new Set();
+/** The kept dish ids of the last look (remembered per device, so a dish deleted while the app was closed is still
+ * noticed at the next start), or null when there was none (or it cannot be read: said in the console). */
+function loadSeen() {
+  try {
+    const raw = deviceStorage()?.getItem(SEEN_KEY);
+    const ids = raw ? JSON.parse(raw) : null;
+    return Array.isArray(ids) ? new Set(ids.filter((x) => typeof x === "string")) : null;
+  } catch (e) {
+    console.warn("Kitchen: the kept recipes of the last look could not be read; this look starts afresh.", e);
+    return null;
+  }
+}
+
+/** Remember this look (a blocked storage keeps it for the page's life only: said). @param {Set<string> | null} ids */
+function saveSeen(ids) {
+  try {
+    if (ids) deviceStorage()?.setItem(SEEN_KEY, JSON.stringify([...ids]));
+    else deviceStorage()?.removeItem(SEEN_KEY);
+  } catch (e) {
+    console.warn("Kitchen: the kept recipes of this look could not be remembered on this device.", e);
+  }
+}
+
+/** The kept dish ids the local database held at the last look; null before the first. @type {Set<string> | null} */
+let seen = loadSeen();
+
+/** Remember that dish `id` leaves the database by this device's doing (api.js `remove`, api/recipe-keep.js). @param {string} id */
+export const leftHere = (id) => void ownDeletes.add(id);
+
+/** Dish `id` is kept again here: its leaving the database is noticed again. @param {string} id */
+export const keptHere = (id) => void ownDeletes.delete(id);
 
 /** The notice, not sticky: the kit toast in the page's language. */
 const sayGone = () => toast(t("off.goneRecipe"));
 
-/**
- * What the server says about one kept dish: "present" when it answers, else what the failure means. A failure that is
- * neither gone nor offline is reported in the console with its cause and the copy stays.
- * @param {import("./kit-data.js").KitData} kit @param {string} id @returns {Promise<"present" | "gone" | "offline" | "error">}
- */
-async function askServer(kit, id) {
-  try {
-    await kit.get(dishPath(id));
-    return "present";
-  } catch (e) {
-    const outcome = classifyDishRead(e);
-    if (outcome === "error") console.warn(`Kitchen: could not check whether the kept dish ${id} still exists; its offline copy stays.`, e);
-    return outcome;
-  }
-}
+/** The dish ids the local database holds now (the kit's overlay hides a delete waiting here, which is ours anyway). @param {KitData} kit */
+const heldDishIds = async (kit) => new Set((await kit.db.collection("dishes").all()).map((d) => String(d.id)));
 
 /**
- * After an online kitchen read: drop every kept dish the server answers 404 for, then the ingredients nothing kept
- * uses, and say so once per dish. Does nothing while "keep everything" is on (nothing is kept one by one then).
- * @param {readonly Record<string, any>[]} serverDishes the dishes the kitchen just answered with
- * @param {() => unknown} [notify] the notice (replaced by the release script's check)
- * @returns {Promise<string[]>} the ids of the dishes dropped
+ * Compare the dishes held now with the last look; for each kept dish that left without a delete of ours: the notice
+ * once, the key let go, then the ingredients no kept dish names. Answers the ids said gone.
+ * @param {KitData} kit @param {() => unknown} [notify] the notice (replaced by the release script's check)
+ * @returns {Promise<string[]>}
  */
-export async function dropGoneDishes(serverDishes, notify = sayGone) {
-  const kit = await kitData();
-  const settings = await kit.settings();
-  if (settings.all) return [];
-  const missing = missingKeptDishIds(keptDishIds(settings.items), serverDishes);
-  /** @type {string[]} */
-  const dropped = [];
-  let unresolved = 0;
-  for (const id of missing) {
-    if ((await askServer(kit, id)) !== "gone") {
-      unresolved += 1;
-      continue;
-    }
-    await kit.keepItem(dishPath(id), false);
-    dropped.push(id);
+export async function checkGoneDishes(kit, notify = sayGone) {
+  if ((await kit.settings()).all) {
+    if (seen) saveSeen((seen = null));
+    return [];
+  }
+  const now = await heldDishIds(kit);
+  const gone = seen ? goneDishIds(seen, now, ownDeletes) : [];
+  saveSeen((seen = now));
+  if (!gone.length) return [];
+  const dishes = kit.db.collection("dishes");
+  for (const id of gone) {
+    await dishes.keep(id, false);
     if (noticed.claim(id)) notify();
   }
-  // Sweep only when every kept dish is accounted for: one that could not be checked still needs its ingredients.
-  if (dropped.length && unresolved === 0) {
-    for (const path of orphanIngredientPaths(serverDishes, (await kit.settings()).items)) await kit.keepItem(path, false);
-  }
-  return dropped;
+  const ingredients = kit.db.collection("ingredients");
+  for (const id of orphanIngredientIds(await dishes.all(), await ingredients.all())) await ingredients.keep(id, false);
+  return gone;
+}
+
+/** Watch the dishes collection for the rest of the page's life; returns the clean-up. */
+export async function watchGoneDishes() {
+  const kit = await kitData();
+  const run = () => void checkGoneDishes(kit).catch((e) => console.warn("Kitchen: checking the kept recipes against the kitchen failed", e));
+  run(); // the first look: compared with the last one remembered on this device
+  return kit.db.collection("dishes").watch(({ reason }) => {
+    if (reason === "pull") run();
+  });
 }

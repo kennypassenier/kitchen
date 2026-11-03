@@ -17,6 +17,12 @@ export const KEEP_ALL_DEFAULT = true;
 export const DEFAULT_MARK = "kitchen-device:offline-default-applied";
 
 /**
+ * Where api/recipe-gone.js remembers the kept dishes of its last look (feat-db-pages-2), so a kept dish deleted while
+ * the app was closed is still noticed at the next start. Per device, outside the synced `kitchen:` prefix, as above.
+ */
+export const SEEN_KEY = "kitchen-device:kept-dishes-seen";
+
+/**
  * Whether the default still has to be applied on this device. A storage that cannot be read counts as "not yet":
  * applying the default again is harmless, never applying it would leave the copy off. The failure is reported.
  * @param {Pick<Storage, "getItem"> | null} storage @returns {boolean}

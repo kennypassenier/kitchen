@@ -1,41 +1,42 @@
-// What Kitchen hands the kit's offline data client (`chassisData.configure`, chassis-rs feat-offline-1). Config only:
-// no fetch, no DOM. docs/agent/DATA.md "Offline copy" says what each value means for the kitchen's data.
+// What Kitchen hands the kit's offline data client (`chassisData.configure`, chassis-rs feat-offline-1) and its local
+// database (`chassisData.db`, v4.5.0). Config only: no fetch, no DOM. docs/agent/DATA.md "Offline copy" says what each
+// value means for the kitchen's data.
 
-/** The IndexedDB database the kit keeps the copy and the queue in: `chassis-data:kitchen`. */
+/** The app name to the kit: the queue lives in `chassis-data:kitchen`, the local database in `chassis-db:kitchen`. */
 export const OFFLINE_NAME = "kitchen";
 
 /** The field of an item that carries its revision (docs/agent/DATA.md "Revisions and stale saves"). */
 export const REV_FIELD = "rev";
 
-/** The whole kitchen in one answer: every screen reads it (web/js/api.js `loadKitchen`). */
+/**
+ * The lists of the kitchen, each a collection of the kit's local database (`chassisData.db`, chassis-rs v4.5.0,
+ * feat-db-pages-1) of the same name, keyed by `id` with revision `rev` (src/store/db/sync.rs). A dish carries its
+ * recipes, so the dish is the synced unit.
+ */
+export const LISTS = Object.freeze(["dishes", "dish_categories", "ingredients", "ingredient_categories", "freezer", "shelf", "log", "resting", "drafts", "recipe_sources"]);
+
+/** The settings' collection and its one item (`{id: "kitchen", rev: settings_rev, ..keys}`). */
+export const SETTINGS_COLLECTION = "settings";
+export const SETTINGS_KEY = "kitchen";
+
+/** The settings item's route: PATCH merges, `null` removes a key, `If-Match` = its `rev`. */
+export const SETTINGS_PATH = `/data/settings/${SETTINGS_KEY}`;
+
+/** The whole kitchen in one answer, read straight from the service (never copied) while "keep everything" is off. */
 export const KITCHEN_PATH = "/data/kitchen";
 
-/** One dish with its recipes (`GET /data/{list}/{id}`, feat-offline-recipe-1): an item route to the kit. */
-export const DISH_ROUTE = "/data/dishes/:id";
+/** The item route of `id` in `list`, as the routes and the kit's collections name it. @param {string} list @param {string} id */
+export const itemPath = (list, id) => `/data/${list}/${encodeURIComponent(id)}`;
 
-/** The path of the dish with `id`, as the kit keeps it. @param {string} id */
-export const dishPath = (id) => `/data/dishes/${encodeURIComponent(id)}`;
+/** The freezer take route of item `id` (a POST with an Idempotency-Key, not a collection write). @param {string} id */
+export const takePath = (id) => `/data/freezer/${encodeURIComponent(id)}/take`;
 
-/** The ingredients list, and one ingredient (`GET /data/{list}/{id}`): the names every recipe line points at. */
-export const INGREDIENTS_PATH = "/data/ingredients";
-export const INGREDIENT_ROUTE = "/data/ingredients/:id";
-
-/** The path of the ingredient with `id`, as the kit keeps it. @param {string} id */
-export const ingredientPath = (id) => `/data/ingredients/${encodeURIComponent(id)}`;
-
-/**
- * The GET answers the kit may keep a copy of (chassis-rs 8042dbe, trimmed keeping). With "keep everything" on the kit
- * stores every one whole; with it off it stores only kept items, and a list route only trimmed to its kept items:
- * - `/data/kitchen`, the whole kitchen every screen draws from. A list with no item route below it, so the kit stores
- *   it only while "keep everything" is on: keeping one recipe never keeps the kitchen.
- * - `/data/dishes/:id`, one dish with its recipes: what the recipe page's "Keep offline" keeps (a recipe lives in its
- *   dish).
- * - `/data/ingredients` with `/data/ingredients/:id`: the names a kept recipe's lines point at. The switch keeps each
- *   ingredient the dish uses, so the list is stored trimmed to those.
- * The settings (`/data/settings`, one object, no item route) are not kept per recipe: offline, a kept recipe's cook
- * mode uses the default timer sound.
- */
-export const OFFLINE_ROUTES = Object.freeze([KITCHEN_PATH, DISH_ROUTE, INGREDIENTS_PATH, INGREDIENT_ROUTE]);
+/** The collection a write path changes (`/data/<list>/…`, the settings item, a take), or null. @param {string} path */
+export function collectionOfPath(path) {
+  const m = /^\/data\/([a-z_]+)\//.exec(path);
+  if (!m) return null;
+  return LISTS.includes(m[1]) || m[1] === SETTINGS_COLLECTION ? m[1] : null;
+}
 
 /**
  * The words of the kit's failed-edits drawer, under the kit's own `FAILED_MESSAGES` keys.
@@ -92,10 +93,12 @@ export function kitMessages(t) {
 }
 
 /**
- * The options for `chassisData.configure`. The size cap, its warning level and the retry timer are the kit's defaults
- * (50 MB, 80 %, 30 s): the whole kitchen is far below the cap, and the kit's numbers are documented in one place.
+ * The options for `chassisData.configure`: the kit's local database (`db: true`: manifest `/api/sync`, a pull at start,
+ * on reconnect, focus, hints and every 5 minutes) and no response-cache routes, so the database is the one offline
+ * layer (feat-db-pages-1). The size cap, its warning level and the retry timer are the kit's defaults (50 MB, 80 %,
+ * 30 s): the whole kitchen is far below the cap, and the kit's numbers are documented in one place.
  * @param {(key: string, ...args: any[]) => string} t the page's words
  */
 export function offlineOptions(t) {
-  return { name: OFFLINE_NAME, rev: REV_FIELD, routes: [...OFFLINE_ROUTES], messages: kitMessages(t) };
+  return { name: OFFLINE_NAME, rev: REV_FIELD, routes: [], db: true, messages: kitMessages(t) };
 }

@@ -10,8 +10,9 @@ import { readJson, writeJson } from "./kit-data.js";
 
 /** Every draft the kitchen keeps. @returns {Promise<Item[]>} */
 export async function readDrafts() {
-  // Read through the kit like every GET; drafts are not kept offline (a draft is saved with a POST, which needs a
-  // connection), so without one this says so instead of showing an old list.
+  // Straight from the service (the kit copies no route since feat-db-pages-1; the `drafts` collection of its local
+  // database is not read here): a draft is saved with a POST, which needs a connection, so without one this says so
+  // instead of showing an old list. A delete pulls the collection after it (api/kit-data.js).
   const { data: all } = await readJson("/data/drafts");
   return Array.isArray(all) ? all : [];
 }

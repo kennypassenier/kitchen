@@ -1,7 +1,11 @@
 // Kitchen's transport over the kit's offline data client (`window.chassisData`, chassis-rs feat-offline-1,
-// refactor-rev-kit-1). Every GET and every PUT / PATCH / DELETE of the kitchen's JSON goes through the kit, so the kit
-// owns the `If-Match` header, the offline copy, the write queue and its replay; Kitchen only decides WHICH revision a
-// save names (api/save.js `ifMatchFor`) and turns the kit's refusals into ApiErrors in the page's language.
+// refactor-rev-kit-1) and its local database (`chassisData.db`, v4.5.0, feat-db-pages-1). The kitchen is READ from the
+// local database (api/kitchen-read.js); every PUT / PATCH / DELETE goes through the kit's queue, so the kit owns the
+// `If-Match` header, the queue, its replay, the failed list and the overlay of waiting edits on the database's records.
+// Kitchen only decides WHICH revision a save names (api/save.js `ifMatchFor`: the revision the page READ, which the
+// collection's own `put` cannot be told, it names the record's newest) and turns the kit's refusals into ApiErrors in
+// the page's language. After a write the service answered, the collection it changed is pulled, so the database holds
+// the server's version (the server is the master); a queued write is pulled after its replay by the kit itself.
 //
 // The freezer take is a POST through the kit (`chassisData.post`, chassis-rs 8042dbe, feat-offline-take-1): queued
 // offline and replayed with the same `Idempotency-Key`, so the server takes it once. Creating an item, a draft, an
@@ -16,7 +20,7 @@ import { ApiError } from "./http.js";
 import { failureOf } from "./save.js";
 import { isSignedOut } from "./login-link.js";
 import { signedOutNotice } from "./signed-out.js";
-import { offlineOptions } from "../offline/config.js";
+import { SETTINGS_COLLECTION, SETTINGS_KEY, collectionOfPath, offlineOptions } from "../offline/config.js";
 import { applyKeepDefault, deviceStorage } from "../offline/keep.js";
 import { kitRuntimeRan } from "./kit-ready.js";
 
@@ -44,6 +48,24 @@ export const READ_EVENT = "kitchen-data-read";
  * @property {(path: string) => Promise<boolean>} isKept
  * @property {() => Promise<{ used: number, max: number, level: string }>} usage
  * @property {() => Promise<void>} clearCopy
+ * @property {KitDb} db the local database (feat-db-pages-1)
+ */
+/**
+ * The part of `chassisData.db` Kitchen uses (chassis-rs v4.5.0 docs/LOCAL_DB_DESIGN.md "Client contract, as built").
+ * `sync` answers one summary per collection (`stopped`: null, "unreachable", "auth", "full", "error…").
+ * @typedef {object} KitDb
+ * @property {(name: string) => KitCollection} collection
+ * @property {(names?: string[] | null) => Promise<Array<{ pages: number, removed: number, stopped: string | null }>>} sync
+ */
+/**
+ * @typedef {object} KitCollection
+ * @property {(key: string) => Promise<Record<string, any> | null>} get
+ * @property {() => Promise<Array<Record<string, any>>>} all
+ * @property {(key: string, on?: boolean) => Promise<boolean>} keep
+ * @property {(key: string) => Promise<boolean>} isKept
+ * @property {() => Promise<unknown>} sync
+ * @property {() => Promise<{ partial: boolean, stale: boolean, lastPull: number | null, bytes: number }>} status
+ * @property {(fn: (e: { collection: string, reason: string }) => void) => () => void} watch
  */
 /** @typedef {{ ok: boolean, queued: boolean, status: number, data: any, rev: string | null }} KitWrite */
 /**
@@ -67,6 +89,9 @@ async function configureOnce() {
   await kit.configure(offlineOptions(t));
   // Before the first read, so the very first kitchen answer on a new device is already kept (Kenny: default on).
   await applyKeepDefault(kit, deviceStorage());
+  // The settings are always kept (DB_MOVE choice C1): a recipe kept on its own then has its timer sound offline too.
+  // Not awaited: offline on a new device the kit cannot fetch it yet, says so, and the next pull brings it.
+  void kit.db.collection(SETTINGS_COLLECTION).keep(SETTINGS_KEY, true).catch((e) => console.warn("Kitchen: the settings could not be kept offline on this device", e));
   return kit;
 }
 
@@ -100,19 +125,24 @@ export function toApiError(err) {
   return new ApiError(words, status, limit, code);
 }
 
+/** Tell the connection band whether a read reached the kitchen (offline/band.js). @param {boolean} offline */
+export const sayRead = (offline) => dispatchEvent(new CustomEvent(READ_EVENT, { detail: { offline } }));
+
 /**
- * GET through the kit: the service's answer, or the offline copy when the service cannot be reached.
- * @param {string} path @returns {Promise<{ data: any, offline: boolean, savedAt: number | null }>}
+ * GET through the kit, straight from the service: no route is copied any more (the local database is the one offline
+ * layer), so without a connection this is an ApiError of status 0. Used for the wheel lists, the drafts and the whole
+ * kitchen while "keep everything" is off.
+ * @param {string} path @returns {Promise<{ data: any }>}
  */
 export async function readJson(path) {
   const kit = await kitData();
   try {
     const got = await kit.get(path);
-    dispatchEvent(new CustomEvent(READ_EVENT, { detail: { offline: got.offline } }));
-    return { data: got.data, offline: got.offline, savedAt: got.savedAt };
+    sayRead(false);
+    return { data: got.data };
   } catch (e) {
     const err = toApiError(e);
-    if (err instanceof ApiError && err.status === 0) dispatchEvent(new CustomEvent(READ_EVENT, { detail: { offline: true } }));
+    if (err instanceof ApiError && err.status === 0) sayRead(true);
     throw err;
   }
 }
@@ -136,10 +166,21 @@ export async function writeJson(method, path, body, rev) {
   const options = typeof rev === "number" ? { rev } : {};
   try {
     const done = await send(kit, method, path, body, options);
+    if (!done.queued) pullAfterWrite(kit, path);
     return { data: done.data, queued: done.queued, rev: done.rev ?? null };
   } catch (e) {
     throw toApiError(e);
   }
+}
+
+/**
+ * Pull the collection a sent write changed, so the local database holds the server's answer. Not awaited: the page
+ * already has the answer; a failed pull is the kit's to report and the next trigger pulls again.
+ * @param {KitData} kit @param {string} path
+ */
+function pullAfterWrite(kit, path) {
+  const name = collectionOfPath(path);
+  if (name) void kit.db.sync([name]).catch((e) => console.warn(`Kitchen: pulling ${name} after a save failed; the next pull brings it.`, e));
 }
 
 /**

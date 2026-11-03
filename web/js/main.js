@@ -12,7 +12,7 @@ import { attachThemeRegisters } from "/eten/registers.js";
 import { h } from "./dom.js";
 import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
-import { onKitchen, loadKitchen, refreshIfOffline } from "./api.js";
+import { onKitchen, loadKitchen } from "./api.js";
 import { startOffline } from "./offline/start.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
@@ -85,8 +85,6 @@ export function navigate(href) {
 
 async function render() {
   const mine = ++seq;
-  // A kitchen held from the device's copy is read again on every page change (the server is the master).
-  refreshIfOffline();
   const path = location.pathname.replace(/\/+$/, "") || "/";
   cleanup();
   cleanup = () => {};

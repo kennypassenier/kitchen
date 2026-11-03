@@ -1,74 +1,74 @@
-// Keeping one recipe offline through the kit (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12, option B), and
-// reading the kept recipes back without a connection. The decisions are offline/kept.js (pure); this file only talks
-// to the kit (`window.chassisData`, chassis-rs 8042dbe docs/OFFLINE_DESIGN.md "Trimmed keeping"): `settings`,
-// `keepItem` (a promise: the kit trims its stored copy before it resolves), `get`.
-//
-// The kit copies an answer only when it READS it with keeping on, so marking the dish kept is not enough: turning the
-// switch on reads the dish and the ingredients list at once (the kit stores the list trimmed to the kept ingredients),
-// and the copy exists before the connection drops.
+// Keeping one recipe offline in the kit's local database (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12,
+// option B; on `chassisData.db` since feat-db-pages-2). The decisions are offline/keep-plan.js (pure); this file only
+// talks to the kit: `collection(name).keep(key, on)` (a newly kept key is fetched once through its item route; letting
+// go removes the record unless everything is kept) and `isKept(key)`. With "keep everything" off, the dishes and
+// ingredients the local database holds are exactly the kept ones; the kit pulls their changes and applies the server's
+// deletes like any other record.
 
-import { INGREDIENTS_PATH, dishPath } from "../offline/config.js";
-import { ingredientPlan, keepStateOf, keptDishIds, partialKitchen } from "../offline/kept.js";
+import { dishIngredientIds, keepStateOf, keptCount, missingIngredientIds, releasePlan } from "../offline/keep-plan.js";
 import { kitData } from "./kit-data.js";
+import { keptHere, leftHere } from "./recipe-gone.js";
 
-/** @typedef {import("../offline/kept.js").KeepState} KeepState */
-/** @typedef {import("../api.js").Kitchen} Kitchen */
+/** @typedef {import("../offline/keep-plan.js").KeepState} KeepState */
+/** @typedef {import("./kit-data.js").KitData} KitData */
+/** @typedef {Record<string, any>} Item */
 
 /** What the switch of the dish's recipe shows on this device. @param {string} dishId @returns {Promise<KeepState>} */
 export async function recipeKeepState(dishId) {
-  return keepStateOf(await (await kitData()).settings(), dishId);
+  const kit = await kitData();
+  const all = (await kit.settings()).all;
+  return keepStateOf(all, all || (await kit.db.collection("dishes").isKept(dishId)));
+}
+
+/** Keep (or let go) each ingredient id, one after the other. @param {KitData} kit @param {string[]} ids @param {boolean} on */
+async function keepIngredients(kit, ids, on) {
+  const ingredients = kit.db.collection("ingredients");
+  for (const id of ids) await ingredients.keep(id, on);
 }
 
 /**
  * Keep the dish of a recipe on this device, with the ingredients its recipes name, or stop keeping it (and the
- * ingredients no other kept dish names). Turning it on reads the dish and the ingredients so the kit stores them now; a
- * read that fails (no connection right now) gives `copied: false`, and the copy is made at the next read with a
- * connection. Turning it off removes the copies at once (the kit's trim).
- * @param {readonly Record<string, any>[]} dishes the kitchen's dishes, for the ingredients @param {string} dishId
- * @param {boolean} on @returns {Promise<{ kept: boolean, copied: boolean }>}
+ * ingredients no other kept dish names). `copied` says the dish is in the local database now; false when there is no
+ * connection right now (the kit could not fetch it): the next online kitchen read fetches it (`fillKeptGaps`).
+ * @param {readonly Item[]} dishes the kitchen's dishes, for the ingredients @param {string} dishId @param {boolean} on
+ * @returns {Promise<{ kept: boolean, copied: boolean }>}
  */
 export async function keepRecipe(dishes, dishId, on) {
   const kit = await kitData();
-  const plan = ingredientPlan(dishes, (await kit.settings()).items, dishId, on);
-  // The ingredients first when keeping and last when letting go, so the dish is never kept without its names.
-  if (on) for (const path of plan) await kit.keepItem(path, true);
-  const kept = await kit.keepItem(dishPath(dishId), on);
+  const col = kit.db.collection("dishes");
+  const dish = dishes.find((d) => d.id === dishId) ?? (await col.get(dishId));
   if (!on) {
-    for (const path of plan) await kit.keepItem(path, false);
+    const plan = releasePlan((await col.all()).filter((d) => d.id !== dishId), dish);
+    leftHere(dishId); // it leaves the database now by the person's choice: no "gone" notice
+    const kept = await col.keep(dishId, false);
+    await keepIngredients(kit, plan, false);
     return { kept, copied: false };
   }
-  const reads = await Promise.allSettled([kit.get(dishPath(dishId)), kit.get(INGREDIENTS_PATH)]);
-  const failed = reads.filter((r) => r.status === "rejected");
-  if (failed.length) console.warn("Kitchen: a kept recipe could not be copied right now; it is copied at the next read.", failed);
-  return { kept, copied: failed.length === 0 };
+  // The ingredients first, so the dish is never kept without its names.
+  await keepIngredients(kit, dishIngredientIds(dish), true);
+  keptHere(dishId);
+  const kept = await col.keep(dishId, true);
+  return { kept, copied: (await col.get(dishId)) !== null };
 }
 
 /**
- * One answer from the kit, or `fallback` when it has neither a connection nor a copy (said in the console).
- * @template T @param {import("./kit-data.js").KitData} kit @param {string} path @param {T} fallback @returns {Promise<T>}
+ * After an online kitchen read with "keep everything" off: a kept dish the device does not hold yet (kept while
+ * offline) is fetched, and the ingredients the kept dishes name now but the device does not keep (a line added on
+ * another device) are kept. The kit's `keep` fetches each once through its item route.
+ * @param {KitData} kit @param {readonly Item[]} serverDishes @param {Record<string, Item[]>} lists the local rows
  */
-async function readOr(kit, path, fallback) {
-  try {
-    return /** @type {T} */ ((await kit.get(path)).data);
-  } catch (e) {
-    console.warn(`Kitchen: ${path} has no offline copy on this device; the kept recipes show without it.`, e);
-    return fallback;
+export async function fillKeptGaps(kit, serverDishes, lists) {
+  const col = kit.db.collection("dishes");
+  const held = new Set(lists.dishes.map((d) => d.id));
+  for (const d of serverDishes) {
+    if (!held.has(d.id) && (await col.isKept(d.id))) await col.keep(d.id, true);
   }
+  const kept = serverDishes.filter((d) => held.has(d.id));
+  await keepIngredients(kit, missingIngredientIds(kept, lists.ingredients), true);
 }
 
-/**
- * The kitchen made of the dishes kept one by one, from the kit's copies; null when "keep everything" is on or no dish
- * is kept. A kept dish without a copy (kept while offline and never read since) is left out and reported.
- * @returns {Promise<(Kitchen & { partial: true }) | null>}
- */
-export async function readKeptKitchen() {
+/** How many recipes are kept one by one on this device (the dishes the local database holds). */
+export async function keptRecipeCount() {
   const kit = await kitData();
-  const settings = await kit.settings();
-  if (settings.all) return null;
-  const ids = keptDishIds(settings.items);
-  if (!ids.length) return null;
-  const dishes = (await Promise.all(ids.map((id) => readOr(kit, dishPath(id), null)))).filter((d) => d !== null);
-  if (!dishes.length) return null;
-  const ingredients = await readOr(kit, INGREDIENTS_PATH, []);
-  return partialKitchen({ dishes, ingredients: Array.isArray(ingredients) ? ingredients : [] });
+  return keptCount(await kit.db.collection("dishes").all());
 }

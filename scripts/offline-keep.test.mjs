@@ -1,10 +1,9 @@
 // node --test scripts/offline-keep.test.mjs: "keep everything offline" is on by default (Kenny, 02/11/2026), applied
-// once per device, and a person who turned it off keeps it off (web/js/offline/keep.js); the copy is read again only
-// after a replay that sent something (web/js/offline/sync.js).
+// once per device, and a person who turned it off keeps it off (web/js/offline/keep.js). The re-read after a replay is
+// the kit's own pull since feat-db-pages-1 (web/js/offline/sync.js and its test are gone).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyKeepDefault, DEFAULT_MARK, KEEP_ALL_DEFAULT, markDefault, needsDefault } from "../web/js/offline/keep.js";
-import { needsReread } from "../web/js/offline/sync.js";
+import { applyKeepDefault, DEFAULT_MARK, KEEP_ALL_DEFAULT, markDefault, needsDefault, SEEN_KEY } from "../web/js/offline/keep.js";
 import { readFileSync } from "node:fs";
 
 const memory = () => {
@@ -49,17 +48,14 @@ test("a storage that cannot be read or written applies the default again, and sa
   assert.equal(warned.length, 2, "both failures are reported, none swallowed");
 });
 
-test("the copy is read again only after a replay that sent something", () => {
-  assert.equal(needsReread({ sent: 2, remaining: 0, stopped: null }), true);
-  assert.equal(needsReread({ sent: 0, remaining: 1, stopped: "unreachable" }), false);
-  for (const odd of [null, undefined, {}, { sent: "2" }]) assert.equal(needsReread(odd), false);
-});
-
 test("the default's mark stays on the device: no prefix the kit syncs to the login matches it (fix-offline-default-1)", () => {
   const main = readFileSync(new URL("../src/main.rs", import.meta.url), "utf8");
   const line = main.split("\n").find((l) => l.includes("sync_browser_keys"));
   assert.ok(line, "src/main.rs declares the synced browser keys");
   const prefixes = [...line.matchAll(/\.prefix\("([^"]+)"\)/g)].map((m) => m[1]);
   assert.ok(prefixes.length > 0);
-  for (const prefix of prefixes) assert.ok(!DEFAULT_MARK.startsWith(prefix), `${DEFAULT_MARK} is synced through ${prefix}`);
+  for (const prefix of prefixes) {
+    assert.ok(!DEFAULT_MARK.startsWith(prefix), `${DEFAULT_MARK} is synced through ${prefix}`);
+    assert.ok(!SEEN_KEY.startsWith(prefix), `${SEEN_KEY} (the kept dishes' last look, feat-db-pages-2) is synced through ${prefix}`);
+  }
 });
