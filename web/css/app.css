@@ -79,10 +79,3 @@ html .kp-formgrid.kp-formgrid {
   display: grid;
   gap: var(--kp-space-sm, 0.5rem);
 }
-
-/* The panel's cap, min(22rem, 100vw - 1rem), is meant for the whole plate, but the kit leaves it content-box, so its
-   padding and border come on top: 378 px on a 390 px phone, flush with the window's left edge (measured in Firefox,
-   kp-themes 12.2.0; kp-gaps/kitchen.md). Border-box keeps the plate inside the cap. Drop when the kit sets it. */
-.app-popover {
-  box-sizing: border-box;
-}

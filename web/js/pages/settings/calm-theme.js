@@ -26,23 +26,8 @@ function paintCalm(root) {
 }
 
 /**
- * Name the theme on the settings row's labelled trigger after a pick in ANOTHER menu (the header's). The kit renames the
- * trigger only for a pick in its own menu (kp-themes 12.2.0, kp-gaps/kitchen.md), so the row said "Formal" while the page
- * wore Dark. Same words and accessible name as the kit writes: the option's own text. Drop when the kit follows every pick.
- * @param {HTMLElement} host @param {string} name
- */
-function nameTrigger(host, name) {
-  const trigger = host.querySelector('[data-kp-theme-trigger="label"]');
-  const word = trigger?.querySelector(".kp-theme-menu__current");
-  const option = host.querySelector(`[data-kp-theme="${CSS.escape(name)}"]`)?.textContent?.trim();
-  if (!(trigger instanceof HTMLElement) || !word || !option) return;
-  word.textContent = option;
-  trigger.setAttribute("aria-label", `${trigger.dataset.kpThemeLabel ?? ""}: ${option}`);
-}
-
-/**
  * Keep the calm and theme readings current; returns the clean-up.
- * @param {HTMLElement} root @param {{ calmInput: HTMLInputElement, themeHost: HTMLElement }} el
+ * @param {HTMLElement} root @param {{ calmInput: HTMLInputElement }} el
  */
 export function watchCalmAndTheme(root, el) {
   const doc = document.documentElement;
@@ -56,9 +41,7 @@ export function watchCalmAndTheme(root, el) {
   paintTheme(doc.getAttribute("data-theme") ?? "formal");
   // On the document: the header's menu changes the theme too, and the pick event bubbles.
   const picked = (/** @type {Event} */ event) => {
-    const name = /** @type {CustomEvent} */ (event).detail.theme;
-    paintTheme(name);
-    if (!(event.target instanceof Node && el.themeHost.contains(event.target))) nameTrigger(el.themeHost, name);
+    paintTheme(/** @type {CustomEvent} */ (event).detail.theme);
   };
   doc.addEventListener(PICK_EVENT, picked);
   return () => {
