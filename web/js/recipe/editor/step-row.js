@@ -12,7 +12,6 @@ import { stepFromFields, partnerChoices } from "./logic.js";
 import { newId } from "./ids.js";
 import { halves, combine } from "../bilingual.js";
 import { lang } from "../../i18n/index.js";
-import { autosizeWhenOpen } from "../../ui/fold-autosize.js";
 
 /**
  * @typedef {{ el: HTMLElement, get: () => any, set: (p: any) => void, track: HTMLSelectElement, partner: HTMLSelectElement, text: HTMLElement, head: HTMLElement, up: HTMLElement, down: HTMLElement, camera: HTMLElement, start: HTMLElement, id: string, paint: () => void, options: () => void }} StepRow
@@ -78,8 +77,6 @@ function foldOf(f) {
     row(t("edit.with"), f.partner, t("edit.withHint")),
   );
   const fold = /** @type {HTMLDetailsElement} */ (h("details", { class: "rl-step__more" }, h("summary", null, t("edit.more")), h("div", { class: "rl-step__body" }, fields, h("div", { class: "rl-list" }, h("h4", { class: "kp-fw-semibold" }, t("edit.stepNeeds")), f.uses.el))));
-  // Its second-language text is sized when the fold opens, not while the form is built (fix-long-recipe-1).
-  autosizeWhenOpen(fold);
   return fold;
 }
 

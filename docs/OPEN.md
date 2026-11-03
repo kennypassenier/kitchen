@@ -266,13 +266,15 @@ change. The last two unchecked replays, a queued `DELETE` and a queued settings 
   drawer at 390 and 1280, EN and NL; `node scripts/check-words.mjs` 0 (it was).
 
 - Lower cook-timeline rows (`--kp-gantt-row-sub: 1.625rem`, `web/css/pages/cook.css`): still needed with 12.2.0 (lanes 86/112 px with, 128/168 without).
-- Lazy fold autosize (`web/js/ui/fold-autosize.js`) and the debounced timeline repaint (`web/js/recipe/editor/paint-timing.js`):
-  still help on the 60-line/40-step recipe (open 2.9 s vs 8.2 s; 155 vs 350 ms a key).
+- ~~Lazy fold autosize (`web/js/ui/fold-autosize.js`)~~ **dropped 03/11/2026 [refactor-drop-nav-autosize-1]**: on kp-themes 12.4.0 the editor of the
+  60-line/40-step recipe opens in 2.77 s without it vs 3.04 s with it (Firefox, median of 3). The debounced timeline repaint
+  (`web/js/recipe/editor/paint-timing.js`) stays: a key costs 302 ms without it vs 85 ms with it (`~/Projects/kp-gaps/kitchen.md`).
 - ~~`box-sizing: border-box` on the popover panel and `nameTrigger`~~ **dropped 03/11/2026 [refactor-drop-stand-ins-1]** (kp-themes 12.3.0 has both fixes, e1406eddb); re-check in release check 15.
 - The signed-out notice opens the login in a new tab because the kit's login read no `next` (kp-gaps/chassis-rs.md).
   With chassis login `?next=` (chassis-rs main 0b541ca) the signed-out notice can link back to the same tab; decide at the release.
-- The More item of the bar is built by hand (no `data-kp-nav-more` in kp-themes yet); the in-use reason-tooltip workaround
-  (`web/js/records/in-use.js`) until kp-themes ships its card-layout tooltip fix.
+- ~~The More item of the bar is built by hand~~ **replaced 03/11/2026 [refactor-nav-more-pinned-1]** by kp's `data-kp-nav-more` on a `data-kp-nav-fold` bar
+  (its words do not follow a language change: `~/Projects/kp-gaps/kitchen.md`). The in-use reason-tooltip workaround
+  (`web/js/records/in-use.js`) stays until kp-themes ships its card-layout tooltip fix.
 
 ## Choices for Kenny (not built)
 

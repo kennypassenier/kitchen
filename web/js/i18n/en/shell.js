@@ -28,7 +28,5 @@ export const EN_SHELL = {
   "nav.parents": "Parents' wheel",
   "nav.log": "What I ate",
   "nav.sources": "Recipe sources",
-  "nav.more": "More",
-  "nav.moreMenu": "Every other page",
   "nav.storage": "Storage",
 };
