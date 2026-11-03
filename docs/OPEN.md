@@ -1,13 +1,13 @@
 # Open
 
-7 items open: the deploy note (skip 6.0.0), the data move into databases (server side built 03/11/2026, page side next; docs/agent/DB_MOVE.md), the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.5.0, tag v4.5.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
+7 items open: the deploy note (skip 6.0.0), the data move into databases (server and page side built 03/11/2026; docs/agent/DB_MOVE.md), the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.5.0, tag v4.5.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
 | Item | Waits on |
 |---|---|
 | **Deploy note (coordinator, 03/11/2026 06:04): skip 6.0.0 on deploy: go from live 5.0.0 straight to the next release; back up kitchen.json and kitchen-kit.db first.** 6.0.0 is signed but is not deployed. The next release must also move `kitchen.json` into `kitchen.db` in one step from either state (5.0.0: no `rev` / `settings_rev`, kit schema 2; 6.0.0: optional `rev`, `settings_rev`, kit schema 3); see `docs/agent/DB_MOVE.md`. Measured 03/11/2026 (coordinator, CT 121 `/healthz`): **live is 4.1.0**; the import takes its FORMAT 5 file as well. | the next release |
-| The data move into databases (Kenny 02/11/2026 21:01, "ALLE info gaat vanaf nu in databases"; choices answered 03/11/2026 06:12, `docs/agent/DB_MOVE.md` "Decisions"): **server side built** [feat-db-schema-1], [feat-db-sync-1], [feat-db-import-1], [feat-db-store-1]: `kitchen.db` tables with real columns, the one-time import with `kitchen.json.pre-db` and a value-for-value check, every write with its change-log entry, synced collections per list plus `settings` (`/data/settings/kitchen`). Page side (`chassisData.db`, choice D1) is the next helper's. Two questions held (release check 16, "Held"). Nothing run (Kenny's test rule) | the page helper, Kenny's answers to the two held questions, release check 16 |
+| The data move into databases (Kenny 02/11/2026 21:01, "ALLE info gaat vanaf nu in databases"; choices answered 03/11/2026 06:12, `docs/agent/DB_MOVE.md` "Decisions"): **server side built** [feat-db-schema-1], [feat-db-sync-1], [feat-db-import-1], [feat-db-store-1]: `kitchen.db` tables with real columns, the one-time import with `kitchen.json.pre-db` and a value-for-value check, every write with its change-log entry, synced collections per list plus `settings` (`/data/settings/kitchen`). Page side built 03/11/2026 [feat-db-pages-1], [feat-db-pages-2], [refactor-offline-kitdb-1] (`chassisData.db`, choice D1; DB_MOVE.md "Page side, as built"). Four questions held (release check 16, "Held"). Nothing run (Kenny's test rule) | Kenny's answers to the four held questions, release check 16 |
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
 | On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 03/11/2026 chassis-rs 4.5.0 (tag v4.5.0 [meta-chassis-450-1]) with kp-themes 12.3.0 (stand-ins dropped, check 15), before that chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | release checks run 02/11/2026 (below): the datatable footprints got a Kitchen stand-in (Kenny 22:03 "Tijdelijke oplossing", [fix-table-footprint-1]), measure clear; then `chassis release` |
 | ~~Bump: chassis-rs release with kp-themes 2bc105c2b and e1406eddb~~ **done 03/11/2026**: chassis-rs 4.5.0 (tag v4.5.0, kp-themes 12.3.0) [meta-chassis-450-1]; the table-footprint stand-in, the popover box-sizing rule and `nameTrigger` removed [refactor-drop-stand-ins-1]; re-measure is release check 15 | release check 15 |
@@ -173,7 +173,29 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    collections; a broken copy of the file: the service exits 1 with "kitchen refuses to start" and the reason.
    (c) The rollback once on that copy: stop; restore `kitchen-kit.db` (and `kitchen.db`: delete it, there was none);
    `kitchen.json.pre-db` back to `kitchen.json`; the 4.1.0 binary starts and shows the same data.
-   (d) With the page move (choice D1): the offline e2e scenarios of `scripts/release/offline.e2e.mjs`.
+   (d) The page move (choice D1) [feat-db-pages-1], [feat-db-pages-2], [refactor-offline-kitdb-1] (written 03/11/2026,
+   NOTHING run; static checks at the commit: `node --check` on every changed file, check-words/forms/wheels 0).
+   `node --test scripts/`: new `offline-assemble.test.mjs` (made order, `pending` stripped, settings item to
+   `settings` + `settings_rev` with null keys removed, waiting takes over the freezer with failed ones skipped,
+   `partial`, `overServer` laying only waiting edits over the service's kitchen, `collectionOfPath`), new
+   `offline-keep-plan.test.mjs` (toggle state, a dish's ingredients, `releasePlan`, orphans and missing names, the kept
+   count, `goneDishIds` skipping own deletes, notice once), changed `offline-undo.test.mjs` (the database's record comes
+   back, the parked copy only when the device does not hold it, `{ dropped, item }`), changed `offline-keep.test.mjs`
+   (the needsReread test went with `offline/sync.js`; `kitchen-device:kept-dishes-seen` is not synced to the login);
+   removed `offline-apply`, `offline-kept`, `offline-gone`, `offline-sync` tests (their modules are gone).
+   `scripts/release/offline.e2e.mjs` (Firefox, throwaway Kitchen), the page scenarios: 1 an offline reload with keep-all
+   on (cook mode, band offline); 2 one recipe kept (keep-all off: the database holds that dish and no other; recipe and
+   cook mode open offline, another recipe does not; the Calm row counts it); 3 an offline edit shows after an offline
+   reload and is replayed once online; 4 a stale replay lands in the kit's failed list, Discard keeps the server's
+   version; 6 logout with an unsent edit asks first; 7 a freezer take whose answer was lost is replayed with the same
+   Idempotency-Key and takes ONE portion, and one made offline shows at once and is sent once; 8 a kept dish deleted
+   elsewhere: the kit's pull removes it, the keep is dropped, the notice shows once, offline nothing is dropped; 9 a
+   settings merge made offline over another device's change is refused on replay and the page shows the other value.
+   Scenario 5 (clear copy) is out until held question (4) is answered. By hand in Firefox besides: the band goes
+   offline/online with the pulls; two tabs: an edit saved in one shows in the other after focus (the kit's pull);
+   with keep-all off and online, every page shows the whole kitchen; switching keep-all off then on: the database is
+   trimmed, then filled again; the 6.0.0 -> next update on a device that had the old copy: the first start reads from
+   the database (the old `/data/kitchen` copy in `chassis-data:kitchen` is dead weight until "Clear offline copy").
 
    **For the page helper** (`chassisData.configure({ name, db: true })`): collections `freezer`, `shelf`, `log`,
    `resting`, `dishes` (recipes inside, `rev` covers them), `dish_categories`, `ingredients`, `ingredient_categories`,
@@ -188,13 +210,27 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    show in the feed as upserts. Items imported without a revision now carry `"rev": 0`; items created later have none
    until their first save (`rev_of` reads absent as 0, as before).
 
-   **Held (questions for Kenny, not built):** (1) offline creates under a device-made id (`client_key` /
+   **Held (questions for Kenny):** (1) offline creates under a device-made id (`client_key` /
    `check_create`; needs the create's `Idempotency-Key` stored per item, e.g. a bookkeeping column per list): build in
    this release, or keep creates online-only as today (recommended for this release: online-only, no new write path in
    the same release as the data move); (2) the feed carries no list order (`k_pos` is server bookkeeping, not in the
    body): the pages sort by `order`, `date`, names and `frozen_on` already; where a screen relies on stored order (none
    found in `web/js` sorts), options are sort by `created` in the page, or add the position to the feed body (a read-only
-   field the server strips on PUT); recommended: sort by `created` in the page.
+   field the server strips on PUT); recommended: sort by `created` in the page. **Interim as built
+   [feat-db-pages-1]**: the page puts each list in `created` order (`byCreated`, `offline/assemble.js`), the order every
+   route-made item had in the file; swap there if Kenny picks the feed field. (3) "Keep everything" off, ONLINE: the
+   kit's database then holds only the kept keys and the kit has no online read for the rest. Options: (a) as built:
+   `GET /data/kitchen` straight from the service (never copied) with the kept items' waiting edits and the waiting takes
+   laid over (`overServer`); edits queued for an item the device does not keep show again only after their replay;
+   (b) ask the kit for a "read through" mode of a collection (pull everything, store only the kept keys); (c) drop
+   "keep everything" off and keep only per-recipe marks on top of a full database. Recommended: (a) now, (b) filed as a
+   kit wish. (4) "Offline kopie wissen": the kit has no call that empties its local database and keeps the queue
+   (`purge` drops the queue too, `clearCopy` only the response cache). Options: (a) as built: unchanged, the button
+   clears the kit's response cache only (after the update that frees the old `/data/kitchen` copy; the database stays,
+   the row's size does not drop to 0); (b) a kit call `db.clear()` (drop records, reset cursors, keep the queue and
+   keeps; the next pull fills it again), then the button uses it; (c) remove the button. Recommended: (b) as a kit gap,
+   (a) until it ships. Kit wish besides (no choice): an explicit `rev` on the collection's `put`/`patch`/`delete`,
+   so Kitchen could drop `writeJson` (DB_MOVE.md "Page side, as built").
 
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
@@ -244,7 +280,7 @@ Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.m
 - [x] Logout did not ask on the kit's pages, the band's words read once, no `post()`, no failed-edits view: all four fixed in
   chassis-rs 073273f / 8042dbe (done on 8042dbe; the row for 073273f is ticked, re-check in release check 12).
 - [ ] **Optimistic `post()` only updates the POST's own path** (`post(path, body, { optimistic })` amends the copy of the
-  POST's path, not the list it changes): Kitchen draws the queued freezer take itself (`takePortions`, `offline/apply.js`).
+  POST's path, not the list it changes): Kitchen draws the queued freezer take itself (`takePortions`, `applyTakes` in `offline/assemble.js`).
   Filed in kp-gaps/chassis-rs.md 02/11/2026 (an `optimistic` that names the path it amends); drop Kitchen's overlay when it ships.
 
 Not open (decided or moved): the side wheel's kicker 64.7 px lower than the dish wheel's on `/` and `/eten` at 1280 is

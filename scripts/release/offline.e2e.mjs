@@ -1,5 +1,6 @@
-// Release check of the offline copy (feat-offline-kitchen), in Firefox against a running Kitchen. Written for the
-// release; NOT run while building (Kenny: tests only at the release, with his ok). Listed in docs/OPEN.md.
+// Release check of the offline side (feat-offline-kitchen; on the kit's local database `chassisData.db` since
+// feat-db-pages-1/-2), in Firefox against a running Kitchen. Written for the release; NOT run while building (Kenny:
+// tests only at the release, with his ok). Listed in docs/OPEN.md (release check 16).
 //
 //   KITCHEN_BASE=http://127.0.0.1:18440 KITCHEN_TOKEN=… node scripts/release/offline.e2e.mjs
 //
@@ -7,21 +8,23 @@
 // adds one freezer item ("E2E soup") that it deletes again.
 // Scenarios, each on a fresh signed-in context (a new device to the kit):
 //   1. cook mode reloads offline with "Keep everything offline" on (Kenny's default)
-//   2. only one recipe kept (feat-offline-recipe): "Keep everything" off, the recipe page's "Keep offline" on; the kit
-//      keeps that dish and not the whole kitchen; the recipe and cook mode open offline, another dish does not; the
-//      settings row counts it; clearing the copy clears it
+//   2. only one recipe kept (feat-offline-recipe): "Keep everything" off, the recipe page's "Keep offline" on; the local
+//      database holds that dish and not the others; the recipe and cook mode open offline, another dish does not; the
+//      settings row counts it
 //   3. an offline edit shows after an offline reload and is replayed when the connection is back
 //   4. a conflict on replay lands in the list of refused edits; "Keep the kitchen's version" empties it
-//   5. "Clear offline copy" clears it: an offline reload then shows the page's failed state
+//   5. (HELD, not in the list below: "Clear offline copy" has no kit call that empties the local database without the
+//      queue; docs/OPEN.md release check 16 "Held")
 //   6. signing out with an unsent edit asks first (the kit's confirmation)
 //   7. a freezer take (feat-offline-take-1): one whose answer is lost after it reached the kitchen is replayed with the
 //      same Idempotency-Key and takes ONE portion; one made offline shows at once and is sent when the connection is back
-//   8. a kept recipe whose dish is deleted on the server (feat-offline-gone): the next online read drops its keep, its
-//      copy and the ingredients no other kept dish uses, shows the notice once; a lost connection drops nothing
+//   8. a kept recipe whose dish is deleted on the server (feat-offline-gone): the kit's pull removes it, Kitchen lets go
+//      of its keep and shows the notice once; a lost connection drops nothing
+//   9. a settings merge made offline over a newer change elsewhere is refused on replay (failed list) and the page shows
+//      the other device's value
 // Exit code 1 on the first failed check; the measured duration is printed at the end.
 
 import { api, bandState, check, kitchenOf, launch, queueOf, settings, signedIn, synced } from "./offline-driver.mjs";
-import { dishPath } from "../../web/js/offline/config.js";
 
 const cfg = settings();
 const started = Date.now();
@@ -45,16 +48,15 @@ async function cookOffline(browser) {
   await context.close();
 }
 
-/** Is `path` kept on this device, as the kit says. @param {any} page @param {string} path */
-const keptByKit = (page, path) => page.evaluate((p) => /** @type {any} */ (window).chassisData.isKept(p), path);
+/** Is dish `id` kept on this device, as the kit's local database says. @param {any} page @param {string} id */
+const keptByKit = (page, id) => page.evaluate((key) => /** @type {any} */ (window).chassisData.db.collection("dishes").isKept(key), id);
+
+/** The dish ids the local database holds. @param {any} page */
+const heldDishes = (page) => page.evaluate(async () => (await /** @type {any} */ (window).chassisData.db.collection("dishes").all()).map((/** @type {any} */ d) => d.id));
 
 async function oneRecipeKept(browser) {
   const { context, page, errors } = await signedIn(browser, cfg);
-  await page.evaluate(async () => {
-    const kit = /** @type {any} */ (window).chassisData;
-    await kit.keepAll(false);
-    await kit.clearCopy();
-  });
+  await page.evaluate(() => /** @type {any} */ (window).chassisData.keepAll(false));
   const k = await kitchenOf(page);
   const recipe = someRecipe(k);
   const other = k.recipes.find((/** @type {any} */ r) => r.dish_id !== recipe.dish_id);
@@ -63,8 +65,9 @@ async function oneRecipeKept(browser) {
   await page.locator("#rp-keep").waitFor({ state: "attached" });
   await page.locator(".rp-keep .kp-switch").click();
   await page.locator(".rp-keep__said", { hasText: /Kept on this device|Bewaard op dit toestel/ }).waitFor();
-  check(await keptByKit(page, dishPath(recipe.dish_id)), "the kit keeps the recipe's dish");
-  check(!(await keptByKit(page, "/data/kitchen")), "the kit does NOT keep the whole kitchen for one recipe");
+  check(await keptByKit(page, recipe.dish_id), "the kit keeps the recipe's dish");
+  const held = await heldDishes(page);
+  check(held.includes(recipe.dish_id) && !held.includes(other.dish_id), "the local database holds that dish and NOT the others");
   await context.setOffline(true);
   await page.reload();
   await page.locator('.rp-card[data-kp-state="ready"]').waitFor();
@@ -79,12 +82,6 @@ async function oneRecipeKept(browser) {
   await page.goto(`${cfg.base}/settings`);
   await page.locator("#st-offline-said", { hasText: /kept on (its|their) own|apart bewaard/ }).waitFor();
   check(true, "the settings row counts the recipes kept one by one");
-  await page.click("#st-offline-clear");
-  await page.waitForFunction(async () => (await /** @type {any} */ (window).chassisData.usage()).used === 0);
-  await context.setOffline(true);
-  await page.goto(`${cfg.base}/recipe?id=${encodeURIComponent(recipe.id)}`).catch(() => {});
-  await page.locator('.rp-card[data-kp-state="error"]').waitFor();
-  check(true, "clearing the copy clears the kept recipe too");
   check(errors.length === 0, `no page errors (${errors.join("; ")})`);
   await context.close();
 }
@@ -137,7 +134,7 @@ async function editAndReplay(browser) {
   await context.setOffline(false);
   const summary = await done;
   check(summary.sent === 1 && (await queueOf(page))[0] === 0, "the edit is sent once the connection is back");
-  const server = await page.evaluate(async () => (await (await fetch("/data/settings", { credentials: "same-origin" })).json()).pace);
+  const server = await page.evaluate(async () => (await (await fetch("/data/settings/kitchen", { credentials: "same-origin" })).json()).pace);
   check(server === next, "the kitchen has the edit");
   await api(page, "patchSettings", { pace: before });
   await context.close();
@@ -169,26 +166,11 @@ async function conflictToFailedList(browser) {
   await b.context.close();
 }
 
-async function clearCopy(browser) {
-  const { context, page } = await signedIn(browser, cfg);
-  await page.goto(`${cfg.base}/settings`);
-  await page.locator("#st-offline-said", { hasText: /On\.|Aan\./ }).waitFor();
-  await page.click("#st-offline-clear");
-  await page.waitForFunction(async () => (await /** @type {any} */ (window).chassisData.usage()).used === 0);
-  check(true, "clearing empties the copy");
-  await context.setOffline(true);
-  await page.goto(`${cfg.base}/recipes`).catch(() => {}); // the page itself comes from the worker
-  // /recipes draws its list as the package's datatable, whose failed state is `data-kp-state="failed"`; a card says "error".
-  await page.locator('.kp-card[data-kp-state="error"], .kp-datatable[data-kp-state="failed"]').first().waitFor();
-  check(true, "an offline reload after clearing shows the failed state, not old data");
-  await context.close();
-}
-
 async function logoutAsks(browser) {
   const { context, page } = await signedIn(browser, cfg);
   const pace = (await kitchenOf(page)).settings?.pace ?? "normal";
   // The kitchen refuses to answer the settings PATCH (no answer at all), so the kit keeps the edit waiting.
-  await context.route("**/data/settings", (r) => (r.request().method() === "PATCH" ? r.abort("internetdisconnected") : r.continue()));
+  await context.route("**/data/settings/kitchen", (r) => (r.request().method() === "PATCH" ? r.abort("internetdisconnected") : r.continue()));
   await api(page, "patchSettings", { pace });
   check((await queueOf(page))[0] === 1, "one edit waits unsent");
   // The kit's logout form lives on its own pages (layout.html). The guard works there without configure() since chassis-rs 073273f.
@@ -201,25 +183,23 @@ async function logoutAsks(browser) {
 }
 
 /**
- * Scenario 8 (feat-offline-gone, Kenny 02/11/2026 19:43). A dish made for the check is kept, deleted on the server and
- * the kitchen read again: offline first (nothing is dropped, a copy never says "gone"), then online.
+ * Scenario 8 (feat-offline-gone, Kenny 02/11/2026 19:43). A dish made for the check is kept, then deleted as another
+ * device would (a plain DELETE, not through this page's api.js, which marks its own deletes), and the kitchen read
+ * again: offline first (nothing is dropped), then online (the kit's pull removes it; Kitchen says so once).
  */
 async function keptDishGone(browser) {
   const { context, page, errors } = await signedIn(browser, cfg);
   await page.evaluate(() => /** @type {any} */ (window).chassisData.keepAll(false));
   const dish = await api(page, "create", "dishes", { name: { nl: "E2E weg", en: "E2E gone" }, category: null, parents: false, ingredients: [], sides: [], recipes: [] });
-  const path = dishPath(dish.id);
-  await page.evaluate((p) => /** @type {any} */ (window).chassisData.keepItem(p, true), path);
-  await page.evaluate((p) => /** @type {any} */ (window).chassisData.get(p), path);
-  check(await keptByKit(page, path), "the new dish is kept");
+  await page.evaluate((id) => /** @type {any} */ (window).chassisData.db.collection("dishes").keep(id, true), dish.id);
+  check((await keptByKit(page, dish.id)) && (await heldDishes(page)).includes(dish.id), "the new dish is kept and held");
   await context.setOffline(true);
-  await page.evaluate(() => /** @type {any} */ (window).chassisData.get("/data/dishes/none").catch(() => {}));
   await api(page, "loadKitchen", { force: true }).catch(() => {});
-  check(await keptByKit(page, path), "a lost connection drops nothing");
+  check(await keptByKit(page, dish.id), "a lost connection drops nothing");
   await context.setOffline(false);
-  await api(page, "remove", "dishes", dish.id);
+  await page.evaluate((id) => fetch(`/data/dishes/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "same-origin" }), dish.id);
   await api(page, "loadKitchen", { force: true });
-  await page.waitForFunction((p) => /** @type {any} */ (window).chassisData.isKept(p).then((k) => !k), path);
+  await page.waitForFunction((id) => /** @type {any} */ (window).chassisData.db.collection("dishes").isKept(id).then((k) => !k), dish.id);
   const notice = page.getByText(/no longer in the kitchen|niet meer in de keuken/);
   await notice.first().waitFor();
   check((await notice.count()) === 1, "the notice shows once");
@@ -229,12 +209,37 @@ async function keptDishGone(browser) {
   await context.close();
 }
 
+/** Scenario 9 (fix-offline-master-5 on the settings item, feat-db-pages-1): a stale settings merge replayed is refused. */
+async function settingsStale(browser) {
+  const a = await signedIn(browser, cfg);
+  const b = await signedIn(browser, cfg);
+  const held = (await kitchenOf(a.page)).settings ?? {};
+  const before = held.pace ?? "normal";
+  const dinner = held.dinner_time ?? null;
+  await a.context.setOffline(true);
+  await api(a.page, "patchSettings", { pace: before === "slow" ? "normal" : "slow" });
+  await api(b.page, "patchSettings", { dinner_time: "19:05" });
+  const done = synced(a.page);
+  await a.context.setOffline(false);
+  await done;
+  check((await queueOf(a.page))[1] === 1, "the stale settings merge is in the failed list");
+  await a.page.waitForFunction(async (pace) => {
+    const k = await (await import("/js/api.js")).loadKitchen({ force: true });
+    return k.settings.dinner_time === "19:05" && (k.settings.pace ?? "normal") === pace;
+  }, before);
+  check(true, "the page shows the other device's change, not its own refused one");
+  await a.page.evaluate(() => /** @type {any} */ (window).chassisData.failed().then((f) => Promise.all(f.map((e) => /** @type {any} */ (window).chassisData.drop(e.id)))));
+  await api(b.page, "patchSettings", { dinner_time: dinner });
+  await a.context.close();
+  await b.context.close();
+}
+
 const browser = await launch(cfg);
 let failed = false;
 try {
   // KITCHEN_E2E_ONLY=3,4,… runs only those scenarios (numbered as in the header), so a fix reruns only what failed.
   const only = (process.env.KITCHEN_E2E_ONLY ?? "").split(",").map((n) => n.trim()).filter(Boolean);
-  const scenarios = [["cook mode offline", cookOffline, 1], ["only one recipe kept", oneRecipeKept, 2], ["offline edit + replay", editAndReplay, 3], ["conflict on replay", conflictToFailedList, 4], ["clear copy", clearCopy, 5], ["logout with unsent edits", logoutAsks, 6], ["freezer take once", freezerTakeOnce, 7], ["kept dish gone", keptDishGone, 8]];
+  const scenarios = [["cook mode offline", cookOffline, 1], ["only one recipe kept", oneRecipeKept, 2], ["offline edit + replay", editAndReplay, 3], ["conflict on replay", conflictToFailedList, 4], ["logout with unsent edits", logoutAsks, 6], ["freezer take once", freezerTakeOnce, 7], ["kept dish gone", keptDishGone, 8], ["settings stale", settingsStale, 9]];
   for (const [name, run, n] of scenarios) {
     if (only.length && !only.includes(String(n))) continue;
     console.log(`${n}. ${name}`);

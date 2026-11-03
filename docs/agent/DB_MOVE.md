@@ -4,7 +4,8 @@ Kenny's standing rule, 02/11/2026 21:01: "ALLE info gaat vanaf nu in databases, 
 This note is the study and the open choices for moving `kitchen.json` into the app database (`kitchen.db`, the kit's
 `AppDb`) and the pages onto the kit's local database (`chassisData.db`), on chassis-rs tag v4.5.0. Written 03/11/2026. **Kenny answered A to E on 03/11/2026 06:12** (section
 "Decisions" right below); the server side is built ([feat-db-schema-1], [feat-db-sync-1], [feat-db-import-1],
-[feat-db-store-1]), the page side is the next helper's. The option texts further down are kept as the record of what
+[feat-db-store-1]), the page side too ([feat-db-pages-1], [feat-db-pages-2], [refactor-offline-kitdb-1], section
+"Page side, as built" below). The option texts further down are kept as the record of what
 was weighed.
 
 Fixed by Kenny's rules, not open: the server is always the master; revisions and `If-Match` behave exactly as today
@@ -19,7 +20,7 @@ until the new store is verified; no data loss; never two offline layers.
 | A, tables | **"Echte kolommen"** (A3): real columns per list, not one JSON body per row; index what Kitchen queries | `src/store/db/schema_v1/*.sql` (four parts by area) (kit migration 1), described as data in `spec.rs`, `tables.rs`, `recipe_tables.rs` and written/read by one generic codec (`codec/`). A column per known field (`{nl, en}` names as `<key>_nl`/`<key>_en`, a step's `text`/`note` as plain or pair columns, numbers in `ANY` columns so `2` and `2.0` stay apart); nested lists are child tables with `ON DELETE CASCADE`, the parent keeps `n_<key>` (count; NULL = absent). Lossless: a value that does not fit its column and any key no column knows go to the row's `k_extra` JSON object, so the routes keep accepting any page field as before; a draft's `data` (editor state) is one JSON column. Indexes: `id` (unique), `k_pos`, `category` (dishes, ingredients), `order` (both category lists), `dish_id` (freezer, log, resting), `shelf_id` and `date` (log), `energy` (shelf), `key` (drafts), the ingredient ids of dish ingredients, side ingredients and recipe lines, every child table by `(k_parent, k_pos)` |
 | B, recipes | **"Binnen het gerecht"** (B1) | recipes and their steps, lines, tools, tracks (and a step's timer, uses, photos) are child tables of the dish; the dish is the synced unit, its `rev` covers its recipes, `dish_rev` unchanged |
 | C, revisions | **"Behouden"** (C1) | item `rev` kept (absent → `"rev": 0` written on import); the settings are the one-item collection `settings` (key `kitchen`, rev = `settings_rev`) at `/data/settings/kitchen` (GET, PATCH; `id`/`rev` in a PATCH body are ignored); `GET`/`PATCH /data/settings` stay as they are for the pages until the page helper moves them |
-| D, pages | **"Nu ook de pagina's"** (D1) | server: a `SyncCollection` per list (routes `/data/<list>`, `/data/<list>/:id`, shared, indexes) plus `settings`; `KitchenLoad` serves each body as the item route answers it; every write records `tx.sync_upsert`/`sync_delete` in its own transaction. Every existing `/data/*` route answers the same shapes. The pages are the next helper's |
+| D, pages | **"Nu ook de pagina's"** (D1) | server: a `SyncCollection` per list (routes `/data/<list>`, `/data/<list>/:id`, shared, indexes) plus `settings`; `KitchenLoad` serves each body as the item route answers it; every write records `tx.sync_upsert`/`sync_delete` in its own transaction. Every existing `/data/*` route answers the same shapes. Pages: section "Page side, as built" |
 | E, failed import | **"Geen terugval"** (E2-like, no file adapter) | first start copies `kitchen.json` → `kitchen.json.pre-db` (first attempt only), imports in the kit's transaction, reads everything back and compares value for value; any failure rolls back, `kitchen.json` stays, and Kitchen logs what failed and exits 1 at start (`boot.rs`), so no Kitchen without data runs. Until the store has loaded, every store route answers 503 |
 
 Built differently from the "Not open" list below: the store keeps the whole kitchen in memory as before and persists
@@ -27,6 +28,29 @@ each change as the before/after difference (`plan.rs`); the import accepts files
 4.1.0, measured on CT 121 by the coordinator 03/11/2026). Not built (asked): creating items offline under device-made ids
 (`client_key` / `check_create`), so a create stays online-only as today; the feed carries no list order (see the
 page-side notes in docs/OPEN.md, release check 16).
+
+## Page side, as built (feat-db-pages-1, feat-db-pages-2, refactor-offline-kitdb-1; 03/11/2026, nothing run)
+
+`chassisData.configure({ name: "kitchen", rev: "rev", routes: [], db: true })`. Details in docs/agent/DATA.md "Offline copy".
+
+| Kitchen's adapter before | Now |
+|---|---|
+| `/data/kitchen` whole in the kit's response cache, `applyQueued` over every read (`offline/apply.js`) | the kitchen built from the collections (`offline/assemble.js`, `api/kitchen-read.js`); the kit's overlay lays the queued PUT/PATCH/DELETE over its records |
+| reread after a replay (`offline/sync.js`), after a page change or reconnect (`refreshIfOffline`) | the kit pulls (start, reconnect, focus, hints, 5 min, after a replay that sent); every collection change rebuilds the kitchen (`wireRebuild`, `offline/start.js`); a sent write pulls its collection |
+| per-recipe `keepItem(dishPath)` + ingredient paths, a reread of kept dishes after every read (`kept-refresh.js`) | `collection("dishes").keep(id)` + `collection("ingredients").keep(id)` (`api/recipe-keep.js`, `offline/keep-plan.js`); the feed keeps kept records current; `fillKeptGaps` fetches a dish kept while offline and a newly named ingredient |
+| the gone check: a 404 on the kept dish's item route (`offline/gone.js`) | the kit applies the feed's delete; Kitchen only notices a kept dish that left without its own doing and says so (`api/recipe-gone.js`) |
+| settings `PATCH /data/settings`, not kept per recipe | `PATCH /data/settings/kitchen` with the item's rev; the item is always kept |
+| kept as it was | `keepAll` default on; the freezer take as `chassisData.post` with `Idempotency-Key` plus `applyTakes`; Undo (a waiting delete dropped from the queue, the record comes back from the database); creates online-only; the kit's failed list and band |
+
+Not the collection's own writes: `put`/`patch`/`delete` name the record's NEWEST revision, so after a background pull a
+save made over another device's newer version would go through. Kitchen keeps `writeJson` (`chassisData.put/patch/
+delete` on the same item paths, the revision the page read); the kit's overlay still shows them (it reads the queue by
+path). Filed as a kit wish: an explicit `rev` option on the collection writes. The take stays a POST (a `patch` of
+`portions` refuses the second of two offline takes, D3).
+
+"Keep everything" off has no counterpart in the kit's design for ONLINE reads (the database holds only the kept keys):
+Kitchen reads `GET /data/kitchen` straight from the service there and lays the kept items' waiting edits over it
+(`overServer`); offline the kept items are the kitchen. Asked in docs/OPEN.md release check 16 "Held" (3).
 
 ## What the kit offers (v4.5.0)
 

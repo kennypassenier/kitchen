@@ -74,93 +74,76 @@ restore (`POST /data/restore/{list}/{id}`) sends no
 `If-Match`, by decision: a deleted item has no newer version to overwrite, the server puts back exactly what it removed
 (with the `rev` it had), and it answers 409 when the id is back already.
 
-## Offline copy (feat-offline-kitchen, `web/js/offline/`, `web/js/api/kit-data.js`)
+## Offline copy (the kit's local database, feat-db-pages-1/-2, `web/js/offline/`, `web/js/api/`)
 
 Kenny, 02/11/2026: "Hele keuken offline", a general setting "Alles offline bewaren" (on by default) and "Offline kopie
-wissen". Built on the kit's offline data client, `window.chassisData` (chassis-rs cd68fd9, `docs/OFFLINE_DESIGN.md` there),
-which the server injects into every page and which stays inert until `web/js/api/kit-data.js` configures it.
+wissen"; 03/11/2026 06:12 "Nu ook de pagina's": the pages read from the kit's local database, `chassisData.db`
+(chassis-rs v4.5.0, `docs/LOCAL_DB_DESIGN.md` "Client contract, as built" there). One offline layer: the database and
+the kit's write queue. `web/js/api/kit-data.js` configures the kit once (`offlineOptions`: `db: true`, no
+response-cache routes) before the first read.
 
-**Transport.** Every `GET`, `PUT`, `PATCH` and `DELETE` of the pages goes through the kit (`readJson`, `writeJson`): the
-kit sends `If-Match` (the revision `ifMatchFor` chose), keeps the copy and queues what cannot be sent. The freezer take
-is the one `POST` through the kit (below); a create, a draft save, an import and Undo's restore stay on
-`web/js/api/http.js` and need a connection; without one they say so (`api.needsConnection`: the kitchen gives new things their id). A 401 from the kit
-raises the same sign-in notice as before; a read with neither a connection nor a copy says so (`api.offlineNoCopy`).
+**Reads.** Every list is a collection of the same name (`LISTS` in `web/js/offline/config.js`, key `id`, rev `rev`) and
+the settings one item (`settings` / `kitchen`, `{id, rev: settings_rev, ..keys}`). `readKitchen`
+(`web/js/api/kitchen-read.js`) pulls every collection first (the kit applies the server's upserts and deletes; the
+server is the master), then builds the kitchen object the screens read (`assemble`, `web/js/offline/assemble.js`,
+pure): each list from `collection(name).all()` (the kit lays the queued `PUT`/`PATCH`/`DELETE` over its records; a
+refused edit in the failed list is not laid over), in made order (`created`, then `id`: the feed carries no list
+position, held question in docs/OPEN.md release check 16; every screen that shows an order sorts by its own field),
+the settings item as `settings` + `settings_rev` (a key a queued merge set to `null` removed). The kit also pulls on
+start, reconnect, focus, hints and every 5 minutes; each time a collection changes (a pull, the queue moving) the
+shared kitchen is built again from the database without a new pull (`wireRebuild`, `web/js/offline/start.js`). Offline
+on a device whose database never got a first page, a read says so (`api.offlineNoCopy`), never an empty kitchen. The
+parents' wheel lists and the drafts are read straight from the service (no copy), as before.
 
-**What is kept.** With "keep everything" on, `GET /data/kitchen` whole (`OFFLINE_ROUTES` in `web/js/offline/config.js`),
-which every screen draws from; with it off, only the recipes kept one by one (below); per device in IndexedDB `chassis-data:kitchen`, under the kit's 50 MB cap. "Keep everything offline" is the kit's
-per-device `keepAll`: the kit starts it off, Kitchen turns it on once per device before the first read
-(`web/js/offline/keep.js`, mark `kitchen-device:offline-default-applied` in localStorage, outside the synced `kitchen:` prefix), so a person who turns it off keeps it
-off. Turning it off trims the stored copy to the recipes kept one by one (below); "Clear offline copy" (`clearCopy`) deletes every copy, waiting edits
-stay. Photos are files, not JSON: offline they show only as far as the browser's own cache holds them.
-Drafts and the parents' wheel are read through the kit but not kept.
+**Writes.** `PUT`, `DELETE` and the settings `PATCH` (`/data/settings/kitchen`) go through the kit's queue
+(`writeJson`) with the revision Kitchen chooses (`ifMatchFor`, `deleteRevFor`, `settingsRevFor`: the revision the page
+READ). The collection's own `put`/`patch`/`delete` are not used: they name the record's newest revision, which would let
+a save made over someone else's newer one through after a background pull. After a write the service answered, the
+collection it changed is pulled (`pullAfterWrite`); a queued write is pulled by the kit after its replay. Same paths as
+the collections' item routes, so the kit's overlay shows a queued write on every read. Creates stay `POST` online-only
+(`api.needsConnection`; the server issues the id; offline creates are a held question). A 401 raises the sign-in notice.
 
-**Kept one by one** (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12, option B; on chassis-rs 8042dbe's trimmed
-keeping). With "Keep everything offline" off, the recipe page's "Keep offline" / "Offline bewaren" switch
-(`web/js/pages/recipe/keep-row.js`) keeps that recipe's DISH, `GET /data/dishes/{id}` (the item route
-`GET /data/{list}/{id}`: the item with its `rev` as `ETag`, 404 when missing). A recipe lives in its dish, so the dish's
-other recipes come along and the switch's line says so. It also keeps each ingredient the dish's recipe lines name
-(`/data/ingredients/{id}`), so the kit stores `/data/ingredients` trimmed to those (the names the recipe page, the
-printable sheet and cook mode's mise show); letting a dish go lets go only the ingredients no other kept dish names
-(`ingredientPlan`, `web/js/offline/kept.js`). Turning the switch on reads the dish and the ingredients at once, because
-the kit copies an answer only when it reads it; turning it off removes the copies at once (the kit's trim). The route
-table (`OFFLINE_ROUTES` in `web/js/offline/config.js`) gives `/data/kitchen` no item route below it, so the kit stores
-the whole kitchen only while "keep everything" is on and never for one recipe; switching "keep everything" off trims the
-stored copy to the kept recipes. The settings (one object) are not kept per recipe: offline, a kept recipe's cook mode
-uses the default timer sound. A read with no connection and no whole-kitchen copy builds a kitchen of the kept dishes
-only (`partial: true`, every other list and the settings empty; `readKeptKitchen` in `web/js/api/recipe-keep.js`), so
-the recipe page and cook mode open a kept recipe offline and any other recipe says it is not there. The Calm row counts
-the recipes kept this way; "Clear offline copy" clears their copies too (the marks stay, so the next read with a
-connection copies them again). The switch is hidden while "keep everything" is on.
+**Keep everything on** (default): every pulled item is stored. Kenny's default is applied once per device
+(`web/js/offline/keep.js`, mark `kitchen-device:offline-default-applied`, outside the synced `kitchen:` prefix). The
+kit's `keepAll` decides what the database stores; switching it off trims the database to the kept keys, on pulls
+everything again. Photos are files: offline they show only as far as the browser's cache holds them.
 
-**A kept dish that is gone** (feat-offline-gone, Kenny 02/11/2026 19:43, "Uit kopie halen"). After every online
-`GET /data/kitchen` with "keep everything" off (`readKitchen`, `web/js/api/kitchen-read.js`), Kitchen compares the kept
-dishes with the dishes in the answer. For one the answer no longer lists it asks `GET /data/dishes/{id}`; only a 404 there
-counts as gone (`classifyDishRead`, `web/js/offline/gone.js`). Then `keepItem(dishPath, false)` drops the mark and the
-kit's trim removes the copy, the kept ingredients no remaining kept dish uses are dropped too (`orphanIngredientPaths`,
-`kept.js`; skipped while another missing dish could not be checked), and one non-sticky toast (`off.goneRecipe`) says so,
-once per dish (`api/recipe-gone.js`). No connection (the kit's status 0) or any other refusal keeps everything; the
-latter is logged. Nothing is checked while offline: a copy never says a dish is gone.
+**Kept one by one** (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12, option B). With "keep everything" off the
+recipe page's "Offline bewaren" switch (`web/js/pages/recipe/keep-row.js`, `web/js/api/recipe-keep.js`) keeps the
+recipe's DISH, `collection("dishes").keep(id)` (the kit fetches it once through `/data/dishes/{id}`), and the
+ingredients its recipe lines name (`collection("ingredients").keep(id)`); letting go releases only the ingredients no
+other kept dish names (`releasePlan`, `web/js/offline/keep-plan.js`, pure). The settings item is always kept, so a kept
+recipe's cook mode has the timer sound offline too. With this setting off the database holds exactly the kept items:
+online the kitchen is `GET /data/kitchen` (never copied) with the kept items' waiting edits and the waiting takes laid
+over (`overServer`), and `fillKeptGaps` fetches a dish kept while offline and keeps an ingredient a kept dish names
+since; offline the kept items are the kitchen (`partial: true`). The Calm row counts the dishes the database holds.
 
-**A freezer take offline** (feat-offline-take-1, Kenny 19:13 "Kit krijgt post()"). "Take a portion" on Bad days is
-`POST /data/freezer/{id}/take` through the kit's `post()`: without a connection it waits in the kit's queue with a UUID
-`Idempotency-Key` made when it was queued and kept across replays. The server records the key with the take in the same
-database transaction (`answered` table of `kitchen.db`, at most `ANSWERS_KEEP` = 200, oldest dropped; left out of `GET /data/kitchen`;
-`src/store/idempotent.rs`) and answers a repeated key with the first result, so a replay whose answer was lost takes no
-second portion. A refused take records nothing. Kitchen shows a queued take at once (`takeFrom` in
-`web/js/offline/apply.js`, never below zero) and lays it over every kitchen read like the other queued edits; the kit's
-own `optimistic(copy)` option is not used, because it amends the copy of the POST's own path, which Kitchen never reads.
-A take refused on replay (no portions left) lands in the failed list as "A portion of “Soup” taken from the freezer".
+**A kept dish that is gone** (feat-offline-gone, Kenny 02/11/2026 19:43). The kit applies the feed's delete itself.
+`web/js/api/recipe-gone.js` watches the dishes collection: a dish held at the last look (remembered per device,
+`kitchen-device:kept-dishes-seen`) that left the database without this device deleting or letting it go
+(`goneDishIds`) gets one non-sticky toast (`off.goneRecipe`) once, its keep is dropped, and the ingredients no kept dish
+names are let go (`orphanIngredientIds`). Only while "keep everything" is off. Offline nothing leaves the database.
 
-**Edits while offline.** A save the kitchen cannot take joins the kit's queue (with its `If-Match`) and the kit answers
-`queued`; `web/js/api.js` then applies it to the shared copy as it was sent, keeping the revision it was read at. The kit
-cannot know that a dish `PUT` changes the kitchen answer, so `web/js/api/kitchen-read.js` lays the queue over every kitchen
-read (`applyQueued`, `web/js/offline/apply.js`, pure): list `PUT` (the item replaced whole, a recipe being its dish's
-`PUT`), list `DELETE`, the settings `PATCH` (`null` removes a key); edits in the failed list are not laid over (the
-kitchen's version stands); anything else is reported in the console, not guessed. Undo of a delete that still waits drops
-it from the queue and puts the parked item back (`web/js/offline/undo.js`); a delete already sent is restored by the
-server as before.
+**A freezer take** (feat-offline-take-1) is `POST /data/freezer/{id}/take` through the kit's `post()` with a UUID
+`Idempotency-Key` kept across replays; the server records the key with the take (`answered` table, at most 200,
+`src/store/idempotent.rs`) and answers a repeat with the first result, so a replay takes one portion. Not a collection
+write, so the kit's overlay does not see it: `applyTakes` (`assemble.js`) lays the waiting takes over the freezer,
+never below zero, failed ones skipped (`web/js/api/quick-writes.js` shows it at once). A collection `patch` of
+`portions` was not used: the second of two offline takes would be refused as stale.
 
-**Replay** (the kit's rules). In order; on a network failure it stops and retries (online event, 30 s timer, the band's
-Retry). Edits behind a sent one for the same item get its new revision (the kit's rebase). A 409 or another 4xx moves the
-edit to the failed list and the rest continues (Kenny's kit decision "Overslaan"); 401 and 5xx stop and retry later.
-After a replay that sent or refused anything, Kitchen reads the kitchen again (`web/js/offline/sync.js`, the kit's
-`chassis-data-conflict` then `chassis-data-synced`), so the next save names the server's new revision and an edit the
-server refused (a take with no portions left) leaves the screen; since chassis-rs 67d593e the kit itself puts the
-refused edit's item copy back to the server's version and drops a copy the server answers 404/410 for.
+**Undo of a waiting delete** drops it from the queue (`web/js/offline/undo.js`); the item comes back as the database
+holds it (the server's record), the parked page copy only for an item the device does not keep. A sent delete is
+restored by the server (`POST /data/restore/...`), as before.
 
-**The server is the master** (Kenny 02/11/2026 19:43, docs/OPEN.md "Offline"). The shared copy in `web/js/api.js`
-remembers whether it came from the device's copy (or holds an item Undo put back from the queue); such a copy is read
-again on every page change (`main.js` `render`) and on the browser's `online` event (`refreshIfOffline`), so it never
-outlives a reachable kitchen. After every online kitchen read with "keep everything" off, every kept dish the answer
-still lists is read through its item route and the ingredients list once (`web/js/api/kept-refresh.js`,
-`keptRefreshPlan` in `kept.js`), after the gone check: the kit stores those answers over its copies; ingredients a kept
-dish names since are kept, those none names are let go when every kept dish is in the answer. The kit's own failed-edits drawer (opened by the toast's "Review", `chassisData.review()` or
-`[data-chassis-review]`; Kitchen's words come in through `kitMessages`) offers "Discard" (`drop`), "Save again" (`resave`
-with the server's current revision) and "Discard all".
+**Replay and the failed list** are the kit's: in order, a 409 or another 4xx moves the edit to the failed list
+(Discard / Save again with the server's current revision / Discard all, in the kit's drawer with Kitchen's words
+through `kitMessages`) and the rest continues; 401 and 5xx stop and retry. After a replay that sent anything the kit
+pulls every collection, so the rebuilt kitchen shows the server's version (a refused take leaves the screen).
 
-**On screen.** The kit's connection band (`[data-kp-connection]` in `web/index.html`): the kit paints the queue (pending
-count, reconnecting while a replay runs), `web/js/offline/band.js` paints reads from the copy as offline. The kit's own
-toasts and its logout question take Kitchen's words (`kitMessages`); logout deletes the copy and the queue.
+**On screen.** The kit's connection band (`[data-kp-connection]`): the kit paints the queue; `web/js/offline/band.js`
+paints offline/online from each read and each pull (`chassis-db-pulled`, `stopped: "unreachable"`). "Clear offline copy"
+calls the kit's `clearCopy`, which empties its response cache and keeps the queue; the kit has no call that empties the
+local database without the queue (held question, release check 16). Logout deletes the database and the queue.
 
 ## Size limits
 
@@ -479,7 +462,7 @@ list is Kenny's: Add, Edit and Delete on `/sources`, an own page at
 The wheel leaves a resting dish out until `until` has passed (format 4: a
 mark whose recipe no dish carried was dropped).
 
-## settings (one object, `PATCH /data/settings`)
+## settings (one object, `PATCH /data/settings`; the pages use `PATCH /data/settings/kitchen` since feat-db-pages-1)
 
 Checked against `settings_rev` (a field of the kitchen file next to `settings`, not a key in it): see "Revisions and
 stale saves".

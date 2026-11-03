@@ -18,12 +18,21 @@ changelog has no Migration section; `Cargo.lock` moved only `chassis`, `docs/KIT
   with the kit's change-log entry. Every `/data/*` route answers exactly as before (revisions, `If-Match`, 409, the
   idempotent take, Undo, photo clean-up, draft pruning, size limits); until the kitchen is loaded at start they answer 503.
 
+- **The pages read the kitchen from the kit's local database** (Kenny 03/11/2026 06:12, "Nu ook de pagina's")
+  [feat-db-pages-1], [feat-db-pages-2], [refactor-offline-kitdb-1]: every list a `chassisData.db` collection kept in
+  step with the server (pulls at start, reconnect, focus, every 5 minutes and after each sent save), the settings one
+  item saved at `/data/settings/kitchen`. Saves still name the revision the page read (a stale one is refused, offline
+  replays land in the failed list); "Offline bewaren" per recipe keeps the dish and its ingredients as kept keys; a kept
+  dish deleted elsewhere is removed by the kit and Kitchen says so once. Kitchen's own offline adapter (the copy of
+  `/data/kitchen`, the queue overlay, the kept-recipe reread and gone check, the reread after a replay) is gone. Creates
+  stay online-only; "Offline kopie wissen" still clears only the kit's response cache (asked, release check 16).
+
 ### Added
 
 - **Synced collections for the pages' local database** [feat-db-sync-1]: one per list (`GET /api/sync`,
   `GET /api/sync/<list>?since=`, behind the login) and `settings`, the settings as one item
   `{id: "kitchen", rev, ..keys}` at the new `GET`/`PATCH /data/settings/kitchen` (rev = `settings_rev`, `If-Match`, 409).
-  The pages do not use them yet.
+  The pages use them since [feat-db-pages-1] (below).
 
 ### Migration
 
