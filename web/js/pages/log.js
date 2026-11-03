@@ -4,7 +4,7 @@
 // /dishes (js/records/), and each line opens its own page.
 
 import { h } from "../dom.js";
-import { tableCard, rowActions, itemLink, logWhat, feelings } from "../records/index.js";
+import { tableCard, tableIdOf, rowActions, itemLink, logWhat, feelings } from "../records/index.js";
 import { logEntry } from "../records/log-entry.js";
 import { pageHead, mountTables } from "../records/table-page.js";
 import { dmy } from "../format.js";
@@ -12,15 +12,17 @@ import { t } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
 
+const LOG_ID = "lg-log";
+
 /** The log table card, with the add row on top. @param {HTMLElement} entry */
 function buildCard(entry) {
   return tableCard({
-    id: "lg-log",
+    id: LOG_ID,
     title: t("lg.title"),
     lede: t("lg.cardLede"),
     noun: t("lg.noun"),
     plural: t("lg.plural"),
-    columns: [[t("rec.day"), "number"], [t("rec.what"), "text"], [t("it.kind"), "text"], [t("lg.felt"), "text"], [t("rec.note")], [t("lg.actions")]],
+    columns: [[t("rec.day"), "number", undefined, { "data-kp-field": "day" }], [t("rec.what"), "text", undefined, { "data-kp-field": "what" }], [t("it.kind"), "text"], [t("lg.felt"), "text", undefined, { "data-kp-field": "felt" }], [t("rec.note"), undefined, undefined, { "data-kp-field": "note" }], [t("lg.actions")]],
     add: t("list.log.add"),
     emptyTitle: t("lg.emptyTitle"),
     emptyText: t("lg.emptyText"),
@@ -32,7 +34,7 @@ function buildCard(entry) {
 function logRow(e) {
   return h(
     "tr",
-    { "data-kp-row-key": e.id },
+    { "data-kp-row-key": e.id, "data-kp-row-label": `${logWhat(e)}, ${dmy(e.date)}` },
     h("td", { "data-label": t("rec.day"), "data-kp-sort-value": String(Date.parse(`${e.date}T12:00:00Z`)) }, itemLink("log", e, dmy(e.date))),
     h("td", { "data-label": t("rec.what") }, logWhat(e)),
     h("td", { "data-label": t("it.kind") }, t(e.shelf_id ? "lg.shelf" : "rec.dish")),
@@ -45,7 +47,7 @@ function logRow(e) {
 /** @param {HTMLElement} root */
 export function mount(root) {
   document.title = `${t("nav.log")} · Kitchen`;
-  const entry = logEntry();
+  const entry = logEntry(tableIdOf(LOG_ID));
   const log = buildCard(entry.el);
   const page = h("div", { class: "dl-page" }, pageHead({ title: t("nav.log"), lede: t("lg.lede") }), log.card);
   for (const b of log.addButtons) b.addEventListener("click", entry.focus);
@@ -62,8 +64,5 @@ export function mount(root) {
   });
   // The page is in the document now: the add row's date picker can attach.
   entry.start();
-  return () => {
-    stop();
-    entry.stop();
-  };
+  return stop;
 }

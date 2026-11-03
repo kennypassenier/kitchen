@@ -25,7 +25,7 @@ export function rowsFor(k) {
     const cooked = last.get(r.id) ?? null;
     return h(
       "tr",
-      { "data-kp-row-key": r.id },
+      { "data-kp-row-key": r.id, "data-kp-row-label": r.name },
       h("td", { "data-label": t("recs.colName") }, h("a", { href: `/recipe?id=${encodeURIComponent(r.id)}` }, r.name)),
       h("td", { class: "kp-col-low", "data-label": t("recs.colMeals") }, (r.meals ?? []).map((/** @type {string} */ m) => mealLabels()[m] ?? m).join(", ") || "–"),
       h("td", { "data-label": t("recs.colMinutes"), class: "kp-numeric" }, t("wheel.min", r.minutes ?? 0)),

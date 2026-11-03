@@ -40,6 +40,8 @@ export function dateField(iso, { max, label }) {
       attachDatePickers(el.parentElement ?? el);
       if (iso) datePicker(el)?.set(iso);
     },
+    /** Show `iso` again. @param {string} iso */
+    set: (iso) => datePicker(el)?.set(iso),
     /** @returns {string | null} YYYY-MM-DD */
     get: () => {
       const d = datePicker(el)?.get();

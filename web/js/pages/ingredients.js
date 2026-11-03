@@ -9,7 +9,7 @@ import { names } from "../dishes/editor.js";
 import { tableCard, rowActions, itemLink, openRecordEditor, usersOf, usageWords, missingBadge } from "../records/index.js";
 import { categoryCard } from "../records/category-table.js";
 import { pageHead, mountTables } from "../records/table-page.js";
-import { t } from "../i18n/index.js";
+import { t, nameOf } from "../i18n/index.js";
 
 /** @typedef {Record<string, any>} Item */
 
@@ -49,7 +49,7 @@ function ingredientRow(i, catList) {
   const used = usersOf("ingredients", i).length;
   return h(
     "tr",
-    { "data-kp-row-key": i.id },
+    { "data-kp-row-key": i.id, "data-kp-row-label": nameOf(i).text },
     h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("ingredients", i, n.nl) : missingBadge("ingredients", i) ?? "–"),
     h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("ingredients", i, n.en) : missingBadge("ingredients", i) ?? "–"),
     h("td", { "data-label": t("rec.category") }, cat ? itemLink("ingredient_categories", cat) : "–"),
@@ -78,8 +78,5 @@ export function mount(root) {
       first = false;
     },
   });
-  return () => {
-    stop();
-    cats.stop();
-  };
+  return stop;
 }

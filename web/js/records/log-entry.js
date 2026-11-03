@@ -5,13 +5,13 @@
 import { h } from "../dom.js";
 import { create } from "../api.js";
 import { t } from "../i18n/index.js";
-import { today, dmy } from "../format.js";
+import { today } from "../format.js";
 import { input, select } from "../ui/form-parts.js";
 import { dateField } from "./drawer.js";
-import { feelings, logWhat } from "./lists.js";
+import { feelings } from "./lists.js";
 import { eatenOptions } from "./editors-log.js";
 import { logLine } from "./log-line.js";
-import { addRow } from "./add-row.js";
+import { addLine } from "./add-line.js";
 
 /** The row's fields. */
 function fields() {
@@ -29,33 +29,55 @@ function refreshOptions(what) {
   what.value = chosen;
 }
 
-/** The add row of the log; `start` wires the date picker once the row is in the page. */
-export function logEntry() {
+/** The words the kit says after an add ("Added Pasta"): the chosen dish or food, kept in a hidden field. @param {HTMLSelectElement} what */
+function announcer(what) {
+  const el = /** @type {HTMLInputElement} */ (h("input", { type: "hidden", name: "announce" }));
+  const sync = () => (el.value = what.value ? (what.selectedOptions[0]?.textContent ?? "") : "");
+  what.addEventListener("change", sync);
+  return { el, sync };
+}
+
+/** The line the fields hold, or which field is wrong. @param {ReturnType<typeof fields>} f */
+const lineOf = (f) => logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
+
+/** The add row of the log; `start` wires the date picker once the row is in the page. @param {string} tableId */
+export function logEntry(tableId) {
   const f = fields();
-  const row = addRow({
+  const say = announcer(f.what);
+  let day = "";
+  const row = addLine({
+    tableId,
     label: t("list.log.add"),
     submit: t("rec.addInRow"),
+    announce: say.el,
     fields: [
-      { label: t("rec.day"), control: f.day.el, size: "short" },
-      { label: t("rec.whatEaten"), control: f.what },
-      { label: t("lg.felt"), control: f.felt },
-      { label: t("rec.note"), control: f.note, size: "wide" },
+      { name: "day", column: "day", label: t("rec.day"), control: f.day.el },
+      { name: "what", column: "what", label: t("rec.whatEaten"), control: f.what },
+      { name: "felt", column: "felt", label: t("lg.felt"), control: f.felt },
+      { name: "note", column: "note", label: t("rec.note"), control: f.note },
     ],
-    reset: () => {
-      f.what.value = "";
-      f.felt.value = "none";
-      f.note.value = "";
-    },
     check: () => {
-      const line = logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
-      return "error" in line ? { field: line.field === "what" ? f.what : f.day.el, message: `${t(line.error)} ${t(line.remedy)}` } : null;
+      const line = lineOf(f);
+      return "error" in line ? { name: line.field === "what" ? "what" : "day", message: `${t(line.error)} ${t(line.remedy)}` } : null;
     },
     add: async () => {
-      const line = logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
+      const line = lineOf(f);
       if ("error" in line) throw new Error(t(line.error));
-      const made = await create("log", line);
-      return t("rec.loggedLine", logWhat(made), dmy(made.date));
+      day = f.day.get() ?? "";
+      await create("log", line);
+    },
+    // The kit empties the row; the day stays, as several lines of one day go in a row.
+    onAdded: () => {
+      if (day) f.day.set(day);
     },
   });
-  return { el: row.el, focus: row.focus, stop: row.stop, start: f.day.start, refresh: () => refreshOptions(f.what) };
+  return {
+    el: row.el,
+    focus: row.focus,
+    start: f.day.start,
+    refresh: () => {
+      refreshOptions(f.what);
+      say.sync();
+    },
+  };
 }

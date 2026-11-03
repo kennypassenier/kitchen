@@ -7,7 +7,7 @@ import { mountDishWheel } from "/eten/dishwheel.js";
 import { defaultRecipe } from "../../api.js";
 import { h } from "../../dom.js";
 import { LISTS, itemLink, openRecordEditor, tableCard, dishHas } from "../../records/index.js";
-import { t } from "../../i18n/index.js";
+import { t, nameOf } from "../../i18n/index.js";
 import { ordered } from "../../dishes/editor.js";
 import { inRecipe } from "./links.js";
 
@@ -79,7 +79,7 @@ function usedRow(x, k) {
   const c = k.dish_categories.find((y) => y.id === x.category);
   return h(
     "tr",
-    { "data-kp-row-key": x.item.id },
+    { "data-kp-row-key": x.item.id, "data-kp-row-label": nameOf(x.item).text },
     h("td", { "data-label": t("rec.name") }, itemLink("dishes", x.item)),
     h("td", { "data-label": t("it.kind") }, x.kind),
     h("td", { "data-label": t("rec.category") }, c ? itemLink("dish_categories", c) : "–"),

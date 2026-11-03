@@ -6,9 +6,12 @@ import { t } from "../i18n/index.js";
 /** One header cell: its words, how it sorts and filters, and any other attribute (`data-kp-edit` for an in-cell edit). @param {[string, string?, string?, Record<string, string>?]} column */
 const headerCell = ([text, sort, filter, attrs]) => h("th", { scope: "col", ...(sort ? { "data-kp-sort": sort } : {}), ...(filter ? { "data-kp-filter": filter } : {}), ...(attrs ?? {}) }, text);
 
+/** The id of a card's data table, which its add row names (`data-kp-addrow-for`). @param {string} id */
+export const tableIdOf = (id) => `${id}-table`;
+
 /**
  * One card with a data table: header, a sentence, the table and its own states. `entry` is an inline add row
- * (records/add-row.js) that stands between the sentence and the table and replaces the header's Add button; the empty
+ * (records/add-line.js) that stands between the sentence and the table and replaces the header's Add button; the empty
  * plate's Add then leads to it. `reorder` gives the rows the kit's drag handles (Alt+Up / Alt+Down from the keyboard).
  * @param {{ id: string, title: string, lede: string, noun: string, plural: string, columns: [string, string?, string?, Record<string, string>?][], add: string, emptyTitle: string, emptyText: string, entry?: HTMLElement, reorder?: boolean }} spec
  */
@@ -28,7 +31,7 @@ export function tableCard({ id, title, lede, noun, plural, columns, add, emptyTi
   const search = h("input", { class: "kp-field__input kp-datatable__search", type: "search", "data-kp-datatable-search": true, "aria-label": t("rec.search", plural), placeholder: t("rec.search", plural) });
   const table = h(
     "div",
-    { class: "kp-datatable", "data-kp-datatable": true, "data-kp-cards": true, "data-kp-state": "loading", "data-kp-page-size": "25", ...(reorder ? { "data-kp-rows-reorder": true } : {}) },
+    { id: tableIdOf(id), class: "kp-datatable", "data-kp-datatable": true, "data-kp-cards": true, "data-kp-state": "loading", "data-kp-page-size": "25", ...(reorder ? { "data-kp-rows-reorder": true } : {}) },
     h("div", { class: "kp-datatable__bar" }, search),
     h(
       "div",
