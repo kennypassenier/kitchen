@@ -65,7 +65,7 @@ pub struct Data {
     #[serde(default)]
     pub drafts: Vec<Value>,
     /// Websites whose recipe pages the import reads well (Kenny, 29/10/2026 15:11): `{name, url, language, note?, verified,
-    /// verified_by}`. Absent in a file written before it existed, which [`Store::open`] fills once from
+    /// verified_by}`. Absent in a file written before it existed, which the import (`db/import`) fills once from
     /// [`SOURCES_SEED`]; the format stays 5.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recipe_sources: Option<Vec<Value>>,
@@ -84,6 +84,45 @@ pub struct Data {
 }
 
 impl Data {
+    /// A kitchen with nothing in it, at the current format: what the database is read into.
+    pub fn empty() -> Self {
+        Data {
+            format: FORMAT,
+            recipes: Vec::new(),
+            freezer: Vec::new(),
+            shelf: Vec::new(),
+            log: Vec::new(),
+            resting: Vec::new(),
+            dishes: Vec::new(),
+            dish_parts: Vec::new(),
+            dish_categories: Vec::new(),
+            ingredients: Vec::new(),
+            ingredient_categories: Vec::new(),
+            drafts: Vec::new(),
+            recipe_sources: Some(Vec::new()),
+            settings: Map::new(),
+            settings_rev: 0,
+            answered: Vec::new(),
+        }
+    }
+
+    /// A list by name, read-only (`recipe_sources` absent reads as empty); `None` for a name that is no list.
+    pub(super) fn list(&self, name: &str) -> Option<&[Value]> {
+        Some(match name {
+            "freezer" => &self.freezer,
+            "shelf" => &self.shelf,
+            "log" => &self.log,
+            "resting" => &self.resting,
+            "dishes" => &self.dishes,
+            "dish_categories" => &self.dish_categories,
+            "ingredients" => &self.ingredients,
+            "ingredient_categories" => &self.ingredient_categories,
+            "drafts" => &self.drafts,
+            "recipe_sources" => self.recipe_sources.as_deref().unwrap_or(&[]),
+            _ => return None,
+        })
+    }
+
     pub(super) fn collection(&mut self, name: &str) -> Option<&mut Vec<Value>> {
         match name {
             "freezer" => Some(&mut self.freezer),

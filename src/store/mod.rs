@@ -18,6 +18,7 @@ use tokio::sync::RwLock;
 
 mod caps;
 mod data;
+pub mod db;
 mod drafts;
 mod idempotent;
 mod limits;
