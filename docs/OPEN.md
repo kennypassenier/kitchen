@@ -1,11 +1,13 @@
 # Open
 
-5 items open: the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.5.0, tag v4.5.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
+7 items open: the deploy note (skip 6.0.0), the data move into databases (choices open, docs/agent/DB_MOVE.md), the deploy of 5.0.0, the release of what is on main as 6.0.0 (Kenny's release word 02/11/2026 20:15, version 20:16; now on chassis-rs 4.5.0, tag v4.5.0), the kp-themes split delivery's release checks, the offline copy's release checks, and the per-recipe keep and offline freezer take (built, re-pinned to the release tag; their checks) about the offline copy.
 The chassis-rs 4.2.0 bump is done (02/11/2026, commits meta-chassis-420-1 to fix-cat-rename-stale-1); its checks wait for
 the release (list below).
 
 | Item | Waits on |
 |---|---|
+| **Deploy note (coordinator, 03/11/2026 06:04): skip 6.0.0 on deploy: go from live 5.0.0 straight to the next release; back up kitchen.json and kitchen-kit.db first.** 6.0.0 is signed but is not deployed. The next release must also move `kitchen.json` into `kitchen.db` in one step from either state (5.0.0: no `rev` / `settings_rev`, kit schema 2; 6.0.0: optional `rev`, `settings_rev`, kit schema 3); see `docs/agent/DB_MOVE.md`. (The deploy row below still says live is 4.1.0; Kenny to confirm which is live.) | the next release |
+| The data move into databases (Kenny 02/11/2026 21:01, "ALLE info gaat vanaf nu in databases"): design note `docs/agent/DB_MOVE.md` with five open choices (A table layout, B recipes embedded, C revisions and settings, D what the page moves, E a failed import); fixtures `tests/fixtures/db_move/` committed; nothing of the move built. Release check 16 | Kenny's choices A to E, then the build |
 | Deploy 5.0.0 (released and signed 31/10/2026, tag v5.0.0, release commit 208d3de; signature verified with `minisign -Vm SHA256SUMS`). Live is 4.1.0. Behind the home route `KITCHEN_TRUSTED_PROXIES` must include 10.10.10.4; the kit's own database moves to schema 2 on first start, so going back to 4.1.0 needs the backup taken before the update (CHANGELOG 5.0.0 Migration) | the homelab thread (Live view on CT 121) |
 | On main, not released: the four UX rounds of 01/11/2026 and the fixes of 02/11/2026 (CHANGELOG [Unreleased]), and since 03/11/2026 chassis-rs 4.5.0 (tag v4.5.0 [meta-chassis-450-1]) with kp-themes 12.3.0 (stand-ins dropped, check 15), before that chassis-rs 4.4.0 (tag v4.4.0 [meta-chassis-440-1]) with kp-themes 12.2.0 (gantt fit mode, dropped workarounds, the signed-out notice, More pages as kit secondary pages, the category rename's stale toast). Kitchen's kit database moves to schema 3 on first start, so a rollback to 5.0.0 needs a backup of `kitchen-kit.db` taken before the update (CHANGELOG [Unreleased] Migration) | release checks run 02/11/2026 (below): the datatable footprints got a Kitchen stand-in (Kenny 22:03 "Tijdelijke oplossing", [fix-table-footprint-1]), measure clear; then `chassis release` |
 | ~~Bump: chassis-rs release with kp-themes 2bc105c2b and e1406eddb~~ **done 03/11/2026**: chassis-rs 4.5.0 (tag v4.5.0, kp-themes 12.3.0) [meta-chassis-450-1]; the table-footprint stand-in, the popover box-sizing rule and `nameTrigger` removed [refactor-drop-stand-ins-1]; re-measure is release check 15 | release check 15 |
@@ -140,6 +142,24 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    taller before; 0 findings); (b) the Send to phone and Print options popovers at 390: the plate stays inside the window, no
    overflow at 320; (c) the /settings theme button: pick a theme in the header's menu and the row's labelled trigger names it at once;
    (d) `node --test scripts/` still green (no test referenced the removed files) and `node scripts/check-words.mjs` 0 (it was).
+
+16. **The data move into databases [DB_MOVE]** (to write with the build once choices A to E of `docs/agent/DB_MOVE.md` are
+   answered; fixtures committed 03/11/2026, nothing written or run): `cargo test` with (a) a migration round-trip test per
+   fixture, `tests/fixtures/db_move/kitchen-5.0.0.json` (live shape: no `rev`, no `settings_rev`, no `answered`) and
+   `kitchen-6.0.0.json` (revs on some items, `settings_rev` 4, two answered keys), each copied to a temp state dir: the
+   import commits, `GET /data/kitchen` from the database equals the file value for value (every list in order: dishes
+   with recipes, ingredients, both category lists, freezer, shelf, log, resting, drafts, recipe_sources; settings and
+   `settings_rev`, absent = 0; item revs, absent = 0; the answered keys, which a replayed take still honours),
+   `kitchen.json.pre-db` holds the original bytes, the original is renamed `kitchen.json.migrated`, and a second start
+   imports nothing; (b) a broken or mismatching file rolls back, keeps `kitchen.json` as it was and keeps serving from
+   it (choice E1); (c) revisions identical after the move: a stale `PUT`, `DELETE` and settings `PATCH` are refused with
+   the kit's 409 exactly as before, `If-Match: *` and no header behave as before; (d) the undo state: a delete then a
+   restore within `UNDO_KEEP` puts the item back at its place with its rev, records a `sync_delete` then a
+   `sync_upsert`, a restore after the window or a restart is refused (410); (e) every write records its change in the
+   same transaction (the kit's conformance helper against Kitchen's `SyncLoad`). Then, by hand: a copy of the LIVE
+   `kitchen.json` (5.0.0) and `kitchen-kit.db` (kit schema 2) started once on the new binary in a throwaway state dir:
+   the import commits, the kit DB migrates, every page shows the same data; the rollback written in CHANGELOG
+   Migration done once on that copy. With choice D1 also the offline e2e scenarios of `scripts/release/offline.e2e.mjs`.
 
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
