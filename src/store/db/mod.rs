@@ -6,7 +6,7 @@
 //! only place that knows tables. Its parts:
 //!
 //! - `spec.rs` / `tables.rs` / `recipe_tables.rs`: every table as data, a real column per field and a child table per nested list;
-//!   `schema_v1.sql` is the same as SQL (the kit's migration 1);
+//!   `schema_v1/*.sql` is the same as SQL (the kit's migration 1, in four files by area, concatenated in order);
 //! - `codec/`: one JSON object to its rows and back, losslessly;
 //! - `rows.rs`: the statements for lists, settings and the answered take keys;
 //! - `plan.rs`: a store change as row operations plus change-log entries, in one transaction;
@@ -27,10 +27,20 @@ mod tables;
 #[cfg(test)]
 mod tests;
 
+/// Migration 1, split by area so no file passes the size rule (coordinator 03/11/2026). The four parts are
+/// concatenated in this order and form exactly the SQL the single file held (byte for byte), so the migration's
+/// text and checksum do not change.
+const SCHEMA_V1: &str = concat!(
+    include_str!("schema_v1/1_dishes.sql"),
+    include_str!("schema_v1/2_recipe_children.sql"),
+    include_str!("schema_v1/3_lists.sql"),
+    include_str!("schema_v1/4_drafts_sources_settings.sql"),
+);
+
 /// The schema as the kit's numbered migrations. Append only: a later change is a second entry, never an edit of
-/// `schema_v1.sql`.
+/// a `schema_v1/` part.
 pub fn migrations() -> Vec<Migration> {
-    vec![Migration::sql(include_str!("schema_v1.sql"))]
+    vec![Migration::sql(SCHEMA_V1)]
 }
 
 /// What `App::app_db` gets: the schema and the one-time import of `kitchen.json`.

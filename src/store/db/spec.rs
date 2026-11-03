@@ -3,7 +3,7 @@
 //! Every list is a table with a real column per known field, and every nested list (a dish's recipes, a recipe's
 //! steps, a step's photos) is a child table of its item. The description is data, not code: [`super::tables`] lists
 //! each table once, and the generic codec (`codec/`) writes and reads any of them, so the mapping between a JSON
-//! item and its rows lives in one place. `schema_v1.sql` holds the same tables as SQL; the schema test pins the two
+//! item and its rows lives in one place. `schema_v1/*.sql` holds the same tables as SQL; the schema test pins the two
 //! together column for column.
 //!
 //! Losslessness is the rule, because the shape of an item belongs to the pages (`docs/agent/DATA.md`): a value that

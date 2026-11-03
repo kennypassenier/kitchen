@@ -20,7 +20,7 @@ when the kitchen was a file (`GET /data/kitchen` still says `format: 5`).
   `shelf`, `log`, `resting`, `drafts`, `recipe_sources`), a real column per field documented here, and a child table per
   nested list: a dish's `ingredients` and `sides` (each side's `ingredients`), its `recipes`, and inside a recipe its
   `meals`, `ing`, `tools`, `tracks`, ingredient lines and `steps` (a step's `timer`, `uses`, `photos`). `settings` is one
-  row, `settings_rev` and `answered` tables of their own. The schema is `src/store/db/schema_v1.sql`; the same tables as
+  row, `settings_rev` and `answered` tables of their own. The schema is `src/store/db/schema_v1/*.sql` (four parts by area); the same tables as
   data in `src/store/db/tables.rs` and `recipe_tables.rs`.
 - **A field a page adds** needs no server change, as before: a key no column knows (or a value that does not fit its
   column, such as a `null` or an object where text is usual) is kept in the row's `k_extra` JSON object and reads back

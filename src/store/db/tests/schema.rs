@@ -1,4 +1,4 @@
-//! `schema_v1.sql` and `tables.rs` describe the same tables column for column, so the codec never writes a column the
+//! `schema_v1/*.sql` and `tables.rs` describe the same tables column for column, so the codec never writes a column the
 //! schema lacks and the schema holds no column the codec ignores.
 
 use std::collections::BTreeSet;

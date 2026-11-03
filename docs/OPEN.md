@@ -156,7 +156,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
      untouched, no `.migrated`, the copy kept, nothing written, `boot::import_verdict` refuses the start naming the
      reason), `a_retry_keeps_the_first_copy`, `only_a_done_import_lets_the_store_start`;
    - `store::db::tests::codec` (odd values through `k_extra`, empty list vs absent key, settings with an unknown key,
-     the difference finder) and `store::db::tests::schema` (`schema_v1.sql` equals the table specs column for column);
+     the difference finder) and `store::db::tests::schema` (`schema_v1/*.sql` equals the table specs column for column);
    - `store::tests::db_store`: stale PUT, DELETE and settings PATCH refused with nothing changed in the database,
      the idempotent take with its key stored in `answered`, Undo's restore back at its place, memory and database
      agree after a run of changes;
