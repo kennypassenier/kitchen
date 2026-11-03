@@ -45,7 +45,7 @@ function sourceRow(s) {
   const language = t(s.language === "nl" ? "src.nl" : "src.en");
   return h(
     "tr",
-    { "data-kp-row-key": s.id },
+    { "data-kp-row-key": s.id, "data-kp-row-label": String(s.name || hostOf(s.url)) },
     h("td", { "data-label": t("src.name") }, itemLink("recipe_sources", s)),
     h("td", { "data-label": t("src.site") }, externalLink(s.url, hostOf(s.url))),
     h("td", { "data-label": t("src.language"), "data-kp-filter-value": language }, language),

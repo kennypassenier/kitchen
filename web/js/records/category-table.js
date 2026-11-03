@@ -7,12 +7,12 @@
 
 import { h } from "../dom.js";
 import { create, replace, kitchenNow } from "../api.js";
-import { t, nameOf } from "../i18n/index.js";
+import { t, nameOf, lang } from "../i18n/index.js";
 import { saveFailed, noticeIfStale } from "../api/stale-notice.js";
 import { names } from "../dishes/names.js";
 import { input, NAME_LIMIT } from "../ui/form-parts.js";
-import { tableCard } from "./table-card.js";
-import { addRow } from "./add-row.js";
+import { tableCard, tableIdOf } from "./table-card.js";
+import { addLine } from "./add-line.js";
 import { detailHref } from "./lists.js";
 import { deleteRecord } from "./delete.js";
 import { markInUse } from "./in-use.js";
@@ -30,31 +30,13 @@ function deleteButton(list, c) {
   return h("div", { class: "kp-row-actions" }, del);
 }
 
-/**
- * The row keys: the kit names a row by its key in its edit line and its screen-reader words ("Speciaal: English name
- * changed …", kp-gaps/kitchen.md), so the key is the category's name as shown, made unique with a number; `ids` maps
- * the keys back to the categories.
- * @param {Item[]} items @returns {{ keys: string[], ids: Map<string, string> }}
- */
-function rowKeys(items) {
-  const ids = new Map();
-  const keys = items.map((c) => {
-    const base = nameOf(c).text || "–";
-    let key = base;
-    for (let n = 2; ids.has(key); n++) key = `${base} (${n})`;
-    ids.set(key, c.id);
-    return key;
-  });
-  return { keys, ids };
-}
-
-/** One category row; the two name cells are the kit's edit cells, the drag handle is the kit's. @param {CategoryList} list @param {CategoryWords} w @param {Item} c @param {string} key @param {import("../api.js").Kitchen} k */
-function row(list, w, c, key, k) {
+/** One category row; the two name cells are the kit's edit cells, the drag handle is the kit's. @param {CategoryList} list @param {CategoryWords} w @param {Item} c @param {import("../api.js").Kitchen} k */
+function row(list, w, c, k) {
   const n = names(c);
   const used = w.used(c, k);
   return h(
     "tr",
-    { "data-kp-row-key": key },
+    { "data-kp-row-key": c.id, "data-kp-row-label": nameOf(c).text },
     h("td", { "data-label": t("rec.dutchName"), lang: "nl", "data-half": "nl" }, n.nl),
     h("td", { "data-label": t("rec.englishName"), "data-half": "en" }, n.en),
     h("td", { "data-label": w.usedHead, class: "kp-numeric" }, h("a", { href: detailHref(list, c.id), title: t("it.open", nameOf(c).text) }, used.text)),
@@ -66,12 +48,12 @@ function row(list, w, c, key, k) {
  * A name edited in its cell: saved at once; an empty half is refused in the cell. A save refused as stale (the category
  * was saved elsewhere since this page read it) shows the shared stale toast with Reload, as every other quick save does
  * (fix-cat-rename-stale-1); the cell still takes the refusal back and shows its words.
- * @param {CategoryList} list @param {Map<string, string>} ids @param {CustomEvent} event
+ * @param {CategoryList} list @param {CustomEvent} event
  */
-function onEdit(list, ids, event) {
+function onEdit(list, event) {
   const d = event.detail;
   const half = /** @type {"nl" | "en"} */ (d.cell.dataset.half);
-  const item = (kitchenNow()?.[list] ?? []).find((/** @type {Item} */ x) => x.id === ids.get(d.key));
+  const item = (kitchenNow()?.[list] ?? []).find((/** @type {Item} */ x) => x.id === d.key);
   const value = String(d.value ?? "").trim();
   if (!item || !half) return d.reject(t("rec.notSaved"));
   if (!value) return d.reject(t(half === "nl" ? "ip.needNl" : "ip.needEn"));
@@ -88,10 +70,10 @@ async function renameSave(list, item, half, value) {
   }
 }
 
-/** A row dragged to another place: every category saved with its new number. @param {CategoryList} list @param {Map<string, string>} ids @param {CustomEvent} event */
-async function onReorder(list, ids, event) {
+/** A row dragged to another place: every category saved with its new number. @param {CategoryList} list @param {CustomEvent} event */
+async function onReorder(list, event) {
   try {
-    const order = /** @type {string[]} */ (event.detail.order).map((key) => ids.get(key) ?? key);
+    const order = /** @type {string[]} */ (event.detail.order);
     for (const x of reordered(kitchenNow()?.[list] ?? [], order)) await replace(list, x);
   } catch (e) {
     // A category saved elsewhere since this page read it: the stale notice (fix-quick-rev-1).
@@ -99,26 +81,26 @@ async function onReorder(list, ids, event) {
   }
 }
 
-/** The add row: a Dutch and an English name. @param {CategoryList} list */
-function categoryEntry(list) {
+/** The add row: a Dutch and an English name. @param {CategoryList} list @param {string} tableId */
+function categoryEntry(list, tableId) {
   const nl = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", lang: "nl", placeholder: list === "dish_categories" ? "Speciaal" : "Vlees", ...NAME_LIMIT }));
   const en = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", placeholder: list === "dish_categories" ? "Special" : "Meat", ...NAME_LIMIT }));
-  return addRow({
+  // The kit says "Added <first value>": the name in the current language, kept in a hidden field.
+  const announce = /** @type {HTMLInputElement} */ (h("input", { type: "hidden", name: "announce" }));
+  const say = () => (announce.value = (lang() === "nl" ? nl : en).value.trim() || nl.value.trim() || en.value.trim());
+  nl.addEventListener("input", say);
+  en.addEventListener("input", say);
+  return addLine({
+    tableId,
+    announce,
     label: t(`list.${list}.add`),
     submit: t("rec.addInRow"),
     fields: [
-      { label: t("rec.dutchName"), control: nl, size: "wide" },
-      { label: t("rec.englishName"), control: en, size: "wide" },
+      { name: "nl", column: "nl", label: t("rec.dutchName"), control: nl },
+      { name: "en", column: "en", label: t("rec.englishName"), control: en },
     ],
-    reset: () => {
-      nl.value = "";
-      en.value = "";
-    },
-    check: () => (!nl.value.trim() ? { field: nl, message: t("ip.needNl") } : !en.value.trim() ? { field: en, message: t("ip.needEn") } : null),
-    add: async () => {
-      const made = await create(list, { name: { nl: nl.value.trim(), en: en.value.trim() }, order: nextOrder(kitchenNow()?.[list] ?? []) });
-      return t("rec.addedName", nameOf(made).text);
-    },
+    check: () => (!nl.value.trim() ? { name: "nl", message: t("ip.needNl") } : !en.value.trim() ? { name: "en", message: t("ip.needEn") } : null),
+    add: async () => void (await create(list, { name: { nl: nl.value.trim(), en: en.value.trim() }, order: nextOrder(kitchenNow()?.[list] ?? []) })),
   });
 }
 
@@ -127,14 +109,14 @@ function categoryEntry(list) {
  * @param {CategoryList} list @param {CategoryWords} w
  */
 export function categoryCard(list, w) {
-  const entry = categoryEntry(list);
+  const entry = categoryEntry(list, tableIdOf(w.id));
   const card = tableCard({
     id: w.id,
     title: w.title,
     lede: w.lede,
     noun: t(`list.${list}`),
     plural: w.plural,
-    columns: [[t("rec.dutchName"), undefined, undefined, { "data-kp-edit": "text", "data-kp-edit-required": "" }], [t("rec.englishName"), undefined, undefined, { "data-kp-edit": "text", "data-kp-edit-required": "" }], [w.usedHead], [t("lg.actions")]],
+    columns: [[t("rec.dutchName"), undefined, undefined, { "data-kp-edit": "text", "data-kp-edit-required": "", "data-kp-field": "nl" }], [t("rec.englishName"), undefined, undefined, { "data-kp-edit": "text", "data-kp-edit-required": "", "data-kp-field": "en" }], [w.usedHead], [t("lg.actions")]],
     add: t(`list.${list}.add`),
     emptyTitle: w.emptyTitle,
     emptyText: w.emptyText,
@@ -142,35 +124,28 @@ export function categoryCard(list, w) {
     reorder: true,
   });
   for (const b of card.addButtons) b.addEventListener("click", entry.focus);
-  const stopEntry = entry.stop;
-  /** The row keys of the last fill, back to the ids. @type {Map<string, string>} */
-  let ids = new Map();
-  card.table.addEventListener("kp-datatable-edit", (e) => onEdit(list, ids, /** @type {CustomEvent} */ (e)));
-  card.table.addEventListener("kp-datatable-reorder", (e) => void onReorder(list, ids, /** @type {CustomEvent} */ (e)));
+  card.table.addEventListener("kp-datatable-edit", (e) => onEdit(list, /** @type {CustomEvent} */ (e)));
+  card.table.addEventListener("kp-datatable-reorder", (e) => void onReorder(list, /** @type {CustomEvent} */ (e)));
   return {
     ...card,
     /** @param {import("../api.js").Kitchen} k */
     fill: (k) => {
       const items = byOrder(k[list] ?? []);
-      const made = rowKeys(items);
-      ids = made.ids;
-      card.body.replaceChildren(...items.map((c, at) => row(list, w, c, made.keys[at], k)));
+      card.body.replaceChildren(...items.map((c) => row(list, w, c, k)));
     },
     /** After the table's first fill: open the cell `?edit=<id>` asks for. */
-    openAsked: () => openAsked(card.table, ids),
-    /** Take the add row's form wiring away. */
-    stop: stopEntry,
+    openAsked: () => openAsked(card.table),
   };
 }
 
-/** Open the Dutch name cell of the row `?edit=<id>` names, once, and take the parameter off the address. @param {HTMLElement} table @param {Map<string, string>} ids */
-function openAsked(table, ids) {
+/** Open the Dutch name cell of the row `?edit=<id>` names, once, and take the parameter off the address. @param {HTMLElement} table */
+function openAsked(table) {
   const url = new URL(location.href);
   const id = url.searchParams.get("edit");
   if (!id) return;
   url.searchParams.delete("edit");
   history.replaceState(history.state, "", url.pathname + url.search + url.hash);
-  const rowEl = [...table.querySelectorAll("tr[data-kp-row-key]")].find((r) => ids.get(r.getAttribute("data-kp-row-key") ?? "") === id);
+  const rowEl = [...table.querySelectorAll("tr[data-kp-row-key]")].find((r) => r.getAttribute("data-kp-row-key") === id);
   rowEl?.scrollIntoView({ block: "center" });
   /** @type {HTMLElement | null | undefined} */ (rowEl?.querySelector("[data-kp-edit-cell]"))?.click();
 }

@@ -7,6 +7,6 @@ export { openRecordEditor } from "./editors.js";
 export { unmarkSafe, ateShelf } from "./safe.js";
 export { deleteRecord, duplicateRecipe, duplicateDish, rowActions } from "./delete.js";
 export { usersOf, usageWords, inUseReason, markInUse } from "./in-use.js";
-export { tableCard } from "./table-card.js";
+export { tableCard, tableIdOf } from "./table-card.js";
 export { deleteWithUndo, UNDO_MS } from "./undo-delete.js";
 export { deleteRecipe } from "./recipe-delete.js";

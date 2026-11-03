@@ -49,4 +49,6 @@ export const KP_NL_FORMS = {
   typeConfirmMatched: "Komt overeen",
   typeConfirmMismatch: "Komt nog niet overeen",
   typeConfirmLoses: "Dit wordt voorgoed verwijderd:",
+  addRowAdded: (name) => (name ? `${name} toegevoegd` : "Toegevoegd"),
+  addRowRefused: "Deze regel kon niet worden toegevoegd.",
 };

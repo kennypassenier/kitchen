@@ -10,7 +10,7 @@ import { names, languages } from "../dishes/editor.js";
 import { tableCard, rowActions, itemLink, openRecordEditor, sideName, missingBadge } from "../records/index.js";
 import { categoryCard } from "../records/category-table.js";
 import { pageHead, mountTables } from "../records/table-page.js";
-import { t, lang } from "../i18n/index.js";
+import { t, lang, nameOf } from "../i18n/index.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {Record<string, any>} Item */
@@ -65,7 +65,7 @@ function dishRow(d, catList) {
   const cat = catList.find((c) => c.id === d.category);
   return h(
     "tr",
-    { "data-kp-row-key": d.id },
+    { "data-kp-row-key": d.id, "data-kp-row-label": nameOf(d).text },
     h("td", { "data-label": t("rec.dutchName"), lang: "nl" }, n.nl ? itemLink("dishes", d, n.nl) : missingBadge("dishes", d) ?? "–"),
     h("td", { "data-label": t("rec.englishName") }, n.en ? itemLink("dishes", d, n.en) : missingBadge("dishes", d) ?? "–"),
     h("td", { "data-label": t("rec.category") }, cat ? itemLink("dish_categories", cat) : "–"),
@@ -98,8 +98,5 @@ export function mount(root) {
       first = false;
     },
   });
-  return () => {
-    stop();
-    cats.stop();
-  };
+  return stop;
 }

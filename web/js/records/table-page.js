@@ -2,6 +2,8 @@
 // cycle: loading state, the one kitchen read, filling the rows, the retry, the kitchen's change events and the clean-up.
 
 import { attachDataTables, dataTable } from "/static/kp/dist/js/datatable.js";
+import { attachForms } from "/static/kp/dist/js/forms.js";
+import { attachAddRows } from "/static/kp/dist/js/add-row.js";
 import { attachDisabledReasons } from "/static/kp/dist/js/reason.js";
 import { loadKitchen, onKitchen, kitchenNow } from "../api.js";
 import { h } from "../dom.js";
@@ -27,7 +29,10 @@ export function pageHead({ title, lede, actions = [] }) {
 export function mountTables({ root, page, cards, busyText, busyAtOnce = false, fill }) {
   let alive = true;
   root.replaceChildren(page);
-  const detach = attachDataTables(page);
+  // The tables first: an add row lays itself under the columns of the table it names.
+  const detachTables = attachDataTables(page);
+  const detachForms = attachForms(page, { validateOn: "submit", revalidateOn: "none" });
+  const detachRows = attachAddRows(page);
   const handles = cards.map((c) => dataTable(c.table));
   const busy = () => {
     for (const handle of handles) {
@@ -68,6 +73,8 @@ export function mountTables({ root, page, cards, busyText, busyAtOnce = false, f
     alive = false;
     stop();
     reasons();
-    detach();
+    detachRows();
+    detachForms();
+    detachTables();
   };
 }
