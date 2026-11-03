@@ -28,12 +28,8 @@ export const KITCHEN_PATH = "/data/kitchen";
 /** The item route of `id` in `list`, as the routes and the kit's collections name it. @param {string} list @param {string} id */
 export const itemPath = (list, id) => `/data/${list}/${encodeURIComponent(id)}`;
 
-/** The freezer's item action: `collection("freezer").act(id, TAKE_ACTION, { portions })` POSTs to
- * `/data/freezer/{id}/take` with an Idempotency-Key; the server applies a replay once and ignores If-Match. */
-export const TAKE_ACTION = "take";
-
-/** The freezer take route of item `id`, as the kit queues it. @param {string} id */
-export const takePath = (id) => `${itemPath("freezer", id)}/${TAKE_ACTION}`;
+/** The freezer take route of item `id` (a POST with an Idempotency-Key, not a collection write). @param {string} id */
+export const takePath = (id) => `/data/freezer/${encodeURIComponent(id)}/take`;
 
 /** The collection a write path changes (`/data/<list>/…`, the settings item, a take), or null. @param {string} path */
 export function collectionOfPath(path) {
