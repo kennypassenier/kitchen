@@ -16,9 +16,11 @@
 use chassis::storage::Migration;
 
 mod codec;
+pub mod plan;
 mod recipe_tables;
 pub mod rows;
 mod spec;
+pub mod sync;
 mod tables;
 
 #[cfg(test)]
