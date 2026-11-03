@@ -228,8 +228,10 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    (`purge` drops the queue too, `clearCopy` only the response cache). Options: (a) as built: unchanged, the button
    clears the kit's response cache only (after the update that frees the old `/data/kitchen` copy; the database stays,
    the row's size does not drop to 0); (b) a kit call `db.clear()` (drop records, reset cursors, keep the queue and
-   keeps; the next pull fills it again), then the button uses it; (c) remove the button. Recommended: (b) as a kit gap,
-   (a) until it ships. Kit wish besides (no choice): an explicit `rev` on the collection's `put`/`patch`/`delete`,
+   keeps; the next pull fills it again), then the button uses it; (c) remove the button. DECIDED (Kenny 03/11/2026
+   "Knop verbergen"): the button is hidden until the kit ships `db.clear()` that keeps the queue (kp-gaps/chassis-rs.md
+   03/11 local DB item 3); bring it back by setting `SHOW_CLEAR_COPY = true` in `web/js/pages/settings/offline-row.js`
+   and wiring it to `db.clear()`. (3) is built as (a), the kit wish filed. Kit wish besides (no choice): an explicit `rev` on the collection's `put`/`patch`/`delete`,
    so Kitchen could drop `writeJson` (DB_MOVE.md "Page side, as built").
 
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
