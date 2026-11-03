@@ -19,7 +19,6 @@ function buildMise() {
     "aria-label": t("cook.miseLabel"),
     "data-kp-state": "loading",
     "data-kp-checklist-empty": t("cook.miseEmpty"),
-    style: "--kp-checklist-min-rows: 10",
   });
   const startBtn = h("button", { type: "button", class: "kp-button kp-button--primary kp-button--lg", "aria-disabled": "true" }, t("cook.startCooking"));
   const skipBtn = h("button", { type: "button", class: "kp-button kp-button--lg" }, t("cook.skip"));

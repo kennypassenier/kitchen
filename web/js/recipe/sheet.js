@@ -17,8 +17,8 @@ import { ZONE } from "../format.js";
 import { lang as appLang } from "../i18n/index.js";
 
 /** The package's paper styles: the split delivery's base sheet, then the formal register the frame wears (the frame is
- * `data-theme="formal"`), in that order, as the page's own head links them. */
-const PAPER_SHEETS = ["/static/kp/dist/kp-themes-base.min.css", "/static/kp/dist/css/formal-register.min.css"];
+ * `data-theme="formal"`), in that order, as the page's own head links them; last the sheet's own page layout. */
+const PAPER_SHEETS = ["/static/kp/dist/kp-themes-base.min.css", "/static/kp/dist/css/formal-register.min.css", "/css/print-sheet.css"];
 
 /** The package stylesheets with their print rules made unconditional, read once. @type {Promise<string> | null} */
 let paperCss = null;
@@ -35,14 +35,6 @@ function loadPaperCss() {
   paperCss.catch(() => (paperCss = null));
   return paperCss;
 }
-
-const FRAME = `
-body { margin: 0; padding: 7% 8% 14%; font-size: 0.8rem; }
-h1 { margin: 0 0 0.25rem; font-size: 1.35rem; }
-.meta { margin: 0 0 1rem; color: #444; }
-ol { margin: 1rem 0 0; padding-inline-start: 1.25rem; display: grid; gap: 0.4rem; }
-h2 { margin: 1.25rem 0 0; font-size: 1rem; }
-`;
 
 /** @typedef {{ notes: string, box: string, groups: string, lines: string }} PrintOptions */
 
@@ -104,7 +96,7 @@ async function loadFrame(frame) {
   const css = await loadPaperCss();
   await new Promise((resolve) => {
     frame.addEventListener("load", resolve, { once: true });
-    frame.srcdoc = `<!doctype html><html lang="en" data-theme="formal"><head><meta charset="utf-8"><style>${FRAME}</style></head><body><h1></h1><p class="meta"></p><div class="kp-checklist" data-kp-checklist></div><h2></h2><ol></ol></body></html>`;
+    frame.srcdoc = `<!doctype html><html lang="en" data-theme="formal"><head><meta charset="utf-8"></head><body><h1></h1><p class="meta"></p><div class="kp-checklist" data-kp-checklist></div><h2></h2><ol></ol></body></html>`;
   });
   const win = /** @type {Window & typeof globalThis} */ (frame.contentWindow);
   const doc = /** @type {Document} */ (frame.contentDocument);

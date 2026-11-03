@@ -127,13 +127,24 @@ function pushRow(s, item) {
 }
 
 /**
+ * The grid of a repeatable list. Its column widths go in through CSSOM, not a style attribute: the CSP's style-src
+ * is 'self' (chassis-rs 4.6.0), which blocks inline styles but not `style.setProperty`.
+ * @param {{ width: string }[]} columns
+ */
+function rowsGrid(columns) {
+  const grid = h("div", { class: "rl-rows" });
+  grid.style.setProperty("--rl-cols", `${columns.map((c) => c.width).join(" ")} max-content`);
+  return grid;
+}
+
+/**
  * A repeatable list on shared columns: a header line, one row per item, and an Add button that says what it adds.
  * @param {{ columns: { label: string, width: string, make: (value: any) => { el: HTMLElement, get: () => any } }[], items: any[], add: string, noun: string, blank: () => any }} spec
  */
 export function rows({ columns, items, add, noun, blank }) {
   /** @type {RowsState} */
   const s = {
-    grid: h("div", { class: "rl-rows", style: `--rl-cols: ${columns.map((c) => c.width).join(" ")} max-content` }),
+    grid: rowsGrid(columns),
     head: h("div", { class: "rl-row rl-row--head" }, ...columns.map((c) => h("span", { class: "rl-row__label" }, c.label)), h("span", { class: "kp-sr-only" }, t("photo.remove"))),
     body: h("div", { class: "rl-rows__body" }),
     empty: h("p", { class: "rl-rows__empty" }, t(`edit.none.${noun}`)),

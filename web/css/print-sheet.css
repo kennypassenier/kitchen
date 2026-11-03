@@ -1,0 +1,7 @@
+/* The printable sheet's own page (web/js/recipe/sheet.js): margins and type of the A4 frame, laid over the package's
+   paper styles. A file, not a <style> block in the frame: the CSP's style-src is 'self' (chassis-rs 4.6.0). */
+body { margin: 0; padding: 7% 8% 14%; font-size: 0.8rem; }
+h1 { margin: 0 0 0.25rem; font-size: 1.35rem; }
+.meta { margin: 0 0 1rem; color: #444; }
+ol { margin: 1rem 0 0; padding-inline-start: 1.25rem; display: grid; gap: 0.4rem; }
+h2 { margin: 1.25rem 0 0; font-size: 1rem; }

@@ -43,6 +43,11 @@
   gap: var(--kp-space-md, 1rem);
 }
 
+/* The mise-en-place checklist keeps the room of ten lines while it loads (was a style attribute; CSP style-src 'self'). */
+#ck-mise {
+  --kp-checklist-min-rows: 10;
+}
+
 /* ---- The timeline (the package's gantt in the More sheet, fitted to the sheet's width) -------------------------------- */
 .ck-timelinecard .kp-card__stage,
 .ck-timelinecard .kp-card__data,
@@ -54,15 +59,6 @@
 
 .ck-timelinecard {
   min-inline-size: 0;
-}
-
-/* The timeline fits the sheet (the kit's data-kp-gantt-scroll="fit", kp-themes 12.2.0) and its rows are lower: a lane with a
-   "n of m done" line takes the kit's tall row (2.5rem) for every row of bars, which left a band of empty height (Kenny,
-   01/11/2026 "Passend maken"). A row is now a bar and its gap; the lane still grows to hold its name and its line. Still
-   needed with 12.2.0's fit mode and run packing: without it the two lanes of the seed recipe stand 128 and 168 px high
-   instead of 86 and 112 at 390 px (measured 02/11/2026). */
-.ck-timelinecard .kp-gantt {
-  --kp-gantt-row-sub: 1.625rem;
 }
 
 /* ---- The discs ----------------------------------------------------------------------------------- */
