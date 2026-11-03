@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-11-03
+
 Everything since 5.0.0 (Kenny's four UX rounds of 01/11/2026 and his six bug fixes), ready to become the release notes.
 Nothing here is released or deployed yet; no store format change (optional fields only), no new server setting (see "Migration / deploy notes").
 Built on **chassis-rs 4.4.0 with kp-themes 12.2.0** (was 4.0.0 with 12.0.0; tag v4.4.0, `[meta-chassis-440-1]`): it carries
