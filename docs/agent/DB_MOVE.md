@@ -2,13 +2,31 @@
 
 Kenny's standing rule, 02/11/2026 21:01: "ALLE info gaat vanaf nu in databases, geen aparte .json bestanden meer".
 This note is the study and the open choices for moving `kitchen.json` into the app database (`kitchen.db`, the kit's
-`AppDb`) and the pages onto the kit's local database (`chassisData.db`), on chassis-rs tag v4.5.0. Nothing of the move
-is built yet: the parts below that depend on a choice wait for Kenny's answers. Written 03/11/2026.
+`AppDb`) and the pages onto the kit's local database (`chassisData.db`), on chassis-rs tag v4.5.0. Written 03/11/2026. **Kenny answered A to E on 03/11/2026 06:12** (section
+"Decisions" right below); the server side is built ([feat-db-schema-1], [feat-db-sync-1], [feat-db-import-1],
+[feat-db-store-1]), the page side is the next helper's. The option texts further down are kept as the record of what
+was weighed.
 
 Fixed by Kenny's rules, not open: the server is always the master; revisions and `If-Match` behave exactly as today
 (docs/agent/DATA.md "Revisions and stale saves"); the domain stays behind the existing store port (`Store`'s methods,
 which `routes.rs` and `parents/` call), only persistence changes; `kitchen.json` is backed up first and left untouched
 until the new store is verified; no data loss; never two offline layers.
+
+## Decisions (Kenny 03/11/2026 06:12) and how they were built
+
+| Choice | Kenny's answer | Built as |
+|---|---|---|
+| A, tables | **"Echte kolommen"** (A3): real columns per list, not one JSON body per row; index what Kitchen queries | `src/store/db/schema_v1.sql` (kit migration 1), described as data in `spec.rs`, `tables.rs`, `recipe_tables.rs` and written/read by one generic codec (`codec/`). A column per known field (`{nl, en}` names as `<key>_nl`/`<key>_en`, a step's `text`/`note` as plain or pair columns, numbers in `ANY` columns so `2` and `2.0` stay apart); nested lists are child tables with `ON DELETE CASCADE`, the parent keeps `n_<key>` (count; NULL = absent). Lossless: a value that does not fit its column and any key no column knows go to the row's `k_extra` JSON object, so the routes keep accepting any page field as before; a draft's `data` (editor state) is one JSON column. Indexes: `id` (unique), `k_pos`, `category` (dishes, ingredients), `order` (both category lists), `dish_id` (freezer, log, resting), `shelf_id` and `date` (log), `energy` (shelf), `key` (drafts), the ingredient ids of dish ingredients, side ingredients and recipe lines, every child table by `(k_parent, k_pos)` |
+| B, recipes | **"Binnen het gerecht"** (B1) | recipes and their steps, lines, tools, tracks (and a step's timer, uses, photos) are child tables of the dish; the dish is the synced unit, its `rev` covers its recipes, `dish_rev` unchanged |
+| C, revisions | **"Behouden"** (C1) | item `rev` kept (absent → `"rev": 0` written on import); the settings are the one-item collection `settings` (key `kitchen`, rev = `settings_rev`) at `/data/settings/kitchen` (GET, PATCH; `id`/`rev` in a PATCH body are ignored); `GET`/`PATCH /data/settings` stay as they are for the pages until the page helper moves them |
+| D, pages | **"Nu ook de pagina's"** (D1) | server: a `SyncCollection` per list (routes `/data/<list>`, `/data/<list>/:id`, shared, indexes) plus `settings`; `KitchenLoad` serves each body as the item route answers it; every write records `tx.sync_upsert`/`sync_delete` in its own transaction. Every existing `/data/*` route answers the same shapes. The pages are the next helper's |
+| E, failed import | **"Geen terugval"** (E2-like, no file adapter) | first start copies `kitchen.json` → `kitchen.json.pre-db` (first attempt only), imports in the kit's transaction, reads everything back and compares value for value; any failure rolls back, `kitchen.json` stays, and Kitchen logs what failed and exits 1 at start (`boot.rs`), so no Kitchen without data runs. Until the store has loaded, every store route answers 503 |
+
+Built differently from the "Not open" list below: the store keeps the whole kitchen in memory as before and persists
+each change as the before/after difference (`plan.rs`); the import accepts files from 4.1.0, 5.0.0 and 6.0.0 (live is
+4.1.0, measured on CT 121 by the coordinator 03/11/2026). Not built (asked): creating items offline under device-made ids
+(`client_key` / `check_create`), so a create stays online-only as today; the feed carries no list order (see the
+page-side notes in docs/OPEN.md, release check 16).
 
 ## What the kit offers (v4.5.0)
 
@@ -195,5 +213,5 @@ keys). Any older kit DB (`kitchen-kit.db`) schema the kit migrates itself is lef
 
 ## Note on the deploy state
 
-`docs/OPEN.md` and `CLAUDE.md` still say live is 4.1.0; the coordinator's word of 03/11/2026 06:04 says live runs
-5.0.0 and 6.0.0 (signed) is skipped. This note follows the coordinator; the OPEN.md deploy rows need Kenny's check.
+Measured 03/11/2026 (coordinator, CT 121 `/healthz`): live is **4.1.0**. The import takes a FORMAT 5 file from 4.1.0,
+5.0.0 or 6.0.0 alike; the kit migrates its own `kitchen-kit.db` from whatever schema it finds.

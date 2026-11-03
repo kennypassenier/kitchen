@@ -9,6 +9,38 @@ carries a **Migration** section saying what an operator must do.
 Built on **chassis-rs 4.5.0 with kp-themes 12.3.0** (was 4.4.0 with 12.2.0; tag v4.5.0, `[meta-chassis-450-1]`). The 4.5.0
 changelog has no Migration section; `Cargo.lock` moved only `chassis`, `docs/KIT.md` got the new `sync_retain_days` knob.
 
+### Changed
+
+- **The kitchen lives in the app database `kitchen.db`** (Kenny's rule 02/11/2026 21:01, "ALLE info gaat vanaf nu in
+  databases"; his answers of 03/11/2026 06:12) [feat-db-schema-1], [feat-db-sync-1], [feat-db-import-1],
+  [feat-db-store-1]: every list is a table with a real column per field, a dish's recipes and everything in them are
+  child tables of the dish, the fields Kitchen queries are indexed. Each change is written in one transaction together
+  with the kit's change-log entry. Every `/data/*` route answers exactly as before (revisions, `If-Match`, 409, the
+  idempotent take, Undo, photo clean-up, draft pruning, size limits); until the kitchen is loaded at start they answer 503.
+
+### Added
+
+- **Synced collections for the pages' local database** [feat-db-sync-1]: one per list (`GET /api/sync`,
+  `GET /api/sync/<list>?since=`, behind the login) and `settings`, the settings as one item
+  `{id: "kitchen", rev, ..keys}` at the new `GET`/`PATCH /data/settings/kitchen` (rev = `settings_rev`, `If-Match`, 409).
+  The pages do not use them yet.
+
+### Migration
+
+- **First start imports `kitchen.json` into `kitchen.db`, once.** Before anything else the file is copied to
+  `kitchen.json.pre-db`; the import accepts a FORMAT 5 file from 4.1.0 (live, measured 03/11/2026), 5.0.0 or 6.0.0 and
+  gives every item without a revision `"rev": 0`; it reads everything back and compares it value for value with the file;
+  only then is the file renamed `kitchen.json.migrated` (never deleted). Log line on success: "one-time import committed".
+- **A failed import changes nothing**: the database stays empty, `kitchen.json` stays where it was, and Kitchen refuses
+  to start: `kitchen refuses to start` with the reason in the journal, exit 1. Fix the cause (or roll back) and start
+  again; the import is retried.
+- **Back up first** (stopped service): `kitchen.json`, `kitchen-kit.db` and, if present, `kitchen.db` from the state
+  directory, plus the installed binary.
+- **Rollback**: stop the service; restore `kitchen-kit.db` and `kitchen.db` from that backup (no `kitchen.db` before:
+  delete the new one); put `kitchen.json.pre-db` back as `kitchen.json` (or, to keep edits made after the move, save
+  `GET /data/kitchen` of the new version as `kitchen.json`: the same FORMAT 5 shape); install the previous binary;
+  start. Details and the dry run: docs/OPEN.md, release check 16.
+
 ### Removed
 
 - The stand-ins kp-themes 12.3.0 makes redundant `[refactor-drop-stand-ins-1]`: the data-table footprint script

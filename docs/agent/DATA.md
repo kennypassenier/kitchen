@@ -1,6 +1,7 @@
 # The kitchen's data
 
-One JSON file, `<state dir>/kitchen.json`, read whole by `GET /data/kitchen`
+The app database `<state dir>/kitchen.db` (since feat-db-store-1, 03/11/2026; before that one JSON file,
+`kitchen.json`, which the first start imports, see "Storage" below), read whole by `GET /data/kitchen`
 and changed through the routes in `src/routes.rs`. The server issues `id`
 (a UUID), `created` and `updated` (RFC 3339); everything else below is the
 pages' agreement with each other. A field not listed may be added by a page
@@ -8,6 +9,33 @@ that needs it; add it here in the same change.
 
 Dates and times shown to a person are `dd/mm/yyyy HH:mm`, Europe/Brussels.
 Stored dates are ISO (`2026-10-19`, `2026-10-19T18:30:00+02:00`).
+
+## Storage (`kitchen.db`, feat-db-schema-1 .. feat-db-store-1)
+
+Kenny's rule of 02/11/2026 21:01 ("ALLE info gaat vanaf nu in databases") and his answers of 03/11/2026 06:12
+(`docs/agent/DB_MOVE.md`, "Decisions"). The shapes below are unchanged: the routes answer exactly what they answered
+when the kitchen was a file (`GET /data/kitchen` still says `format: 5`).
+
+- **Tables.** One table per list (`dishes`, `dish_categories`, `ingredients`, `ingredient_categories`, `freezer`,
+  `shelf`, `log`, `resting`, `drafts`, `recipe_sources`), a real column per field documented here, and a child table per
+  nested list: a dish's `ingredients` and `sides` (each side's `ingredients`), its `recipes`, and inside a recipe its
+  `meals`, `ing`, `tools`, `tracks`, ingredient lines and `steps` (a step's `timer`, `uses`, `photos`). `settings` is one
+  row, `settings_rev` and `answered` tables of their own. The schema is `src/store/db/schema_v1.sql`; the same tables as
+  data in `src/store/db/tables.rs` and `recipe_tables.rs`.
+- **A field a page adds** needs no server change, as before: a key no column knows (or a value that does not fit its
+  column, such as a `null` or an object where text is usual) is kept in the row's `k_extra` JSON object and reads back
+  exactly. Add it here; give it a column in a new migration when it is queried.
+- **Order.** Each row keeps its place in its list (`k_pos`); lists are answered in that order, as the file's arrays were.
+- **Writes.** The store keeps the kitchen in memory and writes each change as rows in one transaction, together with
+  the kit's change-log entry (`tx.sync_upsert` / `sync_delete`) that the pages' local database pulls from
+  `GET /api/sync/<list>`. A failed write leaves memory and database as they were (500, "could not save").
+- **First start.** `kitchen.json` (FORMAT 5 from 4.1.0, 5.0.0 or 6.0.0) is copied to `kitchen.json.pre-db`, imported in one
+  transaction (an item without `rev` gets `"rev": 0`), read back and compared value for value, then renamed
+  `kitchen.json.migrated`. A failed import changes nothing and Kitchen refuses to start, saying why (CHANGELOG
+  [Unreleased] Migration).
+- **Synced collections** (`src/store/db/sync.rs`): every list by its name, key `id`, revision `rev`, routes
+  `/data/<list>` and `/data/<list>/:id`; and `settings`, one item `{id: "kitchen", rev: settings_rev, ..keys}` at
+  `GET`/`PATCH /data/settings/kitchen`.
 
 ## Revisions and stale saves (`rev`, `If-Match`)
 
@@ -35,7 +63,7 @@ which raises the same toast and leaves the cell its own refusal line, fix-cat-re
 item as `current` and nothing is removed; without the header it is unchecked as before, and a removed item stays
 restorable for Undo's window either way. `remove` in `web/js/api.js` sends the revision of the item as the page holds
 it (`deleteRevFor` in `web/js/api/save.js`). The settings carry one revision of their own, `settings_rev` in
-`kitchen.json` and in `GET /data/kitchen` (optional, absent = 0, format stays 5), raised on every `PATCH /data/settings`;
+`kitchen.db` (the `settings_rev` table) and in `GET /data/kitchen` (absent in an imported file = 0, format stays 5), raised on every `PATCH /data/settings` (or `/data/settings/kitchen`);
 `GET`/`PATCH /data/settings` answer it as `ETag` (the body stays the plain object of keys), and a `PATCH` with a stale
 `If-Match` is the kit's 409 with the stored settings as `current` (`src/store/settings.rs`). `patchSettings` sends the
 kitchen read's `settings_rev` (`settingsRevFor`), runs merges one after the other so each names the revision the one
@@ -96,7 +124,7 @@ latter is logged. Nothing is checked while offline: a copy never says a dish is 
 **A freezer take offline** (feat-offline-take-1, Kenny 19:13 "Kit krijgt post()"). "Take a portion" on Bad days is
 `POST /data/freezer/{id}/take` through the kit's `post()`: without a connection it waits in the kit's queue with a UUID
 `Idempotency-Key` made when it was queued and kept across replays. The server records the key with the take in the same
-`kitchen.json` write (`answered`, at most `ANSWERS_KEEP` = 200, oldest dropped; left out of `GET /data/kitchen`;
+database transaction (`answered` table of `kitchen.db`, at most `ANSWERS_KEEP` = 200, oldest dropped; left out of `GET /data/kitchen`;
 `src/store/idempotent.rs`) and answers a repeated key with the first result, so a replay whose answer was lost takes no
 second portion. A refused take records nothing. Kitchen shows a queued take at once (`takeFrom` in
 `web/js/offline/apply.js`, never below zero) and lays it over every kitchen read like the other queued edits; the kit's
@@ -238,7 +266,7 @@ needs a second track. Cook mode keeps its own run timeline (a gantt on the real 
 
 ### Photos
 
-Not part of `kitchen.json`: files in `<state dir>/photos/<uuid>.jpg|webp`
+Not part of the database: files in `<state dir>/photos/<uuid>.jpg|webp`
 (so the backup of the state directory takes them), referenced by the uuid.
 Routes behind the login (`src/photos.rs`): `POST /data/photos` (body = the
 image bytes, `Content-Type` `image/jpeg` or `image/webp`, checked against the
@@ -272,7 +300,7 @@ its window. A restore within the window (Undo's dish `PUT`, or `POST /data/resto
 they stay. So a page reloaded or closed within the 10 s no longer leaves the photos of a deleted recipe behind. The
 noted ids live in memory, so a restart within the window drops them; the start-up sweep takes over (fix-photo-orphans-1,
 02/11/2026, `src/store/photo_orphans.rs`): when the kitchen starts it deletes every `photos/<uuid>.jpg|webp` file that
-nothing in `kitchen.json` refers to (any `photo` / `photos` at any depth: dishes, their recipes and steps, drafts) and
+nothing in the kitchen refers to (any `photo` / `photos` at any depth: dishes, their recipes and steps, drafts) and
 that was last written more than 10 minutes ago (`ORPHAN_MIN_AGE`), so an upload whose draft is not written yet is never
 taken. That also covers a photo uploaded in a tab that closed before its draft was written. Undo lives in memory too, so
 after a restart nothing can bring a dropped photo back. Other files in the folder are never touched; the log says how
