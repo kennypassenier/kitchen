@@ -180,10 +180,18 @@ what that means.
 
 ## Fixtures (committed)
 
-`tests/fixtures/db_move/kitchen-5.0.0.json` (live shape) and `kitchen-6.0.0.json` (revs on some items only,
+`tests/fixtures/db_move/kitchen-4.1.0.json` (4.1.0 shape: no `drafts`, no `recipe_sources`, no recipe `source` or
+`*_override`, no step `start`/`with`; derived from the 5.0.0 fixture), `kitchen-5.0.0.json` and `kitchen-6.0.0.json` (revs on some items only,
 `settings_rev` 4, two answered keys): every FORMAT 5 part (dishes with two recipes, tracks, timers, `with`, `start`,
 step and cover photos, bilingual notes; both category lists, ingredients, freezer incl. an item at 0 portions, shelf,
 log with a dish and a shelf line, resting, two drafts, recipe sources with and without a note, all settings keys).
+
+## Tolerant import (coordinator 03/11/2026)
+
+The import accepts any FORMAT 5 `kitchen.json` whichever Kitchen version wrote it (4.1.0, 5.0.0, 6.0.0 shapes): every
+list and field that version did not know is absent and defaults (lists empty, `rev` 0, `settings_rev` 0, no answered
+keys). Any older kit DB (`kitchen-kit.db`) schema the kit migrates itself is left to the kit; the import reads only
+`kitchen.json`. Which version runs live on CT 121 is not measured here (asked the coordinator for the homelab thread).
 
 ## Note on the deploy state
 

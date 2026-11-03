@@ -145,7 +145,7 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
 
 16. **The data move into databases [DB_MOVE]** (to write with the build once choices A to E of `docs/agent/DB_MOVE.md` are
    answered; fixtures committed 03/11/2026, nothing written or run): `cargo test` with (a) a migration round-trip test per
-   fixture, `tests/fixtures/db_move/kitchen-5.0.0.json` (live shape: no `rev`, no `settings_rev`, no `answered`) and
+   fixture (`kitchen-4.1.0.json`: 4.1.0 shape without drafts, recipe sources, recipe `source`, step `start`/`with`), `tests/fixtures/db_move/kitchen-5.0.0.json` (live shape: no `rev`, no `settings_rev`, no `answered`) and
    `kitchen-6.0.0.json` (revs on some items, `settings_rev` 4, two answered keys), each copied to a temp state dir: the
    import commits, `GET /data/kitchen` from the database equals the file value for value (every list in order: dishes
    with recipes, ingredients, both category lists, freezer, shelf, log, resting, drafts, recipe_sources; settings and

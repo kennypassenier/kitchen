@@ -1,0 +1,661 @@
+{
+  "format": 5,
+  "freezer": [
+    {
+      "id": "00000000-0000-4000-8000-000000000040",
+      "dish": {
+        "nl": "Soep",
+        "en": "Soup"
+      },
+      "dish_id": "00000000-0000-4000-8000-000000000022",
+      "portions": 3,
+      "frozen_on": "2026-10-20T18:30:00+02:00",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000041",
+      "dish": {
+        "nl": "Saus",
+        "en": "Sauce"
+      },
+      "dish_id": null,
+      "portions": 0,
+      "frozen_on": "2026-10-20T18:30:00+02:00",
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "shelf": [
+    {
+      "id": "00000000-0000-4000-8000-000000000050",
+      "title": {
+        "nl": "Yoghurt",
+        "en": "Yoghurt"
+      },
+      "text": {
+        "nl": "Met honing",
+        "en": "With honey"
+      },
+      "minutes": 2,
+      "gear": {
+        "nl": "",
+        "en": ""
+      },
+      "energy": "open",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000051",
+      "title": {
+        "nl": "Toast",
+        "en": "Toast"
+      },
+      "text": {
+        "nl": "Kaas",
+        "en": "Cheese"
+      },
+      "minutes": 5,
+      "gear": {
+        "nl": "Rooster",
+        "en": "Toaster"
+      },
+      "energy": "easy",
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "log": [
+    {
+      "id": "00000000-0000-4000-8000-000000000060",
+      "dish_id": "00000000-0000-4000-8000-000000000020",
+      "recipe_id": "00000000-0000-4000-8000-000000000030",
+      "date": "2026-10-19",
+      "feeling": "good",
+      "note": "Lekker",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000061",
+      "dish_id": "00000000-0000-4000-8000-000000000022",
+      "date": "2026-10-21",
+      "feeling": null,
+      "note": "",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000062",
+      "shelf_id": "00000000-0000-4000-8000-000000000050",
+      "date": "2026-10-22",
+      "feeling": "tired",
+      "note": "",
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "resting": [
+    {
+      "id": "00000000-0000-4000-8000-000000000070",
+      "dish_id": "00000000-0000-4000-8000-000000000021",
+      "until": "2026-11-10",
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "dishes": [
+    {
+      "id": "00000000-0000-4000-8000-000000000020",
+      "name": {
+        "nl": "Stoofvlees",
+        "en": "Flemish beef stew"
+      },
+      "category": "00000000-0000-4000-8000-000000000001",
+      "parents": true,
+      "ingredients": [
+        "00000000-0000-4000-8000-000000000010"
+      ],
+      "sides": [
+        {
+          "ingredients": [
+            "00000000-0000-4000-8000-000000000011",
+            "00000000-0000-4000-8000-000000000012"
+          ],
+          "label": {
+            "nl": "Frieten met mayo",
+            "en": "Fries with mayo"
+          }
+        },
+        {
+          "ingredients": [
+            "00000000-0000-4000-8000-000000000011"
+          ]
+        }
+      ],
+      "recipes": [
+        {
+          "id": "00000000-0000-4000-8000-000000000030",
+          "label": {
+            "nl": "Oven",
+            "en": "Oven"
+          },
+          "default": true,
+          "short": "Stoof",
+          "summary": "Slow and rich.",
+          "meals": [
+            "dinner"
+          ],
+          "ing": [
+            "beef"
+          ],
+          "minutes": 180,
+          "hands_on": 30,
+          "portions": 4,
+          "prep": "full",
+          "safe": true,
+          "gear": "1 pot",
+          "last_note": "More onion.",
+          "mini_note": "Skip the bread.",
+          "photo": "22222222-2222-4222-8222-222222222222",
+          "tools": [
+            {
+              "id": "t1",
+              "name": "Pot"
+            }
+          ],
+          "tracks": [
+            {
+              "id": "k1",
+              "name": "Stew"
+            },
+            {
+              "id": "k2",
+              "name": "Fries"
+            }
+          ],
+          "ingredients": [
+            {
+              "id": "l1",
+              "ingredient": "00000000-0000-4000-8000-000000000010",
+              "amount": 800,
+              "unit": "g",
+              "group": "Ingredients",
+              "note": {
+                "nl": "in blokjes",
+                "en": "cubed"
+              }
+            },
+            {
+              "id": "l2",
+              "ingredient": "00000000-0000-4000-8000-000000000013",
+              "amount": null,
+              "unit": "pc",
+              "group": "Ingredients"
+            }
+          ],
+          "steps": [
+            {
+              "id": "s1",
+              "track": "k1",
+              "text": "Step 1",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": [
+                "11111111-1111-4111-8111-111111111111"
+              ]
+            },
+            {
+              "id": "s2",
+              "track": "k2",
+              "text": {
+                "nl": "Bak de frieten",
+                "en": "Fry the fries"
+              },
+              "say": "stir",
+              "mins": 10,
+              "active": true,
+              "timer": {
+                "seconds": 600,
+                "name": "Fries"
+              },
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            },
+            {
+              "id": "s3",
+              "track": null,
+              "text": "Step 3",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000031",
+          "label": {
+            "nl": "Snelkookpan",
+            "en": "Pressure cooker"
+          },
+          "default": false,
+          "short": "Stoof",
+          "summary": "Slow and rich.",
+          "meals": [
+            "dinner"
+          ],
+          "ing": [
+            "beef"
+          ],
+          "minutes": 180,
+          "hands_on": 30,
+          "portions": 4,
+          "prep": "full",
+          "safe": true,
+          "gear": "1 pot",
+          "last_note": "More onion.",
+          "mini_note": "Skip the bread.",
+          "photo": null,
+          "tools": [
+            {
+              "id": "t1",
+              "name": "Pot"
+            }
+          ],
+          "tracks": [
+            {
+              "id": "k1",
+              "name": "Stew"
+            },
+            {
+              "id": "k2",
+              "name": "Fries"
+            }
+          ],
+          "ingredients": [
+            {
+              "id": "l1",
+              "ingredient": "00000000-0000-4000-8000-000000000010",
+              "amount": 800,
+              "unit": "g",
+              "group": "Ingredients",
+              "note": {
+                "nl": "in blokjes",
+                "en": "cubed"
+              }
+            },
+            {
+              "id": "l2",
+              "ingredient": "00000000-0000-4000-8000-000000000013",
+              "amount": null,
+              "unit": "pc",
+              "group": "Ingredients"
+            }
+          ],
+          "steps": [
+            {
+              "id": "s1",
+              "track": "k1",
+              "text": "Step 1",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": [
+                "11111111-1111-4111-8111-111111111111"
+              ]
+            },
+            {
+              "id": "s2",
+              "track": "k2",
+              "text": {
+                "nl": "Bak de frieten",
+                "en": "Fry the fries"
+              },
+              "say": "stir",
+              "mins": 10,
+              "active": true,
+              "timer": {
+                "seconds": 600,
+                "name": "Fries"
+              },
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            },
+            {
+              "id": "s3",
+              "track": null,
+              "text": "Step 3",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            }
+          ]
+        }
+      ],
+      "created": "2026-10-20T18:30:00+02:00",
+      "updated": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": {
+        "nl": "Spaghetti",
+        "en": "Spaghetti"
+      },
+      "category": "00000000-0000-4000-8000-000000000002",
+      "parents": false,
+      "ingredients": [],
+      "sides": [],
+      "recipes": [],
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000022",
+      "name": {
+        "nl": "Soep",
+        "en": "Soup"
+      },
+      "category": null,
+      "parents": true,
+      "ingredients": [
+        "00000000-0000-4000-8000-000000000013"
+      ],
+      "sides": [],
+      "recipes": [
+        {
+          "id": "00000000-0000-4000-8000-000000000032",
+          "label": {
+            "nl": "",
+            "en": ""
+          },
+          "default": true,
+          "short": "Stoof",
+          "summary": "Slow and rich.",
+          "meals": [
+            "dinner"
+          ],
+          "ing": [
+            "beef"
+          ],
+          "minutes": 180,
+          "hands_on": 30,
+          "portions": 4,
+          "prep": "full",
+          "safe": true,
+          "gear": "1 pot",
+          "last_note": "More onion.",
+          "mini_note": "Skip the bread.",
+          "photo": null,
+          "tools": [
+            {
+              "id": "t1",
+              "name": "Pot"
+            }
+          ],
+          "tracks": [
+            {
+              "id": "k1",
+              "name": "Stew"
+            },
+            {
+              "id": "k2",
+              "name": "Fries"
+            }
+          ],
+          "ingredients": [
+            {
+              "id": "l1",
+              "ingredient": "00000000-0000-4000-8000-000000000010",
+              "amount": 800,
+              "unit": "g",
+              "group": "Ingredients",
+              "note": {
+                "nl": "in blokjes",
+                "en": "cubed"
+              }
+            },
+            {
+              "id": "l2",
+              "ingredient": "00000000-0000-4000-8000-000000000013",
+              "amount": null,
+              "unit": "pc",
+              "group": "Ingredients"
+            }
+          ],
+          "steps": [
+            {
+              "id": "s1",
+              "track": "k1",
+              "text": "Step 1",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": [
+                "11111111-1111-4111-8111-111111111111"
+              ]
+            },
+            {
+              "id": "s2",
+              "track": "k2",
+              "text": {
+                "nl": "Bak de frieten",
+                "en": "Fry the fries"
+              },
+              "say": "stir",
+              "mins": 10,
+              "active": true,
+              "timer": {
+                "seconds": 600,
+                "name": "Fries"
+              },
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            },
+            {
+              "id": "s3",
+              "track": null,
+              "text": "Step 3",
+              "say": "stir",
+              "mins": 10,
+              "active": false,
+              "timer": null,
+              "uses": [
+                {
+                  "amount": "400 g",
+                  "name": "Rundvlees"
+                }
+              ],
+              "note": {
+                "nl": "Let op",
+                "en": "Careful"
+              },
+              "note_tone": "warning",
+              "mini": true,
+              "photos": []
+            }
+          ]
+        }
+      ],
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "dish_categories": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": {
+        "nl": "Dagelijkse kost",
+        "en": "Everyday"
+      },
+      "order": 1,
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": {
+        "nl": "Feest",
+        "en": "Party"
+      },
+      "order": 2,
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": {
+        "nl": "Rundvlees",
+        "en": "Beef"
+      },
+      "category": "00000000-0000-4000-8000-000000000003",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": {
+        "nl": "Frieten",
+        "en": "Fries"
+      },
+      "category": "00000000-0000-4000-8000-000000000004",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": {
+        "nl": "Mayonaise",
+        "en": "Mayonnaise"
+      },
+      "category": "00000000-0000-4000-8000-000000000004",
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": {
+        "nl": "Ui",
+        "en": "Onion"
+      },
+      "category": null,
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "ingredient_categories": [
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": {
+        "nl": "Vlees",
+        "en": "Meat"
+      },
+      "order": 1,
+      "created": "2026-10-20T18:30:00+02:00"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": {
+        "nl": "Andere",
+        "en": "Other"
+      },
+      "order": 2,
+      "created": "2026-10-20T18:30:00+02:00"
+    }
+  ],
+  "settings": {
+    "dinner_time": "18:30",
+    "lang": "nl",
+    "pace": "slow",
+    "spare": 10,
+    "odds": "equal",
+    "timer_sound": "chime"
+  }
+}
