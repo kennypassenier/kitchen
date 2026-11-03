@@ -20,7 +20,8 @@ import { ApiError } from "./http.js";
 import { failureOf } from "./save.js";
 import { isSignedOut } from "./login-link.js";
 import { signedOutNotice } from "./signed-out.js";
-import { SETTINGS_COLLECTION, SETTINGS_KEY, collectionOfPath, offlineOptions } from "../offline/config.js";
+import { SETTINGS_COLLECTION, SETTINGS_KEY, TAKE_ACTION, collectionOfPath, offlineOptions } from "../offline/config.js";
+import { takeLook } from "../offline/assemble.js";
 import { applyKeepDefault, deviceStorage } from "../offline/keep.js";
 import { kitRuntimeRan } from "./kit-ready.js";
 
@@ -51,11 +52,13 @@ export const READ_EVENT = "kitchen-data-read";
  * @property {KitDb} db the local database (feat-db-pages-1)
  */
 /**
- * The part of `chassisData.db` Kitchen uses (chassis-rs v4.5.0 docs/LOCAL_DB_DESIGN.md "Client contract, as built").
+ * The part of `chassisData.db` Kitchen uses (chassis-rs docs/LOCAL_DB_DESIGN.md "Client contract, as built"; `clear`,
+ * `action` and `act` since 4.6.0).
  * `sync` answers one summary per collection (`stopped`: null, "unreachable", "auth", "full", "error…").
  * @typedef {object} KitDb
  * @property {(name: string) => KitCollection} collection
  * @property {(names?: string[] | null) => Promise<Array<{ pages: number, removed: number, stopped: string | null }>>} sync
+ * @property {() => Promise<{ collections: string[], waiting: number }>} clear empties the stores; queue and keep choices stay
  */
 /**
  * @typedef {object} KitCollection
@@ -65,6 +68,8 @@ export const READ_EVENT = "kitchen-data-read";
  * @property {(key: string) => Promise<boolean>} isKept
  * @property {() => Promise<unknown>} sync
  * @property {() => Promise<{ partial: boolean, stale: boolean, lastPull: number | null, bytes: number }>} status
+ * @property {(name: string, look: (record: Record<string, any>, body: any) => Record<string, any> | null) => KitCollection} action
+ * @property {(key: string, name: string, body?: unknown) => Promise<KitWrite>} act
  * @property {(fn: (e: { collection: string, reason: string }) => void) => () => void} watch
  */
 /** @typedef {{ ok: boolean, queued: boolean, status: number, data: any, rev: string | null }} KitWrite */
@@ -89,6 +94,8 @@ async function configureOnce() {
   await kit.configure(offlineOptions(t));
   // Before the first read, so the very first kitchen answer on a new device is already kept (Kenny: default on).
   await applyKeepDefault(kit, deviceStorage());
+  // The freezer take is the freezer's item action (chassis-rs 4.6.0): its look shows while the take waits offline.
+  kit.db.collection("freezer").action(TAKE_ACTION, takeLook);
   // The settings are always kept (DB_MOVE choice C1): a recipe kept on its own then has its timer sound offline too.
   // Not awaited: offline on a new device the kit cannot fetch it yet, says so, and the next pull brings it.
   void kit.db.collection(SETTINGS_COLLECTION).keep(SETTINGS_KEY, true).catch((e) => console.warn("Kitchen: the settings could not be kept offline on this device", e));

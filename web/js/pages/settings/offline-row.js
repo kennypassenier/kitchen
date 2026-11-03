@@ -2,10 +2,9 @@
 // on by default). A device-level setting like calm mode and the theme: the kit keeps it per device (`keepAll`, which
 // since feat-db-pages-1 also decides what its local database stores: everything, or only the kept keys), so it is not
 // saved in the kitchen. The row says how much room the copy takes on this device (`usage()`: the local database and
-// the queue together). Its button "Clear offline copy" calls the kit's `clearCopy`, which empties the kit's response
-// cache and keeps the queue; the kit has no call that empties its local database without the queue, so the button is
-// hidden (Kenny 03/11/2026 "Knop verbergen") until the kit has a `db.clear()` that keeps the queue: flip
-// `SHOW_CLEAR_COPY` to bring it back (docs/OPEN.md, kp-gaps/chassis-rs.md 03/11 local DB item 3).
+// the queue together). Its button "Clear offline copy" empties the kit's local database (`db.clear()`, chassis-rs
+// 4.6.0: the stores and cursors go, the queue and the keep choices stay, usage drops to 0) and its response cache
+// (`clearCopy`). It was hidden while the kit had no such call (Kenny 03/11/2026 "Knop verbergen").
 //
 // With the setting off, the row also says how many recipes are kept one by one (feat-offline-recipe, the recipe page's
 // "Keep offline" toggle): the dishes the local database holds (api/recipe-keep.js `keptRecipeCount`).
@@ -17,9 +16,6 @@ import { lang, t } from "../../i18n/index.js";
 import { sizeText } from "../../offline/size.js";
 import { keptRecipeCount } from "../../api/recipe-keep.js";
 import { row } from "./parts.js";
-
-/** Whether the row shows "Clear offline copy"; false until the kit can empty its local database and keep the queue. */
-const SHOW_CLEAR_COPY = false;
 
 /** The switch and the clear button of the row. */
 export function offlineControls() {
@@ -42,7 +38,7 @@ export function offlineControls() {
  * @param {ReturnType<typeof offlineControls>} c
  */
 export const offlineRow = (c) =>
-  row({ id: "offline", title: t("set.offlineTitle"), text: t("set.offlineText"), control: c.offlineControl, said: t("set.offlineReading"), extra: SHOW_CLEAR_COPY ? hintAndClear(c.clearButton) : null });
+  row({ id: "offline", title: t("set.offlineTitle"), text: t("set.offlineText"), control: c.offlineControl, said: t("set.offlineReading"), extra: hintAndClear(c.clearButton) });
 
 /** The hint and the clear button as direct children of the value cell (settings.css keys on `.st-value > .st-hint`). @param {Node} button */
 function hintAndClear(button) {
@@ -101,7 +97,9 @@ export function wireOffline(root, c) {
   const onClear = () =>
     void runFlashButton(clearButton, async () => {
       try {
-        await (await kitData()).clearCopy();
+        const kit = await kitData();
+        await kit.db.clear();
+        await kit.clearCopy();
         await refresh(root, offlineInput);
         return t("set.offlineCleared");
       } catch (e) {

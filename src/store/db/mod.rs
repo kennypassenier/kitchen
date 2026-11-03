@@ -43,7 +43,11 @@ pub fn migrations() -> Vec<Migration> {
     vec![Migration::sql(SCHEMA_V1)]
 }
 
-/// What `App::app_db` gets: the schema and the one-time import of `kitchen.json`.
+/// What `App::app_db` gets: the schema and the one-time import of `kitchen.json`. A failed import stops the start in
+/// the kit (`import_required`, chassis-rs 4.6.0): Kitchen never serves an empty database (no file fallback, Kenny
+/// 03/11/2026 "Geen terugval").
 pub fn app_db_spec() -> AppDbSpec {
-    AppDbSpec::new(migrations()).with_import(import::run)
+    AppDbSpec::new(migrations())
+        .with_import(import::run)
+        .import_required()
 }
