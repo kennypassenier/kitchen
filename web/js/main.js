@@ -6,6 +6,7 @@
 // never carries a second hand-written list.
 
 import { attachNavToggles, attachSkipLinks } from "/static/kp/dist/js/components.js";
+import { attachPalettes } from "/static/kp/dist/js/palette.js";
 import { applyStoredCalm } from "/static/kp/dist/js/calm.js";
 import { attachThemePickers, themeMenuMarkup } from "/static/kp/dist/js/picker.js";
 import { attachThemeRegisters } from "/eten/registers.js";
@@ -14,6 +15,7 @@ import { t, lang, useLang, onLang } from "./i18n/index.js";
 import { createBar } from "./shell/nav.js";
 import { onKitchen, loadKitchen } from "./api.js";
 import { startOffline } from "./offline/start.js";
+import { keySheet, listPageKeys, sayKeys, sweepKeys } from "./shell/keys.js";
 
 /** @typedef {{ params: URLSearchParams, navigate: (href: string) => void }} Ctx */
 /** @typedef {(root: HTMLElement, ctx: Ctx) => (void | (() => void))} Mount */
@@ -88,6 +90,7 @@ async function render() {
   const path = location.pathname.replace(/\/+$/, "") || "/";
   cleanup();
   cleanup = () => {};
+  sweepKeys();
   const found = route(path, location.search);
   bar.mark(found?.bar ?? path);
   if (!found) {
@@ -157,9 +160,15 @@ function shellWords() {
   if (skip) skip.textContent = t("shell.skip");
   document.getElementById("bar")?.setAttribute("aria-label", t("shell.pages"));
 }
+// The `?` sheet of every key (shell/keys.js), opened by kp's palette wiring (`?` and its close keys).
+const keys = keySheet();
+document.body.append(keys);
+attachPalettes(document);
+listPageKeys();
 shellWords();
 onLang(() => {
   shellWords();
+  sayKeys(keys);
   drawTheme();
   void bar.draw();
   void render();

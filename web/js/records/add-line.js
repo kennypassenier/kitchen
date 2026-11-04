@@ -6,6 +6,8 @@
 
 import { h } from "../dom.js";
 import { uid } from "../ui/form-parts.js";
+import { t } from "../i18n/index.js";
+import { leaveToComponent, listKeys } from "../shell/keys.js";
 
 /**
  * @typedef {object} AddField
@@ -66,5 +68,7 @@ export function addLine({ tableId, label, submit, fields, named, check, add, ann
     /** @type {CustomEvent} */ (event).detail.waitUntil(bad ? Promise.resolve({ errors: { [bad.name]: bad.message } }) : add());
   });
   if (onAdded) form.addEventListener("kp-addrow-added", onAdded);
+  // On the `?` sheet: the add row's own Ctrl+Enter (kp `data-kp-addrow-submit-key`, its default), handled by the row.
+  listKeys(form, [{ keys: "Mod Enter", what: t("keys.addLine"), group: t("keys.groupTables"), inFields: true, run: leaveToComponent }]);
   return { el: form, focus: () => focusable(fields[0].control).focus() };
 }

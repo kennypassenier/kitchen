@@ -8,6 +8,7 @@ import { settle } from "../meet.js";
 import { pick } from "../bilingual.js";
 import { lang } from "../../i18n/index.js";
 import { createPaintQueue } from "./paint-timing.js";
+import { leaveToComponent, listKeys } from "../../shell/keys.js";
 
 /** @typedef {{ host: HTMLElement, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, steps: ReturnType<typeof import("./steps.js").stepFields>, syncing: boolean, seqState: string }} TimelineState */
 
@@ -62,6 +63,12 @@ export function timelineFields({ tracks, steps }) {
   const s = { host, tracks, steps, syncing: false, seqState: "" };
   // Typing repaints only when it pauses; anything else at once, a burst once (recipe/editor/paint-timing.js).
   const paints = createPaintQueue(() => paintTimeline(s));
+  // On the `?` sheet: the sequencer's own link keys (kp `data-kp-sequencer-link-key` / `-unlink-key`, their defaults).
+  const group = t("keys.groupTimeline");
+  listKeys(host, [
+    { keys: "L", what: t("keys.link"), group, run: leaveToComponent },
+    { keys: "U", what: t("keys.unlink"), group, run: leaveToComponent },
+  ]);
   host.addEventListener(SEQUENCER_CHANGE_EVENT, (ev) => applyDrop(s, /** @type {CustomEvent} */ (ev)));
   return {
     host,

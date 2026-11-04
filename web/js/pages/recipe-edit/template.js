@@ -4,6 +4,7 @@
 import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { stageCard } from "../../ui/cards.js";
+import { leaveToComponent, listKeys } from "../../shell/keys.js";
 
 /** @param {string} backHref */
 export function buildShell(backHref) {
@@ -22,6 +23,8 @@ export function buildShell(backHref) {
   const scope = h("div", { class: "rl-editpage__main", id: "rl-editor-scope" });
   const main = h("div", { class: "rl-editpage__col" }, alert, scope, plate);
   const root = h("div", { class: "rl-editpage rl-editor" }, header, h("div", { class: "rl-editpage__grid" }, fold, main));
+  // On the `?` sheet: the unsaved bar's own Ctrl+S (kp `data-kp-unsaved-save-key`, its default), handled by the bar.
+  listKeys(bar, [{ keys: "Mod S", what: t("keys.save"), group: t("keys.groupEditor"), inFields: true, run: leaveToComponent }]);
   return { root, header, title, lede, back, bar, contents, fold, plate, alert, scope };
 }
 

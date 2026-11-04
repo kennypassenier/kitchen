@@ -5,10 +5,15 @@ import { h } from "../../dom.js";
 import { t } from "../../i18n/index.js";
 import { section } from "./parts.js";
 import { DIAL_MINUTES } from "./timers.js";
+import { leaveToComponent, listKeys } from "../../shell/keys.js";
 
-/** The focus-steps component, loading from the first frame. @param {string} storeKey */
+/**
+ * The focus-steps component, loading from the first frame. Its own step keys (the component handles them) are listed
+ * on the `?` sheet, beside the answer and track keys it registers itself.
+ * @param {string} storeKey
+ */
 function buildSteps(storeKey) {
-  return h("div", {
+  const steps = h("div", {
     class: "kp-focus-steps",
     id: "ck-steps",
     "data-kp-focus-steps": "",
@@ -24,6 +29,14 @@ function buildSteps(storeKey) {
     "data-kp-remember": storeKey,
     "aria-label": t("cook.steps"),
   });
+  const group = t("keys.groupCook");
+  listKeys(steps, [
+    { keys: "ArrowRight", what: t("keys.nextStep"), group, run: leaveToComponent },
+    { keys: "ArrowLeft", what: t("keys.prevStep"), group, run: leaveToComponent },
+    { keys: "Home", what: t("keys.firstStep"), group, run: leaveToComponent },
+    { keys: "End", what: t("keys.lastStep"), group, run: leaveToComponent },
+  ]);
+  return steps;
 }
 
 /** The package's timers list, beside the steps. */

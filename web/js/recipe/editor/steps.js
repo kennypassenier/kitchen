@@ -7,6 +7,7 @@ import { MAX_TEXT_CHARS } from "../../limits.js";
 import { trackChoices, liveRows } from "./logic.js";
 import { stepEditor } from "./step-row.js";
 import { attachControls } from "./controls.js";
+import { keyFor, leaveToComponent, listKeys } from "../../shell/keys.js";
 
 /** @typedef {{ tracker: any, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, list: import("./step-row.js").StepRow[], stepsBox: HTMLElement, stepsEmpty: HTMLElement, quick: HTMLInputElement }} StepsState */
 
@@ -40,6 +41,29 @@ function move(s, e, by, focus) {
   (/** @type {HTMLButtonElement} */ (focus).disabled ? (by < 0 ? e.down : e.up) : focus).focus();
 }
 
+/**
+ * The keyboard's way to reorder (Kenny, 29/10/2026): Alt+Up and Alt+Down in a step's text, the focus staying in it,
+ * through kp's shortcut engine so the keys are on the `?` sheet and configurable (`data-kt-step-up-key`,
+ * `data-kt-step-down-key` on the list, shell/keys.js). A key outside a step's text is left alone. Enter in the quick
+ * field is listed too; its handler is the field's own.
+ * @param {StepsState} s
+ */
+function listStepKeys(s) {
+  const group = t("keys.groupEditor");
+  /** @param {number} by @returns {(ev: KeyboardEvent) => boolean} */
+  const mover = (by) => (ev) => {
+    const e = s.list.find((x) => x.text === ev.target);
+    if (!e) return false;
+    move(s, e, by, e.text);
+    return true;
+  };
+  listKeys(s.stepsBox, [
+    { keys: keyFor(s.stepsBox, "step-up"), what: t("keys.stepUp"), group, inFields: true, run: mover(-1) },
+    { keys: keyFor(s.stepsBox, "step-down"), what: t("keys.stepDown"), group, inFields: true, run: mover(1) },
+  ]);
+  listKeys(s.quick, [{ keys: "Enter", what: t("keys.quickAdd"), group, inFields: true, run: leaveToComponent }]);
+}
+
 /** @param {StepsState} s @param {Record<string, any>} step */
 function addStep(s, step) {
   const e = stepEditor(step, { tracker: s.tracker, trackOptions: () => trackOptions(s), list: () => s.list });
@@ -50,13 +74,6 @@ function addStep(s, step) {
     s.list = s.list.filter((x) => x !== e);
     renumber(s);
     s.quick.focus();
-  });
-  // The keyboard's way to reorder (Kenny, 29/10/2026): Alt+Up and Alt+Down in the step's text; the focus stays in it.
-  e.text.addEventListener("keydown", (ev) => {
-    const k = /** @type {KeyboardEvent} */ (ev);
-    if (!k.altKey || (k.key !== "ArrowUp" && k.key !== "ArrowDown")) return;
-    k.preventDefault();
-    move(s, e, k.key === "ArrowUp" ? -1 : 1, e.text);
   });
   for (const type of ["input", "change", "kp-quantity-change", "rl-photos-change"]) e.el.addEventListener(type, () => e.paint());
   return e;
@@ -101,6 +118,7 @@ export function stepFields({ r, tracks, tracker }) {
     quickAdd(s);
   });
   renumber(s);
+  listStepKeys(s);
   tracks.el.addEventListener("rl-rows-change", () => syncTrackChoices(s));
   const el = h("div", { class: "rl-steps-wrap" }, h("div", { class: "kp-formgrid" }, row(t("edit.quickLabel"), quick, t("edit.quickHint"))), s.stepsBox, s.stepsEmpty);
   return {

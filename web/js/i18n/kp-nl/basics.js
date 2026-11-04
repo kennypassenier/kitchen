@@ -61,4 +61,12 @@ export const KP_NL_BASICS = {
   noResults: "Geen resultaten",
   oneResult: "1 resultaat",
   manyResults: (n) => `${n} resultaten`,
+  // the shortcut sheet (kp shortcuts, Kitchen's `?` sheet)
+  shortcutsLabel: "Sneltoetsen",
+  shortcutsSheet: "Deze sneltoetsen tonen",
+  shortcutsPalette: "Het commandopalet openen",
+  shortcutsPending: "Wacht op de volgende toets",
+  shortcutsUnavailable: "Nu niet beschikbaar",
+  shortcutsEmptyTitle: "Geen sneltoetsen op deze pagina",
+  shortcutsEmptyText: "Toetsen die bij een pagina horen verschijnen hier zolang je erop bent.",
 };
