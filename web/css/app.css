@@ -79,3 +79,16 @@ html .kp-formgrid.kp-formgrid {
   display: grid;
   gap: var(--kp-space-sm, 0.5rem);
 }
+
+/* The bar's links on a touch screen are a fingertip high (trial K7, kp-gaps kitchen.md 04/11/2026): kp-themes 12.6.0 gives
+   the open phone list of an app's own `.kp-nav` 36 px links under a coarse pointer, and the kit's 44 px rule reaches only
+   its own shell nav. Drop this when kp-themes sizes `.kp-nav__links` links itself. */
+@media (pointer: coarse) {
+  .kp-nav__links a,
+  .kp-nav__link {
+    box-sizing: border-box;
+    min-block-size: var(--kp-touch-target, 44px);
+    display: flex;
+    align-items: center;
+  }
+}

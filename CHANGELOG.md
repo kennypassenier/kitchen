@@ -25,6 +25,13 @@ tag v4.7.0 `[meta-chassis-470-1]`). Neither changelog has a Migration section fo
   `data-kp-row-label`, so edits, Undo and moves are said by name.
 - **Text boxes in closed sections are measured when they open** (`data-kp-autosize-hidden="skip"`); Kitchen's own lazy
   autosize is gone [refactor-nav-more-pinned-1]. The editor's typing pause for the timeline stays (101 ms a key without it).
+- **`?` shows every keyboard shortcut** [feat-keys-sheet-1] (Kenny 04/11/2026, "Venster toevoegen"): kp's shortcut sheet
+  lists the keys of the page in NL and EN (the editor's Ctrl+S, the tag comma, Alt+Up/Down for a step, Enter in the
+  quick field, the timeline's L/U, the add row's Ctrl+Enter, cook mode's arrows, Ctrl+Z); Kitchen's own step keys go
+  through kp's engine and can be set with `data-kt-step-up-key` / `data-kt-step-down-key`.
+- **Signing in again stays in the same tab** [feat-login-same-tab-1]: the signed-out notice links to the kit's login
+  with `?next=` the page, which comes back there; edits waiting to be sent stay on the device and go after the login.
+- **The bar's links are 44 px on a touch screen** [fix-touch-nav-1].
 - **The gantt's fit mode needs no version check** [meta-chassis-470-1] (no hard-coded versions).
 - **Every part of `/data/kitchen` has its own endpoint, and the browser falls back to them** [feat-api-parts-1]
   (`docs/API.md`): when `/data/kitchen` fails on the server, the page is assembled from `GET /data/{list}` and
