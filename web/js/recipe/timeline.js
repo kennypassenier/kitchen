@@ -4,7 +4,6 @@
 // changes, and the package's calls that paint lanes, bars, marks, stretches and the legend. A page builds its lanes and
 // runs and hands them to drawTimeline(); the package does the rest (axis, line for now, states, hover cards, keys).
 
-import { VERSION as KP_VERSION } from "/static/kp/dist/js/registry.js";
 import { attachGantts, setGanttWindow, setGanttKinds, setGanttLegend, setGanttPoints, setGanttRuns, setGanttState, setGanttZones } from "/static/kp/dist/js/gantt.js";
 
 import { ganttFitMarkup } from "./timeline-fit.js";
@@ -28,7 +27,7 @@ export { setGanttState as setTimelineState };
  */
 export function mountTimeline(slot, { label, loading, legend = "off", fit = "scroll", strings = {}, redraw }) {
   const safe = label.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" ${ganttFitMarkup(fit, KP_VERSION)} data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
+  slot.innerHTML = `<section class="kp-gantt" data-kp-gantt data-kp-gantt-range="all" data-kp-gantt-toolbar="off" data-kp-gantt-legend="${legend}" data-kp-gantt-hint="off" ${ganttFitMarkup(fit)} data-kp-gantt-ghosts="1 1 1" aria-label="${safe}"></section>`;
   const el = /** @type {HTMLElement} */ (slot.firstElementChild);
   const off = attachGantts(slot, { strings: { ganttLoading: loading, ...strings } });
   setGanttState(el, "loading");
