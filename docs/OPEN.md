@@ -17,6 +17,31 @@ the release (list below).
 
 ## Release checks
 
+**Run once for 7.0.0 on 04/11/2026** (Kenny's JA 17:47, "keep working until the release, stop before signing"), on
+chassis-rs v4.8.0 / kp-themes 12.7.0, throwaway Kitchens (`~/.cache/kitchen-600/`, `~/.cache/kitchen-460/`), Firefox only.
+fmt, clippy, `cargo test`, the three checks and `cargo deny` run inside `chassis release` (not run twice).
+
+| Check | Result | Duration |
+|---|---|---|
+| 1: `node --test scripts/` | 308/308 | 0.68 s |
+| 3: Firefox smoke, every page incl. `/storage`, 1280 + 390, EN + NL | 0 console errors; 1 step failed at 390 (EN, NL): the smoke's `header-more` looks for a More button, which since [refactor-nav-more-pinned-1] is not shown at 390 (the pinned links are in the open list: 11/11 measured) | 2 min 11 s, 2 min 15 s, 2 min 16 s, 2 min 17 s |
+| 4, 7, 15 (a): `measure.mjs` formal,dark 1280,390 over 14 pages | only the accepted 64.7 px side-wheel kicker on `/`, `/eten`, `/parents` at 1280 | 10 min 30 s (2 in parallel) |
+| 5: category rename, two tabs | stale rename refused, "changed elsewhere" toast, the other tab's name kept | 12 s |
+| 7: network, 17 pages | the kit's one bundle once per web-app page, no split module beside it, nothing twice; `/eten` (Kitchen's own route, no import map) loads the split entries once each (55, none twice). The check was rewritten for the bundle delivery (it flagged the bundle itself) | 60 s + 60 s |
+| 7: every theme from the header menu, 1280 EN + 390 NL | one `data-theme` change and one stored write per pick, 0 unstyled frames (the check's observers piled up per pick; fixed in the check) | 53 s + 53 s |
+| 7: cook mode's place follows the login | same place in a second context | 10 s |
+| 7: printable sheet | checklist boxes, one print call | 6 s |
+| 10-13, 16 (d), 17 (b, c): `scripts/release/offline.e2e.mjs`, all 9 scenarios (5 back: clear with an edit waiting) | 1-2 ok; 2 **FAILED** (test: online `all()` reads through since chassis-rs 4.6.0; asked offline now), rerun ok; 3 **FAILED** (test raced the page's rebuild after the replay), rerun ok; 4-7 ok; 8 **FAILED** (app: the gone check, the kept count and the release plan took read-through rows for kept dishes) [fix-kept-readthrough-1], rerun with 2 and 9 ok | 23 s + 82 s + 100 s + 36 s + 36 s + 29 s |
+| 13 (a)-(d), 14 (a)-(e): two devices (`~/.cache/kitchen-600/twodev.mjs`) | 19 ok; 13 (d) threw once (the login page did not load within 30 s during the run), rerun alone 3/3 ok | 3 min 4 s + 17 s |
+| 15 (b): Send to phone and Print options at 390 and 320 | each plate inside the window (390: 37-325, 37-389; 320: 0-288, 32-320), opened in 58-74 ms | about 30 s |
+| 15 (c): /settings theme button | header pick Pastel: the row's trigger "Pastel ▾", aria "Thema: Pastel" | 5 s |
+| 16 (b), (c): a 4.1.0 file imported, then rolled back | "one-time import committed rows=25"; `/api/sync` 11 collections; rollback with the 5.0.0 binary: `kitchen.json` back byte for byte, `GET /data/kitchen` equal to the imported one except `rev: 0` (the fixture `tests/fixtures/db_move/kitchen-4.1.0.json`, not a copy of the live file) | about 5 s |
+| 17 (g)-(j) | measured while building (see check 17) | |
+| 6 | not rerun: its parts' code did not move (popovers and the theme button are 15 (b), (c)) | |
+
+Earlier run, for 6.0.0 on 02/11/2026:
+
+
 **Run once for 6.0.0 on 02/11/2026 evening** (Kenny's release word 20:15), on chassis-rs v4.4.0, a throwaway Kitchen
 (`--state-dir` under `~/.cache/kitchen-600/`), Firefox only. Durations measured; failed parts rerun alone after their fix.
 

@@ -74,8 +74,9 @@ Kitchen's pages import kp's `auto.js` from their modules instead of a `<script s
   `kitchen.json.pre-db`; the import accepts a FORMAT 5 file from 4.1.0 (live, measured 03/11/2026), 5.0.0 or 6.0.0 and
   gives every item without a revision `"rev": 0`; it reads everything back and compares it value for value with the file;
   only then is the file renamed `kitchen.json.migrated` (never deleted). Log line on success: "one-time import committed".
-- **A failed import changes nothing**: the database stays empty, `kitchen.json` stays where it was, and Kitchen refuses
-  to start: `kitchen refuses to start` with the reason in the journal, exit 1. Fix the cause (or roll back) and start
+- **A failed import changes nothing**: the database stays empty, `kitchen.json` stays where it was, and Kitchen does
+  not start: the kit logs "the one-time import into the app database failed and this app does not start without it"
+  with the reason in the journal, exit 1 (`AppDbSpec::import_required`). Fix the cause (or roll back) and start
   again; the import is retried.
 - **Back up first** (stopped service): `kitchen.json`, `kitchen-kit.db` and, if present, `kitchen.db` from the state
   directory, plus the installed binary.
