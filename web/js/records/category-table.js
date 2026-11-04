@@ -85,14 +85,10 @@ async function onReorder(list, event) {
 function categoryEntry(list, tableId) {
   const nl = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", lang: "nl", placeholder: list === "dish_categories" ? "Speciaal" : "Vlees", ...NAME_LIMIT }));
   const en = /** @type {HTMLInputElement} */ (input("", "text", { autocomplete: "off", placeholder: list === "dish_categories" ? "Special" : "Meat", ...NAME_LIMIT }));
-  // The kit says "Added <first value>": the name in the current language, kept in a hidden field.
-  const announce = /** @type {HTMLInputElement} */ (h("input", { type: "hidden", name: "announce" }));
-  const say = () => (announce.value = (lang() === "nl" ? nl : en).value.trim() || nl.value.trim() || en.value.trim());
-  nl.addEventListener("input", say);
-  en.addEventListener("input", say);
   return addLine({
     tableId,
-    announce,
+    // "Added <name>": the name in the page's language.
+    named: lang() === "nl" ? "nl" : "en",
     label: t(`list.${list}.add`),
     submit: t("rec.addInRow"),
     fields: [

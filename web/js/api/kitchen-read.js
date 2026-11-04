@@ -18,7 +18,7 @@ import { fillKeptGaps } from "./recipe-keep.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("./kit-data.js").KitData} KitData */
-/** @typedef {{ lists: Record<string, Array<Record<string, any>>>, settings: Record<string, any> | null, queue: any[] }} LocalState */
+/** @typedef {{ lists: Record<string, Array<Record<string, any>>>, settings: Record<string, any> | null }} LocalState */
 
 /** Without a connection and nothing synced on this device yet: the same words as before the move. */
 const noCopy = () => new ApiError(t("api.offlineNoCopy"), 0, null, "offline");
@@ -42,11 +42,11 @@ async function pullAll(kit) {
   return summaries.some((s) => s.stopped === "unreachable");
 }
 
-/** Every collection's rows (waiting edits laid over by the kit), the settings item and the queue. @param {KitData} kit @returns {Promise<LocalState>} */
+/** Every collection's rows (waiting edits laid over by the kit) and the settings item. @param {KitData} kit @returns {Promise<LocalState>} */
 async function localState(kit) {
   const rows = await Promise.all(LISTS.map((name) => kit.db.collection(name).all()));
-  const [settings, queue] = await Promise.all([kit.db.collection(SETTINGS_COLLECTION).get(SETTINGS_KEY), kit.queue()]);
-  return { lists: Object.fromEntries(LISTS.map((name, i) => [name, rows[i]])), settings, queue };
+  const settings = await kit.db.collection(SETTINGS_COLLECTION).get(SETTINGS_KEY);
+  return { lists: Object.fromEntries(LISTS.map((name, i) => [name, rows[i]])), settings };
 }
 
 /**
@@ -58,11 +58,11 @@ async function keptOrServer(kit, local) {
   try {
     const { data } = await readJson(KITCHEN_PATH);
     void fillKeptGaps(kit, data.dishes ?? [], local.lists).catch((e) => console.warn("Kitchen: bringing the kept recipes in line with the kitchen failed", e));
-    return { kitchen: overServer(data, local.lists, local.settings, local.queue), offline: false };
+    return { kitchen: overServer(data, local.lists, local.settings), offline: false };
   } catch (e) {
     if (!(e instanceof ApiError) || e.status !== 0) throw e;
     if (!local.lists.dishes.length) throw e;
-    return { kitchen: assemble(local.lists, local.settings, local.queue, { partial: true }), offline: true };
+    return { kitchen: assemble(local.lists, local.settings, { partial: true }), offline: true };
   }
 }
 
@@ -84,5 +84,5 @@ export async function readKitchen({ pull = true } = {}) {
     throw noCopy();
   }
   if (pull) sayRead(offline);
-  return { kitchen: assemble(local.lists, local.settings, local.queue), offline };
+  return { kitchen: assemble(local.lists, local.settings), offline };
 }

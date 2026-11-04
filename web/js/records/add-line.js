@@ -1,7 +1,8 @@
-// The add row of a table card, as the kit's `data-kp-addrow` (kp-themes 12.4.0): the fields stand under the table's
-// columns, Enter adds, the Add is busy while the line is saved, a refusal is said under the row or on its field, and the
-// kit says "Added <first word>" and empties the row. This file only writes the kit's markup and hands the page's rules to
-// its `kp-addrow-add` event; the behaviour is the kit's.
+// The add row of a table card, as the kit's `data-kp-addrow`: the fields stand under the table's columns with their
+// labels shown (`data-kp-addrow-labels="show"`), Enter adds (also on a closed select, `data-kp-addrow-enter="submit"`;
+// Ctrl+Enter from any field), the Add is busy while the line is saved, a refusal is said under the row or on its field,
+// and the kit says "Added <the named field>" (`data-kp-addrow-name`) and empties the row. This file only writes the kit's
+// markup and hands the page's rules to its `kp-addrow-add` event; the behaviour is the kit's.
 
 import { h } from "../dom.js";
 import { uid } from "../ui/form-parts.js";
@@ -33,17 +34,28 @@ function cell(f) {
 
 /**
  * Build the add row over the table `tableId`. `check` runs on every valid-form submit and names the field that is wrong;
- * `add` saves the line (a rejection is the refusal under the row). `announce` is a hidden field that holds the words the
- * kit says after the add ("Added Pasta"): the kit names the first filled value, which would be an id or a date.
- * @param {{ tableId: string, label: string, submit: string, fields: AddField[], check: () => { name: string, message: string } | null, add: () => Promise<void>, announce?: HTMLInputElement, onAdded?: () => void }} spec
+ * `add` saves the line (a rejection is the refusal under the row). `named` is the field whose value the kit says after the
+ * add ("Added Pasta"); `announce` an extra hidden field for a line whose name is no field's value (a select holds an id),
+ * named instead.
+ * @param {{ tableId: string, label: string, submit: string, fields: AddField[], named: string, check: () => { name: string, message: string } | null, add: () => Promise<void>, announce?: HTMLInputElement, onAdded?: () => void }} spec
  * @returns {{ el: HTMLFormElement, focus: () => void }}
  */
-export function addLine({ tableId, label, submit, fields, check, add, announce, onAdded }) {
+export function addLine({ tableId, label, submit, fields, named, check, add, announce, onAdded }) {
   const button = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true }, submit);
   const form = /** @type {HTMLFormElement} */ (
     h(
       "form",
-      { class: "kp-addrow", "data-kp-addrow": true, "data-kp-addrow-for": tableId, "data-kp-form": true, novalidate: true, "aria-label": label },
+      {
+        class: "kp-addrow",
+        "data-kp-addrow": true,
+        "data-kp-addrow-for": tableId,
+        "data-kp-addrow-labels": "show",
+        "data-kp-addrow-enter": "submit",
+        "data-kp-addrow-name": announce ? announce.name : named,
+        "data-kp-form": true,
+        novalidate: true,
+        "aria-label": label,
+      },
       h("div", { class: "kp-form__summary", "data-kp-form-summary": true, tabindex: "-1", hidden: true }),
       announce ?? null,
       h("div", { class: "kp-addrow__cells" }, ...fields.map(cell), h("div", { class: "kp-addrow__submit" }, button)),

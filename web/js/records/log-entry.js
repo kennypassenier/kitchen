@@ -29,7 +29,11 @@ function refreshOptions(what) {
   what.value = chosen;
 }
 
-/** The words the kit says after an add ("Added Pasta"): the chosen dish or food, kept in a hidden field. @param {HTMLSelectElement} what */
+/**
+ * The words the kit says after an add ("Added Pasta"): the chosen dish or food, kept in a hidden field the row names, as
+ * `data-kp-addrow-name` says a field's value and the select's value is an id (kp-gaps kitchen.md 04/11/2026).
+ * @param {HTMLSelectElement} what
+ */
 function announcer(what) {
   const el = /** @type {HTMLInputElement} */ (h("input", { type: "hidden", name: "announce" }));
   const sync = () => (el.value = what.value ? (what.selectedOptions[0]?.textContent ?? "") : "");
@@ -49,6 +53,7 @@ export function logEntry(tableId) {
     tableId,
     label: t("list.log.add"),
     submit: t("rec.addInRow"),
+    named: "what",
     announce: say.el,
     fields: [
       { name: "day", column: "day", label: t("rec.day"), control: f.day.el },

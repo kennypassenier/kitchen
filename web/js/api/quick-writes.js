@@ -3,26 +3,40 @@
 // the shared copy shows them at once; api.js re-exports both, so the pages keep importing from "../api.js".
 
 import { kitchenNow, put, putSettings } from "../api.js";
-import { SETTINGS_PATH, takePath } from "../offline/config.js";
-import { settingsOf, takeFrom } from "../offline/assemble.js";
+import { SETTINGS_PATH, TAKE_ACTION } from "../offline/config.js";
+import { settingsOf, takeLook } from "../offline/assemble.js";
 import { settingsRevFor } from "./save.js";
-import { writeJson } from "./kit-data.js";
+import { kitData, toApiError, writeJson } from "./kit-data.js";
 
 /**
- * Take portions out of the freezer (negative puts them back), through the kit (`chassisData.post` with an
- * Idempotency-Key, feat-offline-take-1): without a connection the take waits in its queue and the shared copy shows it
- * at once (the kitchen read lays it over too, offline/assemble.js `applyTakes`), never below zero; the server applies a
- * replay once. The kit's collection writes have no take, so this stays a POST (a patch of `portions` would refuse the
- * second of two offline takes as stale). Resolves to the item as it now stands.
+ * Take portions out of the freezer (negative puts them back) through the freezer's item action (chassis-rs 4.6.0
+ * `act`, a POST with an Idempotency-Key): without a connection the take waits in the kit's queue and its look
+ * (offline/assemble.js `takeLook`) shows in the local database at once, never below zero; the server applies a replay
+ * once. Resolves to the item as it now stands: the server's answer, or the local database's record while it waits.
  * @param {string} id @param {number} [portions]
  */
 export async function takePortions(id, portions = 1) {
-  const { data, queued } = await writeJson("POST", takePath(id), { portions });
-  const item = queued ? (takeFrom(kitchenNow()?.freezer ?? [], id, portions) ?? []).find((x) => x.id === id) : data;
+  const freezer = (await kitData()).db.collection("freezer");
+  let done;
+  try {
+    done = await freezer.act(id, TAKE_ACTION, { portions });
+  } catch (e) {
+    throw toApiError(e);
+  }
+  const item = done.queued ? ((await freezer.get(id)) ?? fromPage(id, portions)) : done.data;
   if (item) put("freezer", item);
-  // Only the freezer page takes, from items its copy holds; said if that ever breaks (the take itself still waits).
-  else console.warn(`Kitchen: a queued take of freezer item ${id} is not in the page's copy; it shows after the next read.`);
+  // The freezer page takes only from items it shows; said if that ever breaks (the take itself still waits).
+  else console.warn(`Kitchen: a queued take of freezer item ${id} is in neither the local database nor the page's copy; it shows after the next read.`);
   return item ?? { id };
+}
+
+/**
+ * A waiting take's look on the page's own copy, for a freezer item this device does not keep ("keep everything" off
+ * and offline: the local database has no record to lay the take over). @param {string} id @param {number} portions
+ */
+function fromPage(id, portions) {
+  const held = (kitchenNow()?.freezer ?? []).find((x) => x.id === id);
+  return held ? takeLook(held, { portions }) : null;
 }
 
 /** The settings PATCHes in flight, one after the other, so each names the revision the one before it answered. */
