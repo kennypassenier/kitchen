@@ -20,8 +20,8 @@ export const NL_RECORDS = {
   "api.staleReload": "Opnieuw laden",
   // chassis-rs 4.2.0: een oproep zonder aanmelding krijgt 401 JSON (geen omleiding); de pagina blijft en zegt het (api/signed-out.js).
   "api.signedOut": "Je bent afgemeld, dus de keuken heeft dit niet aangenomen. Meld je aan (de melding heeft een link) en probeer het dan opnieuw.",
-  "api.signedOutNote": "Je bent afgemeld. Meld je aan in een nieuw tabblad, kom dan hier terug en probeer opnieuw; wat je typte blijft staan.",
-  "api.signIn": "Aanmelden (nieuw tabblad)",
+  "api.signedOutNote": "Je bent afgemeld. Meld je aan om naar deze pagina terug te keren; wijzigingen die nog verstuurd moeten worden, blijven op dit toestel en worden dan verstuurd.",
+  "api.signIn": "Aanmelden",
   "api.dropped": "De verbinding met de keuken viel weg. Er is niets verloren; probeer opnieuw.",
   // refactor-rev-kit-1: lezen via de kit zonder verbinding en zonder offline kopie (api/kit-data.js).
   "api.offlineNoCopy": "Er is geen verbinding en dit is niet offline bewaard op dit toestel. Het verschijnt weer zodra de verbinding terug is.",

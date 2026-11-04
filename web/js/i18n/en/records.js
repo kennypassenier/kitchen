@@ -20,8 +20,8 @@ export const EN_RECORDS = {
   "api.staleReload": "Reload",
   // chassis-rs 4.2.0: a script call without a login gets 401 JSON (no redirect); the page stays and says so (api/signed-out.js).
   "api.signedOut": "You are signed out, so the kitchen did not take this. Sign in (the notice has a link), then try again.",
-  "api.signedOutNote": "You are signed out. Sign in in a new tab, then come back here and try again; what you typed stays.",
-  "api.signIn": "Sign in (new tab)",
+  "api.signedOutNote": "You are signed out. Sign in to come back to this page; changes waiting to be sent stay on this device and are sent then.",
+  "api.signIn": "Sign in",
   "api.dropped": "The connection to the kitchen dropped. Nothing is lost; try again.",
   // refactor-rev-kit-1: a read through the kit with neither a connection nor an offline copy of it (api/kit-data.js).
   "api.offlineNoCopy": "There is no connection and this was not kept offline on this device. It shows again once the connection is back.",
