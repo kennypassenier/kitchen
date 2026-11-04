@@ -11,6 +11,7 @@ import { t } from "../i18n/index.js";
 import { createNoticeOnce, goneDishIds, orphanIngredientIds } from "../offline/keep-plan.js";
 import { SEEN_KEY, deviceStorage } from "../offline/keep.js";
 import { kitData } from "./kit-data.js";
+import { keptDishes } from "./recipe-keep.js";
 
 /** @typedef {import("./kit-data.js").KitData} KitData */
 
@@ -49,11 +50,25 @@ export const leftHere = (id) => void ownDeletes.add(id);
 /** Dish `id` is kept again here: its leaving the database is noticed again. @param {string} id */
 export const keptHere = (id) => void ownDeletes.delete(id);
 
+/** Dish `id` was just kept: it is in the look from now on, so a delete before the next pull is noticed. @param {string} id */
+export function lookAtKept(id) {
+  if (!seen) return; // no look yet: the first one takes every kept dish
+  seen.add(id);
+  saveSeen(seen);
+}
+
 /** The notice, not sticky: the kit toast in the page's language. */
 const sayGone = () => toast(t("off.goneRecipe"));
 
-/** The dish ids the local database holds now (the kit's overlay hides a delete waiting here, which is ours anyway). @param {KitData} kit */
-const heldDishIds = async (kit) => new Set((await kit.db.collection("dishes").all()).map((d) => String(d.id)));
+/**
+ * The kept dish ids that are still in the kitchen (the kit's overlay hides a delete waiting here, which is ours anyway).
+ * Only kept ones: with "keep everything" off `all()` reads through the service online (chassis-rs 4.6.0) and answers
+ * every dish, kept or not.
+ * @param {KitData} kit
+ */
+async function heldDishIds(kit) {
+  return new Set((await keptDishes(kit.db.collection("dishes"))).map((d) => String(d.id)));
+}
 
 /**
  * Compare the dishes held now with the last look; for each kept dish that left without a delete of ours: the notice
@@ -76,7 +91,7 @@ export async function checkGoneDishes(kit, notify = sayGone) {
     if (noticed.claim(id)) notify();
   }
   const ingredients = kit.db.collection("ingredients");
-  for (const id of orphanIngredientIds(await dishes.all(), await ingredients.all())) await ingredients.keep(id, false);
+  for (const id of orphanIngredientIds(await keptDishes(dishes), await ingredients.all())) await ingredients.keep(id, false);
   return gone;
 }
 
@@ -85,7 +100,6 @@ export async function watchGoneDishes() {
   const kit = await kitData();
   const run = () => void checkGoneDishes(kit).catch((e) => console.warn("Kitchen: checking the kept recipes against the kitchen failed", e));
   run(); // the first look: compared with the last one remembered on this device
-  return kit.db.collection("dishes").watch(({ reason }) => {
-    if (reason === "pull") run();
-  });
+  // Every change of the collection: a pull may remove a kept dish, and a new keep must be in the look before that.
+  return kit.db.collection("dishes").watch(() => run());
 }

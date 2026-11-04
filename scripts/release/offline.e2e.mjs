@@ -13,8 +13,8 @@
 //      settings row counts it
 //   3. an offline edit shows after an offline reload and is replayed when the connection is back
 //   4. a conflict on replay lands in the list of refused edits; "Keep the kitchen's version" empties it
-//   5. (HELD, not in the list below: "Clear offline copy" has no kit call that empties the local database without the
-//      queue; docs/OPEN.md release check 16 "Held")
+//   5. "Clear offline copy" with an edit waiting: the local database empties, the edit stays and is sent later
+//      (scripts/release/offline-clear.mjs)
 //   6. signing out with an unsent edit asks first (the kit's confirmation)
 //   7. a freezer take (feat-offline-take-1): one whose answer is lost after it reached the kitchen is replayed with the
 //      same Idempotency-Key and takes ONE portion; one made offline shows at once and is sent when the connection is back
@@ -25,6 +25,7 @@
 // Exit code 1 on the first failed check; the measured duration is printed at the end.
 
 import { api, bandState, check, kitchenOf, launch, queueOf, settings, signedIn, synced } from "./offline-driver.mjs";
+import { clearCopy } from "./offline-clear.mjs";
 
 const cfg = settings();
 const started = Date.now();
@@ -51,8 +52,17 @@ async function cookOffline(browser) {
 /** Is dish `id` kept on this device, as the kit's local database says. @param {any} page @param {string} id */
 const keptByKit = (page, id) => page.evaluate((key) => /** @type {any} */ (window).chassisData.db.collection("dishes").isKept(key), id);
 
-/** The dish ids the local database holds. @param {any} page */
-const heldDishes = (page) => page.evaluate(async () => (await /** @type {any} */ (window).chassisData.db.collection("dishes").all()).map((/** @type {any} */ d) => d.id));
+/**
+ * The dish ids the local database holds. Asked offline: online, a collection that is not kept reads through the
+ * service (chassis-rs 4.6.0), so `all()` answers every dish while the database still stores only the kept ones.
+ * @param {any} context @param {any} page
+ */
+async function heldDishes(context, page) {
+  await context.setOffline(true);
+  const ids = await page.evaluate(async () => (await /** @type {any} */ (window).chassisData.db.collection("dishes").all()).map((/** @type {any} */ d) => d.id));
+  await context.setOffline(false);
+  return ids;
+}
 
 async function oneRecipeKept(browser) {
   const { context, page, errors } = await signedIn(browser, cfg);
@@ -66,7 +76,7 @@ async function oneRecipeKept(browser) {
   await page.locator(".rp-keep .kp-switch").click();
   await page.locator(".rp-keep__said", { hasText: /Kept on this device|Bewaard op dit toestel/ }).waitFor();
   check(await keptByKit(page, recipe.dish_id), "the kit keeps the recipe's dish");
-  const held = await heldDishes(page);
+  const held = await heldDishes(context, page);
   check(held.includes(recipe.dish_id) && !held.includes(other.dish_id), "the local database holds that dish and NOT the others");
   await context.setOffline(true);
   await page.reload();
@@ -136,6 +146,9 @@ async function editAndReplay(browser) {
   check(summary.sent === 1 && (await queueOf(page))[0] === 0, "the edit is sent once the connection is back");
   const server = await page.evaluate(async () => (await (await fetch("/data/settings/kitchen", { credentials: "same-origin" })).json()).pace);
   check(server === next, "the kitchen has the edit");
+  // The page rebuilds its kitchen from the kit's pull a moment after the replay (offline/start.js); a put-back sent
+  // before that names the revision from before the replay and is refused as stale, so read the kitchen first.
+  check((await kitchenOf(page)).settings.pace === next, "the page's kitchen follows the replay");
   await api(page, "patchSettings", { pace: before });
   await context.close();
 }
@@ -191,8 +204,9 @@ async function keptDishGone(browser) {
   const { context, page, errors } = await signedIn(browser, cfg);
   await page.evaluate(() => /** @type {any} */ (window).chassisData.keepAll(false));
   const dish = await api(page, "create", "dishes", { name: { nl: "E2E weg", en: "E2E gone" }, category: null, parents: false, ingredients: [], sides: [], recipes: [] });
-  await page.evaluate((id) => /** @type {any} */ (window).chassisData.db.collection("dishes").keep(id, true), dish.id);
-  check((await keptByKit(page, dish.id)) && (await heldDishes(page)).includes(dish.id), "the new dish is kept and held");
+  // Kept as the recipe page's switch keeps it (api/recipe-keep.js), so the gone check knows the dish at once.
+  await page.evaluate(async (id) => (await import("/js/api/recipe-keep.js")).keepRecipe([], id, true), dish.id);
+  check((await keptByKit(page, dish.id)) && (await heldDishes(context, page)).includes(dish.id), "the new dish is kept and held");
   await context.setOffline(true);
   await api(page, "loadKitchen", { force: true }).catch(() => {});
   check(await keptByKit(page, dish.id), "a lost connection drops nothing");
@@ -239,7 +253,7 @@ let failed = false;
 try {
   // KITCHEN_E2E_ONLY=3,4,… runs only those scenarios (numbered as in the header), so a fix reruns only what failed.
   const only = (process.env.KITCHEN_E2E_ONLY ?? "").split(",").map((n) => n.trim()).filter(Boolean);
-  const scenarios = [["cook mode offline", cookOffline, 1], ["only one recipe kept", oneRecipeKept, 2], ["offline edit + replay", editAndReplay, 3], ["conflict on replay", conflictToFailedList, 4], ["logout with unsent edits", logoutAsks, 6], ["freezer take once", freezerTakeOnce, 7], ["kept dish gone", keptDishGone, 8], ["settings stale", settingsStale, 9]];
+  const scenarios = [["cook mode offline", cookOffline, 1], ["only one recipe kept", oneRecipeKept, 2], ["offline edit + replay", editAndReplay, 3], ["conflict on replay", conflictToFailedList, 4], ["clear offline copy", (b) => clearCopy(b, cfg), 5], ["logout with unsent edits", logoutAsks, 6], ["freezer take once", freezerTakeOnce, 7], ["kept dish gone", keptDishGone, 8], ["settings stale", settingsStale, 9]];
   for (const [name, run, n] of scenarios) {
     if (only.length && !only.includes(String(n))) continue;
     console.log(`${n}. ${name}`);

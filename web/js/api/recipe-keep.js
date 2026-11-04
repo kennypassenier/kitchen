@@ -1,17 +1,27 @@
 // Keeping one recipe offline in the kit's local database (feat-offline-recipe, Kenny 02/11/2026 17:25 and 19:12,
 // option B; on `chassisData.db` since feat-db-pages-2). The decisions are offline/keep-plan.js (pure); this file only
 // talks to the kit: `collection(name).keep(key, on)` (a newly kept key is fetched once through its item route; letting
-// go removes the record unless everything is kept) and `isKept(key)`. With "keep everything" off, the dishes and
-// ingredients the local database holds are exactly the kept ones; the kit pulls their changes and applies the server's
-// deletes like any other record.
+// go removes the record unless everything is kept) and `isKept(key)`. With "keep everything" off, the database stores
+// exactly the kept dishes and ingredients; online, `all()` of a collection that is not kept reads through the service
+// (chassis-rs 4.6.0) and answers every dish, so the kept ones are asked by key (`keptDishes`).
 
 import { dishIngredientIds, keepStateOf, keptCount, missingIngredientIds, releasePlan } from "../offline/keep-plan.js";
 import { kitData } from "./kit-data.js";
-import { keptHere, leftHere } from "./recipe-gone.js";
+import { keptHere, leftHere, lookAtKept } from "./recipe-gone.js";
 
 /** @typedef {import("../offline/keep-plan.js").KeepState} KeepState */
 /** @typedef {import("./kit-data.js").KitData} KitData */
 /** @typedef {Record<string, any>} Item */
+
+/**
+ * The dishes kept on this device, as the local database answers them (online with the server's newest version).
+ * @param {ReturnType<KitData["db"]["collection"]>} col @returns {Promise<Item[]>}
+ */
+export async function keptDishes(col) {
+  const all = await col.all();
+  const kept = await Promise.all(all.map((d) => col.isKept(String(d.id))));
+  return all.filter((_, i) => kept[i]);
+}
 
 /** What the switch of the dish's recipe shows on this device. @param {string} dishId @returns {Promise<KeepState>} */
 export async function recipeKeepState(dishId) {
@@ -38,7 +48,7 @@ export async function keepRecipe(dishes, dishId, on) {
   const col = kit.db.collection("dishes");
   const dish = dishes.find((d) => d.id === dishId) ?? (await col.get(dishId));
   if (!on) {
-    const plan = releasePlan((await col.all()).filter((d) => d.id !== dishId), dish);
+    const plan = releasePlan((await keptDishes(col)).filter((d) => d.id !== dishId), dish);
     leftHere(dishId); // it leaves the database now by the person's choice: no "gone" notice
     const kept = await col.keep(dishId, false);
     await keepIngredients(kit, plan, false);
@@ -48,6 +58,8 @@ export async function keepRecipe(dishes, dishId, on) {
   await keepIngredients(kit, dishIngredientIds(dish), true);
   keptHere(dishId);
   const kept = await col.keep(dishId, true);
+  // The kit says nothing to its watchers on a keep: put the dish in the gone check's look now (api/recipe-gone.js).
+  if (kept) lookAtKept(dishId);
   return { kept, copied: (await col.get(dishId)) !== null };
 }
 
@@ -70,5 +82,5 @@ export async function fillKeptGaps(kit, serverDishes, lists) {
 /** How many recipes are kept one by one on this device (the dishes the local database holds). */
 export async function keptRecipeCount() {
   const kit = await kitData();
-  return keptCount(await kit.db.collection("dishes").all());
+  return keptCount(await keptDishes(kit.db.collection("dishes")));
 }
