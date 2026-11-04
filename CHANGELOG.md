@@ -6,6 +6,8 @@ carries a **Migration** section saying what an operator must do.
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-11-04
+
 - **The bar's More is the kit's** [refactor-nav-more-pinned-1]: the bar is a `data-kp-nav-fold` bar and the five secondary pages carry `data-kp-nav-more`, so kp-themes draws the More button, its menu, the current-page mark and its words; `web/js/shell/nav.js` lost its hand-built menu button (and the `nav.more` words). Lazy fold autosize dropped [refactor-drop-nav-autosize-1] (open 2.77 s without vs 3.04 s with, kp-themes 12.4.0); the debounced timeline repaint stays (302 ms vs 85 ms a key).
 
 Built on **chassis-rs 4.8.0 with kp-themes 12.7.0** (was 4.5.0 with 12.3.0; trial on 4.6.0 `[meta-chassis-460-1]`, then
