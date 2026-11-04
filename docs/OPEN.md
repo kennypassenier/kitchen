@@ -250,8 +250,11 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
     keeps the focus, the cook arrows still move the step (measured once 04/11/2026: 0 console errors; node
     `scripts/keys-sheet.test.mjs` 4/4); (h) signed out [feat-login-same-tab-1]: the notice's link goes to
     `/login?next=<page>` in the same tab and comes back after the login, a queued edit stays and is sent; with the session
-    already back it reloads the page (measured once with a stubbed 401; node `scripts/signed-out.test.mjs` 6/6, both
-    tests together 95 ms); (i) the bar's links on a touch screen 44 px [fix-touch-nav-1] (measured 11/11 at 390 coarse).
+    already back the kit's login returns to next (chassis-rs 4.8.0: 303 to /recipes, measured; Kitchen's probe removed);
+    (i) the bar's links on a touch screen 44 px [fix-touch-nav-1] (still needed on 4.8.0: 36 px without the rule);
+    (j) on chassis-rs 4.8.0 [meta-chassis-480-1], [feat-kit-480-1]: the log's "Added <dish>" by the option's text (EN,
+    NL measured), the editor's timeline typing pause kept (80-134 ms a key without, 42-71 ms with), kp's auto.js imported
+    from the modules (no kit warning about a kp `<script src>`).
 
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
