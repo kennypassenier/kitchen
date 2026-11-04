@@ -38,8 +38,9 @@ mod settings;
 mod undo;
 mod validate;
 
-use data::FORMAT;
-pub use data::{Data, Refused};
+#[cfg(test)]
+pub use data::COLLECTIONS;
+pub use data::{Data, FORMAT, Refused};
 pub use drafts::DRAFT_DAYS;
 pub use idempotent::Answered;
 pub use migrate::migrate;

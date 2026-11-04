@@ -1,7 +1,11 @@
 //! The kitchen's JSON routes, behind the kit's login (`dashboard_routes`).
 //!
 //! `GET /data/kitchen` answers everything at once, because every screen
-//! needs most of it and it is small. The rest is one route shape per list:
+//! needs most of it and it is small. Every part of that answer is also a route of its own (a list at
+//! `GET /data/{list}`, the settings at `GET /data/settings[/kitchen]`), read from the same store, so a page can
+//! rebuild the kitchen from them when this one fails (docs/API.md; `routes_parts_tests.rs` pins them equal). No page
+//! reads more than the kitchen plus one other resource, so there is no `/data/pages/{name}` (docs/API.md). The rest
+//! is one route shape per list:
 //!
 //! | Route | Does |
 //! |---|---|
@@ -115,6 +119,8 @@ fn answer(r: Result<impl serde::Serialize, Refused>) -> Response {
 async fn kitchen(State(s): Shared) -> Response {
     let mut data = s.snapshot().await;
     data.answered.clear();
+    // Like `GET /data/recipe_sources`, which answers an empty list for a file without one: every part is always there.
+    data.recipe_sources.get_or_insert_with(Vec::new);
     Json(data).into_response()
 }
 
@@ -192,3 +198,7 @@ async fn take(
 #[cfg(test)]
 #[path = "routes_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "routes_parts_tests.rs"]
+mod parts_tests;
