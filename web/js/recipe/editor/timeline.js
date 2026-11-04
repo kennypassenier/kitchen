@@ -58,7 +58,7 @@ export function timelineFields({ tracks, steps }) {
   // move, drag between lanes to run things in parallel, drag an edge to change how long a step takes. It is the kit's
   // sequencer (kp-themes 11.3.0); recipe/sequence.js maps the step fields to its items and back, and the list above stays the
   // other view: a change in either one is written to the same four fields (track, mins, start, with) and shown in the other.
-  const host = h("section", { class: "kp-gantt kp-sequencer rl-timeline", "data-kp-sequencer": true, "data-kp-sequencer-unit": "minute", "data-kp-sequencer-snap": "1", "aria-label": t("edit.timelineLabel") });
+  const host = h("section", { class: "kp-gantt kp-sequencer rl-timeline", "data-kp-sequencer": true, "data-kp-sequencer-paint": "once", "data-kp-sequencer-unit": "minute", "data-kp-sequencer-snap": "1", "aria-label": t("edit.timelineLabel") });
   /** @type {TimelineState} */
   const s = { host, tracks, steps, syncing: false, seqState: "" };
   // Typing repaints only when it pauses; anything else at once, a burst once (recipe/editor/paint-timing.js).

@@ -3,6 +3,9 @@
 // with Kitchen's English /parents. The package's own words on this page (the wheels, the loading and failed notes)
 // are set to Dutch here, before anything is drawn.
 
+// kp-themes' page-wide behaviours (dialogs, effects, theme pickers present at load), imported rather than a <script src>
+// so the kit's import map gives the page one kp-themes runtime (chassis-rs 4.8.0 rewrote and warned about the tag).
+import "/static/kp/dist/js/auto.js";
 import { setStrings } from "/static/kp/dist/js/strings.js";
 import { mountWheel } from "./wheel.js";
 import { mountThemePicker } from "./theme.js";

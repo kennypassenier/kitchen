@@ -29,32 +29,19 @@ function refreshOptions(what) {
   what.value = chosen;
 }
 
-/**
- * The words the kit says after an add ("Added Pasta"): the chosen dish or food, kept in a hidden field the row names, as
- * `data-kp-addrow-name` says a field's value and the select's value is an id (kp-gaps kitchen.md 04/11/2026).
- * @param {HTMLSelectElement} what
- */
-function announcer(what) {
-  const el = /** @type {HTMLInputElement} */ (h("input", { type: "hidden", name: "announce" }));
-  const sync = () => (el.value = what.value ? (what.selectedOptions[0]?.textContent ?? "") : "");
-  what.addEventListener("change", sync);
-  return { el, sync };
-}
-
 /** The line the fields hold, or which field is wrong. @param {ReturnType<typeof fields>} f */
 const lineOf = (f) => logLine({ what: f.what.value, day: f.day.get(), feeling: f.felt.value, note: f.note.value }, today());
 
 /** The add row of the log; `start` wires the date picker once the row is in the page. @param {string} tableId */
 export function logEntry(tableId) {
   const f = fields();
-  const say = announcer(f.what);
   let day = "";
   const row = addLine({
     tableId,
     label: t("list.log.add"),
     submit: t("rec.addInRow"),
+    // "Added <dish>": the kit says a select's chosen option by its text (kp-themes 12.7.0).
     named: "what",
-    announce: say.el,
     fields: [
       { name: "day", column: "day", label: t("rec.day"), control: f.day.el },
       { name: "what", column: "what", label: t("rec.whatEaten"), control: f.what },
@@ -80,9 +67,6 @@ export function logEntry(tableId) {
     el: row.el,
     focus: row.focus,
     start: f.day.start,
-    refresh: () => {
-      refreshOptions(f.what);
-      say.sync();
-    },
+    refresh: () => refreshOptions(f.what),
   };
 }

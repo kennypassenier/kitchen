@@ -17,13 +17,13 @@ const ALTGR = ["[", "]", "{", "}", "@", "#", "\\", "|", "~", "€", "`", "^"];
 const sources = (dir) => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? sources(join(dir, n)) : n.endsWith(".js") ? [join(dir, n)] : []));
 
 /** The `{ keys: "…", what: t("…") }` entries of the listKeys calls in `text`. @param {string} text */
-export const entriesOf = (text) => [...text.matchAll(/keys:\s*(?:"([^"]+)"|keyFor\([^)]*\))\s*,\s*what:\s*t\("([^"]+)"\)/g)].map((m) => ({ keys: m[1] ?? null, what: m[2] }));
+export const entriesOf = (text) => [...text.matchAll(/keys:\s*(?:"([^"]+)"|sheetKeys\([^)]*\)[^,]*)\s*,\s*what:\s*t\("([^"]+)"\)/g)].map((m) => ({ keys: m[1] ?? null, what: m[2] }));
 
 const all = sources(WEB).filter((f) => /listKeys\(/.test(readFileSync(f, "utf8")) && !f.endsWith("shell/keys.js")).flatMap((f) => entriesOf(readFileSync(f, "utf8")));
 
 test("the scan reads an entry", () => {
   assert.deepEqual(entriesOf(`{ keys: "Mod S", what: t("keys.save"), group }`), [{ keys: "Mod S", what: "keys.save" }]);
-  assert.deepEqual(entriesOf(`{ keys: keyFor(s.box, "step-up"), what: t("keys.stepUp") }`), [{ keys: null, what: "keys.stepUp" }]);
+  assert.deepEqual(entriesOf(`{ keys: sheetKeys(s.up) ?? "", what: t("keys.stepUp") }`), [{ keys: null, what: "keys.stepUp" }]);
 });
 
 test("the pages list at least the ten keys of the inventory", () => {
@@ -33,7 +33,7 @@ test("the pages list at least the ten keys of the inventory", () => {
 test("no listed key needs AltGr on AZERTY", () => {
   for (const e of all.filter((x) => x.keys)) for (const c of ALTGR) assert.ok(!e.keys.includes(c), `${e.keys} (${e.what})`);
   const own = readFileSync(join(WEB, "shell/keys.js"), "utf8");
-  assert.match(own, /"step-up": "Alt ArrowUp", "step-down": "Alt ArrowDown"/);
+  assert.match(own, /"step-up": "Alt\+ArrowUp", "step-down": "Alt\+ArrowDown"/);
 });
 
 test("every entry says what it does in English and Dutch, differently", () => {

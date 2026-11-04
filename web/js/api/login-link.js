@@ -9,9 +9,6 @@
 /** The kit's login page. */
 export const LOGIN_PATH = "/login";
 
-/** A small read behind the login: 200 when the session is valid, the kit's 401 when not. */
-export const SESSION_PROBE = "/data/settings/kitchen";
-
 /**
  * The login link that returns to `here` (`location`): the path and query, as the kit's `next` takes them.
  * @param {{ pathname: string, search: string }} here @returns {string}

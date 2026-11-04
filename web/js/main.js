@@ -5,6 +5,9 @@
 // The bar renders from the kit's page registry (`GET /api/kit/pages`), so it
 // never carries a second hand-written list.
 
+// kp-themes' page-wide behaviours (dialogs, effects, theme pickers present at load), imported rather than a <script src>
+// so the kit's import map gives the page one kp-themes runtime (chassis-rs 4.8.0 rewrote and warned about the tag).
+import "/static/kp/dist/js/auto.js";
 import { attachNavToggles, attachSkipLinks } from "/static/kp/dist/js/components.js";
 import { attachPalettes } from "/static/kp/dist/js/palette.js";
 import { applyStoredCalm } from "/static/kp/dist/js/calm.js";

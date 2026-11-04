@@ -36,13 +36,12 @@ function cell(f) {
 
 /**
  * Build the add row over the table `tableId`. `check` runs on every valid-form submit and names the field that is wrong;
- * `add` saves the line (a rejection is the refusal under the row). `named` is the field whose value the kit says after the
- * add ("Added Pasta"); `announce` an extra hidden field for a line whose name is no field's value (a select holds an id),
- * named instead.
- * @param {{ tableId: string, label: string, submit: string, fields: AddField[], named: string, check: () => { name: string, message: string } | null, add: () => Promise<void>, announce?: HTMLInputElement, onAdded?: () => void }} spec
+ * `add` saves the line (a rejection is the refusal under the row). `named` is the field the kit says after the add
+ * ("Added Pasta"; a select by its chosen option's text).
+ * @param {{ tableId: string, label: string, submit: string, fields: AddField[], named: string, check: () => { name: string, message: string } | null, add: () => Promise<void>, onAdded?: () => void }} spec
  * @returns {{ el: HTMLFormElement, focus: () => void }}
  */
-export function addLine({ tableId, label, submit, fields, named, check, add, announce, onAdded }) {
+export function addLine({ tableId, label, submit, fields, named, check, add, onAdded }) {
   const button = h("button", { type: "submit", class: "kp-button kp-button--primary", "data-kp-submit": true }, submit);
   const form = /** @type {HTMLFormElement} */ (
     h(
@@ -53,13 +52,12 @@ export function addLine({ tableId, label, submit, fields, named, check, add, ann
         "data-kp-addrow-for": tableId,
         "data-kp-addrow-labels": "show",
         "data-kp-addrow-enter": "submit",
-        "data-kp-addrow-name": announce ? announce.name : named,
+        "data-kp-addrow-name": named,
         "data-kp-form": true,
         novalidate: true,
         "aria-label": label,
       },
       h("div", { class: "kp-form__summary", "data-kp-form-summary": true, tabindex: "-1", hidden: true }),
-      announce ?? null,
       h("div", { class: "kp-addrow__cells" }, ...fields.map(cell), h("div", { class: "kp-addrow__submit" }, button)),
     )
   );

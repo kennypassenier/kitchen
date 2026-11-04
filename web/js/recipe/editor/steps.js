@@ -7,9 +7,10 @@ import { MAX_TEXT_CHARS } from "../../limits.js";
 import { trackChoices, liveRows } from "./logic.js";
 import { stepEditor } from "./step-row.js";
 import { attachControls } from "./controls.js";
-import { keyFor, leaveToComponent, listKeys } from "../../shell/keys.js";
+import { keyFor, listKeys, sheetKeys } from "../../shell/keys.js";
+import { matchesKeySpec } from "/static/kp/dist/js/key-spec.js";
 
-/** @typedef {{ tracker: any, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, list: import("./step-row.js").StepRow[], stepsBox: HTMLElement, stepsEmpty: HTMLElement, quick: HTMLInputElement }} StepsState */
+/** @typedef {{ tracker: any, tracks: ReturnType<typeof import("../../ui/form-parts.js").rows>, list: import("./step-row.js").StepRow[], stepsBox: HTMLElement, stepsEmpty: HTMLElement, quick: HTMLInputElement, up: import("/static/kp/dist/js/key-spec.js").KeySpec, down: import("/static/kp/dist/js/key-spec.js").KeySpec }} StepsState */
 
 /** @param {StepsState} s */
 const trackOptions = (s) => trackChoices(s.tracks.get().map(([tk]) => tk), { meet: t("edit.tracksMeet"), unnamed: t("edit.unnamedTrack") });
@@ -42,26 +43,33 @@ function move(s, e, by, focus) {
 }
 
 /**
- * The keyboard's way to reorder (Kenny, 29/10/2026): Alt+Up and Alt+Down in a step's text, the focus staying in it,
- * through kp's shortcut engine so the keys are on the `?` sheet and configurable (`data-kt-step-up-key`,
- * `data-kt-step-down-key` on the list, shell/keys.js). A key outside a step's text is left alone. Enter in the quick
- * field is listed too; its handler is the field's own.
+ * The keyboard's way to reorder (Kenny, 29/10/2026): Alt+Up and Alt+Down in a step's text, the focus staying in it. The
+ * keys are kp key specs (`data-kt-step-up-key` / `data-kt-step-down-key` on the list, shell/keys.js), matched by kp's
+ * `matchesKeySpec` in the text's own handler and listed on the `?` sheet as keys of a text field, with Enter in the
+ * quick field.
  * @param {StepsState} s
  */
 function listStepKeys(s) {
   const group = t("keys.groupEditor");
-  /** @param {number} by @returns {(ev: KeyboardEvent) => boolean} */
-  const mover = (by) => (ev) => {
-    const e = s.list.find((x) => x.text === ev.target);
-    if (!e) return false;
+  const field = /** @type {const} */ ("field");
+  /** @type {import("/static/kp/dist/js/shortcuts.js").Shortcut[]} */
+  const entries = [
+    { keys: sheetKeys(s.up) ?? "", what: t("keys.stepUp"), group, where: field },
+    { keys: sheetKeys(s.down) ?? "", what: t("keys.stepDown"), group, where: field },
+  ].filter((e) => e.keys);
+  listKeys(s.stepsBox, entries);
+  listKeys(s.quick, [{ keys: "Enter", what: t("keys.quickAdd"), group, where: field }]);
+}
+
+/** Alt+Up / Alt+Down in a step's text moves the step. @param {StepsState} s @param {import("./step-row.js").StepRow} e */
+function wireStepKeys(s, e) {
+  e.text.addEventListener("keydown", (ev) => {
+    const k = /** @type {KeyboardEvent} */ (ev);
+    const by = matchesKeySpec(k, s.up) ? -1 : matchesKeySpec(k, s.down) ? 1 : 0;
+    if (!by) return;
+    k.preventDefault();
     move(s, e, by, e.text);
-    return true;
-  };
-  listKeys(s.stepsBox, [
-    { keys: keyFor(s.stepsBox, "step-up"), what: t("keys.stepUp"), group, inFields: true, run: mover(-1) },
-    { keys: keyFor(s.stepsBox, "step-down"), what: t("keys.stepDown"), group, inFields: true, run: mover(1) },
-  ]);
-  listKeys(s.quick, [{ keys: "Enter", what: t("keys.quickAdd"), group, inFields: true, run: leaveToComponent }]);
+  });
 }
 
 /** @param {StepsState} s @param {Record<string, any>} step */
@@ -70,6 +78,7 @@ function addStep(s, step) {
   s.list.push(e);
   e.up.addEventListener("click", () => move(s, e, -1, e.up));
   e.down.addEventListener("click", () => move(s, e, 1, e.down));
+  wireStepKeys(s, e);
   /** @type {any} */ (e).del.addEventListener("click", () => {
     s.list = s.list.filter((x) => x !== e);
     renumber(s);
@@ -110,7 +119,8 @@ function syncTrackChoices(s) {
 export function stepFields({ r, tracks, tracker }) {
   const quick = /** @type {HTMLInputElement} */ (h("input", { class: "kp-field__input", type: "text", id: "rl-quick", autocomplete: "off", enterkeyhint: "next", maxlength: String(MAX_TEXT_CHARS), placeholder: t("edit.quickPh"), "aria-label": t("edit.quickLabel") }));
   /** @type {StepsState} */
-  const s = { tracker, tracks, list: [], stepsBox: h("ol", { class: "rl-steps" }), stepsEmpty: h("p", { class: "rl-rows__empty" }, t("edit.noSteps")), quick };
+  const stepsBox = h("ol", { class: "rl-steps" });
+  const s = { tracker, tracks, list: [], stepsBox, stepsEmpty: h("p", { class: "rl-rows__empty" }, t("edit.noSteps")), quick, up: keyFor(stepsBox, "step-up"), down: keyFor(stepsBox, "step-down") };
   for (const step of r.steps ?? []) addStep(s, step);
   quick.addEventListener("keydown", (ev) => {
     if (ev.key !== "Enter" || ev.isComposing) return;

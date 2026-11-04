@@ -7,7 +7,7 @@ import { cap } from "../../format.js";
 import { row, input, area, segmented, NAME_LIMIT } from "../../ui/form-parts.js";
 import { photoField } from "../photos.js";
 import { mealItems, MAIN } from "./consts.js";
-import { leaveToComponent, listKeys } from "../../shell/keys.js";
+import { listKeys } from "../../shell/keys.js";
 
 /**
  * The dish section of the form. `restore` is a draft's form state (Kenny, 29/10/2026).
@@ -32,8 +32,8 @@ export function detailFields({ r, preset, restore, mainOptions, tracker }) {
     h("ul", { class: "kp-combobox__list", id: "rl-main-list", role: "listbox", hidden: true }, ...mainSet.map((tag) => h("li", { class: "kp-combobox__option", role: "option", "data-kp-option": true, "data-value": tag }, cap(tag)))),
     h("p", { class: "kp-combobox__status", "data-kp-combobox-status": true, role: "status", "aria-live": "polite" }),
   );
-  // On the `?` sheet: the tag field's own comma (kp `data-kp-combobox-tag-key`, its default), handled by the field.
-  listKeys(mainBox, [{ keys: ",", what: t("keys.tag"), group: t("keys.groupEditor"), inFields: true, run: leaveToComponent }]);
+  // On the `?` sheet as a key of a text field: the tag field's own comma (kp `data-kp-combobox-tag-key`, its default).
+  listKeys(mainBox, [{ keys: ",", what: t("keys.tag"), group: t("keys.groupEditor"), where: "field" }]);
   const dish = h(
     "div",
     { class: "kp-formgrid" },

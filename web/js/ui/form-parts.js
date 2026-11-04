@@ -40,7 +40,8 @@ export function input(value, type = "text", attrs = {}) {
 
 /**
  * A text box that grows with its text. `data-kp-autosize-hidden="skip"`: a box in content that is not shown (a step's
- * notes in a closed `<details>`) is measured only once it shows, so the editor does not lay out the hidden notes.
+ * notes in a closed `<details>`) is measured only once it shows, so the editor does not lay out the hidden notes;
+ * `data-kp-autosize-first="frame"`: the first size is set after the page's first layout, not as each box attaches.
  * `max`: the most characters it takes; null for none (the import's pasted page, which is not stored).
  * @param {string} value @param {number} rows @param {number | null} [max]
  */
@@ -51,6 +52,7 @@ export function area(value, rows = 3, max = MAX_TEXT_CHARS) {
     rows,
     "data-kp-autosize": true,
     "data-kp-autosize-hidden": "skip",
+    "data-kp-autosize-first": "frame",
     ...(max ? { maxlength: String(max) } : {}),
   });
   el.textContent = value;
