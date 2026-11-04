@@ -10,11 +10,12 @@
 // items are the kitchen, marked `partial`. One offline layer either way: the kit's database and its queue.
 
 import { t } from "../i18n/index.js";
-import { KITCHEN_PATH, LISTS, SETTINGS_COLLECTION, SETTINGS_KEY } from "../offline/config.js";
+import { LISTS, SETTINGS_COLLECTION, SETTINGS_KEY } from "../offline/config.js";
 import { assemble, overServer } from "../offline/assemble.js";
 import { ApiError } from "./http.js";
 import { kitData, readJson, sayRead, toApiError } from "./kit-data.js";
 import { fillKeptGaps } from "./recipe-keep.js";
+import { readKitchenOrParts } from "./snapshot-parts.js";
 
 /** @typedef {import("../api.js").Kitchen} Kitchen */
 /** @typedef {import("./kit-data.js").KitData} KitData */
@@ -56,7 +57,7 @@ async function localState(kit) {
  */
 async function keptOrServer(kit, local) {
   try {
-    const { data } = await readJson(KITCHEN_PATH);
+    const { data } = await readKitchenOrParts(readJson);
     void fillKeptGaps(kit, data.dishes ?? [], local.lists).catch((e) => console.warn("Kitchen: bringing the kept recipes in line with the kitchen failed", e));
     return { kitchen: overServer(data, local.lists, local.settings, local.queue), offline: false };
   } catch (e) {
