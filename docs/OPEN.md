@@ -234,6 +234,19 @@ English and Dutch (0 console errors; 1 failed step in 3 of 4 runs, below). Nothi
    and wiring it to `db.clear()`. (3) is built as (a), the kit wish filed. Kit wish besides (no choice): an explicit `rev` on the collection's `put`/`patch`/`delete`,
    so Kitchen could drop `writeJson` (DB_MOVE.md "Page side, as built").
 
+17. **chassis-rs 4.7.0 / kp-themes 12.6.0 [meta-chassis-460-1], [meta-chassis-470-1], [feat-kit-460-1],
+    [feat-kit-470-1], [feat-kp-addrow-1], [refactor-nav-more-pinned-1], [feat-api-parts-1]** (04/11/2026; measured while
+    building, not a release run): Firefox sweep of 15 pages x 1280/390/390-coarse x EN/NL on main 738df2d: 0 CSP
+    violations, 0 failed states, 0 sideways scroll, console errors only the kit's service-worker line on `/status`
+    (6/6, kp-gaps/chassis-rs.md 04/11). At the release: (a) `node --test scripts/` and `cargo test` (new:
+    `scripts/snapshot-parts.test.mjs`, `src/routes_parts_tests.rs`; changed: `scripts/offline-assemble.test.mjs`,
+    `scripts/timeline-fit.test.mjs`, `src/store/db/tests/import_refused.rs`); (b) an offline freezer take through the
+    item action shows at once and is sent once (two devices, check 11's scenario); (c) "Offline kopie wissen" with an
+    edit waiting (measured once: 7500 -> 0 bytes, the edit kept and sent); (d) the add rows on /log and both category
+    tables, NL and EN: labels shown, Enter on a closed select adds, "Toegevoegd <naam>"; (e) `/data/kitchen` forced to
+    fail: the pages load from the parts endpoints; (f) a broken `kitchen.json` on a throwaway state dir: exit 1, file
+    untouched (measured once: 62 ms).
+
 ## Offline: the server is always the master (Kenny 02/11/2026 19:43)
 
 "De server is altijd de master, heeft altijd gelijk." Online answers always replace the local copy; a server deletion
@@ -271,7 +284,8 @@ change. The last two unchecked replays, a queued `DELETE` and a queued settings 
   (`web/js/recipe/editor/paint-timing.js`) stays: a key costs 302 ms without it vs 85 ms with it (`~/Projects/kp-gaps/kitchen.md`).
 - ~~`box-sizing: border-box` on the popover panel and `nameTrigger`~~ **dropped 03/11/2026 [refactor-drop-stand-ins-1]** (kp-themes 12.3.0 has both fixes, e1406eddb); re-check in release check 15.
 - The signed-out notice opens the login in a new tab because the kit's login read no `next` (kp-gaps/chassis-rs.md).
-  With chassis login `?next=` (chassis-rs main 0b541ca) the signed-out notice can link back to the same tab; decide at the release.
+  The kit's login takes `?next=` since chassis-rs 0b541ca (in 4.7.0), so the notice can link back in the same tab;
+  Kenny's choice at the release.
 - ~~The More item of the bar is built by hand~~ **replaced 03/11/2026 [refactor-nav-more-pinned-1]** by kp's `data-kp-nav-more` on a `data-kp-nav-fold` bar
   (its words do not follow a language change: `~/Projects/kp-gaps/kitchen.md`). The in-use reason-tooltip workaround
   (`web/js/records/in-use.js`) stays until kp-themes ships its card-layout tooltip fix.
@@ -283,7 +297,7 @@ None open: the unchecked replays are built as option A [fix-offline-master-5] (i
 Kit gaps found while building (chassis-rs cd68fd9, filed in kp-gaps/chassis-rs.md 02/11/2026):
 - [x] Logout did not ask on the kit's pages, the band's words read once, no `post()`, no failed-edits view: all four fixed in
   chassis-rs 073273f / 8042dbe (done on 8042dbe; the row for 073273f is ticked, re-check in release check 12).
-- [ ] **Optimistic `post()` only updates the POST's own path** (`post(path, body, { optimistic })` amends the copy of the
+- [x] (4.7.0: the take is the freezer's item action, [feat-kit-470-1]) **Optimistic `post()` only updates the POST's own path** (`post(path, body, { optimistic })` amends the copy of the
   POST's path, not the list it changes): Kitchen draws the queued freezer take itself (`takePortions`, `applyTakes` in `offline/assemble.js`).
   Filed in kp-gaps/chassis-rs.md 02/11/2026 (an `optimistic` that names the path it amends); drop Kitchen's overlay when it ships.
 

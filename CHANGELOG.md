@@ -8,8 +8,27 @@ carries a **Migration** section saying what an operator must do.
 
 - **The bar's More is the kit's** [refactor-nav-more-pinned-1]: the bar is a `data-kp-nav-fold` bar and the five secondary pages carry `data-kp-nav-more`, so kp-themes draws the More button, its menu, the current-page mark and its words; `web/js/shell/nav.js` lost its hand-built menu button (and the `nav.more` words). Lazy fold autosize dropped [refactor-drop-nav-autosize-1] (open 2.77 s without vs 3.04 s with, kp-themes 12.4.0); the debounced timeline repaint stays (302 ms vs 85 ms a key).
 
-Built on **chassis-rs 4.5.0 with kp-themes 12.3.0** (was 4.4.0 with 12.2.0; tag v4.5.0, `[meta-chassis-450-1]`). The 4.5.0
-changelog has no Migration section; `Cargo.lock` moved only `chassis`, `docs/KIT.md` got the new `sync_retain_days` knob.
+Built on **chassis-rs 4.7.0 with kp-themes 12.6.0** (was 4.5.0 with 12.3.0; trial on 4.6.0 `[meta-chassis-460-1]`, then
+tag v4.7.0 `[meta-chassis-470-1]`). Neither changelog has a Migration section for an app; `Cargo.lock` moved only
+`chassis`. The kit serves kp-themes as its one-file bundle through its import map (Kitchen has no map or `?v=` of its own).
+
+- **No inline styles** [meta-chassis-460-1]: the CSP's `style-src` is `'self'`; the printable sheet's layout is
+  `web/css/print-sheet.css`, the repeatable list's column widths go in through `style.setProperty`.
+- **A failed one-time import stops the start in the kit** (`AppDbSpec::import_required`) [feat-kit-460-1]: the reason is
+  logged and the process exits 1; `kitchen.json` is untouched and its `.pre-db` copy kept.
+- **"Offline kopie wissen" is back** [feat-kit-460-1]: it empties the kit's local database (`db.clear()`) and its
+  response cache; edits waiting to be sent and the keep choices stay.
+- **The freezer take is the freezer's item action** [feat-kit-470-1] (`action("take")` / `act`): the kit shows a waiting
+  take itself.
+- **The add rows are kp-themes' `data-kp-addrow`** [feat-kp-addrow-1], [feat-kit-470-1]: labels shown, Enter adds
+  (also on a closed select, Ctrl+Enter from any field), "Toegevoegd <naam>"; every data table row has
+  `data-kp-row-label`, so edits, Undo and moves are said by name.
+- **Text boxes in closed sections are measured when they open** (`data-kp-autosize-hidden="skip"`); Kitchen's own lazy
+  autosize is gone [refactor-nav-more-pinned-1]. The editor's typing pause for the timeline stays (101 ms a key without it).
+- **The gantt's fit mode needs no version check** [meta-chassis-470-1] (no hard-coded versions).
+- **Every part of `/data/kitchen` has its own endpoint, and the browser falls back to them** [feat-api-parts-1]
+  (`docs/API.md`): when `/data/kitchen` fails on the server, the page is assembled from `GET /data/{list}` and
+  `/data/settings/kitchen`; `recipe_sources` is always in the kitchen answer.
 
 ### Changed
 
@@ -27,7 +46,7 @@ changelog has no Migration section; `Cargo.lock` moved only `chassis`, `docs/KIT
   replays land in the failed list); "Offline bewaren" per recipe keeps the dish and its ingredients as kept keys; a kept
   dish deleted elsewhere is removed by the kit and Kitchen says so once. Kitchen's own offline adapter (the copy of
   `/data/kitchen`, the queue overlay, the kept-recipe reread and gone check, the reread after a replay) is gone. Creates
-  stay online-only; "Offline kopie wissen" still clears only the kit's response cache (asked, release check 16).
+  stay online-only.
 
 ### Added
 
