@@ -3,9 +3,7 @@
 AuDHD-friendly recipe app (Life sub-project): Rust on chassis-rs + plain
 ES modules on kp-themes, which comes only through chassis-rs (`/static/kp/`, Kenny 19/10/2026). Owner Kenny; chat Dutch, code and docs English.
 
-State (03/11/2026): 6.0.0 released (chassis 4.4.0, kp-themes 12.2.0; tag v6.0.0); main is on chassis-rs 4.5.0 (tag v4.5.0) /
-kp-themes 12.3.0 with the table-footprint, popover and `nameTrigger` stand-ins dropped, unreleased (release check 15 in docs/OPEN.md);
-live is still 4.1.0, the deploy waits on the homelab thread (docs/OPEN.md).
+State: the version and the chassis-rs tag are in `Cargo.toml`; what is open, released or deployed is in `docs/OPEN.md` (live versions are measured on the container, not remembered here).
 
 Read first: README.md, docs/OPEN.md, docs/DECISIONS.md. Data shapes:
 docs/agent/DATA.md. Screen designs (approved, implement exactly):

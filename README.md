@@ -4,8 +4,10 @@ A recipe app for someone with AuDHD who forgets how dishes go, freezes on
 "what do we eat?", loses the thread while cooking and has days with no
 energy at all. It takes over choice, sequence and time, without pressure.
 
-Release 0.1 holds five things, each approved as a screen design by Kenny on
-19/10/2026:
+The first release held these screens, each approved as a design by Kenny on
+19/10/2026. The app has grown since (dishes, ingredients, recipe import,
+offline copy, the parents' wheel); `docs/GUIDE.md` describes what it does
+now and `CHANGELOG.md` what each release added:
 
 | Screen | What it does for you |
 |---|---|

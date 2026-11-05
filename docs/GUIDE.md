@@ -59,19 +59,25 @@ flags, `KITCHEN_*` environment variables and `<state dir>/config.toml`
 admin token and the secret key come from the environment only
 (`kitchen gen-secret`).
 
-The recipes, the bad-days freezer and the calm settings are
-`<state dir>/kitchen.json`. Next to it the kit keeps two databases:
-`kitchen-kit.db` (login sessions and passkeys) and `kitchen.db` (the browser
-choices that follow you between devices, such as the timing page's numbers
-and where cook mode stands). The homelab's backup takes the whole state
-directory. A new state directory starts with no recipes or dishes: only the two categories
+The recipes, dishes, ingredients, the bad-days freezer and the calm settings
+are rows in `<state dir>/kitchen.db` (`src/store/db/`). The first start on a
+state directory that still has the old `kitchen.json` copies it to
+`kitchen.json.pre-db` and imports it into the database once
+(`docs/agent/DB_MOVE.md`). Beside it the kit keeps `kitchen-kit.db` (login
+sessions and passkeys); `kitchen.db` also holds the browser choices that
+follow you between devices, such as the timing page's numbers and where cook
+mode stands. The homelab's backup takes the whole state directory, after
+pausing writes through the kit (`backup_pause: chassis`). A new state directory starts with no recipes or dishes: only the two categories
 ("Dagelijkse kost", "Speciaal"); Kenny enters the real recipes and dishes.
 The Storage page shows how much room the databases take.
 
-On the homelab, `/etc/kitchen/kitchen.env` carries
-`KITCHEN_TRUSTED_ADMINS=10.10.10.10`, so Kenny's PC is let in without a
-login (Kenny, 22/10/2026). It only works for a request that reaches the
-container straight from that address, not through Traefik.
+On the homelab (CT 121) the unit loads `/appdata/kitchen/kitchen-config/kitchen.env`
+and sets `KITCHEN_STATE_DIR=/appdata/kitchen/kitchen-config`,
+`KITCHEN_TRUSTED_PROXIES=10.10.10.4` and `KITCHEN_TRUSTED_ADMINS=10.10.10.10`
+(`stacks/kitchen/kitchen/kitchen.service`), so Kenny's PC is let in without a
+login. Through Traefik the kit takes the visitor's address from the last
+`X-Forwarded-For` hop the trusted proxy appended, so this also works on the
+home route.
 
 `KITCHEN_PARENTS_HOST=eten.kp-soft.dev` keeps that host to the parents'
 wheel: its root opens the Dutch wheel, `/eten…`, `/static/…` and `/healthz`
@@ -83,11 +89,17 @@ and ranges) names who may open it, everyone else gets a short Dutch
 address, so `KITCHEN_TRUSTED_PROXIES` must list Traefik's address; without
 it Traefik's own home address would let everyone in.
 
-The homelab points both hosts at the same container. kitchen.kp-soft.dev is
-for Kenny, with the login, behind Cloudflare Access. eten.kp-soft.dev is
-for his parents, without an account and without Cloudflare: it has no public
-DNS record, only a host override on the home router pointing it at Traefik,
-and Traefik allows only 10.10.10.0/24 on that router (Kenny, 22/10/2026).
+The homelab points both hosts at the same container
+(`stacks/kitchen/traefik-routes.yml`, routers on entry points `web` and
+`websecure`, so each name also answers on https through the home route to
+Traefik at 10.10.10.4 as well as through the Cloudflare tunnel).
+kitchen.kp-soft.dev is for Kenny, with the login, behind Cloudflare Access.
+eten.kp-soft.dev is for his parents, without an account: Cloudflare Access
+has its own app for that host that lets the house's public address in
+without a login and refuses every other address. The live unit sets
+`KITCHEN_PARENTS_ALLOW=0.0.0.0/0,::/0`, so the app's own address check
+(default `10.10.10.0/24`) lets everything through and that gate is
+Cloudflare's.
 All the page reads is `/eten/data`: the names, categories and parts of the
 dishes on the wheel, nothing else.
 
